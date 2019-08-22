@@ -1,0 +1,13 @@
+# ignore fasta files
+fasta/*.fas*
+aln/*.fas*
+
+# ignore executables
+*.exe
+
+# ignore .o files
+*.o
+
+# ignore miscellaneous folders
+gotoh/
+tutorial/
