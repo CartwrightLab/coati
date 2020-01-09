@@ -11,3 +11,19 @@ aln/*.fas*
 # ignore miscellaneous folders
 gotoh/
 tutorial/
+
+# ignore pdf files
+*.pdf
+
+# ignore txt files
+*.txt
+
+# ignore csv,tsv
+*.csv
+*.tsv
+
+# ignore everything inside build directory
+build/*
+
+# ignore FSTs
+*.fst

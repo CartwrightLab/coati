@@ -3,10 +3,11 @@
 
 using namespace fst;
 
+// TODO: write as template for more fst and arc type variability
 VectorFst<StdArc> optimize(VectorFst<StdArc> fst_raw) {
 
 	// encode FST
-	SymbolTable *syms = SymbolTable::ReadText("fst/nuc_syms.txt");
+	SymbolTable *syms = SymbolTable::ReadText("fst/dna_syms.txt");
 	EncodeMapper<StdArc> encoder(kEncodeLabels, ENCODE);
 	encoder.SetInputSymbols(syms);
 	encoder.SetOutputSymbols(syms);

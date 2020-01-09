@@ -3,8 +3,6 @@
 
 #include <fst/fstlib.h>
 
-using namespace fst;
-
-VectorFst<StdArc> optimize(VectorFst<StdArc>);
+fst::VectorFst<fst::StdArc> optimize(fst::VectorFst<fst::StdArc>);
 
 #endif
