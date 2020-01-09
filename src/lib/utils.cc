@@ -4,10 +4,11 @@
 
 using namespace fst;
 
-void add_arc(VectorFst<StdArc> &n2p, int src, int dest, int ilabel, int olabel, float weight) {
-
+void add_arc(VectorFst<StdArc> &n2p, int src, int dest, int ilabel, int olabel, float weight=1.0) {
 	if(weight == 1.0) {
 		weight = 0.0;
+	} else if(weight == 0.0) {
+		weight = INT_MAX;
 	} else {
 		weight = -std::log(weight);
 	}

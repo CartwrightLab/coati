@@ -6,7 +6,14 @@
 
 using namespace fst;
 
+#define A 1
+#define C 2
+#define G 3
+#define T 4
+
 const std::string nuc_table[6] = {"T","C","A","G","U","N"};
+
+const std::map<char, int> nuc_sym = {{'A',1},{'C',2},{'G',3},{'T',4}};
 
 const std::string codon_table[64] = {"TTT","TTC","TTA","TTG","TCT","TCC","TCA",\
 	"TCG","TAT","TAC","TAA","TAG","TGT","TGC","TGA","TGG","CTT","CTC","CTA","CTG",\
@@ -37,8 +44,8 @@ VectorFst<StdArc> nuc2pos() {
 	n2p.AddState();
 	n2p.SetStart(0);
 
-	int s = 1; 	// variable for keeping track of states and for codons
-	int c = 101;
+	int s = 1;		// variable to keep track of states
+	int c = 101;	// variable to keep track of codons
 	// TODO: find more elegant way than 3 nested for loops
 	for(int i=1; i<5; i++) {
 		for(int j=1; j<5; j++) {
@@ -253,11 +260,10 @@ VectorFst<StdArc> ecm() {
 	int r = 1;
 	for(int i=0; i<64; i++) {
 		for(int j=0; j<64; j++) {
-			add_arc(ecm, 0, r, codon_table[i][1], codon_table[j][1], P(i,j));
-			add_arc(ecm, 0, r, codon_table[i][2], codon_table[j][2]);
-			add_arc(ecm, 0, r, codon_table[i][3], codon_table[j][3]);
-			add_arc(ecm, r, 0);
-			r++;
+			add_arc(ecm, 0, r, nuc_sym.find(codon_table[i][0])->second, nuc_sym.find(codon_table[j][0])->second, P(i,j));
+			add_arc(ecm, r, r+1, nuc_sym.find(codon_table[i][1])->second, nuc_sym.find(codon_table[j][1])->second);
+			add_arc(ecm, r+1, 0, nuc_sym.find(codon_table[i][2])->second, nuc_sym.find(codon_table[j][2])->second);
+			r = r+2;
 		}
 	}
 
