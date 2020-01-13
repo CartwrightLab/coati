@@ -2,9 +2,6 @@
 fasta/*.fas*
 aln/*.fas*
 
-# ignore executables
-*.exe
-
 # ignore .o files
 *.o
 

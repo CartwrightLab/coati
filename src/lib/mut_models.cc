@@ -6,11 +6,6 @@
 
 using namespace fst;
 
-#define A 1
-#define C 2
-#define G 3
-#define T 4
-
 const std::string nuc_table[6] = {"T","C","A","G","U","N"};
 
 const std::map<char, int> nuc_sym = {{'A',1},{'C',2},{'G',3},{'T',4}};
