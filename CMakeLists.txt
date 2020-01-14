@@ -39,7 +39,6 @@ set(SOURCES
 	#src/lib/eigen.cc
 	#src/lib/matrix.cc
 	src/lib/mut_models.cc
-	src/lib/optimize.cc
 	src/lib/utils.cc
 )
 

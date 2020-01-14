@@ -1,6 +1,5 @@
 
 #include <fst/fstlib.h>
-#include "optimize.h"
 #include "mut_models.h"
 #include "utils.h"
 #include <iostream>
