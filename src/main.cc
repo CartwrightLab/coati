@@ -1,12 +1,9 @@
-
 #include <fst/fstlib.h>
-#include "mut_models.h"
-#include "utils.h"
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <fstream>
-
-#define MyArc StdArc
+#include "mut_models.h"
+#include "utils.h"
 
 using namespace fst;
 namespace po = boost::program_options;
@@ -14,7 +11,7 @@ namespace po = boost::program_options;
 //TODO: incorporate unique pointers
 int main(int argc, char *argv[]) {
 
-	VectorFst<MyArc> mutation_raw;
+	VectorFst<StdArc> mutation_fst;
 	std::string fasta;
 	std::string mut_model;
 	std::string weight_f;
@@ -52,13 +49,13 @@ int main(int argc, char *argv[]) {
 	 	std::cout << "mutation model required. Exiting!" << std::endl;
 	 	return 2;
 	} else if(mut_model.compare("toycoati") == 0) {
-		mutation_raw = toycoati();
+		toycoati(mutation_fst);
 	} else if(mut_model.compare("marginalized") == 0) {
-		mutation_raw = marg_mut();
+		marg_mut(mutation_fst);
 	} else if(mut_model.compare("dna") == 0) {
-		mutation_raw = dna_mut();
+		dna_mut(mutation_fst);
 	} else if(mut_model.compare("ecm") == 0) {
-		mutation_raw = ecm();
+		ecm(mutation_fst);
 	} else {
 		std::cout << "Mutation model specified is unknown. Exiting!" << std::endl;
 		return 3;
@@ -68,37 +65,36 @@ int main(int argc, char *argv[]) {
 	// TODO: think about deleting fst (delete fst;)
 
 	// tropical semiring & read mutation and indel raw FSTs
-	const VectorFst<MyArc> *indel_raw = VectorFst<MyArc>::Read("fst/indel.fst");
+	const VectorFst<StdArc> *indel_raw = VectorFst<StdArc>::Read("fst/indel.fst");
 
 	// optimize mutation and indel raw FSTs
-	VectorFst<MyArc> mutation_fst, indel_fst;
-	mutation_fst = optimize(mutation_raw);
+	VectorFst<StdArc> indel_fst;
 	indel_fst = optimize(*indel_raw);
 
 	// sort mutation and indel FSTs
-	VectorFst<MyArc> mutation_sort, indel_sort;
-	mutation_sort = ArcSortFst<MyArc, OLabelCompare<MyArc>>(mutation_fst, OLabelCompare<MyArc>());
-	indel_sort = ArcSortFst<MyArc, ILabelCompare<MyArc>>(indel_fst, ILabelCompare<MyArc>());
+	VectorFst<StdArc> mutation_sort, indel_sort;
+	mutation_sort = ArcSortFst<StdArc, OLabelCompare<StdArc>>(mutation_fst, OLabelCompare<StdArc>());
+	indel_sort = ArcSortFst<StdArc, ILabelCompare<StdArc>>(indel_fst, ILabelCompare<StdArc>());
 
 	// compose mutation and indel FSTs
-	ComposeFst<MyArc> coati_comp = ComposeFst<MyArc>(mutation_sort, indel_sort);
+	ComposeFst<StdArc> coati_comp = ComposeFst<StdArc>(mutation_sort, indel_sort);
 
 	// optimize coati FST
-	VectorFst<MyArc> coati_fst;
-	coati_fst = optimize(VectorFst<MyArc>(coati_comp));
+	VectorFst<StdArc> coati_fst;
+	coati_fst = optimize(VectorFst<StdArc>(coati_comp));
 
 	// read input and output FSAs
-	const VectorFst<MyArc> *in_tape = VectorFst<MyArc>::Read("work/in_tape/"+fasta+".fst");
-	const VectorFst<MyArc> *out_tape = VectorFst<MyArc>::Read("work/out_tape/"+fasta+".fst");
+	const VectorFst<StdArc> *in_tape = VectorFst<StdArc>::Read("work/in_tape/"+fasta+".fst");
+	const VectorFst<StdArc> *out_tape = VectorFst<StdArc>::Read("work/out_tape/"+fasta+".fst");
 
 	// find alignment graph
 	// 1. compose in_tape and coati FSTs
-	ComposeFst<MyArc> aln_inter = ComposeFst<MyArc>(*in_tape, coati_fst);
+	ComposeFst<StdArc> aln_inter = ComposeFst<StdArc>(*in_tape, coati_fst);
 	// 2. sort intermediate composition
-	VectorFst<MyArc> aln_inter_sort;
-	aln_inter_sort = ArcSortFst<MyArc,OLabelCompare<MyArc>>(aln_inter, OLabelCompare<MyArc>());
+	VectorFst<StdArc> aln_inter_sort;
+	aln_inter_sort = ArcSortFst<StdArc,OLabelCompare<StdArc>>(aln_inter, OLabelCompare<StdArc>());
 	// 3. compose intermediate and out_tape FSTs
-	VectorFst<MyArc> graph_fst;
+	VectorFst<StdArc> graph_fst;
 	Compose(aln_inter_sort,*out_tape, &graph_fst);
 
 	//  case 1: ComposeFst is time: O(v1 v2 d1 (log d2 + m2)), space O(v1 v2)
@@ -111,7 +107,7 @@ int main(int argc, char *argv[]) {
 	//			Then ShortestPath with VectorFst is O(V log(V) + E)
 
 	// find shortest path through graph
-	VectorFst<MyArc> aln_path;
+	VectorFst<StdArc> aln_path;
 	ShortestPath(graph_fst, &aln_path);
 
 	// shortestdistance = weight of shortestpath

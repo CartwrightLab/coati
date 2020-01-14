@@ -14,11 +14,11 @@
 typedef Eigen::Matrix<double, 64, 64>Matrix64f;
 typedef Eigen::Matrix<double, 64, 1>Vector64f;
 
-fst::VectorFst<fst::StdArc> marg_mut();
-fst::VectorFst<fst::StdArc> nuc2pos();
-fst::VectorFst<fst::StdArc> toycoati();
-fst::VectorFst<fst::StdArc> dna_mut();
-fst::VectorFst<fst::StdArc> ecm();
+void nuc2pos(fst::VectorFst<fst::StdArc>& n2p);
+void marg_mut(fst::VectorFst<fst::StdArc>& mut_fst);
+void toycoati(fst::VectorFst<fst::StdArc>& mut_fst);
+void dna_mut(fst::VectorFst<fst::StdArc>& mut_fst);
+void ecm(fst::VectorFst<fst::StdArc>& mut_fst);
 std::string cod2aa();
 bool syn();
 float k();

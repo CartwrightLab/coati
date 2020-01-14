@@ -1,8 +1,4 @@
-
 #include "mut_models.h"
-
-// #include "eigen.h"
-// #include "matrix.h"
 
 using namespace fst;
 
@@ -32,9 +28,7 @@ const std::unordered_map<std::string, std::string> codon_aa = {{"TTT","F"},\
 //
 // }*/
 
-VectorFst<StdArc> nuc2pos() {
-	VectorFst<StdArc> n2p;
-
+void nuc2pos(VectorFst<StdArc> &n2p) {
 	// Add state 0 and make it the start state
 	n2p.AddState();
 	n2p.SetStart(0);
@@ -55,17 +49,16 @@ VectorFst<StdArc> nuc2pos() {
 	}
 
 	n2p.SetFinal(0, 0.0);
-
-	return n2p;
 }
 
 
 // TODO: make as template so that I can use any kind of fst and arc
-VectorFst<StdArc> marg_mut() {
+void marg_mut(VectorFst<StdArc>& mut_fst) {
 
 	// // tropical semiring & read raw FSTs
 	const VectorFst<StdArc> *marg_pos = VectorFst<StdArc>::Read("fst/marg_pos.fst");
-	VectorFst<StdArc> nuc2pos_raw = nuc2pos();
+	VectorFst<StdArc> nuc2pos_raw;
+	nuc2pos(nuc2pos_raw);
 
 	// optimize raw FSTs
 	VectorFst<StdArc> nuc2cod_fst, cod2pos_fst, marg_pos_fst, nuc2pos_fst;
@@ -81,26 +74,17 @@ VectorFst<StdArc> marg_mut() {
 	ComposeFst<StdArc> marg_mut = ComposeFst<StdArc>(nuc2pos_sort, marg_pos_sort);
 
 	// optimize final marginalized mutation FST
-	VectorFst<StdArc> marg_mut_opt;
-	marg_mut_opt = optimize(VectorFst<StdArc>(marg_mut));
-
-	return marg_mut_opt;
+	mut_fst = optimize(VectorFst<StdArc>(marg_mut));
 }
 
-VectorFst<StdArc> toycoati() {
+void toycoati(VectorFst<StdArc>& mut_fst) {
 	const VectorFst<StdArc> *toy_raw = VectorFst<StdArc>::Read("fst/mutation.fst");
-	VectorFst<StdArc> mutation_fst;
-	mutation_fst = optimize(*toy_raw);
-
-	return mutation_fst;
+	mut_fst = optimize(*toy_raw);
 }
 
-VectorFst<StdArc> dna_mut() {
+void dna_mut(VectorFst<StdArc>& mut_fst) {
 	const VectorFst<StdArc> *dna_raw = VectorFst<StdArc>::Read("fst/dna_marg.fst");
-	VectorFst<StdArc> dna_model;
-	dna_model = optimize(*dna_raw);
-
-	return dna_model;
+	mut_fst = optimize(*dna_raw);
 }
 
 // ECM unrestricted exchangeabilities, Kosiol et al. 2007, supplemental data [61x61]
@@ -207,7 +191,7 @@ bool isStop(std::string codon) {
 
 }
 
-VectorFst<StdArc> ecm() {
+void ecm(VectorFst<StdArc>& mut_fst) {
 	Matrix64f Q = Matrix64f::Zero();
 
 	float rowSum;
@@ -246,9 +230,8 @@ VectorFst<StdArc> ecm() {
 	Q = Q * t;
 	Matrix64f P = Q.exp();
 
-	VectorFst<StdArc> ecm;
-
 	// Add state 0 and make it the start state
+	VectorFst<StdArc> ecm;
 	ecm.AddState();
 	ecm.SetStart(0);
 
@@ -264,37 +247,5 @@ VectorFst<StdArc> ecm() {
 
 	// Set final state
 	ecm.SetFinal(0, 0.0);
-	return ecm;
+	mut_fst = optimize(ecm);
 }
-
-/*
-// Matrix64 qt(FindEigenspace(Q,pi,t));
-Matrix64 S = Symmetric(Q,pi,t);
-
-Vector64 rVals;
-Matrix64 rVecs;
-int nRot = EigenSystem(S, rVals, rVecs);
-if(EigenSystem(S,rVals,rVecs) == -1) {
-	std::cout << "Eigensystem failed to converge;" << std::endl;
-	exit(EXIT_FAILURE);
-}
-
-// void jacobi(Matrix64& a, Vector64 d, Matrix64& v);
-// int nRot = jacobi(S, rVals, rVecs);
-
-Matrix64 phi_inv = InverseDiagonal(SqrtDiagonal(pi));
-// InverseOfMatrix(SqrtDiagonal(pi)).PrintMatrix();
-rVecs.Multiply(phi_inv,rVecs);
-
-Matrix64 lVecs = Matrix64(rVecs);
-InverseOfMatrix(lVecs);
-// lVecs = rVecs^(-1)
-Vector64 D;
-for(int i=0; i<64; i++) {
-	D[i] = exp(rVals[i]);
-}
-
-Matrix64 P;
-P.Multiply(lVecs,D);
-P.Multiply(P,rVals);
-*/

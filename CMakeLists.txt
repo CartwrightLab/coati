@@ -36,8 +36,6 @@ ENABLE_TESTING()
 # Create sources variable with a link to all cc files to compile
 set(SOURCES
 	src/main.cc
-	#src/lib/eigen.cc
-	#src/lib/matrix.cc
 	src/lib/mut_models.cc
 	src/lib/utils.cc
 )
