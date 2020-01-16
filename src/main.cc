@@ -51,11 +51,16 @@ int main(int argc, char *argv[]) {
 	} else if(mut_model.compare("toycoati") == 0) {
 		toycoati(mutation_fst);
 	} else if(mut_model.compare("marginalized") == 0) {
-		marg_mut(mutation_fst);
+		const VectorFst<StdArc> *marg_pos = VectorFst<StdArc>::Read("fst/marg_pos.fst");
+		marg_mut(mutation_fst, *marg_pos);
 	} else if(mut_model.compare("dna") == 0) {
 		dna_mut(mutation_fst);
 	} else if(mut_model.compare("ecm") == 0) {
 		ecm(mutation_fst);
+	} else if(mut_model.compare("ecm-marginal") == 0) {
+		VectorFst<StdArc> ecmodel;
+		ecm_marginal(ecmodel);
+		marg_mut(mutation_fst, ecmodel);
 	} else {
 		std::cout << "Mutation model specified is unknown. Exiting!" << std::endl;
 		return 3;
@@ -82,6 +87,7 @@ int main(int argc, char *argv[]) {
 	// optimize coati FST
 	VectorFst<StdArc> coati_fst;
 	coati_fst = optimize(VectorFst<StdArc>(coati_comp));
+	coati_fst.Write("coati_ecmMarg.fst");
 
 	// read input and output FSAs
 	const VectorFst<StdArc> *in_tape = VectorFst<StdArc>::Read("work/in_tape/"+fasta+".fst");
