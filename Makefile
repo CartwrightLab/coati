@@ -1,9 +1,3 @@
-default: all
-
-.PHONY: default all
-
-all: fst/coati.fst
-
 ################################################################################
 # Construct raw FSTs from Rscripts. TODO: implement in c++                     #
 # Construct fst/coati.fst                                                      #
@@ -12,6 +6,7 @@ all: fst/coati.fst
 
 RSCRIPT = Rscript --vanilla
 SYMS = fst/dna_syms.txt
+FASTA = fasta/
 
 # Construct an FST for a MG94 codon model
 fst/mutation.fst: scripts/mutation.R $(SYMS)
@@ -27,12 +22,12 @@ fst/indel.fst: scripts/indel.R $(SYMS)
 # Marginalized mutation model
 ################################################################################
 
-# Construct an FST for a codon-marginalized MG94 codon model
+# Construct an FST for a codon-marginal MG94 codon model
 fst/marg_pos.fst: scripts/marg_mutation.R $(SYMS)
 	@$(RSCRIPT) $< 1 | fstcompile --arc_type=standard --isymbols=$(SYMS) \
 		--osymbols=$(SYMS) - | fstrmepsilon | fstarcsort --sort_type=ilabel > $@
 
-# Construct an FST for a nucleotide-marginalized MG94 codon model
+# Construct an FST for a nucleotide-marginal MG94 codon model
 fst/dna_marg.fst: scripts/marg_mutation.R $(SYMS)
 	@$(RSCRIPT) $< 2 | fstcompile --arc_type=standard --isymbols=$(SYMS) \
 		--osymbols=$(SYMS) - | fstrmepsilon | fstarcsort --sort_type=ilabel > $@
@@ -62,14 +57,9 @@ work/out_tape/%.fst: fasta/% scripts/acceptor.R
 		| fstarcsort --sort_type=ilabel > $@
 
 # Find alignment graph & its shortest path
-work/path/%.fst: build/coati work/in_tape/%.fst work/out_tape/%.fst
+aln/%: build/coati  work/in_tape/%.fst work/out_tape/%.fst scripts/fasta.R fst/indel.fst fst/marg_pos.fst fst/dna_marg.fst fst/mutation.fst
 	@echo "Aligning "$*
-	@./build/coati -f $* -m ecm #-w aln/weights.csv # toycoati # marginalized
-
-# Convert shortest path into an aligment
-aln/%: work/path/%.fst scripts/fasta.R fst/indel.fst fst/marg_pos.fst fst/dna_marg.fst fst/mutation.fst
-	@fstprint --isymbols=$(SYMS) --osymbols=$(SYMS) $< > work/path/$*.txt
-	@cat work/path/$*.txt | $(RSCRIPT) scripts/fasta.R - > $@
+	@./build/coati -f $* -m toy-marginal -o aln #-w aln/weights.csv
 
 ################################################################################
 # Drawing and printing FST                                                     #

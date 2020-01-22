@@ -2,8 +2,6 @@
 
 using namespace fst;
 
-const char nuc_table[6] = {'A','C','G','T','U','N'};
-const std::map<char, int> nuc_sym = {{'A',1},{'C',2},{'G',3},{'T',4}};
 const std::string codon_table[64] = {"AAA","AAC","AAG","AAT","ACA","ACC","ACG",\
 	"ACT","AGA","AGC","AGG","AGT","ATA","ATC","ATG","ATT","CAA","CAC","CAG","CAT",\
 	"CCA","CCC","CCG","CCT","CGA","CGC","CGG","CGT","CTA","CTC","CTG","CTT","GAA",\
@@ -25,6 +23,7 @@ const std::unordered_map<std::string, std::string> codon_aa = {{"TTT","F"},\
 //
 // }*/
 
+// FST that maps nucleotide to AA position
 void nuc2pos(VectorFst<StdArc> &n2p) {
 	// Add state 0 and make it the start state
 	n2p.AddState();
@@ -48,7 +47,7 @@ void nuc2pos(VectorFst<StdArc> &n2p) {
 	n2p.SetFinal(0, 0.0);
 }
 
-// TODO: make as template so that I can use any kind of fst and arc
+// Marginal toycoati model FST
 void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos) {
 
 	// // tropical semiring & read raw FSTs
@@ -83,7 +82,8 @@ void dna_mut(VectorFst<StdArc>& mut_fst) {
 	mut_fst = optimize(*dna_raw);
 }
 
-// ECM unrestricted exchangeabilities, Kosiol et al. 2007, supplemental data [61x61]
+/* ECM unrestricted exchangeabilities, Kosiol et al. 2007, supplemental data [61x61]
+	in A,C,G,T order */
 constexpr double s[64][64] = {{0,0.413957,12.931524,2.075154,1.523251,0.089476,0.199589,0.878163,5.815294,0.334224,1.868194,1.29386,0.667397,0.02302,0.275355,0.221536,3.215817,0.143479,0.285384,0.899262,1.042457,0.012394,0.00041,0.247195,3.06551,0.296358,0.011032,1.769879,0.43362,0.002143,3.5E-05,0.060922,2.258321,0.053168,0.159248,0.604859,0.923644,0.0055,0.000482,0.216244,0.713961,0.002863,0.001158,0.04873,0.708204,0.00193,0.000193,0.20148,0,0.042942,0,0.467136,1.496628,0.020909,0.000459,0.340991,0,0.004316,0.051005,0.099519,0.61266,0.005996,0.004963,0.148268},
 {0.413957,0,1.038682,17.634677,0.259909,1.346385,0.822133,0.296066,0.273855,4.127466,0.600415,0.586685,0.020837,0.175491,0.21917,0.025405,0.377447,2.203539,0.985145,0.46097,0.074161,0.532092,0.095418,0.000959,0.016636,0.863191,0.065212,0.00318,0.01454,0.18788,0.034916,0.00033,0.193544,2.729647,0.372719,0.371685,0.041435,0.565968,0.068501,0.001329,0.2804,1.110726,0.293884,0.005905,0.002362,0.215492,0.013582,0.000295,0,0.487814,0,0.046586,0.187826,1.118208,0.725836,0.00339,0,0.325422,0.053908,0.000932,0.00284,0.143614,0.060699,9.3E-05},
 {12.931524,1.038682,0,0.524647,0.256174,0.623366,1.144639,0.291009,1.197614,0.928876,7.316623,0.389004,0.056267,0.116405,0.497593,0.04144,0.461383,0.571469,2.285052,0.324525,0.012002,0.303613,0.561523,0.220816,0.034519,2.721043,3.8322,0.560831,0.000679,0.022384,0.133032,0.039362,0.308851,0.426684,1.563846,0.188097,0.004382,0.373948,0.759132,0.268662,0.00176,0.176224,0.744,0.021649,0.000524,0.056145,0.311885,0.072138,0,0.140864,0,0.072867,0.004438,0.25165,0.768607,0.156468,0,0.034794,0.105226,0.011489,6.2E-05,0.043609,0.33378,0.013122},
@@ -149,7 +149,8 @@ constexpr double s[64][64] = {{0,0.413957,12.931524,2.075154,1.523251,0.089476,0
 {0.004963,0.060699,0.33378,0.077878,0.011134,0.00299,0.586818,0.015652,0.001718,0.00579,0.506841,0.009289,1.065537,0.478019,3.062807,1.292935,0.007508,0.002163,0.250748,0.040275,0.005535,0.000382,0.112999,0.003499,0.001527,6.4E-05,0.127696,0.003054,16.560966,5.651603,12.455337,11.161511,0.005472,0.006808,0.159955,0.038557,0.019406,0.001654,0.220908,0.03563,0.001082,0.000191,0.175861,0.003881,0.762425,0.140867,1.108802,0.529619,0,0.177833,0,0.337279,0.611887,0.158873,0.694091,0.27499,0,0.240632,0.632947,0.395942,18.541946,0.675537,0,1.204356},
 {0.148268,9.3E-05,0.013122,0.263567,0.079948,9.3E-05,0.008032,0.497293,0.140516,9.3E-05,0.08331,0.225554,1.075187,0.056038,0.67937,1.119411,0.12632,0.000467,0.00976,0.638696,0.025217,0.00014,0.004063,0.324368,0.030121,0,0.000934,0.143832,1.036474,0.083684,0.07355,2.016257,0.084945,0,0.010974,0.064397,0.109975,9.3E-05,0.005884,0.483563,0.113991,0,0.018773,0.164659,0.565566,0.026338,0.068927,0.86397,0,0.481042,0,4.317981,0.27809,0.030074,0.034137,0.773935,0,0.045951,0.786871,0.733587,2.395822,16.011531,1.204356,0}};
 
-// ECM unrestrictied nucleotide frequencies, Kosiol et al. 2007, supplemental material
+/* ECM unrestrictied nucleotide frequencies, Kosiol et al. 2007, supplemental material
+	in A,C,G,T nucleotide order*/
 Vector64f pi((Vector64f() << 0.031090,0.020321,0.026699,0.022276,0.013120,0.017882,\
 	0.010682,0.012656,0.009746,0.013701,0.006788,0.010310,0.012814,0.023762,0.021180,\
 	0.024759,0.017168,0.011040,0.020730,0.010671,0.011165,0.010408,0.012199,0.010425,\
@@ -184,22 +185,24 @@ double k(std::string i, std::string j, int model=0) {
 	return 0;
 }
 
-bool isStop(std::string codon) {
+// chech if a codon is a stop codon
+bool is_stop(std::string codon) {
 	std::vector<std::string> stop_cod{"TAA","TAG","TGA"};
 	return std::find(std::begin(stop_cod), std::end(stop_cod), codon) != std::end(stop_cod);
 
 }
 
+// Empirical Codon Model P matrix
 void ecm_p(Matrix64f& P) {
 	Matrix64f Q = Matrix64f::Zero();
 
 	double rowSum;
 	double d = 0.0;
-	// std::vector<double>::iterator s_it = s.begin();
+
 	for(int i=0; i<64; i++) {
 		rowSum = 0.0;
 		for(int j=0; j<64; j++) {
-			if(i==j || isStop(codon_table[i]) || isStop(codon_table[j])) {
+			if(i==j || is_stop(codon_table[i]) || is_stop(codon_table[j])) {
 				continue;
 			} else if(syn(codon_table[i],codon_table[j])) {
 				Q(i,j) = s[i][j]*pi[j]*k(codon_table[i],codon_table[j]);
@@ -214,8 +217,6 @@ void ecm_p(Matrix64f& P) {
 		d += pi[i]*rowSum;
 	}
 
-	// assert(s_it == s.end());
-
 	// normalize
 	Q = Q/d;
 
@@ -224,6 +225,7 @@ void ecm_p(Matrix64f& P) {
 	P = Q.exp();
 }
 
+// Empirical Codon Model (Kosiol et al. 2007) FST
 void ecm(VectorFst<StdArc>& mut_fst) {
 	Matrix64f P;
 	ecm_p(P);
@@ -236,12 +238,12 @@ void ecm(VectorFst<StdArc>& mut_fst) {
 	int r = 1;
 	for(int i=0; i<64; i++) {
 		for(int j=0; j<64; j++) {
-			add_arc(ecm, 0, r, nuc_sym.find(codon_table[i][0])->second,\
-				nuc_sym.find(codon_table[j][0])->second, P(i,j));
-			add_arc(ecm, r, r+1, nuc_sym.find(codon_table[i][1])->second,\
-				nuc_sym.find(codon_table[j][1])->second);
-			add_arc(ecm, r+1, 0, nuc_sym.find(codon_table[i][2])->second,\
-				nuc_sym.find(codon_table[j][2])->second);
+			add_arc(ecm, 0, r, nuc_sym[codon_table[i][0]],\
+				nuc_sym[codon_table[j][0]], P(i,j));
+			add_arc(ecm, r, r+1, nuc_sym[codon_table[i][1]],\
+				nuc_sym[codon_table[j][1]]);
+			add_arc(ecm, r+1, 0, nuc_sym[codon_table[i][2]],\
+				nuc_sym[codon_table[j][2]]);
 			r = r+2;
 		}
 	}
@@ -251,11 +253,13 @@ void ecm(VectorFst<StdArc>& mut_fst) {
 	mut_fst = optimize(ecm);
 }
 
+// Marginal Empirical Codon Model
 void ecm_marginal(VectorFst<StdArc>& ecm_m) {
 	VectorFst<StdArc> fst;
 	fst.AddState();
 	fst.SetStart(0);
 
+	// get Empirical Codon Model P matrix
 	Matrix64f P;
 	ecm_p(P);
 
@@ -263,14 +267,14 @@ void ecm_marginal(VectorFst<StdArc>& ecm_m) {
 	double m;
 
 	// for loop extravaganza
-	for(int i=0; i<64; i++) {
-		for(int j=0; j<3; j++) {
-			for(int k=0; k<4; k++) {
+	for(int i=0; i<64; i++) {	// for each codon
+		for(int j=0; j<3; j++) {	// for each position in a codon
+			for(int k=0; k<4; k++) {	// for each possible nucleotide
 				m = 0.0;
 				for(int l=0; l<64; l++) {
-					m += ((codon_table[i][l] == nuc_table[k]) ? P(i,l) : 0.0);
+					m += ((codon_table[l][j] == nuc_table[k]) ? P(i,l) : 0.0);
 				}
-				add_arc(fst, 0, 0, c, nuc_sym.find(nuc_table[k])->second,m);
+				add_arc(fst, 0, 0, c, nuc_sym[nuc_table[k]],m);
 			}
 			c++;
 		}

@@ -12,9 +12,7 @@ namespace po = boost::program_options;
 int main(int argc, char *argv[]) {
 
 	VectorFst<StdArc> mutation_fst;
-	std::string fasta;
-	std::string mut_model;
-	std::string weight_f;
+	std::string fasta, mut_model, weight_f, outdir;
 
 	try {
 		po::options_description desc("Allowed options");
@@ -23,6 +21,7 @@ int main(int argc, char *argv[]) {
 			("fasta,f",po::value<std::string>(&fasta)->required(), "name of fasta file")
 			("model,m",po::value<std::string>(&mut_model)->required(), "substitution model")
 			("weight,w",po::value<std::string>(&weight_f), "weight storing file")
+			("outdir,o",po::value<std::string>(&outdir), "output directory")
 		;
 
 		po::variables_map varm;
@@ -50,7 +49,7 @@ int main(int argc, char *argv[]) {
 	 	return 2;
 	} else if(mut_model.compare("toycoati") == 0) {
 		toycoati(mutation_fst);
-	} else if(mut_model.compare("marginalized") == 0) {
+	} else if(mut_model.compare("toy-marginal") == 0) {
 		const VectorFst<StdArc> *marg_pos = VectorFst<StdArc>::Read("fst/marg_pos.fst");
 		marg_mut(mutation_fst, *marg_pos);
 	} else if(mut_model.compare("dna") == 0) {
@@ -66,6 +65,8 @@ int main(int argc, char *argv[]) {
 		return 3;
 	}
 
+	if(outdir.empty())
+		outdir = "./";
 
 	// TODO: think about deleting fst (delete fst;)
 
@@ -87,7 +88,6 @@ int main(int argc, char *argv[]) {
 	// optimize coati FST
 	VectorFst<StdArc> coati_fst;
 	coati_fst = optimize(VectorFst<StdArc>(coati_comp));
-	coati_fst.Write("coati_ecmMarg.fst");
 
 	// read input and output FSAs
 	const VectorFst<StdArc> *in_tape = VectorFst<StdArc>::Read("work/in_tape/"+fasta+".fst");
@@ -131,9 +131,8 @@ int main(int argc, char *argv[]) {
 	// topsort path FST
 	TopSort(&aln_path);
 
-	// TODO: do aln_path -> fasta.fasta in C++
 	// write path FST
-	aln_path.Write("work/path/"+fasta+".fst");
+	write_fasta(aln_path, fasta, outdir);
 
     return 0;
 }

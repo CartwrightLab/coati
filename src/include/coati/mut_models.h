@@ -24,6 +24,6 @@ void ecm_marginal(fst::VectorFst<fst::StdArc>& ecm_m);
 std::string cod2aa();
 bool syn();
 double k();
-bool isStop();
+bool is_stop();
 
 #endif

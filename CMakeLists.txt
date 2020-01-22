@@ -4,6 +4,8 @@ cmake_minimum_required(VERSION 3.1.0 FATAL_ERROR)
 # Set default build type
 SET(CMAKE_BUILD_TYPE_INIT "RelWithDebInfo")
 
+SET(CMAKE_CXX_STANDARD 11)
+
 # Set project name
 project(coati)
 
@@ -35,9 +37,9 @@ ENABLE_TESTING()
 
 # Create sources variable with a link to all cc files to compile
 set(SOURCES
-	src/main.cc
-	src/lib/mut_models.cc
-	src/lib/utils.cc
+	src/main.cpp
+	src/lib/mut_models.cpp
+	src/lib/utils.cpp
 )
 
 # Add executable

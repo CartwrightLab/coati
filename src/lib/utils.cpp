@@ -1,9 +1,11 @@
-#include <iostream>
-#include <fstream>
-#include <fst/fstlib.h>
+#include "utils.h"
 
 using namespace fst;
 
+std::map<int, char> nuc_sym = {{0,'-'},{1,'A'},{2,'C'},{3,'G'},{4,'T'}};
+char nuc_table[6] = {'A','C','G','T','U','N'};
+
+// Add arc to FST
 void add_arc(VectorFst<StdArc> &n2p, int src, int dest, int ilabel, int olabel, float weight) {
 	if(weight == 1.0) {
 		weight = 0.0;
@@ -21,7 +23,7 @@ void add_arc(VectorFst<StdArc> &n2p, int src, int dest, int ilabel, int olabel, 
 	}
 }
 
-// TODO: write as template for more fst and arc type variability
+// Optimize FST: remove epsilons, determinize, and minimize.
 VectorFst<StdArc> optimize(VectorFst<StdArc> fst_raw) {
 	// encode FST
 	SymbolTable *syms = SymbolTable::ReadText("fst/dna_syms.txt");
@@ -83,6 +85,33 @@ int read_fasta(std::string file, std::string fasta) {
 
 
 	return 0;
+}
+
+// TODO: read and write proper sequence ID
+// Write shortest path (alignment) in Fasta format
+void write_fasta(VectorFst<StdArc>& aln, std::string fasta, std::string outdir) {
+	std::ofstream outfile;
+	outfile.open(outdir+"/"+fasta);
+	if(!outfile) {
+		std::cout << "Opening output file failed.";
+		exit(EXIT_FAILURE);
+	}
+
+	outfile << "Seq_1" << std::endl;
+	int aln_len = aln.NumStates()-1;
+	char seq_2[aln_len];
+
+	StdArc::StateId istate = aln.Start();
+	StateIterator<StdFst> siter(aln);
+	for(int i=0; i<aln_len; siter.Next(),i++) {
+		ArcIterator<StdFst> aiter(aln, siter.Value());
+		outfile << nuc_sym[aiter.Value().ilabel];
+		seq_2[i] = nuc_sym[aiter.Value().olabel];
+	}
+	outfile << std::endl << "Seq_2" << std::endl;
+	outfile.write(seq_2,aln_len);
+	outfile << std::endl;
+	outfile.close();
 }
 
 // int acceptor(std::string file, VectorFst<StdArc> &acceptor) {
