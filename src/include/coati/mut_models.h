@@ -14,16 +14,18 @@
 typedef Eigen::Matrix<double, 64, 64>Matrix64f;
 typedef Eigen::Matrix<double, 64, 1>Vector64f;
 
-void nuc2pos(fst::VectorFst<fst::StdArc>& n2p);
-void marg_mut(fst::VectorFst<fst::StdArc>& mut_fst, fst::VectorFst<fst::StdArc> marg_pos);
-void toycoati(fst::VectorFst<fst::StdArc>& mut_fst);
-void dna_mut(fst::VectorFst<fst::StdArc>& mut_fst);
+using namespace fst;
+using namespace std;
+
+void nuc2pos(VectorFst<StdArc>& n2p);
+void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos);
+void toycoati(VectorFst<StdArc>& mut_fst);
+void dna_mut(VectorFst<StdArc>& mut_fst);
 void ecm_p(Matrix64f& P);
-void ecm(fst::VectorFst<fst::StdArc>& mut_fst);
-void ecm_marginal(fst::VectorFst<fst::StdArc>& ecm_m);
-std::string cod2aa();
-bool syn();
-double k();
-bool is_stop();
+void ecm(VectorFst<StdArc>& mut_fst);
+void ecm_marginal(VectorFst<StdArc>& ecm_m);
+bool syn(cod c1, cod c2);
+void nts_ntv(cod c1, cod c2, int& nts, int& ntv);
+double k(cod c1, cod c2, int model=0);
 
 #endif

@@ -2,28 +2,11 @@
 
 using namespace fst;
 
-const std::string codon_table[64] = {"AAA","AAC","AAG","AAT","ACA","ACC","ACG",\
-	"ACT","AGA","AGC","AGG","AGT","ATA","ATC","ATG","ATT","CAA","CAC","CAG","CAT",\
-	"CCA","CCC","CCG","CCT","CGA","CGC","CGG","CGT","CTA","CTC","CTG","CTT","GAA",\
-	"GAC","GAG","GAT","GCA","GCC","GCG","GCT","GGA","GGC","GGG","GGT","GTA","GTC",\
-	"GTG","GTT","TAA","TAC","TAG","TAT","TCA","TCC","TCG","TCT","TGA","TGC","TGG",\
-	"TGT","TTA","TTC","TTG","TTT"};
-const std::unordered_map<std::string, std::string> codon_aa = {{"TTT","F"},\
-	{"TTC","F"},{"TTA","L"},{"TTG","L"},{"TCT","S"},{"TCC","S"},{"TCA","S"},{"TCG","S"},\
-	{"TAT","Y"},{"TAC","Y"},{"TAA","*"},{"TAG","*"},{"TGT","C"},{"TGC","C"},{"TGA","*"},\
-	{"TGG","W"},{"CTT","L"},{"CTC","L"},{"CTA","L"},{"CTG","L"},{"CCT","P"},{"CCC","P"},\
-	{"CCA","P"},{"CCG","P"},{"CAT","H"},{"CAC","H"},{"CAA","Q"},{"CAG","Q"},{"CGT","R"},\
-	{"CGC","R"},{"CGA","R"},{"CGG","R"},{"ATT","I"},{"ATC","I"},{"ATA","I"},{"ATG","M"},\
-	{"ACT","T"},{"ACC","T"},{"ACA","T"},{"ACG","T"},{"AAT","N"},{"AAC","N"},{"AAA","K"},\
-	{"AAG","K"},{"AGT","S"},{"AGC","S"},{"AGA","R"},{"AGG","R"},{"GTT","V"},{"GTC","V"},\
-	{"GTA","V"},{"GTG","V"},{"GCT","A"},{"GCC","A"},{"GCA","A"},{"GCG","A"},{"GAT","D"},\
-	{"GAC","D"},{"GAA","E"},{"GAG","E"},{"GGT","G"},{"GGC","G"},{"GGA","G"},{"GGG","G"}};
-
 /* void MG94(float** m) {
 //
 // }*/
 
-// FST that maps nucleotide to AA position
+/* Create FST that maps nucleotide to AA position */
 void nuc2pos(VectorFst<StdArc> &n2p) {
 	// Add state 0 and make it the start state
 	n2p.AddState();
@@ -47,11 +30,9 @@ void nuc2pos(VectorFst<StdArc> &n2p) {
 	n2p.SetFinal(0, 0.0);
 }
 
-// Marginal toycoati model FST
+/* Marginal model FST */
 void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos) {
 
-	// // tropical semiring & read raw FSTs
-	// const VectorFst<StdArc> *marg_pos = VectorFst<StdArc>::Read("fst/marg_pos.fst");
 	VectorFst<StdArc> nuc2pos_raw;
 	nuc2pos(nuc2pos_raw);
 
@@ -72,11 +53,13 @@ void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos) {
 	mut_fst = optimize(VectorFst<StdArc>(marg_mut));
 }
 
+/* Read toycoati mutation model FST */
 void toycoati(VectorFst<StdArc>& mut_fst) {
 	const VectorFst<StdArc> *toy_raw = VectorFst<StdArc>::Read("fst/mutation.fst");
 	mut_fst = optimize(*toy_raw);
 }
 
+/* Read dna (toycoati-marginal-marginal) model FST*/
 void dna_mut(VectorFst<StdArc>& mut_fst) {
 	const VectorFst<StdArc> *dna_raw = VectorFst<StdArc>::Read("fst/dna_marg.fst");
 	mut_fst = optimize(*dna_raw);
@@ -160,39 +143,39 @@ Vector64f pi((Vector64f() << 0.031090,0.020321,0.026699,0.022276,0.013120,0.0178
 	0.017237,0.010366,0.010761,0.008721,0.011798,0.000000,0.007415,0.012744,0.006441,\
 	0.016195,0.021349,0.015717,0.021414).finished());
 
-// nonsynonymous-synonymous bias (\omega) and branch length (t)
+/* nonsynonymous-synonymous bias (\omega) and branch length (t) */
 double omega = 0.2; // from toycoati, github.com/reedacartwright/toycoati
 double t = 0.0133; // from toycoati, github.com/reedacartwright/toycoati
 
-// map codon to amino acid
-std::string cod2aa(std::string codon) {
-	std::unordered_map<std::string,std::string>::const_iterator it = codon_aa.find(codon);
-	return (it == codon_aa.end()) ? "NA" : it->second;
+/* compare if codon i and codon j are synonymous */
+bool syn(cod c1, cod c2) {
+	// return(cod2aa(i).compare(cod2aa(j)) == 0);
+	return(c1.subset == c2.subset);
 }
 
-// true if codon i and codon j are synonymous, false if non-synonymous
-bool syn(std::string i, std::string j) {
-	return(cod2aa(i).compare(cod2aa(j)) == 0);
+/* calculate number of transitions and transversions between codons i and j*/
+void nts_ntv(cod c1, cod c2, int& nts, int& ntv) {
+	nts = ntv = 0;
+	if(c1 == c2) return;
+	for(int i=0; i<3; i++) {
+		if(c1.nt[i] == c2.nt[i]) continue;
+		((c1.nt[i].group == c2.nt[i].group) ? nts : ntv) += 1;
+	}
+	return;
 }
 
-// transition-transversion bias function, depending on # of ts and tv (Nts,Ntv)
-double k(std::string i, std::string j, int model=0) {
+/* transition-transversion bias function, depending on # of ts and tv (Nts,Ntv) */
+double k(cod c1, cod c2, int model) {
 	switch (model) {
 		case 0:	return 1; // ECM+F+omega. Assumes ts-tv bias is accounted for
+		// case 1:
 		default:	return 1;
 	}
 
 	return 0;
 }
 
-// chech if a codon is a stop codon
-bool is_stop(std::string codon) {
-	std::vector<std::string> stop_cod{"TAA","TAG","TGA"};
-	return std::find(std::begin(stop_cod), std::end(stop_cod), codon) != std::end(stop_cod);
-
-}
-
-// Empirical Codon Model P matrix
+/* Empirical Codon Model P matrix */
 void ecm_p(Matrix64f& P) {
 	Matrix64f Q = Matrix64f::Zero();
 
@@ -202,12 +185,13 @@ void ecm_p(Matrix64f& P) {
 	for(int i=0; i<64; i++) {
 		rowSum = 0.0;
 		for(int j=0; j<64; j++) {
-			if(i==j || is_stop(codon_table[i]) || is_stop(codon_table[j])) {
+			// check if codons i or j are stop codons
+			if(i==j || cod_table[i].subset == '*' || cod_table[j].subset == '*') {
 				continue;
-			} else if(syn(codon_table[i],codon_table[j])) {
-				Q(i,j) = s[i][j]*pi[j]*k(codon_table[i],codon_table[j]);
-			} else if(!syn(codon_table[i],codon_table[j])) {
-				Q(i,j) = s[i][j]*pi[j]*k(codon_table[i],codon_table[j])*omega;
+			} else if(syn(cod_table[i],cod_table[j])) {
+				Q(i,j) = s[i][j]*pi[j]*k(cod_table[i],cod_table[j]);
+			} else if(!syn(cod_table[i],cod_table[j])) {
+				Q(i,j) = s[i][j]*pi[j]*k(cod_table[i],cod_table[j])*omega;
 			} else {
 				std::exit(EXIT_FAILURE);
 			}
@@ -225,7 +209,7 @@ void ecm_p(Matrix64f& P) {
 	P = Q.exp();
 }
 
-// Empirical Codon Model (Kosiol et al. 2007) FST
+/* Empirical Codon Model (Kosiol et al. 2007) FST */
 void ecm(VectorFst<StdArc>& mut_fst) {
 	Matrix64f P;
 	ecm_p(P);
@@ -238,12 +222,9 @@ void ecm(VectorFst<StdArc>& mut_fst) {
 	int r = 1;
 	for(int i=0; i<64; i++) {
 		for(int j=0; j<64; j++) {
-			add_arc(ecm, 0, r, nuc_sym[codon_table[i][0]],\
-				nuc_sym[codon_table[j][0]], P(i,j));
-			add_arc(ecm, r, r+1, nuc_sym[codon_table[i][1]],\
-				nuc_sym[codon_table[j][1]]);
-			add_arc(ecm, r+1, 0, nuc_sym[codon_table[i][2]],\
-				nuc_sym[codon_table[j][2]]);
+			add_arc(ecm, 0, r, cod_table[i].nt[0].sym, cod_table[j].nt[0].sym, P(i,j));
+			add_arc(ecm, r, r+1, cod_table[i].nt[1].sym, cod_table[j].nt[1].sym);
+			add_arc(ecm, r+1, 0, cod_table[i].nt[1].sym, cod_table[j].nt[1].sym);
 			r = r+2;
 		}
 	}
@@ -253,7 +234,7 @@ void ecm(VectorFst<StdArc>& mut_fst) {
 	mut_fst = optimize(ecm);
 }
 
-// Marginal Empirical Codon Model
+/* Marginal Empirical Codon Model */
 void ecm_marginal(VectorFst<StdArc>& ecm_m) {
 	VectorFst<StdArc> fst;
 	fst.AddState();
@@ -272,9 +253,9 @@ void ecm_marginal(VectorFst<StdArc>& ecm_m) {
 			for(int k=0; k<4; k++) {	// for each possible nucleotide
 				m = 0.0;
 				for(int l=0; l<64; l++) {
-					m += ((codon_table[l][j] == nuc_table[k]) ? P(i,l) : 0.0);
+					m += ((cod_table[l].nt[j] == nuc_table[k]) ? P(i,l) : 0.0);
 				}
-				add_arc(fst, 0, 0, c, nuc_sym[nuc_table[k]],m);
+				add_arc(fst, 0, 0, c, nuc_table[k].sym, m);
 			}
 			c++;
 		}

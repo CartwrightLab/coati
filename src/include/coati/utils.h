@@ -5,12 +5,33 @@
 #include <fstream>
 #include <fst/fstlib.h>
 
-extern std::map<int, char> nuc_sym;
-extern char nuc_table[6];
+using namespace fst;
+using namespace std;
 
-void add_arc(fst::VectorFst<fst::StdArc> &fst, int src, int dest, int ilabel=0,\
+/* nucleotide structure*/
+struct nuc {
+	char nt[1];	// nucleotide base
+	int sym;	// fst symbol for that base
+	char group;	// puRine or pYrimidine
+};
+
+/* codon structure*/
+struct cod {
+	nuc nt[3];		// codon nucleotides
+	char subset;	// one of 20 subset groups according to Kioso et al. 2007
+	int sym;		// fst symbol for the codon
+};
+
+/* nuc and cod structure comparison operators*/
+bool operator==(nuc n1, nuc n2);
+bool operator==(cod c1, cod c2);
+
+extern nuc nuc_table[6];
+extern cod cod_table[64];
+
+void add_arc(VectorFst<StdArc> &fst, int src, int dest, int ilabel=0,\
 	int olabel=0, float weight=1.0);
-fst::VectorFst<fst::StdArc> optimize(fst::VectorFst<fst::StdArc>);
-void write_fasta(fst::VectorFst<fst::StdArc>& aln, std::string fasta, std::string outdir);
+VectorFst<StdArc> optimize(VectorFst<StdArc>);
+void write_fasta(VectorFst<StdArc>& aln, string fasta, string outdir);
 
 #endif

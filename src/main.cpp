@@ -92,6 +92,10 @@ int main(int argc, char *argv[]) {
 	// read input and output FSAs
 	const VectorFst<StdArc> *in_tape = VectorFst<StdArc>::Read("work/in_tape/"+fasta+".fst");
 	const VectorFst<StdArc> *out_tape = VectorFst<StdArc>::Read("work/out_tape/"+fasta+".fst");
+	if(in_tape == NULL || out_tape == NULL) {
+		std::cout << "Error opening input and/or output tapes for " << fasta << "." << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	// find alignment graph
 	// 1. compose in_tape and coati FSTs
