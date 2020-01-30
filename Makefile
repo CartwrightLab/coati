@@ -33,33 +33,12 @@ fst/dna_marg.fst: scripts/marg_mutation.R $(SYMS)
 		--osymbols=$(SYMS) - | fstrmepsilon | fstarcsort --sort_type=ilabel > $@
 
 ################################################################################
-# Empirical Codon Model														   #
-################################################################################
-fst/ecm.fst: scripts/ecm.R $(SYMS)
-	@$(RSCRIPT) $< | fstcompile --arc_type=standard --isymbols=$(SYMS) \
-		--osymbols=$(SYMS) - | fstrmepsilon | fstarcsort --sort_type=ilabel > $@
-
-################################################################################
-# I/O acceptors & convert shortest path into an alignment                      #
-# Original code: Reed A. Cartwright https://github.com/reedacartwright/toycoati#
-################################################################################
-
-# Extract input acceptor
-work/in_tape/%.fst: fasta/% scripts/acceptor.R
-	@$(RSCRIPT) scripts/acceptor.R $< 1 \
-		| fstcompile --isymbols=$(SYMS) --osymbols=$(SYMS) - \
-		| fstarcsort --sort_type=olabel > $@
-
-# Extract output acceptor
-work/out_tape/%.fst: fasta/% scripts/acceptor.R
-	@$(RSCRIPT) scripts/acceptor.R $< 2 \
-		| fstcompile --isymbols=$(SYMS) --osymbols=$(SYMS) - \
-		| fstarcsort --sort_type=ilabel > $@
-
 # Find alignment graph & its shortest path
-aln/%: build/coati  work/in_tape/%.fst work/out_tape/%.fst scripts/fasta.R fst/indel.fst fst/marg_pos.fst fst/dna_marg.fst fst/mutation.fst
+################################################################################
+
+aln/%: build/coati  fst/indel.fst fst/marg_pos.fst fst/dna_marg.fst fst/mutation.fst
 	@echo "Aligning "$*
-	@./build/coati -f $* -m toy-marginal -o aln #-w aln/weights.csv
+	@./build/coati -f fasta/$* -m toy-marginal -o aln/$* #-w aln/weights.csv
 
 ################################################################################
 # Drawing and printing FST                                                     #

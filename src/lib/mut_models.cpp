@@ -1,7 +1,5 @@
 #include "mut_models.h"
 
-using namespace fst;
-
 /* void MG94(float** m) {
 //
 // }*/
@@ -57,6 +55,12 @@ void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos) {
 void toycoati(VectorFst<StdArc>& mut_fst) {
 	const VectorFst<StdArc> *toy_raw = VectorFst<StdArc>::Read("fst/mutation.fst");
 	mut_fst = optimize(*toy_raw);
+}
+
+/* Read marginal toycoati model FST */
+void toy_marg(VectorFst<StdArc>& mut_fst) {
+	const VectorFst<StdArc> *marg_pos = VectorFst<StdArc>::Read("fst/marg_pos.fst");
+	marg_mut(mut_fst, *marg_pos);
 }
 
 /* Read dna (toycoati-marginal-marginal) model FST*/
@@ -144,8 +148,9 @@ Vector64f pi((Vector64f() << 0.031090,0.020321,0.026699,0.022276,0.013120,0.0178
 	0.016195,0.021349,0.015717,0.021414).finished());
 
 /* nonsynonymous-synonymous bias (\omega) and branch length (t) */
-double omega = 0.2; // from toycoati, github.com/reedacartwright/toycoati
-double t = 0.0133; // from toycoati, github.com/reedacartwright/toycoati
+const double omega = 0.2;	// github.com/reedacartwright/toycoati
+const double t = 0.0133;	// github.com/reedacartwright/toycoati
+const double kappa = 2.5;	// Kosiol et al. 2007, supplemental material
 
 /* compare if codon i and codon j are synonymous */
 bool syn(cod c1, cod c2) {
@@ -166,10 +171,13 @@ void nts_ntv(cod c1, cod c2, int& nts, int& ntv) {
 
 /* transition-transversion bias function, depending on # of ts and tv (Nts,Ntv) */
 double k(cod c1, cod c2, int model) {
+	int nts, ntv;
+	nts_ntv(c1, c2, nts, ntv);
 	switch (model) {
-		case 0:	return 1; // ECM+F+omega. Assumes ts-tv bias is accounted for
-		// case 1:
-		default:	return 1;
+		case 0: return 1;	// ECM+f+omega. Assumes ts-tv bias is accounted for
+		case 1: return pow(kappa,nts); // ECM+F+omega+1k(ts)
+		case 2: return pow(kappa,ntv); // ECM+F+omega+1k(tv)
+		default:	return 1; // ECM+f+omega. Assumes ts-tv bias is accounted for
 	}
 
 	return 0;
@@ -189,11 +197,11 @@ void ecm_p(Matrix64f& P) {
 			if(i==j || cod_table[i].subset == '*' || cod_table[j].subset == '*') {
 				continue;
 			} else if(syn(cod_table[i],cod_table[j])) {
-				Q(i,j) = s[i][j]*pi[j]*k(cod_table[i],cod_table[j]);
+				Q(i,j) = s[i][j]*pi[j]*k(cod_table[i],cod_table[j],0);
 			} else if(!syn(cod_table[i],cod_table[j])) {
-				Q(i,j) = s[i][j]*pi[j]*k(cod_table[i],cod_table[j])*omega;
+				Q(i,j) = s[i][j]*pi[j]*k(cod_table[i],cod_table[j],0)*omega;
 			} else {
-				std::exit(EXIT_FAILURE);
+				exit(EXIT_FAILURE);
 			}
 			rowSum += Q(i,j);
 		}
@@ -235,7 +243,7 @@ void ecm(VectorFst<StdArc>& mut_fst) {
 }
 
 /* Marginal Empirical Codon Model */
-void ecm_marginal(VectorFst<StdArc>& ecm_m) {
+void ecm_marginal(VectorFst<StdArc>& mut_fst) {
 	VectorFst<StdArc> fst;
 	fst.AddState();
 	fst.SetStart(0);
@@ -261,5 +269,5 @@ void ecm_marginal(VectorFst<StdArc>& ecm_m) {
 		}
 	}
 	fst.SetFinal(0,0.0);
-	ecm_m = optimize(fst);
+	marg_mut(mut_fst, fst);
 }

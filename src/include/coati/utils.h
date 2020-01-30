@@ -4,6 +4,9 @@
 #include <iostream>
 #include <fstream>
 #include <fst/fstlib.h>
+#include <fst/script/print.h>
+#include <fst/script/fst-class.h>
+#include <fst/script/script-impl.h>
 
 using namespace fst;
 using namespace std;
@@ -29,9 +32,11 @@ bool operator==(cod c1, cod c2);
 extern nuc nuc_table[6];
 extern cod cod_table[64];
 
+int read_fasta(string file, vector<string>& seq_names, vector<VectorFst<StdArc>>& fsts);
 void add_arc(VectorFst<StdArc> &fst, int src, int dest, int ilabel=0,\
 	int olabel=0, float weight=1.0);
-VectorFst<StdArc> optimize(VectorFst<StdArc>);
-void write_fasta(VectorFst<StdArc>& aln, string fasta, string outdir);
+VectorFst<StdArc> optimize(VectorFst<StdArc> fst);
+void write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names);
+bool acceptor(std::string content, VectorFst<StdArc> &accept);
 
 #endif

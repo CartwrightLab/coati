@@ -6,67 +6,69 @@
 #include "utils.h"
 
 using namespace fst;
+using namespace std;
+
 namespace po = boost::program_options;
 
 //TODO: incorporate unique pointers
 int main(int argc, char *argv[]) {
 
 	VectorFst<StdArc> mutation_fst;
-	std::string fasta, mut_model, weight_f, outdir;
+	string fasta, mut_model, weight_f, output;
 
 	try {
 		po::options_description desc("Allowed options");
 		desc.add_options()
 			("help,h","arg1 fasta to align, arg2 model")
-			("fasta,f",po::value<std::string>(&fasta)->required(), "name of fasta file")
-			("model,m",po::value<std::string>(&mut_model)->required(), "substitution model")
-			("weight,w",po::value<std::string>(&weight_f), "weight storing file")
-			("outdir,o",po::value<std::string>(&outdir), "output directory")
+			("fasta,f",po::value<string>(&fasta)->required(), "name of fasta file")
+			("model,m",po::value<string>(&mut_model)->required(), "substitution model")
+			("weight,w",po::value<string>(&weight_f), "weight storing file")
+			("output,o",po::value<string>(&output), "output file")
 		;
 
 		po::variables_map varm;
 		po::store(po::parse_command_line(argc,argv,desc),varm);
 
 		if(varm.count("help") || varm.count("-h")) {
-			std::cout << desc << std::endl;
+			cout << desc << endl;
 			return 0;
 		}
 
 		po::notify(varm);
 
 	} catch (po::error& e) {
-		std::cerr << e.what() << ". Exiting!" << std::endl;
-		return 4;
+		cerr << e.what() << ". Exiting!" << endl;
+		exit(EXIT_FAILURE);
 	}
 
-	if(fasta.empty()) {
-		std::cout << "fasta file required. Exiting!" << std::endl;
-		return 1;
-	}
-
-	if(mut_model.empty()) {
-	 	std::cout << "mutation model required. Exiting!" << std::endl;
-	 	return 2;
-	} else if(mut_model.compare("toycoati") == 0) {
+	if(mut_model.compare("toycoati") == 0) {
 		toycoati(mutation_fst);
 	} else if(mut_model.compare("toy-marginal") == 0) {
-		const VectorFst<StdArc> *marg_pos = VectorFst<StdArc>::Read("fst/marg_pos.fst");
-		marg_mut(mutation_fst, *marg_pos);
+		toy_marg(mutation_fst);
 	} else if(mut_model.compare("dna") == 0) {
 		dna_mut(mutation_fst);
 	} else if(mut_model.compare("ecm") == 0) {
 		ecm(mutation_fst);
 	} else if(mut_model.compare("ecm-marginal") == 0) {
-		VectorFst<StdArc> ecmodel;
-		ecm_marginal(ecmodel);
-		marg_mut(mutation_fst, ecmodel);
+		ecm_marginal(mutation_fst);
 	} else {
-		std::cout << "Mutation model specified is unknown. Exiting!" << std::endl;
-		return 3;
+		cerr << "Mutation model specified is unknown. Exiting!\n";
+		exit(EXIT_FAILURE);
 	}
 
-	if(outdir.empty())
-		outdir = "./";
+	if(output.empty())
+		output = "./"+fasta;
+
+	// read input fasta file sequences as FSA (acceptors)
+	vector<string> seq_names;
+	vector<VectorFst<StdArc>> fsts;
+	if(read_fasta(fasta,seq_names, fsts) != 0) {
+		cerr << "Error reading " << fasta << "file. Exiting!" << endl;
+		exit(EXIT_FAILURE);
+	} else if(seq_names.size() < 2 || seq_names.size() != fsts.size()) {
+		cerr << "At least two sequences required. Exiting!" << endl;
+		exit(EXIT_FAILURE);
+	}
 
 	// TODO: think about deleting fst (delete fst;)
 
@@ -89,23 +91,15 @@ int main(int argc, char *argv[]) {
 	VectorFst<StdArc> coati_fst;
 	coati_fst = optimize(VectorFst<StdArc>(coati_comp));
 
-	// read input and output FSAs
-	const VectorFst<StdArc> *in_tape = VectorFst<StdArc>::Read("work/in_tape/"+fasta+".fst");
-	const VectorFst<StdArc> *out_tape = VectorFst<StdArc>::Read("work/out_tape/"+fasta+".fst");
-	if(in_tape == NULL || out_tape == NULL) {
-		std::cout << "Error opening input and/or output tapes for " << fasta << "." << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
 	// find alignment graph
 	// 1. compose in_tape and coati FSTs
-	ComposeFst<StdArc> aln_inter = ComposeFst<StdArc>(*in_tape, coati_fst);
+	ComposeFst<StdArc> aln_inter = ComposeFst<StdArc>(fsts[0], coati_fst);
 	// 2. sort intermediate composition
 	VectorFst<StdArc> aln_inter_sort;
 	aln_inter_sort = ArcSortFst<StdArc,OLabelCompare<StdArc>>(aln_inter, OLabelCompare<StdArc>());
 	// 3. compose intermediate and out_tape FSTs
 	VectorFst<StdArc> graph_fst;
-	Compose(aln_inter_sort,*out_tape, &graph_fst);
+	Compose(aln_inter_sort,fsts[1], &graph_fst);
 
 	//  case 1: ComposeFst is time: O(v1 v2 d1 (log d2 + m2)), space O(v1 v2)
 	//			ShortestPath with ComposeFst (PDT) is time: O((V+E)^3), space: O((V+E)^3)
@@ -122,13 +116,13 @@ int main(int argc, char *argv[]) {
 
 	// shortestdistance = weight of shortestpath
 	if(!weight_f.empty()) {
-		std::vector<StdArc::Weight> distance;
-		std::ofstream out_w;
+		vector<StdArc::Weight> distance;
+		ofstream out_w;
 
 		ShortestDistance(aln_path, &distance);
 		// append weight and fasta file name info in file
-		out_w.open(weight_f, std::ios::app | std::ios::out);
-		out_w << fasta << "," << mut_model << "," << distance[0] << std::endl;
+		out_w.open(weight_f, ios::app | ios::out);
+		out_w << fasta << "," << mut_model << "," << distance[0] << endl;
 		out_w.close();
 	}
 
@@ -136,7 +130,7 @@ int main(int argc, char *argv[]) {
 	TopSort(&aln_path);
 
 	// write path FST
-	write_fasta(aln_path, fasta, outdir);
+	write_fasta(aln_path, output, seq_names);
 
     return 0;
 }

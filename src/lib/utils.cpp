@@ -1,7 +1,5 @@
 #include "utils.h"
 
-using namespace fst;
-
 #define A nuc{'A',1,'R'}
 #define C nuc{'C',2,'Y'}
 #define G nuc{'G',3,'R'}
@@ -48,7 +46,7 @@ void add_arc(VectorFst<StdArc> &n2p, int src, int dest, int ilabel, int olabel, 
 	} else if(weight == 0.0) {
 		weight = INT_MAX;
 	} else {
-		weight = -std::log(weight);
+		weight = -log(weight);
 	}
 
 	if(n2p.NumStates() <= dest) {
@@ -91,124 +89,93 @@ VectorFst<StdArc> optimize(VectorFst<StdArc> fst_raw) {
 	return fst_opt;
 }
 
-// TODO: change to int type and update fst by reference to check exit status
-int read_fasta(std::string file, std::string fasta) {
-	VectorFst<StdArc> acceptor;
-
-	std::ifstream input(file);
+/* Read fasta format file */
+int read_fasta(string file, vector<string>& seq_names, vector<VectorFst<StdArc>>& fsts) {
+	ifstream input(file);
 	if(!input.good()) {
-		std::cerr << "Error opening '" << file << "'." << std::endl;
+		cerr << "Error opening '" << file << "'." << endl;
 	}
 
-	std::string line, name, content;
-	while(std::getline(input, line).good() ) {
-		if(!line.empty() && line[0] == ';') {
-			; // do nothing if comment line or empty line
-		} else if(line.empty()) {
-			if(content.empty()) {
-				return -1;
-			} else {
-				content.clear();
+	string line, name, content;
+	while(getline(input, line).good() ) {
+		if(line[0] == ';') continue;
+		if(line.empty() || line[0] == '>') { // Identifier marker
+			if(!name.empty()) {
+				VectorFst<StdArc> accept;	// create FSA with sequence
+				if(!acceptor(content, accept)) {
+					cerr << "Creating acceptor from " << file << " failed. Exiting!" << endl;
+					exit(EXIT_FAILURE);
+				}
+				fsts.push_back(accept);		// Add FSA
+				name.clear();
 			}
-		} else if(line[0] == '>') { // Identifier marker
-			name = line.substr(1);
+			if(!line.empty()) {		// Add name of sequence
+				name = line.substr(1);
+				seq_names.push_back(name);
+			}
 			content.clear();
 		} else if(!name.empty()) {
-			content += line;
+			// might have to modify to delete spaces for simulation
+			if(line.find(' ') == string::npos) {
+				content += line;
+			}
 		}
 	}
-
-
+	if(!name.empty()) { // Add last sequence FSA if needed
+		VectorFst<StdArc> accept;
+		if(!acceptor(content, accept)) {
+			cerr << "Creating acceptor from " << file << " failed. Exiting!" << endl;
+			exit(EXIT_FAILURE);
+		}
+		fsts.push_back(accept);
+	}
 
 	return 0;
 }
 
-// TODO: read and write proper sequence ID
 /* Write shortest path (alignment) in Fasta format */
-void write_fasta(VectorFst<StdArc>& aln, std::string fasta, std::string outdir) {
-	std::map<int, char> syms = \
-		{{0,'-'},{1,'A'},{2,'C'},{3,'G'},{4,'T'},{4,'U'},{5,'N'}};
+void write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names) {
+	SymbolTable *symbols = SymbolTable::ReadText("fst/dna_syms.txt");
 
-	std::ofstream outfile;
-	outfile.open(outdir+"/"+fasta);
+	ofstream outfile;
+	outfile.open(output);
 	if(!outfile) {
-		std::cout << "Opening output file failed.";
+		cerr << "Opening output file failed.\n";
 		exit(EXIT_FAILURE);
 	}
 
-	outfile << "Seq_1" << std::endl;
-	int aln_len = aln.NumStates()-1;
-	char seq_2[aln_len];
-
+	string seq1, seq2;
 	StdArc::StateId istate = aln.Start();
-	StateIterator<StdFst> siter(aln);
-	for(int i=0; i<aln_len; siter.Next(),i++) {
-		ArcIterator<StdFst> aiter(aln, siter.Value());
-		outfile << syms[aiter.Value().ilabel];
-		seq_2[i] = syms[aiter.Value().olabel];
+	StateIterator<StdFst> siter(aln);	// FST state iterator
+	for(int i=0; i<aln.NumStates()-1; siter.Next(),i++) {
+		ArcIterator<StdFst> aiter(aln, siter.Value());	// State arc iterator
+		seq1.append(symbols->Find(aiter.Value().ilabel));
+		seq2.append(symbols->Find(aiter.Value().olabel));
 	}
-	outfile << std::endl << "Seq_2" << std::endl;
-	outfile.write(seq_2,aln_len);
-	outfile << std::endl;
+	// map all epsilons (<eps>) to gaps (-)
+	while(seq1.find("<eps>") != string::npos) seq1.replace(seq1.find("<eps>"),5,"-");
+	while(seq2.find("<eps>") != string::npos) seq2.replace(seq2.find("<eps>"),5,"-");
+	// write aligned sequences to file
+	outfile << ">" << seq_names[0] << endl << seq1 << endl;
+	outfile << ">" << seq_names[1] << endl << seq2 << endl;
 	outfile.close();
+
 }
 
-// int acceptor(std::string file, VectorFst<StdArc> &acceptor) {
-//
-// 	return 0;
-// }
+/* Create FSAs (acceptors) from a fasta file*/
+bool acceptor(string content, VectorFst<StdArc> &accept) {
+	map<int, char> syms = \
+		{{'-',0},{'A',1},{'C',2},{'G',3},{'T',4},{'U',4},{'N',5}};
 
-/*
-// Original code from EdwardsLab: https://edwards.sdsu.edu/research/fastq-to-fasta/
-// convert a fastq file to fasta
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <cstring>
-using namespace std;
+	// Add initial state
+	accept.AddState();
+	accept.SetStart(0);
 
-int main (int argc, char* argv[]) {
+	for(int i=0; i<content.length(); i++) {
+		add_arc(accept, i, i+1, syms[content.at(i)], syms[content.at(i)]);
+	}
 
-  if ( argc < 3) {
-    cerr << "Usage: " << argv[0] << " <fastq file (use - to read from STDIN)> <fasta file>\n";
-    return 1;
-  }
-
-
-  ifstream fastq;
-  streambuf* orig_cin = 0;
-  if (strcmp(argv[1], "-") != 0) {
-    cout << "reading from " << argv[1] << '\n';
-    fastq.open(argv[1]);
-    if (!fastq) return 1;
-    orig_cin = cin.rdbuf(fastq.rdbuf());
-    cin.tie(0); // tied to cout by default
-  }
-
-  string line;
-  ofstream fasta(argv[2]);
-  if (!fasta) return 2;
-  int c=0;
-
-  while (getline(cin, line))
-  {
-    //cout << c << " : " << line << '\n';
-    if ( c==0 ) {
-      line.replace(0, 1, ">");
-      fasta << line << '\n';
-    }
-    if ( c==1 ) {
-      fasta << line << '\n';
-    }
-    c++;
-    if ( c == 4) { c=0 ;}
-  }
-
-  if ( c != 0 ) {
-	  cerr << "ERROR: There appears to be the wrong number of lines in your file!" << endl;
-	return 1;
-  }
-
-  return 0;
+	// Add final state and run an FST sanity check (Verify)
+	accept.SetFinal(accept.NumStates()-1,0.0);
+	return Verify(accept);
 }
-*/
