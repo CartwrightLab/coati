@@ -36,9 +36,9 @@ fst/dna_marg.fst: scripts/marg_mutation.R $(SYMS)
 # Find alignment graph & its shortest path
 ################################################################################
 
-aln/%: build/coati  fst/indel.fst fst/marg_pos.fst fst/dna_marg.fst fst/mutation.fst
+aln/%.fasta: build/coati  fst/indel.fst fst/marg_pos.fst fst/dna_marg.fst fst/mutation.fst
 	@echo "Aligning "$*
-	@./build/coati -f fasta/$* -m toy-marginal -o aln/$* #-w aln/weights.csv
+	@./build/coati -f fasta/$*.fasta -m toy-marginal -o aln/$*.phy #-w aln/weights.csv
 
 ################################################################################
 # Drawing and printing FST                                                     #

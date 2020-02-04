@@ -94,6 +94,7 @@ int read_fasta(string file, vector<string>& seq_names, vector<VectorFst<StdArc>>
 	ifstream input(file);
 	if(!input.good()) {
 		cerr << "Error opening '" << file << "'." << endl;
+		exit(EXIT_FAILURE);
 	}
 
 	string line, name, content;
@@ -162,6 +163,43 @@ void write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names
 
 }
 
+/* Write shortest path (alignment) in PHYLIP format */
+void write_phylip(VectorFst<StdArc>& aln, string output, vector<string> seq_names) {
+	SymbolTable *symbols = SymbolTable::ReadText("fst/dna_syms.txt");
+
+	ofstream outfile;
+	outfile.open(output);
+	if(!outfile) {
+		cerr << "Opening output file failed.\n";
+		exit(EXIT_FAILURE);
+	}
+
+	string seq1, seq2;
+	StdArc::StateId istate = aln.Start();
+	StateIterator<StdFst> siter(aln);	// FST state iterator
+	for(int i=0; i<aln.NumStates()-1; siter.Next(),i++) {
+		ArcIterator<StdFst> aiter(aln, siter.Value());	// State arc iterator
+		seq1.append(symbols->Find(aiter.Value().ilabel));
+		seq2.append(symbols->Find(aiter.Value().olabel));
+	}
+	// map all epsilons (<eps>) to gaps (-)
+	while(seq1.find("<eps>") != string::npos) seq1.replace(seq1.find("<eps>"),5,"-");
+	while(seq2.find("<eps>") != string::npos) seq2.replace(seq2.find("<eps>"),5,"-");
+
+	assert(seq1.length() == seq2.length());
+
+	// write aligned sequences to file
+	outfile << seq_names.size() << " " << seq1.length() << endl;
+	int window = 76-max(seq_names[0].length(),seq_names[1].length());
+	for(int i=0; i<seq1.length(); i+=seq1.length()/window+window) {
+		outfile << seq_names[0].substr(0,100) << "\t" << seq1.substr(i,window) << endl;
+		outfile << seq_names[1].substr(0,100) << "\t" << seq2.substr(i,window) << endl;
+		outfile << endl;
+	}
+
+	outfile.close();
+
+}
 /* Create FSAs (acceptors) from a fasta file*/
 bool acceptor(string content, VectorFst<StdArc> &accept) {
 	map<int, char> syms = \

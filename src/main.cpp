@@ -2,8 +2,9 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <fstream>
+#include <boost/filesystem.hpp>
 #include "mut_models.h"
-#include "utils.h"
+#include "coati_config.h"
 
 using namespace fst;
 using namespace std;
@@ -20,6 +21,7 @@ int main(int argc, char *argv[]) {
 		po::options_description desc("Allowed options");
 		desc.add_options()
 			("help,h","arg1 fasta to align, arg2 model")
+			("version,v","COATi version")
 			("fasta,f",po::value<string>(&fasta)->required(), "name of fasta file")
 			("model,m",po::value<string>(&mut_model)->required(), "substitution model")
 			("weight,w",po::value<string>(&weight_f), "weight storing file")
@@ -32,6 +34,12 @@ int main(int argc, char *argv[]) {
 		if(varm.count("help") || varm.count("-h")) {
 			cout << desc << endl;
 			return 0;
+		}
+
+		if(varm.count("version") || varm.count("-v")) {
+			cout << "COATi Version " << coati_VERSION_MAJOR << "."\
+				<< coati_VERSION_MINOR << endl;
+			exit(EXIT_SUCCESS);
 		}
 
 		po::notify(varm);
@@ -56,8 +64,10 @@ int main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	if(output.empty())
-		output = "./"+fasta;
+	if(output.empty()) {
+		// if no output is specified save in current dir with .phy extension
+		output = boost::filesystem::path(fasta).stem().string()+".phy";
+	}
 
 	// read input fasta file sequences as FSA (acceptors)
 	vector<string> seq_names;
@@ -69,8 +79,6 @@ int main(int argc, char *argv[]) {
 		cerr << "At least two sequences required. Exiting!" << endl;
 		exit(EXIT_FAILURE);
 	}
-
-	// TODO: think about deleting fst (delete fst;)
 
 	// tropical semiring & read mutation and indel raw FSTs
 	const VectorFst<StdArc> *indel_raw = VectorFst<StdArc>::Read("fst/indel.fst");
@@ -130,7 +138,7 @@ int main(int argc, char *argv[]) {
 	TopSort(&aln_path);
 
 	// write path FST
-	write_fasta(aln_path, output, seq_names);
+	write_phylip(aln_path, output, seq_names);
 
     return 0;
 }
