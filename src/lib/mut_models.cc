@@ -1,4 +1,27 @@
-#include "mut_models.h"
+/*
+# Copyright (c) 2020 Juan J. Garcia Mesa <jgarc111@asu.edu>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+*/
+
+#include <doctest/doctest.h>
+#include <coati/mut_models.hpp>
 
 /* void MG94(float** m) {
 //
@@ -156,6 +179,15 @@ const double kappa = 2.5;	// Kosiol et al. 2007, supplemental material
 bool syn(cod c1, cod c2) {
 	// return(cod2aa(i).compare(cod2aa(j)) == 0);
 	return(c1.subset == c2.subset);
+}
+
+TEST_CASE("[mut_models] syn") {
+	cod AAA = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'A',1,'R'}},'K',1};
+    cod AAC = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'C',2,'Y'}},'N',2};
+	cod AAG = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'G',3,'R'}},'K',3};
+
+	CHECK(syn(AAA,AAC) == false);
+	CHECK(syn(AAA,AAA) == true);
 }
 
 /* calculate number of transitions and transversions between codons i and j*/

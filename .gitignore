@@ -1,26 +1,56 @@
-# ignore fasta files
-fasta/*.fas*
-aln/*.fas*
+# Prerequisites
+*.d
 
-# ignore .o files
+# Compiled Object files
+*.slo
+*.lo
 *.o
+*.obj
 
-# ignore miscellaneous folders
-gotoh/
-tutorial/
+# Precompiled Headers
+*.gch
+*.pch
 
-# ignore pdf files
-*.pdf
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
 
-# ignore txt files
-*.txt
+# Fortran module files
+*.mod
+*.smod
 
-# ignore csv,tsv
-*.csv
-*.tsv
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
 
-# ignore everything inside build directory
+# Executables
+*.exe
+*.out
+*.app
+
+# Build Dir
 build/*
+!build/.gitkeep
 
-# ignore FSTs
-*.fst
+# CMake
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+# Ignore ctag output
+.tags
+.tags_sorted_by_file
+
+# Ignore workspace
+*.sublime-workspace

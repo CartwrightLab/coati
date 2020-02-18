@@ -1,0 +1,11 @@
+# Ideas and Notes
+
+## verb ideas
+
+ - coati align: multiple sequence aligner
+ - coati alignpair: pairwise sequence aligner
+
+## Possible useful code
+- https://github.com/toeb/cmakepp
+
+

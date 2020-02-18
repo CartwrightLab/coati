@@ -1,4 +1,26 @@
-#include "utils.h"
+/*
+# Copyright (c) 2020 Juan J. Garcia Mesa <jgarc111@asu.edu>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+*/
+
+#include <coati/utils.hpp>
 
 #define A nuc{'A',1,'R'}
 #define C nuc{'C',2,'Y'}
@@ -6,6 +28,8 @@
 #define T nuc{'T',4,'Y'}
 #define U nuc{'U',4,'Y'}
 #define N nuc{'N',5,'-'}
+
+#define PRINT_SIZE 100
 
 /* comparison operator for nuc structure*/
 bool operator==(nuc n1, nuc n2) {
@@ -190,16 +214,23 @@ void write_phylip(VectorFst<StdArc>& aln, string output, vector<string> seq_name
 
 	// write aligned sequences to file
 	outfile << seq_names.size() << " " << seq1.length() << endl;
-	int window = 76-max(seq_names[0].length(),seq_names[1].length());
-	for(int i=0; i<seq1.length(); i+=seq1.length()/window+window) {
-		outfile << seq_names[0].substr(0,100) << "\t" << seq1.substr(i,window) << endl;
-		outfile << seq_names[1].substr(0,100) << "\t" << seq2.substr(i,window) << endl;
+	int i = PRINT_SIZE-4-max(seq_names[0].length(),seq_names[1].length());
+	outfile << seq_names[0] << "\t" << seq1.substr(0,i) << endl;
+	outfile << seq_names[1] << "\t" << seq2.substr(0,i) << endl << endl;
+	for(; i<seq1.length(); i+=PRINT_SIZE) {
+		outfile << seq1.substr(i,PRINT_SIZE) << endl;
+		outfile << seq2.substr(i,PRINT_SIZE) << endl;
 		outfile << endl;
 	}
 
 	outfile.close();
 
 }
+
+// TEST_CASE("[utils.cc] write_phylip") {
+//
+// }
+
 /* Create FSAs (acceptors) from a fasta file*/
 bool acceptor(string content, VectorFst<StdArc> &accept) {
 	map<int, char> syms = \
