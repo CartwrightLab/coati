@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Juan J. Garcia Mesa <jgarc111@asu.edu>
+# Copyright (c) 2020 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
