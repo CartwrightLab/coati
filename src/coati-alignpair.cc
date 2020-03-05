@@ -26,7 +26,6 @@
 #include <fstream>
 #include <boost/filesystem.hpp>
 #include <coati/mut_models.hpp>
-// #include <coati_config.hpp>
 
 using namespace fst;
 using namespace std;
@@ -64,9 +63,9 @@ int main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	if(mut_model.compare("toycoati") == 0) {
-		toycoati(mutation_fst);
-	} else if(mut_model.compare("toy-marginal") == 0) {
+	if(mut_model.compare("coati") == 0) {
+		mg94(mutation_fst);
+	} else if(mut_model.compare("m-coati") == 0) {
 		toy_marg(mutation_fst);
 	} else if(mut_model.compare("dna") == 0) {
 		dna_mut(mutation_fst);

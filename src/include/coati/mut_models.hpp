@@ -39,9 +39,10 @@ typedef Eigen::Matrix<double, 64, 1>Vector64f;
 using namespace fst;
 using namespace std;
 
+void mg94_p(Matrix64f& P);
+void mg94(VectorFst<StdArc>& mut_fst);
 void nuc2pos(VectorFst<StdArc>& n2p);
 void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos);
-void toycoati(VectorFst<StdArc>& mut_fst);
 void toy_marg(VectorFst<StdArc>& mut_fst);
 void dna_mut(VectorFst<StdArc>& mut_fst);
 void ecm_p(Matrix64f& P);

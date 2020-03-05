@@ -32,7 +32,7 @@ using namespace std;
 
 /* nucleotide structure*/
 struct nuc {
-	char nt[1];		// nucleotide base
+	char nt;		// nucleotide base
 	int sym;		// fst symbol for that base
 	char group;		// puRine or pYrimidine
 };
@@ -47,6 +47,8 @@ struct cod {
 /* nuc and cod structure comparison operators*/
 bool operator==(nuc n1, nuc n2);
 bool operator==(cod c1, cod c2);
+bool operator!=(nuc n1, nuc n2);
+bool operator!=(cod c1, cod c2);
 
 extern nuc nuc_table[6];
 extern cod cod_table[64];
@@ -58,5 +60,6 @@ VectorFst<StdArc> optimize(VectorFst<StdArc> fst);
 void write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names);
 void write_phylip(VectorFst<StdArc>& aln, string output, vector<string> seq_names);
 bool acceptor(std::string content, VectorFst<StdArc> &accept);
+int cod_distance(cod cod1, cod cod2);
 
 #endif

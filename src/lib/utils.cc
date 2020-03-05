@@ -20,6 +20,7 @@
 # SOFTWARE.
 */
 
+#include <doctest/doctest.h>
 #include <coati/utils.hpp>
 
 #define A nuc{'A',1,'R'}
@@ -36,9 +37,68 @@ bool operator==(nuc n1, nuc n2) {
 	return(n1.nt == n2.nt);
 }
 
+TEST_CASE("[utils] nuc ==") {
+	nuc a = nuc{'A',1,'R'};
+	nuc c = nuc{'C',2,'Y'};
+	nuc g = nuc{'G',3,'R'};
+	nuc t = nuc{'T',4,'Y'};
+	nuc u = nuc{'U',4,'Y'};
+	nuc n = nuc{'N',5,'-'};
+
+	CHECK((a==a) == true);
+	CHECK((a==c) == false);
+}
+
+/* not equal comparison operator for nuc structure*/
+bool operator!=(nuc n1, nuc n2) {
+	return(n1.nt != n2.nt);
+}
+
+TEST_CASE("[utils] nuc !=") {
+	nuc a = nuc{'A',1,'R'};
+	nuc c = nuc{'C',2,'Y'};
+	nuc g = nuc{'G',3,'R'};
+	nuc t = nuc{'T',4,'Y'};
+	nuc u = nuc{'U',4,'Y'};
+	nuc n = nuc{'N',5,'-'};
+
+	CHECK((a!=a) == false);
+	CHECK((a!=c) == true);
+}
+
 /* comparison operator for cod structure*/
 bool operator==(cod c1, cod c2) {
-	return(c1.nt == c2.nt);
+	for(int i=0; i<3; i++) {
+		if(c1.nt[i] != c2.nt[i]) return false;
+	}
+	return true;
+}
+
+TEST_CASE("[utils] cod ==") {
+	cod aaa = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'A',1,'R'}},'K',1};
+    cod aac = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'C',2,'Y'}},'N',2};
+	cod aag = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'G',3,'R'}},'K',3};
+
+	CHECK((aaa==aaa) == true);
+	CHECK((aaa==aac) == false);
+}
+
+/* not equal comparison operator for cod structure*/
+bool operator!=(cod c1, cod c2) {
+	for(int i=0; i<3; i++) {
+		if(c1.nt[i] != c2.nt[i]) return true;
+	}
+	return false;
+	// return(c1.nt != c2.nt);
+}
+
+TEST_CASE("[utils] cod !=") {
+	cod aaa = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'A',1,'R'}},'K',1};
+    cod aac = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'C',2,'Y'}},'N',2};
+	cod aag = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'G',3,'R'}},'K',3};
+
+	CHECK((aaa!=aaa) == false);
+	CHECK((aaa!=aac) == true);
 }
 
 /* table of nuc[cleotides]*/
@@ -247,4 +307,15 @@ bool acceptor(string content, VectorFst<StdArc> &accept) {
 	// Add final state and run an FST sanity check (Verify)
 	accept.SetFinal(accept.NumStates()-1,0.0);
 	return Verify(accept);
+}
+
+/* Hamming distance between two codons */
+int cod_distance(cod cod1, cod cod2) {
+	int distance = 0;
+
+	for(int i=0; i<3; i++) {
+		distance += (cod1.nt[i] == cod2.nt[i] ? 0:1);
+	}
+
+	return distance;
 }

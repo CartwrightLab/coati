@@ -23,9 +23,84 @@
 #include <doctest/doctest.h>
 #include <coati/mut_models.hpp>
 
-/* void MG94(float** m) {
-//
-// }*/
+/* Muse & Gaut Model (1994) P matrix */
+void mg94_p(Matrix64f& P) {
+	// Yang (1994) estimating the pattern of nucleotide substitution
+	double nuc_freqs[4] = {0.308,0.185,0.199,0.308};
+	double nuc_q[4][4] = {{-0.818, 0.132, 0.586, 0.1},{0.221, -1.349, 0.231, 0.897},\
+						{0.909, 0.215, -1.322, 0.198},{0.1, 0.537, 0.128, -0.765}};
+	double omega = 0.2;
+	double brlen = 0.0133;	// branch length (t)
+
+	// MG94 model - doi:10.1534/genetics.108.092254
+	Matrix64f Q = Matrix64f::Zero();
+	double Pi[64];
+	double w,rowSum,d = 0.0;
+	int x,y = 0;
+
+	// construct transition matrix
+	for(int i=0; i<64; i++) {
+		Pi[i] = nuc_freqs[cod_table[i].nt[0].sym-1]*\
+				nuc_freqs[cod_table[i].nt[1].sym-1]*\
+				nuc_freqs[cod_table[i].nt[2].sym-1];
+		rowSum = 0.0;
+		for(int j=0; j<64; j++) {
+			if(i==j) {
+				Q(i,j) = 0;
+			} else if(cod_distance(cod_table[i],cod_table[j]) > 1) {
+				Q(i,j) = 0;
+			} else {
+				w = (syn(cod_table[i],cod_table[j]) ? 1 : omega);
+
+				for(int k=0; k<3; k++) {	// find 1 nt change
+					if(cod_table[i].nt[k] != cod_table[j].nt[k]) {
+						x = cod_table[i].nt[k].sym-1;
+						y = cod_table[j].nt[k].sym-1;
+					}
+				}
+
+				Q(i,j) = w*nuc_q[x][y];
+			}
+			rowSum += Q(i,j);
+		}
+		Q(i,i) = -rowSum;
+		d += Pi[i]*rowSum;
+	}
+
+	// normalize
+	Q = Q/d;
+
+	// P matrix
+	Q = Q * brlen;
+	P = Q.exp();
+
+}
+
+/* Create Muse and Gaut codon model FST */
+void mg94(VectorFst<StdArc>& mut_fst) {
+	Matrix64f P;
+	mg94_p(P);
+
+	// Add state 0 and make it the start state
+	VectorFst<StdArc> mg94;
+	mg94.AddState();
+	mg94.SetStart(0);
+
+	// Creat FST
+	int r = 1;
+	for(int i=0; i<64; i++) {
+		for(int j=0; j<64; j++) {
+			add_arc(mg94, 0, r, cod_table[i].nt[0].sym, cod_table[j].nt[0].sym, P(i,j));
+			add_arc(mg94, r, r+1, cod_table[i].nt[1].sym, cod_table[j].nt[1].sym);
+			add_arc(mg94, r+1, 0, cod_table[i].nt[2].sym, cod_table[j].nt[2].sym);
+			r = r+2;
+		}
+	}
+
+	// Set final state & optimize
+	mg94.SetFinal(0, 0.0);
+	mut_fst = optimize(mg94);
+}
 
 /* Create FST that maps nucleotide to AA position */
 void nuc2pos(VectorFst<StdArc> &n2p) {
@@ -72,12 +147,6 @@ void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos) {
 
 	// optimize final marginalized mutation FST
 	mut_fst = optimize(VectorFst<StdArc>(marg_mut));
-}
-
-/* Read toycoati mutation model FST */
-void toycoati(VectorFst<StdArc>& mut_fst) {
-	const VectorFst<StdArc> *toy_raw = VectorFst<StdArc>::Read("fst/mutation.fst");
-	mut_fst = optimize(*toy_raw);
 }
 
 /* Read marginal toycoati model FST */
@@ -264,7 +333,7 @@ void ecm(VectorFst<StdArc>& mut_fst) {
 		for(int j=0; j<64; j++) {
 			add_arc(ecm, 0, r, cod_table[i].nt[0].sym, cod_table[j].nt[0].sym, P(i,j));
 			add_arc(ecm, r, r+1, cod_table[i].nt[1].sym, cod_table[j].nt[1].sym);
-			add_arc(ecm, r+1, 0, cod_table[i].nt[1].sym, cod_table[j].nt[1].sym);
+			add_arc(ecm, r+1, 0, cod_table[i].nt[2].sym, cod_table[j].nt[2].sym);
 			r = r+2;
 		}
 	}
