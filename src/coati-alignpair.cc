@@ -152,7 +152,11 @@ int main(int argc, char *argv[]) {
 	TopSort(&aln_path);
 
 	// write path FST
-	write_phylip(aln_path, output, seq_names);
+	if(boost::filesystem::extension(output) == ".fasta") {
+		write_fasta(aln_path, output, seq_names);
+	} else {
+		write_phylip(aln_path, output, seq_names);
+	}
 
     return 0;
 }
