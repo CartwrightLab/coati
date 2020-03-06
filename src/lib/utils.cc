@@ -184,7 +184,7 @@ int read_fasta(string file, vector<string>& seq_names, vector<VectorFst<StdArc>>
 	string line, name, content;
 	while(getline(input, line).good() ) {
 		if(line[0] == ';') continue;
-		if(line.empty() || line[0] == '>') { // Identifier marker
+		if(line[0] == '>') { // Identifier marker
 			if(!name.empty()) {
 				VectorFst<StdArc> accept;	// create FSA with sequence
 				if(!acceptor(content, accept)) {
@@ -194,16 +194,16 @@ int read_fasta(string file, vector<string>& seq_names, vector<VectorFst<StdArc>>
 				fsts.push_back(accept);		// Add FSA
 				name.clear();
 			}
-			if(!line.empty()) {		// Add name of sequence
-				name = line.substr(1);
-				seq_names.push_back(name);
-			}
+			// Add name of sequence
+			name = line.substr(1);
+			seq_names.push_back(name);
 			content.clear();
+		} else if(line.empty()) {
+			continue;	// omit empty lines
 		} else if(!name.empty()) {
-			// might have to modify to delete spaces for simulation
-			if(line.find(' ') == string::npos) {
-				content += line;
-			}
+			// Remove spaces
+			line.erase(remove_if(line.begin(), line.end(), ::isspace), line.end());
+			content += line;
 		}
 	}
 	if(!name.empty()) { // Add last sequence FSA if needed

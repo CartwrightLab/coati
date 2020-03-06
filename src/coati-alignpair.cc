@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 		desc.add_options()
 			("help,h","arg1 fasta to align, arg2 model")
 			("fasta,f",po::value<string>(&fasta)->required(), "name of fasta file")
-			("model,m",po::value<string>(&mut_model)->required(), "substitution model")
+			("model,m",po::value<string>(&mut_model)->required(), "substitution model: coati, m-coati, dna, ecm, m-ecm")
 			("weight,w",po::value<string>(&weight_f), "weight storing file")
 			("output,o",po::value<string>(&output), "output file")
 		;
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 		dna_mut(mutation_fst);
 	} else if(mut_model.compare("ecm") == 0) {
 		ecm(mutation_fst);
-	} else if(mut_model.compare("ecm-marginal") == 0) {
+	} else if(mut_model.compare("m-ecm") == 0) {
 		ecm_marginal(mutation_fst);
 	} else {
 		cerr << "Mutation model specified is unknown. Exiting!\n";
