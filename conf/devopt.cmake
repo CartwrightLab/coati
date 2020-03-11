@@ -206,7 +206,7 @@ endif(TARGET Eigen3::Eigen)
 
 #####################################################################
 # Find FST library
-find_package(Fst REQUIRED)
+find_package(FSTLIB REQUIRED)
 
 #####################################################################
 # Check All Target

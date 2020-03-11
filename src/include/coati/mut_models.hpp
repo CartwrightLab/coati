@@ -35,16 +35,17 @@
 
 typedef Eigen::Matrix<double, 64, 64>Matrix64f;
 typedef Eigen::Matrix<double, 64, 1>Vector64f;
+typedef Eigen::Matrix<double, 4,  4>Matrix4f;
 
 using namespace fst;
 using namespace std;
 
 void mg94_p(Matrix64f& P);
 void mg94(VectorFst<StdArc>& mut_fst);
+void mg94_marginal(VectorFst<StdArc>& mut_fst);
 void nuc2pos(VectorFst<StdArc>& n2p);
 void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos);
-void toy_marg(VectorFst<StdArc>& mut_fst);
-void dna_mut(VectorFst<StdArc>& mut_fst);
+void dna(VectorFst<StdArc>& mut_fst);
 void ecm_p(Matrix64f& P);
 void ecm(VectorFst<StdArc>& mut_fst);
 void ecm_marginal(VectorFst<StdArc>& mut_fst);

@@ -102,6 +102,80 @@ void mg94(VectorFst<StdArc>& mut_fst) {
 	mut_fst = optimize(mg94);
 }
 
+/* Create marginal Muse and Gaut codon model FST */
+void mg94_marginal(VectorFst<StdArc>& mut_fst) {
+	Matrix64f P;
+	mg94_p(P);
+
+	// Add state 0 and make it the start state
+	VectorFst<StdArc> m_mg94;
+	m_mg94.AddState();
+	m_mg94.SetStart(0);
+
+	float marg;
+	int r = 100;
+
+	for(int i=0; i<64; i++) {
+		for(int j=0; j<3; j++) {
+			r += 1;
+			for(int k=0; k<4; k++) {
+				// Marginalization
+				marg = 0.0;
+				for(int l=0; l<64; l++) {
+					marg += (cod_table[l].nt[j] == nuc_table[k] ? P(i,l) : 0.0);
+				}
+
+				// Add arc to FST
+				add_arc(m_mg94, 0, 0, r, nuc_table[k].sym, marg);
+			}
+		}
+	}
+
+	// Set final state & optimize
+	m_mg94.SetFinal(0,0.0);
+	marg_mut(mut_fst, m_mg94);
+}
+
+/* Create dna marginal Muse and Gaut codon model FST*/
+void dna(VectorFst<StdArc>& mut_fst) {
+	Matrix64f P;
+	mg94_p(P);
+
+	// Add state 0 and make it the start state
+	VectorFst<StdArc> dna;
+	dna.AddState();
+	dna.SetStart(0);
+
+	Matrix4f dna_p = Matrix4f::Zero();
+	double rowsum;
+
+	for(int i=0; i<64; i++) {		// for each codon
+		rowsum = 0.0;
+		for(int j=0; j<3; j++) {		// for each position in a codon
+			for(int k=0; k<4; k++) {		// for each nucleotide (from)
+				for(int l=0; l<4; l++) {		// for each nucleotide (to)
+					for(int m=0; m<64; m++) {		// sum over all codons
+						dna_p(k,l) += (cod_table[m].nt[j] == nuc_table[l] ? \
+							cod_table[i].nt[j] == nuc_table[k] ? P(i,m) : 0.0 : 0.0);
+					}
+				}
+			}
+		}
+
+	}
+
+	for(int i=0; i<4; i++) {
+		dna_p.row(i) /= dna_p.row(i).sum();
+		for(int j=0; j<4; j++) {
+			add_arc(dna, 0, 0, nuc_table[i].sym, nuc_table[j].sym, dna_p(i,j));
+		}
+	}
+
+	// Set final state & optimize
+	dna.SetFinal(0,0.0);
+	mut_fst = optimize(dna);
+}
+
 /* Create FST that maps nucleotide to AA position */
 void nuc2pos(VectorFst<StdArc> &n2p) {
 	// Add state 0 and make it the start state
@@ -147,18 +221,6 @@ void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos) {
 
 	// optimize final marginalized mutation FST
 	mut_fst = optimize(VectorFst<StdArc>(marg_mut));
-}
-
-/* Read marginal toycoati model FST */
-void toy_marg(VectorFst<StdArc>& mut_fst) {
-	const VectorFst<StdArc> *marg_pos = VectorFst<StdArc>::Read("fst/marg_pos.fst");
-	marg_mut(mut_fst, *marg_pos);
-}
-
-/* Read dna (toycoati-marginal-marginal) model FST*/
-void dna_mut(VectorFst<StdArc>& mut_fst) {
-	const VectorFst<StdArc> *dna_raw = VectorFst<StdArc>::Read("fst/dna_marg.fst");
-	mut_fst = optimize(*dna_raw);
 }
 
 /* ECM unrestricted exchangeabilities, Kosiol et al. 2007, supplemental data [61x61]

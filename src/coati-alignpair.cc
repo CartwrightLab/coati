@@ -66,9 +66,9 @@ int main(int argc, char *argv[]) {
 	if(mut_model.compare("coati") == 0) {
 		mg94(mutation_fst);
 	} else if(mut_model.compare("m-coati") == 0) {
-		toy_marg(mutation_fst);
+		mg94_marginal(mutation_fst);
 	} else if(mut_model.compare("dna") == 0) {
-		dna_mut(mutation_fst);
+		dna(mutation_fst);
 	} else if(mut_model.compare("ecm") == 0) {
 		ecm(mutation_fst);
 	} else if(mut_model.compare("m-ecm") == 0) {
