@@ -46,6 +46,7 @@ void mg94_marginal(VectorFst<StdArc>& mut_fst);
 void nuc2pos(VectorFst<StdArc>& n2p);
 void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos);
 void dna(VectorFst<StdArc>& mut_fst);
+void indel(VectorFst<StdArc>& indel_model);
 void ecm_p(Matrix64f& P);
 void ecm(VectorFst<StdArc>& mut_fst);
 void ecm_marginal(VectorFst<StdArc>& mut_fst);

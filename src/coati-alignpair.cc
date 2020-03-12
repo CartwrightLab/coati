@@ -94,12 +94,9 @@ int main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	// tropical semiring & read mutation and indel raw FSTs
-	const VectorFst<StdArc> *indel_raw = VectorFst<StdArc>::Read("fst/indel.fst");
-
-	// optimize mutation and indel raw FSTs
+	// get indel FST
 	VectorFst<StdArc> indel_fst;
-	indel_fst = optimize(*indel_raw);
+	indel(indel_fst);
 
 	// sort mutation and indel FSTs
 	VectorFst<StdArc> mutation_sort, indel_sort;

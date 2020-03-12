@@ -223,6 +223,56 @@ void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos) {
 	mut_fst = optimize(VectorFst<StdArc>(marg_mut));
 }
 
+/* Create affine gap indel model FST*/
+void indel(VectorFst<StdArc>& indel_model) {
+	double deletion = 0.001, insertion = 0.001;
+	double deletion_ext = 1.0-1.0/6.0, insertion_ext = 1.0-1.0/6.0;
+	double nuc_freqs[4] = {0.308, 0.185, 0.199, 0.308};
+
+	VectorFst<StdArc> indel_fst;
+
+	// Add state 0 and make it the start state
+	indel_fst.AddState();
+	indel_fst.SetStart(0);
+
+	// Insertion
+	add_arc(indel_fst, 0, 1, 0, 0, insertion);	// 0 as ilabel/olabel is <eps>
+	add_arc(indel_fst, 0, 3, 0, 0, 1.0-insertion);
+
+	for(int i=0; i<4; i++) {
+		add_arc(indel_fst, 1, 2, 0, nuc_table[i].sym, nuc_freqs[i]);
+	}
+
+	add_arc(indel_fst, 1, 2, 0, 5);	// 5 as ilabel/olabel is N
+	add_arc(indel_fst, 2, 1, 0, 0, insertion_ext);
+	add_arc(indel_fst, 2, 3, 0, 0, 1.0-insertion_ext);
+
+	// Deletion
+	add_arc(indel_fst, 3, 4, 0, 0, deletion);
+	add_arc(indel_fst, 3, 6, 0, 0, 1.0-deletion);
+
+	for(int i=0; i<4; i++) {
+	    add_arc(indel_fst, 4, 5, nuc_table[i].sym);
+	}
+
+	add_arc(indel_fst, 4, 7);
+
+	add_arc(indel_fst, 5, 4, 0, 0, deletion_ext);
+	add_arc(indel_fst, 5, 6, 0, 0, 1.0-deletion_ext);
+
+	// Matches
+	for(int i=0; i<4; i++) {
+	    add_arc(indel_fst, 6, 0, nuc_table[i].sym, nuc_table[i].sym);
+	    add_arc(indel_fst, 6, 0, nuc_table[i].sym, 5);
+	}
+
+	add_arc(indel_fst, 6, 7);
+
+	// Set final state & optimize
+	indel_fst.SetFinal(7,0.0);
+	indel_model = optimize(indel_fst);
+}
+
 /* ECM unrestricted exchangeabilities, Kosiol et al. 2007, supplemental data [61x61]
 	in A,C,G,T order */
 constexpr double s[64][64] = {{0,0.413957,12.931524,2.075154,1.523251,0.089476,0.199589,0.878163,5.815294,0.334224,1.868194,1.29386,0.667397,0.02302,0.275355,0.221536,3.215817,0.143479,0.285384,0.899262,1.042457,0.012394,0.00041,0.247195,3.06551,0.296358,0.011032,1.769879,0.43362,0.002143,3.5E-05,0.060922,2.258321,0.053168,0.159248,0.604859,0.923644,0.0055,0.000482,0.216244,0.713961,0.002863,0.001158,0.04873,0.708204,0.00193,0.000193,0.20148,0,0.042942,0,0.467136,1.496628,0.020909,0.000459,0.340991,0,0.004316,0.051005,0.099519,0.61266,0.005996,0.004963,0.148268},
