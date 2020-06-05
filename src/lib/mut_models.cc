@@ -112,7 +112,7 @@ void mg94_marginal(VectorFst<StdArc>& mut_fst) {
 	m_mg94.AddState();
 	m_mg94.SetStart(0);
 
-	float marg;
+	double marg;
 	int r = 100;
 
 	for(int i=0; i<64; i++) {
@@ -141,7 +141,7 @@ void mg94_marginal_p(Eigen::Tensor<double, 3>& p) {
 	Matrix64f P;
 	mg94_p(P);
 
-	float marg;
+	double marg;
 
 	for(int i=0; i<64; i++) {
 		for(int j=0; j<3; j++) {
@@ -540,10 +540,10 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 	Bp = Bd;
 	Bq = Bd;
 
-	float insertion = 0.001;
-	float deletion = 0.001;
-	float insertion_ext = 1.0-1.0/6.0;
-	float deletion_ext = 1.0-1.0/6.0;
+	double insertion = 0.001;
+	double deletion = 0.001;
+	double insertion_ext = 1.0-1.0/6.0;
+	double deletion_ext = 1.0-1.0/6.0;
 
 	Eigen::Vector4d nuc_freqs(0.308, 0.185, 0.199, 0.308);
 
@@ -552,16 +552,19 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 	// fill first values on D that are independent
 	D(0,0) = 0.0;
 	Bd(0,0) = 0;
-	D(0,1) = -log(insertion * nuc_freqs[nucs[seq_b[0]]]);
+	D(0,1) = -log(insertion) - log(nuc_freqs[nucs[seq_b[0]]]);
 	Bd(0,1) = 1;
-	D(1,0) = -log((1.0 - insertion) * deletion);
+	Bp(0,1) = 2;
+	D(1,0) = -log(1.0 - insertion) - log(deletion);
 	Bd(1,0) = 2;
+	Bq(1,0) = 2;
 
 	// fill first column of D
 	if(n+1>=2) {
 		for(int j=2; j<n+1; j++) {
-			D(0,j) = D(0,j-1) - log(insertion_ext * nuc_freqs[nucs[seq_b[j-1]]]);
+			D(0,j) = D(0,j-1) - log(insertion_ext) - log(nuc_freqs[nucs[seq_b[j-1]]]);
 			Bd(0,j) = 1;
+			Bp(0,j) = 1;
 		}
 	}
 
@@ -570,40 +573,41 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 		for(int i=2; i<m+1; i++) {
 			D(i,0) = D(i-1, 0) - log(deletion_ext);
 			Bd(i,0) = 2;
+			Bq(i,0) = 1;
 		}
 	}
 
 	string codon;
-	float p1,p2,q1,q2,d,argmin;
+	double p1,p2,q1,q2,d,argmin;
 
 	for(int i=1; i<m+1; i++) {
 		codon = seq_a.substr((((i-1)/3)*3),3); // current codon
 		for(int j=1; j<n+1; j++) {
 			// insertion
-			p1 = P(i,j-1) - log(insertion_ext * nuc_freqs[nucs[seq_b[j-1]]]);
-			p2 = Bd(i,j-1) == 0 ? D(i,j-1) - log(insertion * nuc_freqs[nucs[seq_b[j-1]]]) :
-				Bd(i,j-1) == 1 ? D(i,j-1) - log(insertion_ext * nuc_freqs[nucs[seq_b[j-1]]])
-				: numeric_limits<float>::max();
+			p1 = P(i,j-1) - log(insertion_ext) - log(nuc_freqs[nucs[seq_b[j-1]]]);
+			p2 = Bd(i,j-1) == 0 ? D(i,j-1) - log(insertion) - log(nuc_freqs[nucs[seq_b[j-1]]]) :
+				Bd(i,j-1) == 1 ? D(i,j-1) - log(insertion_ext) - log(nuc_freqs[nucs[seq_b[j-1]]])
+				: numeric_limits<double>::max();
 			P(i,j) = min(p1,p2);
 			Bp(i,j) = p1 < p2 ? 1 : 2; // 1 is insertion extension, 2 is insertion opening
 
 			// deletion
 			q1 = Q(i-1,j) - log(deletion_ext);
-			q2 = Bd(i-1,j) == 0 ? D(i-1,j) - log((1 - insertion) * deletion) :
-				Bd(i-1,j) == 1 ? D(i-1,j) - log((1 - insertion_ext) * deletion) :
+			q2 = Bd(i-1,j) == 0 ? D(i-1,j) - log(1.0 - insertion) - log(deletion) :
+				Bd(i-1,j) == 1 ? D(i-1,j) - log(1.0 - insertion_ext) - log(deletion) :
 				D(i-1,j) - log(deletion_ext);
 			Q(i,j) = min(q1,q2);
 			Bq(i,j) = q1 < q2 ? 1 : 2; // 1 is deletion extension, 2 is deletion opening
 
 			// match/mismatch
 			if(Bd(i-1,j-1) == 0) {
-				d = D(i-1,j-1) - log(1 - insertion) - log(1 - deletion) -
+				d = D(i-1,j-1) - log(1.0 - insertion) - log(1.0 - deletion) -
 					log(transition(codon, (i)%3, seq_b[j-1],p));
 			} else if(Bd(i-1,j-1) == 1) {
-				d = D(i-1,j-1) - log(1 - insertion_ext) - log(1 - deletion) -
+				d = D(i-1,j-1) - log(1.0 - insertion_ext) - log(1.0 - deletion) -
 					log(transition(codon, (i)%3, seq_b[j-1],p));
 			} else {
-				d = D(i-1,j-1) - log(1 - deletion_ext) -
+				d = D(i-1,j-1) - log(1.0 - deletion_ext) -
 					log(transition(codon, (i)%3, seq_b[j-1],p));
 			}
 
@@ -634,11 +638,10 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 
 	// backtracking to obtain alignment
 	return backtracking(Bd, Bp, Bq, seq_a, seq_b);
-
 }
 
 /* Return value from marginal MG94 model p matrix for a given transition */
-float transition(string codon, int position, char nucleotide, Eigen::Tensor<double, 3>& p) {
+double transition(string codon, int position, char nucleotide, Eigen::Tensor<double, 3>& p) {
 	unordered_map<char, int> nucs = {{'A',0},{'C',1},{'G',2},{'T',3}};
 	unordered_map<string, int> codons = {{"AAA",0},{"AAC",1},\
 	{"AAG",2},{"AAT",3},{"ACA",4},{"ACC",5},{"ACG",6},{"ACT",7},\
@@ -674,7 +677,7 @@ vector<string> backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::Matri
 			alignment[0].insert(0,1,seqa[i-1]);
 			alignment[1].insert(0,1,seqb[j-1]);
 			i--;
-			j --;
+			j--;
 		// insertion
 		} else if(Bd(i,j) == 1) {
 			while(Bp(i,j) == 1) {
@@ -700,4 +703,71 @@ vector<string> backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::Matri
 
 	return alignment;
 
+}
+
+float alignment_score(vector<string> alignment) {
+	int state = 0;
+	double weight = 0.0;
+	string codon;
+
+	double insertion = 0.001;
+	double deletion = 0.001;
+	double insertion_ext = 1.0-1.0/6.0;
+	double deletion_ext = 1.0-1.0/6.0;
+
+	// P matrix for marginal Muse and Gaut codon model
+	Eigen::Tensor<double, 3> p(64,3,4);
+	mg94_marginal_p(p);
+	unordered_map<char, int> nucs = {{'A',0},{'C',1},{'G',2},{'T',3}};
+
+	Eigen::Vector4d nuc_freqs(0.308, 0.185, 0.199, 0.308);
+
+	for(int i = 0; i < alignment[0].length(); i++){
+		codon = alignment[0].substr((i/3)*3,3); // current codon
+		switch (state) {
+			case 0: if(alignment[0][i] == '-') {
+						// insertion;
+						weight = weight - log(insertion) - log(nuc_freqs[nucs[alignment[1][i]]]);
+						state = 1;
+					} else if(alignment[1][i] == '-') {
+						// deletion;
+						weight = weight - log(1.0 - insertion) - log(deletion);
+						state = 2;
+					} else {
+						// match/mismatch;
+						weight = weight - log(1.0 - insertion) - log(1.0 - deletion) -
+							log(transition(codon, (i+1)%3, alignment[1][i],p));
+					}
+					break;
+
+			case 1: if(alignment[0][i] == '-') {
+						// insertion_ext
+						weight = weight - log(insertion_ext) - log(nuc_freqs[nucs[alignment[1][i]]]);
+					} else if(alignment[1][i] == '-') {
+						// deletion
+						weight = weight - log(1.0 - insertion_ext) - log(deletion);
+						state = 2;
+					} else {
+						// match/mismatch
+						weight = weight - log(1.0 - insertion_ext) - log(1.0 - deletion) -
+							log(transition(codon, (i+1)%3, alignment[1][i],p));
+						state = 0;
+					}
+					break;
+
+			case 2: if(alignment[0][i] == '-') {
+						cout << "Insertion after deletion is not modeled. Exiting!";
+						exit(3);
+					} else if(alignment[1][i] == '-') {
+						// deletion_ext
+						weight = weight -  log(deletion_ext);
+					} else {
+						// match/mismatch
+						weight = weight - log(1.0 - deletion_ext) - log(transition(codon, (i+1)%3, alignment[1][i],p));
+						state = 0;
+					}
+		}
+	}
+
+	return(weight);
 }

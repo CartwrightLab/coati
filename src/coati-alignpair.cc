@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
 
 	VectorFst<StdArc> mutation_fst;
 	string fasta, mut_model, weight_f, output;
+	bool score = false;
 
 	try {
 		po::options_description desc("Allowed options");
@@ -46,6 +47,7 @@ int main(int argc, char *argv[]) {
 			("model,m",po::value<string>(&mut_model)->required(), "substitution model: coati, m-coati, dna, ecm, m-ecm")
 			("weight,w",po::value<string>(&weight_f), "weight storing file")
 			("output,o",po::value<string>(&output), "output file")
+			("score,s", "calculate alignment score")
 		;
 
 		po::variables_map varm;
@@ -55,6 +57,9 @@ int main(int argc, char *argv[]) {
 			cout << desc << endl;
 			return 0;
 		}
+		 if(varm.count("score") || varm.count("s")) {
+			 score = true;
+		 }
 
 		po::notify(varm);
 
@@ -85,6 +90,11 @@ int main(int argc, char *argv[]) {
 		} else if(seq_names.size() < 2 || seq_names.size() != fsts.size()) {
 			cerr << "At least two sequences required. Exiting!" << endl;
 			exit(EXIT_FAILURE);
+		}
+
+		if(score) {
+			cout << alignment_score(sequences) << endl;
+			exit(0);
 		}
 
 		alignment = dp_mg94_marginal(sequences, weight);

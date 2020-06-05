@@ -58,7 +58,8 @@ void ecm_marginal(VectorFst<StdArc>& mut_fst);
 bool syn(cod c1, cod c2);
 void nts_ntv(cod c1, cod c2, int& nts, int& ntv);
 double k(cod c1, cod c2, int model=0);
-float transition(string codon, int position, char nucleotide, Eigen::Tensor<double, 3>& p);
+double transition(string codon, int position, char nucleotide, Eigen::Tensor<double, 3>& p);
 vector<string> backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq, string seqa, string seqb);
+float alignment_score(vector<string> alignment);
 
 #endif
