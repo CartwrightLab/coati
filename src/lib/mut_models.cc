@@ -521,7 +521,10 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 	int n = sequences[1].length();
 
 	// ensure that length of first sequence (reference) is multiple of 3
-	assert(m%3 == 0);
+	if(m%3 != 0) {
+		cout << "Reference coding sequence length must be a multiple of 3 (" << m << "). Exiting!" << endl;
+		exit(1);
+	}
 
 	// DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
 	Eigen::MatrixXf D = Eigen::MatrixXf::Ones(m+1,n+1);
@@ -542,8 +545,8 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 
 	double insertion = 0.001;
 	double deletion = 0.001;
-	double insertion_ext = 1.0-1.0/6.0;
-	double deletion_ext = 1.0-1.0/6.0;
+	double insertion_ext = 1.0-(1.0/6.0);
+	double deletion_ext = 1.0-(1.0/6.0);
 
 	Eigen::Vector4d nuc_freqs(0.308, 0.185, 0.199, 0.308);
 
@@ -552,10 +555,12 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 	// fill first values on D that are independent
 	D(0,0) = 0.0;
 	Bd(0,0) = 0;
-	D(0,1) = -log(insertion) - log(nuc_freqs[nucs[seq_b[0]]]);
+	D(0,1) = -log(insertion) - log(nuc_freqs[nucs[seq_b[0]]]) -log(1.0-insertion_ext);
+	P(0,1) = -log(insertion) - log(nuc_freqs[nucs[seq_b[0]]]) -log(1.0-insertion_ext);
 	Bd(0,1) = 1;
 	Bp(0,1) = 2;
 	D(1,0) = -log(1.0 - insertion) - log(deletion);
+	Q(1,0) = -log(1.0 - insertion) - log(deletion);
 	Bd(1,0) = 2;
 	Bq(1,0) = 2;
 
@@ -563,6 +568,7 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 	if(n+1>=2) {
 		for(int j=2; j<n+1; j++) {
 			D(0,j) = D(0,j-1) - log(insertion_ext) - log(nuc_freqs[nucs[seq_b[j-1]]]);
+			P(0,j) = P(0,j-1) - log(insertion_ext) - log(nuc_freqs[nucs[seq_b[j-1]]]);
 			Bd(0,j) = 1;
 			Bp(0,j) = 1;
 		}
@@ -572,6 +578,7 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 	if(m+1>=2) {
 		for(int i=2; i<m+1; i++) {
 			D(i,0) = D(i-1, 0) - log(deletion_ext);
+			Q(i,0) = Q(i-1, 0) - log(deletion_ext);
 			Bd(i,0) = 2;
 			Bq(i,0) = 1;
 		}
@@ -584,31 +591,30 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 		codon = seq_a.substr((((i-1)/3)*3),3); // current codon
 		for(int j=1; j<n+1; j++) {
 			// insertion
-			p1 = P(i,j-1) - log(insertion_ext) - log(nuc_freqs[nucs[seq_b[j-1]]]);
-			p2 = Bd(i,j-1) == 0 ? D(i,j-1) - log(insertion) - log(nuc_freqs[nucs[seq_b[j-1]]]) :
-				Bd(i,j-1) == 1 ? D(i,j-1) - log(insertion_ext) - log(nuc_freqs[nucs[seq_b[j-1]]])
+			p1 = P(i,j-1) -log(insertion_ext) -log(nuc_freqs[nucs[seq_b[j-1]]]);
+			p2 = Bd(i,j-1) == 0 ? D(i,j-1) -log(insertion) -
+				log(nuc_freqs[nucs[seq_b[j-1]]]) -log(1.0-insertion_ext) :
+				Bd(i,j-1) == 1 ? D(i,j-1) -log(insertion_ext) -log(nuc_freqs[nucs[seq_b[j-1]]])
 				: numeric_limits<double>::max();
 			P(i,j) = min(p1,p2);
 			Bp(i,j) = p1 < p2 ? 1 : 2; // 1 is insertion extension, 2 is insertion opening
 
 			// deletion
-			q1 = Q(i-1,j) - log(deletion_ext);
-			q2 = Bd(i-1,j) == 0 ? D(i-1,j) - log(1.0 - insertion) - log(deletion) :
-				Bd(i-1,j) == 1 ? D(i-1,j) - log(1.0 - insertion_ext) - log(deletion) :
-				D(i-1,j) - log(deletion_ext);
+			q1 = Q(i-1,j) -log(deletion_ext);
+			q2 = Bd(i-1,j) == 0 ? D(i-1,j) -log(1.0 - insertion) -log(deletion) -log(1.0-deletion_ext) :
+				Bd(i-1,j) == 1 ? D(i-1,j) -log(1.0 - deletion_ext) -log(deletion) :
+				D(i-1,j) -log(deletion_ext);
 			Q(i,j) = min(q1,q2);
 			Bq(i,j) = q1 < q2 ? 1 : 2; // 1 is deletion extension, 2 is deletion opening
 
 			// match/mismatch
 			if(Bd(i-1,j-1) == 0) {
-				d = D(i-1,j-1) - log(1.0 - insertion) - log(1.0 - deletion) -
+				d = D(i-1,j-1) -log(1.0 - insertion) -log(1.0 - deletion) -
 					log(transition(codon, (i)%3, seq_b[j-1],p));
 			} else if(Bd(i-1,j-1) == 1) {
-				d = D(i-1,j-1) - log(1.0 - insertion_ext) - log(1.0 - deletion) -
-					log(transition(codon, (i)%3, seq_b[j-1],p));
+				d = D(i-1,j-1) -log(1.0 - deletion) -log(transition(codon, (i)%3, seq_b[j-1],p));
 			} else {
-				d = D(i-1,j-1) - log(1.0 - deletion_ext) -
-					log(transition(codon, (i)%3, seq_b[j-1],p));
+				d = D(i-1,j-1) -log(transition(codon, (i)%3, seq_b[j-1],p));
 			}
 
 			// D[i,j] = highest weight between insertion, deletion, and match/mismatch
@@ -634,7 +640,7 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 		}
 	}
 
-	w = D(m-1,n-1); // weight
+	w = D(m,n); // weight
 
 	// backtracking to obtain alignment
 	return backtracking(Bd, Bp, Bq, seq_a, seq_b);
@@ -712,8 +718,8 @@ float alignment_score(vector<string> alignment) {
 
 	double insertion = 0.001;
 	double deletion = 0.001;
-	double insertion_ext = 1.0-1.0/6.0;
-	double deletion_ext = 1.0-1.0/6.0;
+	double insertion_ext = 1.0-(1.0/6.0);
+	double deletion_ext = 1.0-(1.0/6.0);
 
 	// P matrix for marginal Muse and Gaut codon model
 	Eigen::Tensor<double, 3> p(64,3,4);
