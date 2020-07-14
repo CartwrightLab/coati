@@ -559,12 +559,12 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 	P(0,1) = -log(insertion) - log(nuc_freqs[nucs[seq_b[0]]]) -log(1.0-insertion_ext);
 	Bd(0,1) = 1;
 	Bp(0,1) = 2;
-	D(1,0) = -log(1.0 - insertion) - log(deletion);
-	Q(1,0) = -log(1.0 - insertion) - log(deletion);
+	D(1,0) = -log(1.0 - insertion) - log(deletion) -log(1.0 - deletion_ext);
+	Q(1,0) = -log(1.0 - insertion) - log(deletion) -log(1.0 - deletion_ext);
 	Bd(1,0) = 2;
 	Bq(1,0) = 2;
 
-	// fill first column of D
+	// fill first row of D
 	if(n+1>=2) {
 		for(int j=2; j<n+1; j++) {
 			D(0,j) = D(0,j-1) - log(insertion_ext) - log(nuc_freqs[nucs[seq_b[j-1]]]);
@@ -574,7 +574,7 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 		}
 	}
 
-	// fill first row of D
+	// fill first column of D
 	if(m+1>=2) {
 		for(int i=2; i<m+1; i++) {
 			D(i,0) = D(i-1, 0) - log(deletion_ext);
