@@ -245,10 +245,13 @@ void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos) {
 }
 
 /* Create affine gap indel model FST*/
-void indel(VectorFst<StdArc>& indel_model) {
+void indel(VectorFst<StdArc>& indel_model, string model) {
 	double deletion = 0.001, insertion = 0.001;
 	double deletion_ext = 1.0-1.0/6.0, insertion_ext = 1.0-1.0/6.0;
-	double nuc_freqs[4] = {0.308, 0.185, 0.199, 0.308};
+	double nuc_freqs[2][4] = {{0.308, 0.185, 0.199, 0.308},
+		{0.2676350,0.2357727,0.2539630,0.2426323}};
+	int m = model.compare("ecm") == 0 ? 1 : 0;
+
 
 	VectorFst<StdArc> indel_fst;
 
@@ -261,7 +264,7 @@ void indel(VectorFst<StdArc>& indel_model) {
 	add_arc(indel_fst, 0, 3, 0, 0, 1.0-insertion);
 
 	for(int i=0; i<4; i++) {
-		add_arc(indel_fst, 1, 2, 0, nuc_table[i].sym, nuc_freqs[i]);
+		add_arc(indel_fst, 1, 2, 0, nuc_table[i].sym, nuc_freqs[m][i]);
 	}
 
 	add_arc(indel_fst, 1, 2, 0, 5);	// 5 as ilabel/olabel is N
@@ -726,37 +729,47 @@ float alignment_score(vector<string> alignment) {
 	mg94_marginal_p(p);
 	unordered_map<char, int> nucs = {{'A',0},{'C',1},{'G',2},{'T',3}};
 
+	string seq1 = alignment[0];
+	boost::erase_all(seq1, "-");
+	int gap_n = 0;
+
 	Eigen::Vector4d nuc_freqs(0.308, 0.185, 0.199, 0.308);
 
 	for(int i = 0; i < alignment[0].length(); i++){
-		codon = alignment[0].substr((i/3)*3,3); // current codon
+		codon = seq1.substr(((i-gap_n)/3)*3,3); // current codon
 		switch (state) {
 			case 0: if(alignment[0][i] == '-') {
 						// insertion;
-						weight = weight - log(insertion) - log(nuc_freqs[nucs[alignment[1][i]]]);
+						weight = weight - log(insertion) -
+							log(nuc_freqs[nucs[alignment[1][i]]]) -
+							log(1.0 - insertion_ext);
 						state = 1;
+						gap_n++;
 					} else if(alignment[1][i] == '-') {
 						// deletion;
-						weight = weight - log(1.0 - insertion) - log(deletion);
+						weight = weight - log(1.0 - insertion) - log(deletion) -
+							log(1.0 - deletion_ext);
 						state = 2;
 					} else {
 						// match/mismatch;
 						weight = weight - log(1.0 - insertion) - log(1.0 - deletion) -
-							log(transition(codon, (i+1)%3, alignment[1][i],p));
+							log(transition(codon, (i+1-gap_n)%3, alignment[1][i],p));
 					}
 					break;
 
 			case 1: if(alignment[0][i] == '-') {
 						// insertion_ext
-						weight = weight - log(insertion_ext) - log(nuc_freqs[nucs[alignment[1][i]]]);
+						weight = weight - log(insertion_ext) -
+							log(nuc_freqs[nucs[alignment[1][i]]]);
+						gap_n++;
 					} else if(alignment[1][i] == '-') {
 						// deletion
-						weight = weight - log(1.0 - insertion_ext) - log(deletion);
+						weight = weight - log(deletion) - log(1.0 - deletion_ext);
 						state = 2;
 					} else {
 						// match/mismatch
-						weight = weight - log(1.0 - insertion_ext) - log(1.0 - deletion) -
-							log(transition(codon, (i+1)%3, alignment[1][i],p));
+						weight = weight - log(1.0 - deletion) -
+							log(transition(codon, (i+1-gap_n)%3, alignment[1][i],p));
 						state = 0;
 					}
 					break;
@@ -769,7 +782,8 @@ float alignment_score(vector<string> alignment) {
 						weight = weight -  log(deletion_ext);
 					} else {
 						// match/mismatch
-						weight = weight - log(1.0 - deletion_ext) - log(transition(codon, (i+1)%3, alignment[1][i],p));
+						weight = weight - log(transition(codon, (i+1-gap_n)%3,
+							alignment[1][i],p));
 						state = 0;
 					}
 		}

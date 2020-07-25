@@ -35,6 +35,7 @@
 #include <coati/utils.hpp>
 #include <limits>
 #include <cmath>
+#include <boost/algorithm/string.hpp>
 
 typedef Eigen::Matrix<double, 64, 64>Matrix64f;
 typedef Eigen::Matrix<double, 64, 1>Vector64f;
@@ -51,7 +52,7 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w);
 void nuc2pos(VectorFst<StdArc>& n2p);
 void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos);
 void dna(VectorFst<StdArc>& mut_fst);
-void indel(VectorFst<StdArc>& indel_model);
+void indel(VectorFst<StdArc>& indel_model, string model);
 void ecm_p(Matrix64f& P);
 void ecm(VectorFst<StdArc>& mut_fst);
 void ecm_marginal(VectorFst<StdArc>& mut_fst);

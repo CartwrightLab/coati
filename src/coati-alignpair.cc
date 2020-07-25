@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
 
 	// get indel FST
 	VectorFst<StdArc> indel_fst;
-	indel(indel_fst);
+	indel(indel_fst, mut_model);
 
 	// sort mutation and indel FSTs
 	VectorFst<StdArc> mutation_sort, indel_sort;
