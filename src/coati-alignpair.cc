@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 		po::options_description desc("Allowed options");
 		desc.add_options()
 			("help,h","arg1 fasta to align, arg2 model")
-			("fasta,f",po::value<string>(&fasta)->required(), "name of fasta file")
+			("fasta,f",po::value<string>(&fasta)->required(), "fasta file path")
 			("model,m",po::value<string>(&mut_model)->required(), "substitution model: coati, m-coati, dna, ecm, m-ecm")
 			("weight,w",po::value<string>(&weight_f), "weight storing file")
 			("output,o",po::value<string>(&output), "output file")
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 
 		if(varm.count("help") || varm.count("-h")) {
 			cout << desc << endl;
-			return 0;
+			exit(EXIT_SUCCESS);
 		}
 		 if(varm.count("score") || varm.count("s")) {
 			 score = true;
@@ -68,46 +68,48 @@ int main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
+
+	// read input fasta file sequences as FSA (acceptors)
+	vector<string> seq_names, sequences;
+	vector<VectorFst<StdArc>> fsts;
+
+	if(read_fasta(fasta,seq_names, fsts, sequences) != 0) {
+		cerr << "Error reading " << fasta << " file. Exiting!" << endl;
+		exit(EXIT_FAILURE);
+	} else if(seq_names.size() < 2 || seq_names.size() != fsts.size()) {
+		cerr << "At least two sequences required. Exiting!" << endl;
+		exit(EXIT_FAILURE);
+	}
+
 	if(mut_model.compare("coati") == 0) {
 		mg94(mutation_fst);
-	} else if(mut_model.compare("m-coati") == 0) {
-		mg94_marginal(mutation_fst);
 	} else if(mut_model.compare("dna") == 0) {
 		dna(mutation_fst);
 	} else if(mut_model.compare("ecm") == 0) {
 		ecm(mutation_fst);
 	} else if(mut_model.compare("m-ecm") == 0) {
 		ecm_marginal(mutation_fst);
-	} else if(mut_model.compare("dp-mcoati") == 0) {
-		vector<string> seq_names, sequences, alignment;
-		vector<VectorFst<StdArc>> fsts;
+	} else if(mut_model.compare("m-coati") == 0) {
+		vector<string> alignment;
 		float weight;
 		ofstream out_w;
 
-		if(read_fasta(fasta,seq_names, fsts, sequences) != 0) {
-			cerr << "Error reading " << fasta << "file. Exiting!" << endl;
-			exit(EXIT_FAILURE);
-		} else if(seq_names.size() < 2 || seq_names.size() != fsts.size()) {
-			cerr << "At least two sequences required. Exiting!" << endl;
-			exit(EXIT_FAILURE);
-		}
-
 		if(score) {
 			cout << alignment_score(sequences) << endl;
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 
-		alignment = dp_mg94_marginal(sequences, weight);
+		alignment = mg94_marginal(sequences, weight);
 
 		if(!weight_f.empty()) {
-			// append weight and fasta file name info in file
+			// append weight and fasta file name to file
 			out_w.open(weight_f, ios::app | ios::out);
 			out_w << fasta << "," << mut_model << "," << weight << endl;
 			out_w.close();
 		}
 
 		if(output.empty()) {
-			// if no output is specified save in current dir with .phy extension
+			// if no output is specified save in current dir in PHYLIP format
 			output = boost::filesystem::path(fasta).stem().string()+".phy";
 		}
 		// write alignment
@@ -117,7 +119,7 @@ int main(int argc, char *argv[]) {
 			write_phylip(alignment, output, seq_names);
 		}
 
-		exit(0);
+		exit(EXIT_SUCCESS);
 	} else {
 		cerr << "Mutation model specified is unknown. Exiting!\n";
 		exit(EXIT_FAILURE);
@@ -126,19 +128,6 @@ int main(int argc, char *argv[]) {
 	if(output.empty()) {
 		// if no output is specified save in current dir with .phy extension
 		output = boost::filesystem::path(fasta).stem().string()+".phy";
-	}
-
-	// read input fasta file sequences as FSA (acceptors)
-	vector<string> seq_names;
-	vector<VectorFst<StdArc>> fsts;
-	vector<string> seqs;
-
-	if(read_fasta(fasta,seq_names, fsts, seqs) != 0) {
-		cerr << "Error reading " << fasta << "file. Exiting!" << endl;
-		exit(EXIT_FAILURE);
-	} else if(seq_names.size() < 2 || seq_names.size() != fsts.size()) {
-		cerr << "At least two sequences required. Exiting!" << endl;
-		exit(EXIT_FAILURE);
 	}
 
 	// get indel FST

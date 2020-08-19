@@ -40,15 +40,15 @@
 typedef Eigen::Matrix<double, 64, 64>Matrix64f;
 typedef Eigen::Matrix<double, 64, 1>Vector64f;
 typedef Eigen::Matrix<double, 4,  4>Matrix4f;
+typedef Eigen::Matrix<double, 5,  1>Vector5d;
 
 using namespace fst;
 using namespace std;
 
 void mg94_p(Matrix64f& P);
 void mg94(VectorFst<StdArc>& mut_fst);
-void mg94_marginal(VectorFst<StdArc>& mut_fst);
 void mg94_marginal_p(Eigen::Tensor<double, 3>& p);
-vector<string> dp_mg94_marginal(vector<string> sequences, float& w);
+vector<string> mg94_marginal(vector<string> sequences, float& w);
 void nuc2pos(VectorFst<StdArc>& n2p);
 void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos);
 void dna(VectorFst<StdArc>& mut_fst);
@@ -56,9 +56,8 @@ void indel(VectorFst<StdArc>& indel_model, string model);
 void ecm_p(Matrix64f& P);
 void ecm(VectorFst<StdArc>& mut_fst);
 void ecm_marginal(VectorFst<StdArc>& mut_fst);
-bool syn(cod c1, cod c2);
-void nts_ntv(cod c1, cod c2, int& nts, int& ntv);
-double k(cod c1, cod c2, int model=0);
+void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
+double k(uint8_t c1, uint8_t c2, int model=0);
 double transition(string codon, int position, char nucleotide, Eigen::Tensor<double, 3>& p);
 vector<string> backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq, string seqa, string seqb);
 float alignment_score(vector<string> alignment);

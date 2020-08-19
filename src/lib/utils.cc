@@ -23,105 +23,7 @@
 #include <doctest/doctest.h>
 #include <coati/utils.hpp>
 
-#define A nuc{'A',1,'R'}
-#define C nuc{'C',2,'Y'}
-#define G nuc{'G',3,'R'}
-#define T nuc{'T',4,'Y'}
-#define U nuc{'U',4,'Y'}
-#define N nuc{'N',5,'-'}
-
 #define PRINT_SIZE 100
-
-/* comparison operator for nuc structure*/
-bool operator==(nuc n1, nuc n2) {
-	return(n1.nt == n2.nt);
-}
-
-TEST_CASE("[utils] nuc ==") {
-	nuc a = nuc{'A',1,'R'};
-	nuc c = nuc{'C',2,'Y'};
-	nuc g = nuc{'G',3,'R'};
-	nuc t = nuc{'T',4,'Y'};
-	nuc u = nuc{'U',4,'Y'};
-	nuc n = nuc{'N',5,'-'};
-
-	CHECK((a==a) == true);
-	CHECK((a==c) == false);
-}
-
-/* not equal comparison operator for nuc structure*/
-bool operator!=(nuc n1, nuc n2) {
-	return(n1.nt != n2.nt);
-}
-
-TEST_CASE("[utils] nuc !=") {
-	nuc a = nuc{'A',1,'R'};
-	nuc c = nuc{'C',2,'Y'};
-	nuc g = nuc{'G',3,'R'};
-	nuc t = nuc{'T',4,'Y'};
-	nuc u = nuc{'U',4,'Y'};
-	nuc n = nuc{'N',5,'-'};
-
-	CHECK((a!=a) == false);
-	CHECK((a!=c) == true);
-}
-
-/* comparison operator for cod structure*/
-bool operator==(cod c1, cod c2) {
-	for(int i=0; i<3; i++) {
-		if(c1.nt[i] != c2.nt[i]) return false;
-	}
-	return true;
-}
-
-TEST_CASE("[utils] cod ==") {
-	cod aaa = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'A',1,'R'}},'K',1};
-    cod aac = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'C',2,'Y'}},'N',2};
-	cod aag = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'G',3,'R'}},'K',3};
-
-	CHECK((aaa==aaa) == true);
-	CHECK((aaa==aac) == false);
-}
-
-/* not equal comparison operator for cod structure*/
-bool operator!=(cod c1, cod c2) {
-	for(int i=0; i<3; i++) {
-		if(c1.nt[i] != c2.nt[i]) return true;
-	}
-	return false;
-	// return(c1.nt != c2.nt);
-}
-
-TEST_CASE("[utils] cod !=") {
-	cod aaa = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'A',1,'R'}},'K',1};
-    cod aac = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'C',2,'Y'}},'N',2};
-	cod aag = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'G',3,'R'}},'K',3};
-
-	CHECK((aaa!=aaa) == false);
-	CHECK((aaa!=aac) == true);
-}
-
-/* table of nuc[cleotides]*/
-nuc nuc_table[6] = { A,C,G,T,U,N };
-
-/* table of cod[ons]*/
-cod cod_table[64] = {
-	{{A,A,A},'K',11},{{A,A,C},'N',12},{{A,A,G},'K',13},{{A,A,T},'N',14},\
-	{{A,C,A},'T',15},{{A,C,C},'T',16},{{A,C,G},'T',17},{{A,C,T},'T',18},\
-	{{A,G,A},'R',19},{{A,G,C},'S',20},{{A,G,G},'R',21},{{A,G,T},'S',22},\
-	{{A,T,A},'I',23},{{A,T,C},'I',24},{{A,T,G},'M',25},{{A,T,T},'I',26},\
-	{{C,A,A},'Q',27},{{C,A,C},'H',28},{{C,A,G},'Q',29},{{C,A,T},'H',30},\
-	{{C,C,A},'P',31},{{C,C,C},'P',32},{{C,C,G},'P',33},{{C,C,T},'P',34},\
-	{{C,G,A},'R',35},{{C,G,C},'R',36},{{C,G,G},'R',37},{{C,G,T},'R',38},\
-	{{C,T,A},'L',39},{{C,T,C},'L',40},{{C,T,G},'L',41},{{C,T,T},'L',42},\
-	{{G,A,A},'E',43},{{G,A,C},'D',44},{{G,A,G},'E',45},{{G,A,T},'D',46},\
-	{{G,C,A},'A',47},{{G,C,C},'A',48},{{G,C,G},'A',49},{{G,C,T},'A',50},\
-	{{G,G,A},'G',51},{{G,G,C},'G',52},{{G,G,G},'G',53},{{G,G,T},'G',54},\
-	{{G,T,A},'V',55},{{G,T,C},'V',56},{{G,T,G},'V',57},{{G,T,T},'V',58},\
-	{{T,A,A},'*',59},{{T,A,C},'Y',60},{{T,A,G},'*',61},{{T,A,T},'Y',62},\
-	{{T,C,A},'S',63},{{T,C,C},'S',64},{{T,C,G},'S',65},{{T,C,T},'S',66},\
-	{{T,G,A},'*',67},{{T,G,C},'C',68},{{T,G,G},'W',69},{{T,G,T},'C',70},\
-	{{T,T,A},'L',71},{{T,T,C},'F',72},{{T,T,G},'L',73},{{T,T,T},'F',74}};
 
 /* Add arc to FST */
 void add_arc(VectorFst<StdArc> &n2p, int src, int dest, int ilabel, int olabel, float weight) {
@@ -240,13 +142,6 @@ void write_fasta(vector<string> alignment, string output, vector<string> seq_nam
 void write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names) {
 	SymbolTable *symbols = SymbolTable::ReadText("fst/dna_syms.txt");
 
-	// ofstream outfile;
-	// outfile.open(output);
-	// if(!outfile) {
-	// 	cerr << "Opening output file failed.\n";
-	// 	exit(EXIT_FAILURE);
-	// }
-
 	vector<string> alignment;// seq1, seq2;
 	string seq1, seq2;
 	StdArc::StateId istate = aln.Start();
@@ -266,9 +161,6 @@ void write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names
 
 	// write aligned sequences to file
 	write_fasta(alignment, output, seq_names);
-	// outfile << ">" << seq_names[0] << endl << seq1 << endl;
-	// outfile << ">" << seq_names[1] << endl << seq2 << endl;
-	// outfile.close();
 
 }
 
@@ -345,12 +237,12 @@ bool acceptor(string content, VectorFst<StdArc> &accept) {
 }
 
 /* Hamming distance between two codons */
-int cod_distance(cod cod1, cod cod2) {
+int cod_distance(uint8_t cod1, uint8_t cod2) {
 	int distance = 0;
 
-	for(int i=0; i<3; i++) {
-		distance += (cod1.nt[i] == cod2.nt[i] ? 0:1);
-	}
+	distance += (((cod1 & 48) >> 4) == ((cod2 & 48) >> 4) ? 0:1);
+	distance += (((cod1 & 12) >> 2) == ((cod2 & 12) >> 2) ? 0:1);
+	distance += ((cod1 & 3) == (cod2 & 3) ? 0:1);
 
 	return distance;
 }

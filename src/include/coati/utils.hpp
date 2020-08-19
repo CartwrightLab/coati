@@ -30,28 +30,26 @@
 using namespace fst;
 using namespace std;
 
-/* nucleotide structure*/
-struct nuc {
-	char nt;		// nucleotide base
-	int sym;		// fst symbol for that base
-	char group;		// puRine or pYrimidine
+/* Table for converting a nucleotide character to 2-bit encoding and for
+	looking up coding amino acid based on codon index (AAA:0, AAC:1, ..., TTT:63) */
+const uint8_t nt4_table[256] = {
+	75, 78, 75, 78,  84, 84, 84, 84,  82, 83, 82, 83,  73, 73, 77, 73,
+	81, 72, 81, 72,  80, 80, 80, 80,  82, 82, 82, 82,  76, 76, 76, 76,
+	69, 68, 69, 68,  65, 65, 65, 65,  71, 71, 71, 71,  86, 86, 86, 86,
+	42, 89, 42, 89,  83, 83, 83, 83,  42, 67, 87, 67,  76, 70, 76, 70,
+	4, 0, 4, 1,  4, 4, 4, 2,  4, 4, 4, 4,  4, 4, 4, 4,
+	4, 4, 4, 4,  3, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+	4, 0, 4, 1,  4, 4, 4, 2,  4, 4, 4, 4,  4, 4, 4, 4,
+	4, 4, 4, 4,  3, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4
 };
-
-/* codon structure*/
-struct cod {
-	nuc nt[3];		// codon nucleotides
-	char subset;	// one of 20 subset groups according to Kioso et al. 2007
-	int sym;		// fst symbol for the codon
-};
-
-/* nuc and cod structure comparison operators*/
-bool operator==(nuc n1, nuc n2);
-bool operator==(cod c1, cod c2);
-bool operator!=(nuc n1, nuc n2);
-bool operator!=(cod c1, cod c2);
-
-extern nuc nuc_table[6];
-extern cod cod_table[64];
 
 int read_fasta(string file, vector<string>& seq_names,
 	vector<VectorFst<StdArc>>& fsts, vector<string>& sequences);
@@ -63,6 +61,6 @@ void write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names
 void write_phylip(vector<string> alignment, string output, vector<string> seq_names);
 void write_phylip(VectorFst<StdArc>& aln, string output, vector<string> seq_names);
 bool acceptor(std::string content, VectorFst<StdArc> &accept);
-int cod_distance(cod cod1, cod cod2);
+int cod_distance(uint8_t cod1, uint8_t cod2);
 
 #endif

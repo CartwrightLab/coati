@@ -24,20 +24,6 @@
 #include <coati/mut_models.hpp>
 
 
-unordered_map<char, int> nucs = {{'A',0},{'C',1},{'G',2},{'T',3}};
-unordered_map<string, int> codons = {{"AAA",0},{"AAC",1},\
-{"AAG",2},{"AAT",3},{"ACA",4},{"ACC",5},{"ACG",6},{"ACT",7},\
-{"AGA",8},{"AGC",9},{"AGG",10},{"AGT",11},{"ATA",12},{"ATC",13},\
-{"ATG",14},{"ATT",15},{"CAA",16},{"CAC",17},{"CAG",18},{"CAT",19},\
-{"CCA",20},{"CCC",21},{"CCG",22},{"CCT",23},{"CGA",24},{"CGC",25},\
-{"CGG",26},{"CGT",27},{"CTA",28},{"CTC",29},{"CTG",30},{"CTT",31},\
-{"GAA",32},{"GAC",33},{"GAG",34},{"GAT",35},{"GCA",36},{"GCC",37},\
-{"GCG",38},{"GCT",39},{"GGA",40},{"GGC",41},{"GGG",42},{"GGT",43},\
-{"GTA",44},{"GTC",45},{"GTG",46},{"GTT",47},{"TAA",48},{"TAC",49},\
-{"TAG",50},{"TAT",51},{"TCA",52},{"TCC",53},{"TCG",54},{"TCT",55},\
-{"TGA",56},{"TGC",57},{"TGG",58},{"TGT",59},{"TTA",60},{"TTC",61},\
-{"TTG",62},{"TTT",63}};
-
 /* Muse & Gaut Model (1994) P matrix */
 void mg94_p(Matrix64f& P) {
 	// Yang (1994) estimating the pattern of nucleotide substitution
@@ -54,23 +40,30 @@ void mg94_p(Matrix64f& P) {
 	int x,y = 0;
 
 	// construct transition matrix
-	for(int i=0; i<64; i++) {
-		Pi[i] = nuc_freqs[cod_table[i].nt[0].sym-1]*\
-				nuc_freqs[cod_table[i].nt[1].sym-1]*\
-				nuc_freqs[cod_table[i].nt[2].sym-1];
+	for(uint8_t i=0; i<64; i++) {
+		// uint8_t codon;
+		// (codon & 48) >> 4 = nt4_table encoding of first codon nucleotide
+		// (codon & 12) >> 4 = nt4_table encoding of second codon nucleotide
+		// (codon & 03) >> 4 = nt4_table encoding of third codon nucleotide
+		// e.g. 00 00 11 10 = 00 A T G = codon "ATG"
+		// (00001110 & 48) >> 4 = (00001110 & 00110000) >> 4 = 00000000 >> 4 = 0 (A)
+		// (00001110 & 12) >> 4 = (00001110 & 00001100) >> 4 = 00001100 >> 4 = 3 (T)
+		// (00001110 & 03) >> 4 = (00001110 & 00000011) >> 4 = 00000010 >> 4 = 2 (G)
+
+		Pi[i] = nuc_freqs[((i & 48) >> 4)] * nuc_freqs[((i & 12) >> 2)] * nuc_freqs[(i & 3)];
 		rowSum = 0.0;
-		for(int j=0; j<64; j++) {
+		for(uint8_t j=0; j<64; j++) {
 			if(i==j) {
 				Q(i,j) = 0;
-			} else if(cod_distance(cod_table[i],cod_table[j]) > 1) {
+			} else if(cod_distance(i,j) > 1) {
 				Q(i,j) = 0;
 			} else {
-				w = (syn(cod_table[i],cod_table[j]) ? 1 : omega);
+				w = ((nt4_table[i] == nt4_table[j]) ? 1 : omega);
 
-				for(int k=0; k<3; k++) {	// find 1 nt change
-					if(cod_table[i].nt[k] != cod_table[j].nt[k]) {
-						x = cod_table[i].nt[k].sym-1;
-						y = cod_table[j].nt[k].sym-1;
+				for(uint8_t k=0; k<3; k++) {	// find 1 nt change
+					if((i & (uint8_t)(48/pow(4,k))) != (j & (uint8_t)(48/pow(4,k)))) {
+						x = ((i & (uint8_t)(48/pow(4,k))) >> (4-2*k));
+						y = ((j & (uint8_t)(48/pow(4,k))) >> (4-2*k));
 					}
 				}
 
@@ -103,11 +96,11 @@ void mg94(VectorFst<StdArc>& mut_fst) {
 
 	// Creat FST
 	int r = 1;
-	for(int i=0; i<64; i++) {
-		for(int j=0; j<64; j++) {
-			add_arc(mg94, 0, r, cod_table[i].nt[0].sym, cod_table[j].nt[0].sym, P(i,j));
-			add_arc(mg94, r, r+1, cod_table[i].nt[1].sym, cod_table[j].nt[1].sym);
-			add_arc(mg94, r+1, 0, cod_table[i].nt[2].sym, cod_table[j].nt[2].sym);
+	for(uint8_t i=0; i<64; i++) {
+		for(uint8_t j=0; j<64; j++) {
+			add_arc(mg94, 0, r, ((i & 48) >> 4) + 1, ((j & 48) >> 4) + 1, P(i,j));
+			add_arc(mg94, r, r+1, ((i & 12) >> 2) + 1, ((j & 12) >> 2) + 1);
+			add_arc(mg94, r+1, 0, (i & 3) + 1, (j & 3) + 1);
 			r = r+2;
 		}
 	}
@@ -115,40 +108,6 @@ void mg94(VectorFst<StdArc>& mut_fst) {
 	// Set final state & optimize
 	mg94.SetFinal(0, 0.0);
 	mut_fst = optimize(mg94);
-}
-
-/* Create marginal Muse and Gaut codon model FST */
-void mg94_marginal(VectorFst<StdArc>& mut_fst) {
-	Matrix64f P;
-	mg94_p(P);
-
-	// Add state 0 and make it the start state
-	VectorFst<StdArc> m_mg94;
-	m_mg94.AddState();
-	m_mg94.SetStart(0);
-
-	double marg;
-	int r = 100;
-
-	for(int i=0; i<64; i++) {
-		for(int j=0; j<3; j++) {
-			r += 1;
-			for(int k=0; k<4; k++) {
-				// Marginalization
-				marg = 0.0;
-				for(int l=0; l<64; l++) {
-					marg += (cod_table[l].nt[j] == nuc_table[k] ? P(i,l) : 0.0);
-				}
-
-				// Add arc to FST
-				add_arc(m_mg94, 0, 0, r, nuc_table[k].sym, marg);
-			}
-		}
-	}
-
-	// Set final state & optimize
-	m_mg94.SetFinal(0,0.0);
-	marg_mut(mut_fst, m_mg94);
 }
 
 /* Create marginal Muse and Gaut codon model P matrix*/
@@ -162,8 +121,8 @@ void mg94_marginal_p(Eigen::Tensor<double, 3>& p) {
 		for(int j=0; j<3; j++) {
 			for(int k=0; k<4; k++) {
 				marg = 0.0;
-				for(int l=0; l<64; l++) {
-					marg += (cod_table[l].nt[j] == nuc_table[k] ? P(i,l) : 0.0);
+				for(uint8_t l=0; l<64; l++) {
+					marg += ( ((l & (uint8_t)(48/pow(4,j))) >> (4-2*j)) == k ? P(i,l) : 0.0);
 				}
 				p(i,j,k) = marg;
 			}
@@ -185,14 +144,14 @@ void dna(VectorFst<StdArc>& mut_fst) {
 	Matrix4f dna_p = Matrix4f::Zero();
 	double rowsum;
 
-	for(int i=0; i<64; i++) {		// for each codon
+	for(uint8_t i=0; i<64; i++) {		// for each codon
 		rowsum = 0.0;
 		for(int j=0; j<3; j++) {		// for each position in a codon
 			for(int k=0; k<4; k++) {		// for each nucleotide (from)
 				for(int l=0; l<4; l++) {		// for each nucleotide (to)
 					for(int m=0; m<64; m++) {		// sum over all codons
-						dna_p(k,l) += (cod_table[m].nt[j] == nuc_table[l] ? \
-							cod_table[i].nt[j] == nuc_table[k] ? P(i,m) : 0.0 : 0.0);
+						dna_p(k,l) += (((m & (uint8_t)(48/pow(4,j))) >> (4-2*j)) == l ? \
+							((i & (uint8_t)(48/pow(4,j))) >> (4-2*j)) == k ? P(i,m) : 0.0 : 0.0);
 					}
 				}
 			}
@@ -203,13 +162,14 @@ void dna(VectorFst<StdArc>& mut_fst) {
 	for(int i=0; i<4; i++) {
 		dna_p.row(i) /= dna_p.row(i).sum();
 		for(int j=0; j<4; j++) {
-			add_arc(dna, 0, 0, nuc_table[i].sym, nuc_table[j].sym, dna_p(i,j));
+			add_arc(dna, 0, 0, i+1, j+1, dna_p(i,j));
 		}
 	}
 
 	// Set final state & optimize
 	dna.SetFinal(0,0.0);
 	mut_fst = optimize(dna);
+	mut_fst.Write("dna_uint8.fst");
 }
 
 /* Create FST that maps nucleotide to AA position */
@@ -279,7 +239,7 @@ void indel(VectorFst<StdArc>& indel_model, string model) {
 	add_arc(indel_fst, 0, 3, 0, 0, 1.0-insertion);
 
 	for(int i=0; i<4; i++) {
-		add_arc(indel_fst, 1, 2, 0, nuc_table[i].sym, nuc_freqs[m][i]);
+		add_arc(indel_fst, 1, 2, 0, i+1, nuc_freqs[m][i]);
 	}
 
 	add_arc(indel_fst, 1, 2, 0, 5);	// 5 as ilabel/olabel is N
@@ -291,7 +251,7 @@ void indel(VectorFst<StdArc>& indel_model, string model) {
 	add_arc(indel_fst, 3, 6, 0, 0, 1.0-deletion);
 
 	for(int i=0; i<4; i++) {
-	    add_arc(indel_fst, 4, 5, nuc_table[i].sym);
+	    add_arc(indel_fst, 4, 5, i+1);
 	}
 
 	add_arc(indel_fst, 4, 7);
@@ -301,8 +261,8 @@ void indel(VectorFst<StdArc>& indel_model, string model) {
 
 	// Matches
 	for(int i=0; i<4; i++) {
-	    add_arc(indel_fst, 6, 0, nuc_table[i].sym, nuc_table[i].sym);
-	    add_arc(indel_fst, 6, 0, nuc_table[i].sym, 5);
+	    add_arc(indel_fst, 6, 0, i+1, i+1);
+	    add_arc(indel_fst, 6, 0, i+1, 5);
 	}
 
 	add_arc(indel_fst, 6, 7);
@@ -395,34 +355,23 @@ const double omega = 0.2;	// github.com/reedacartwright/toycoati
 const double t = 0.0133;	// github.com/reedacartwright/toycoati
 const double kappa = 2.5;	// Kosiol et al. 2007, supplemental material
 
-/* compare if codon i and codon j are synonymous */
-bool syn(cod c1, cod c2) {
-	// return(cod2aa(i).compare(cod2aa(j)) == 0);
-	return(c1.subset == c2.subset);
-}
-
-TEST_CASE("[mut_models] syn") {
-	cod AAA = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'A',1,'R'}},'K',1};
-    cod AAC = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'C',2,'Y'}},'N',2};
-	cod AAG = {{nuc{'A',1,'R'},nuc{'A',1,'R'},nuc{'G',3,'R'}},'K',3};
-
-	CHECK(syn(AAA,AAC) == false);
-	CHECK(syn(AAA,AAA) == true);
-}
-
 /* calculate number of transitions and transversions between codons i and j*/
-void nts_ntv(cod c1, cod c2, int& nts, int& ntv) {
+void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv) {
+	uint8_t nt1, nt2;
 	nts = ntv = 0;
 	if(c1 == c2) return;
 	for(int i=0; i<3; i++) {
-		if(c1.nt[i] == c2.nt[i]) continue;
-		((c1.nt[i].group == c2.nt[i].group) ? nts : ntv) += 1;
+		nt1 = ((c1 & (uint8_t)(48/pow(4,i))) >> (4-2*i));
+		nt2 = ((c2 & (uint8_t)(48/pow(4,i))) >> (4-2*i));
+
+		if(nt1 == nt2) continue;
+		((nt1 % 2 == nt2 % 2) ? nts : ntv) += 1;
 	}
 	return;
 }
 
 /* transition-transversion bias function, depending on # of ts and tv (Nts,Ntv) */
-double k(cod c1, cod c2, int model) {
+double k(uint8_t c1, uint8_t c2, int model) {
 	int nts, ntv;
 	nts_ntv(c1, c2, nts, ntv);
 	switch (model) {
@@ -442,16 +391,16 @@ void ecm_p(Matrix64f& P) {
 	double rowSum;
 	double d = 0.0;
 
-	for(int i=0; i<64; i++) {
+	for(uint8_t i=0; i<64; i++) {
 		rowSum = 0.0;
-		for(int j=0; j<64; j++) {
+		for(uint8_t j=0; j<64; j++) {
 			// check if codons i or j are stop codons
-			if(i==j || cod_table[i].subset == '*' || cod_table[j].subset == '*') {
+			if(i==j || nt4_table[i] == '*' || nt4_table[j] == '*') {
 				continue;
-			} else if(syn(cod_table[i],cod_table[j])) {
-				Q(i,j) = s[i][j]*pi[j]*k(cod_table[i],cod_table[j],0);
-			} else if(!syn(cod_table[i],cod_table[j])) {
-				Q(i,j) = s[i][j]*pi[j]*k(cod_table[i],cod_table[j],0)*omega;
+			} else if(nt4_table[i] == nt4_table[j]) {
+				Q(i,j) = s[i][j]*pi[j]*k(i,j,0);
+			} else if(nt4_table[i] != nt4_table[j]) {
+				Q(i,j) = s[i][j]*pi[j]*k(i,j,0)*omega;
 			} else {
 				exit(EXIT_FAILURE);
 			}
@@ -480,11 +429,11 @@ void ecm(VectorFst<StdArc>& mut_fst) {
 	ecm.SetStart(0);
 
 	int r = 1;
-	for(int i=0; i<64; i++) {
-		for(int j=0; j<64; j++) {
-			add_arc(ecm, 0, r, cod_table[i].nt[0].sym, cod_table[j].nt[0].sym, P(i,j));
-			add_arc(ecm, r, r+1, cod_table[i].nt[1].sym, cod_table[j].nt[1].sym);
-			add_arc(ecm, r+1, 0, cod_table[i].nt[2].sym, cod_table[j].nt[2].sym);
+	for(uint8_t i=0; i<64; i++) {
+		for(uint8_t j=0; j<64; j++) {
+			add_arc(ecm, 0, r, ((i & 48) >> 4) + 1, ((j & 48) >> 4) + 1, P(i,j));
+			add_arc(ecm, r, r+1, ((i & 12) >> 2) + 1, ((j & 12) >> 2) + 1);
+			add_arc(ecm, r+1, 0, (i & 3) + 1, (j & 3) + 1);
 			r = r+2;
 		}
 	}
@@ -508,14 +457,14 @@ void ecm_marginal(VectorFst<StdArc>& mut_fst) {
 	double m;
 
 	// for loop extravaganza
-	for(int i=0; i<64; i++) {	// for each codon
+	for(uint8_t i=0; i<64; i++) {	// for each codon
 		for(int j=0; j<3; j++) {	// for each position in a codon
-			for(int k=0; k<4; k++) {	// for each possible nucleotide
+			for(uint8_t k=0; k<4; k++) {	// for each possible nucleotide
 				m = 0.0;
 				for(int l=0; l<64; l++) {
-					m += ((cod_table[l].nt[j] == nuc_table[k]) ? P(i,l) : 0.0);
+					m += ((((l & (uint8_t)(48/pow(4,j))) >> (4-2*j)) == k) ? P(i,l) : 0.0);
 				}
-				add_arc(fst, 0, 0, c, nuc_table[k].sym, m);
+				add_arc(fst, 0, 0, c, k+1, m);
 			}
 			c++;
 		}
@@ -525,7 +474,7 @@ void ecm_marginal(VectorFst<StdArc>& mut_fst) {
 }
 
 /* Dynamic Programming implementation of Marginal MG94 model*/
-vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
+vector<string> mg94_marginal(vector<string> sequences, float& w) {
 
 	// P matrix for marginal Muse and Gaut codon model
 	Eigen::Tensor<double, 3> p(64,3,4);
@@ -565,15 +514,15 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 	double insertion_ext = 1.0-(1.0/6.0);
 	double deletion_ext = 1.0-(1.0/6.0);
 
-	Eigen::Vector4d nuc_freqs(0.308, 0.185, 0.199, 0.308);
+	Vector5d nuc_freqs(0.308, 0.185, 0.199, 0.308, 0.0);
 
 	// DP and backtracking matrices initialization
 
 	// fill first values on D that are independent
 	D(0,0) = 0.0;
 	Bd(0,0) = 0;
-	D(0,1) = -log(insertion) - log(nuc_freqs[nucs[seq_b[0]]]) -log(1.0-insertion_ext);
-	P(0,1) = -log(insertion) - log(nuc_freqs[nucs[seq_b[0]]]) -log(1.0-insertion_ext);
+	D(0,1) = -log(insertion) - log(nuc_freqs[nt4_table[seq_b[0]]]) -log(1.0-insertion_ext);
+	P(0,1) = -log(insertion) - log(nuc_freqs[nt4_table[seq_b[0]]]) -log(1.0-insertion_ext);
 	Bd(0,1) = 1;
 	Bp(0,1) = 2;
 	D(1,0) = -log(1.0 - insertion) - log(deletion) -log(1.0 - deletion_ext);
@@ -584,8 +533,8 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 	// fill first row of D
 	if(n+1>=2) {
 		for(int j=2; j<n+1; j++) {
-			D(0,j) = D(0,j-1) - log(insertion_ext) - log(nuc_freqs[nucs[seq_b[j-1]]]);
-			P(0,j) = P(0,j-1) - log(insertion_ext) - log(nuc_freqs[nucs[seq_b[j-1]]]);
+			D(0,j) = D(0,j-1) - log(insertion_ext) - log(nuc_freqs[nt4_table[seq_b[j-1]]]);
+			P(0,j) = P(0,j-1) - log(insertion_ext) - log(nuc_freqs[nt4_table[seq_b[j-1]]]);
 			Bd(0,j) = 1;
 			Bp(0,j) = 1;
 		}
@@ -608,10 +557,11 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 		codon = seq_a.substr((((i-1)/3)*3),3); // current codon
 		for(int j=1; j<n+1; j++) {
 			// insertion
-			p1 = P(i,j-1) -log(insertion_ext) -log(nuc_freqs[nucs[seq_b[j-1]]]);
+			p1 = P(i,j-1) -log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-1]]]);
+			p1 = P(i,j-1) -log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-1]]]);
 			p2 = Bd(i,j-1) == 0 ? D(i,j-1) -log(insertion) -
-				log(nuc_freqs[nucs[seq_b[j-1]]]) -log(1.0-insertion_ext) :
-				Bd(i,j-1) == 1 ? D(i,j-1) -log(insertion_ext) -log(nuc_freqs[nucs[seq_b[j-1]]])
+				log(nuc_freqs[nt4_table[seq_b[j-1]]]) -log(1.0-insertion_ext) :
+				Bd(i,j-1) == 1 ? D(i,j-1) -log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-1]]])
 				: numeric_limits<double>::max();
 			P(i,j) = min(p1,p2);
 			Bp(i,j) = p1 < p2 ? 1 : 2; // 1 is insertion extension, 2 is insertion opening
@@ -665,10 +615,10 @@ vector<string> dp_mg94_marginal(vector<string> sequences, float& w) {
 
 /* Return value from marginal MG94 model p matrix for a given transition */
 double transition(string codon, int position, char nucleotide, Eigen::Tensor<double, 3>& p) {
-
 	position = position == 0 ? 2 : --position;
 
-	return(p(codons[codon], position, nucs[nucleotide]));
+	return(p(((uint8_t) nt4_table[codon[0]]<<4)+((uint8_t) nt4_table[codon[1]]<<2)
+		+((uint8_t) nt4_table[codon[2]]), position, nt4_table[nucleotide]));
 
 }
 
@@ -741,7 +691,7 @@ float alignment_score(vector<string> alignment) {
 			case 0: if(alignment[0][i] == '-') {
 						// insertion;
 						weight = weight - log(insertion) -
-							log(nuc_freqs[nucs[alignment[1][i]]]) -
+							log(nuc_freqs[nt4_table[alignment[1][i]]]) -
 							log(1.0 - insertion_ext);
 						state = 1;
 						gap_n++;
@@ -760,7 +710,7 @@ float alignment_score(vector<string> alignment) {
 			case 1: if(alignment[0][i] == '-') {
 						// insertion_ext
 						weight = weight - log(insertion_ext) -
-							log(nuc_freqs[nucs[alignment[1][i]]]);
+							log(nuc_freqs[nt4_table[alignment[1][i]]]);
 						gap_n++;
 					} else if(alignment[1][i] == '-') {
 						// deletion
