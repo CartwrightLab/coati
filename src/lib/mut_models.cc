@@ -514,7 +514,8 @@ vector<string> mg94_marginal(vector<string> sequences, float& w) {
 	double insertion_ext = 1.0-(1.0/6.0);
 	double deletion_ext = 1.0-(1.0/6.0);
 
-	Vector5d nuc_freqs(0.308, 0.185, 0.199, 0.308, 0.0);
+	Vector5d nuc_freqs;
+	nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.0;
 
 	// DP and backtracking matrices initialization
 
