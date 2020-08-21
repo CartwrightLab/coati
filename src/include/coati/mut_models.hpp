@@ -48,6 +48,7 @@ using namespace std;
 void mg94_p(Matrix64f& P);
 void mg94(VectorFst<StdArc>& mut_fst);
 void mg94_marginal_p(Eigen::Tensor<double, 3>& p);
+void mg94_p(Matrix64f& P, Matrix64f& Q, double brlen);
 vector<string> mg94_marginal(vector<string> sequences, float& w);
 void nuc2pos(VectorFst<StdArc>& n2p);
 void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos);

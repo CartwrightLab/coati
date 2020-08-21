@@ -32,7 +32,6 @@ using namespace std;
 
 namespace po = boost::program_options;
 
-//TODO: incorporate unique pointers
 int main(int argc, char *argv[]) {
 
 	VectorFst<StdArc> mutation_fst;
@@ -42,24 +41,28 @@ int main(int argc, char *argv[]) {
 	try {
 		po::options_description desc("Allowed options");
 		desc.add_options()
-			("help,h","arg1 fasta to align, arg2 model")
+			("help,h","Display this message")
 			("fasta,f",po::value<string>(&fasta)->required(), "fasta file path")
-			("model,m",po::value<string>(&mut_model)->required(), "substitution model: coati, m-coati, dna, ecm, m-ecm")
-			("weight,w",po::value<string>(&weight_f), "weight storing file")
-			("output,o",po::value<string>(&output), "output file")
-			("score,s", "calculate alignment score")
+			("model,m",po::value<string>(&mut_model)->default_value("m-coati"),
+				"substitution model: coati, m-coati (default), dna, ecm, m-ecm")
+			("weight,w",po::value<string>(&weight_f), "Write alignment score to file")
+			("output,o",po::value<string>(&output), "Alignment output file")
+			("score,s", "Calculate alignment score using marginal COATi model")
 		;
 
+		po::positional_options_description pos_p;
+		pos_p.add("fasta",-1);
 		po::variables_map varm;
-		po::store(po::parse_command_line(argc,argv,desc),varm);
+		po::store(po::command_line_parser(argc,argv).options(desc).positional(pos_p).run(),varm);
 
-		if(varm.count("help") || varm.count("-h")) {
+		if(varm.count("help")) {
 			cout << desc << endl;
 			exit(EXIT_SUCCESS);
 		}
-		 if(varm.count("score") || varm.count("s")) {
+
+		if(varm.count("score")) {
 			 score = true;
-		 }
+		}
 
 		po::notify(varm);
 

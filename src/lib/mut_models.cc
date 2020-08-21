@@ -84,6 +84,14 @@ void mg94_p(Matrix64f& P) {
 
 }
 
+/* Muse & Gaut Model (1994) P matrix given rate matrix and branch lenght */
+void mg94_p(Matrix64f& P, Matrix64f& Q, double brlen) {
+
+	Q = Q * brlen;
+	P = Q.exp();
+}
+
+
 /* Create Muse and Gaut codon model FST */
 void mg94(VectorFst<StdArc>& mut_fst) {
 	Matrix64f P;
@@ -667,6 +675,13 @@ vector<string> backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::Matri
 }
 
 float alignment_score(vector<string> alignment) {
+
+	if(alignment[0].length() != alignment[1].length()) {
+		cout << "For alignment scoring both sequences must have equal lenght. Exiting!"
+			<< endl;
+		exit (EXIT_FAILURE);
+	}
+
 	int state = 0;
 	double weight = 0.0;
 	string codon;
