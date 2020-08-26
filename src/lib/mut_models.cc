@@ -497,7 +497,7 @@ vector<string> mg94_marginal(vector<string> sequences, float& w) {
 	// ensure that length of first sequence (reference) is multiple of 3
 	if(m%3 != 0) {
 		cout << "Reference coding sequence length must be a multiple of 3 (" << m << "). Exiting!" << endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	// DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
@@ -679,7 +679,7 @@ float alignment_score(vector<string> alignment) {
 	if(alignment[0].length() != alignment[1].length()) {
 		cout << "For alignment scoring both sequences must have equal lenght. Exiting!"
 			<< endl;
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
 	int state = 0;
@@ -742,7 +742,7 @@ float alignment_score(vector<string> alignment) {
 
 			case 2: if(alignment[0][i] == '-') {
 						cout << "Insertion after deletion is not modeled. Exiting!";
-						exit(3);
+						exit(EXIT_FAILURE);
 					} else if(alignment[1][i] == '-') {
 						// deletion_ext
 						weight = weight -  log(deletion_ext);

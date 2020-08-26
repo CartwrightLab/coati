@@ -81,7 +81,7 @@ int read_fasta(string file, vector<string>& seq_names,
 	ifstream input(file);
 	if(!input.good()) {
 		cerr << "Error opening '" << file << "'." << endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	string line, name, content;
@@ -92,7 +92,7 @@ int read_fasta(string file, vector<string>& seq_names,
 				VectorFst<StdArc> accept;	// create FSA with sequence
 				if(!acceptor(content, accept)) {
 					cerr << "Creating acceptor from " << file << " failed. Exiting!" << endl;
-					exit(EXIT_FAILURE);
+					return EXIT_FAILURE;
 				}
 				fsts.push_back(accept);		// Add FSA
 				sequences.push_back(content);
@@ -114,7 +114,7 @@ int read_fasta(string file, vector<string>& seq_names,
 		VectorFst<StdArc> accept;
 		if(!acceptor(content, accept)) {
 			cerr << "Creating acceptor from " << file << " failed. Exiting!" << endl;
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 		fsts.push_back(accept);
 		sequences.push_back(content);
@@ -124,22 +124,23 @@ int read_fasta(string file, vector<string>& seq_names,
 }
 
 /* Write alignment in Fasta format */
-void write_fasta(vector<string> alignment, string output, vector<string> seq_names) {
+int write_fasta(vector<string> alignment, string output, vector<string> seq_names) {
 	ofstream outfile;
 	outfile.open(output);
 	if(!outfile) {
 		cerr << "Opening output file failed.\n";
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	outfile << ">" << seq_names[0] << endl << alignment[0] << endl;
 	outfile << ">" << seq_names[1] << endl << alignment[1] << endl;
 	outfile.close();
 
+	return EXIT_SUCCESS;
 }
 
 /* Write shortest path (alignment) in Fasta format */
-void write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names) {
+int write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names) {
 	SymbolTable *symbols = SymbolTable::ReadText("fst/dna_syms.txt");
 
 	vector<string> alignment;// seq1, seq2;
@@ -161,16 +162,16 @@ void write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names
 
 	// write aligned sequences to file
 	write_fasta(alignment, output, seq_names);
-
+	return EXIT_SUCCESS;
 }
 
 /* Write alignment in PHYLIP format */
-void write_phylip(vector<string> alignment, string output, vector<string> seq_names) {
+int write_phylip(vector<string> alignment, string output, vector<string> seq_names) {
 	ofstream outfile;
 	outfile.open(output);
 	if(!outfile) {
 		cerr << "Opening output file failed.\n";
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	// write aligned sequences to file
@@ -184,11 +185,11 @@ void write_phylip(vector<string> alignment, string output, vector<string> seq_na
 		outfile << endl;
 	}
 
-
+	return EXIT_SUCCESS;
 }
 
 /* Write shortest path (alignment) in PHYLIP format */
-void write_phylip(VectorFst<StdArc>& aln, string output, vector<string> seq_names) {
+int write_phylip(VectorFst<StdArc>& aln, string output, vector<string> seq_names) {
 	SymbolTable *symbols = SymbolTable::ReadText("fst/dna_syms.txt");
 
 	vector<string> alignment;
@@ -208,10 +209,8 @@ void write_phylip(VectorFst<StdArc>& aln, string output, vector<string> seq_name
 	while(alignment[0].find("<eps>") != string::npos) alignment[0].replace(alignment[0].find("<eps>"),5,"-");
 	while(alignment[1].find("<eps>") != string::npos) alignment[1].replace(alignment[1].find("<eps>"),5,"-");
 
-	assert(alignment[0].length() == alignment[1].length());
-
 	write_phylip(alignment, output, seq_names);
-
+	return EXIT_SUCCESS;
 }
 
 // TEST_CASE("[utils.cc] write_phylip") {
