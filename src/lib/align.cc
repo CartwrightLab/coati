@@ -25,18 +25,18 @@
 
 /* Alignment using dynamic programming implementation of marginal COATi model */
 int mcoati(string fasta, vector<string> seq_names, vector<string> sequences,
-	bool score, string weight_f, string output) {
+	bool score, string weight_f, string output, Matrix64f& P) {
 
 	vector<string> alignment;
 	float weight;
 	ofstream out_w;
 
 	if(score) {
-		cout << alignment_score(sequences) << endl;
+		cout << alignment_score(sequences, P) << endl;
 		return EXIT_SUCCESS;
 	}
 
-	alignment = mg94_marginal(sequences, weight);
+	alignment = mg94_marginal(sequences, weight, P);
 
 	if(!weight_f.empty()) {
 		// append weight and fasta file name to file

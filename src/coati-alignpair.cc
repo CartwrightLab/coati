@@ -35,7 +35,7 @@ namespace po = boost::program_options;
 
 int main(int argc, char *argv[]) {
 
-	string fasta, mut_model, weight_f, output;
+	string fasta, mut_model, weight_f, output, rate;
 	bool score = false;
 
 	try {
@@ -48,6 +48,7 @@ int main(int argc, char *argv[]) {
 			("weight,w",po::value<string>(&weight_f), "Write alignment score to file")
 			("output,o",po::value<string>(&output), "Alignment output file")
 			("score,s", "Calculate alignment score using marginal COATi model")
+			("rate,r", po::value<string>(&rate), "Substitution rate matrix (CSV)")
 		;
 
 		po::positional_options_description pos_p;
@@ -74,6 +75,18 @@ int main(int argc, char *argv[]) {
 	// read input fasta file sequences as FSA (acceptors)
 	vector<string> seq_names, sequences;
 	vector<VectorFst<StdArc>> fsts;
+	Matrix64f P;
+
+	if(!rate.empty()) {
+		Matrix64f Q;
+		double br_len;
+		parse_matrix_csv(rate, Q, br_len);
+		// P matrix
+		Q = Q * br_len;
+		P = Q.exp();
+	} else {
+		P.setZero();
+	}
 
 	if(read_fasta(fasta,seq_names, fsts, sequences) != 0) {
 		cerr << "Error reading " << fasta << " file. Exiting!" << endl;
@@ -92,7 +105,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if(mut_model.compare("m-coati") == 0) {
-		return mcoati(fasta, seq_names, sequences, score, weight_f, output);
+		return mcoati(fasta, seq_names, sequences, score, weight_f, output, P);
 	} else {
 		return fst_alignment(mut_model, fsts, seq_names, fasta, weight_f, output, sequences);
 	}

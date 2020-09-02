@@ -119,9 +119,11 @@ void mg94(VectorFst<StdArc>& mut_fst) {
 }
 
 /* Create marginal Muse and Gaut codon model P matrix*/
-void mg94_marginal_p(Eigen::Tensor<double, 3>& p) {
-	Matrix64f P;
-	mg94_p(P);
+void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P) {
+
+	if(P.isZero()) {
+		mg94_p(P);
+	}
 
 	double marg;
 
@@ -482,12 +484,12 @@ void ecm_marginal(VectorFst<StdArc>& mut_fst) {
 }
 
 /* Dynamic Programming implementation of Marginal MG94 model*/
-vector<string> mg94_marginal(vector<string> sequences, float& w) {
+vector<string> mg94_marginal(vector<string> sequences, float& w, Matrix64f& P_m) {
 
 	// P matrix for marginal Muse and Gaut codon model
 	Eigen::Tensor<double, 3> p(64,3,4);
 
-	mg94_marginal_p(p);
+	mg94_marginal_p(p, P_m);
 
 	string seq_a = sequences[0];
 	string seq_b = sequences[1];
@@ -523,7 +525,7 @@ vector<string> mg94_marginal(vector<string> sequences, float& w) {
 	double deletion_ext = 1.0-(1.0/6.0);
 
 	Vector5d nuc_freqs;
-	nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.0;
+	nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
 
 	// DP and backtracking matrices initialization
 
@@ -566,7 +568,6 @@ vector<string> mg94_marginal(vector<string> sequences, float& w) {
 		codon = seq_a.substr((((i-1)/3)*3),3); // current codon
 		for(int j=1; j<n+1; j++) {
 			// insertion
-			p1 = P(i,j-1) -log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-1]]]);
 			p1 = P(i,j-1) -log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-1]]]);
 			p2 = Bd(i,j-1) == 0 ? D(i,j-1) -log(insertion) -
 				log(nuc_freqs[nt4_table[seq_b[j-1]]]) -log(1.0-insertion_ext) :
@@ -623,12 +624,43 @@ vector<string> mg94_marginal(vector<string> sequences, float& w) {
 }
 
 /* Return value from marginal MG94 model p matrix for a given transition */
-double transition(string codon, int position, char nucleotide, Eigen::Tensor<double, 3>& p) {
+double transition(string codon, int position, char nuc, Eigen::Tensor<double, 3>& p) {
 	position = position == 0 ? 2 : --position;
+	// TODO: handle scenario when there is more than one 'N' in codon
 
-	return(p(((uint8_t) nt4_table[codon[0]]<<4)+((uint8_t) nt4_table[codon[1]]<<2)
-		+((uint8_t) nt4_table[codon[2]]), position, nt4_table[nucleotide]));
+	if(codon.find('N') == string::npos) {
+		if(nuc != 'N') {
+			// P(x|abc)
+			return p(cod_int(codon), position, nt4_table[nuc]);
+		} else {
+			// P(N|abc)
+			string nucs = "ACGT";
+			double val = 0.0;
+			for(int i=0;i<4;i++){
+				val += p(cod_int(codon), position, i);
+			}
+			return val/4.0;
+		}
+	} else {
+		string nucs = "ACGT";
+		double val = 0.0;
 
+		if(nuc != 'N') {
+			// P(x|Nbc) or P(x|aNc) or P(x|abN)
+			for(int i=0;i<4;i++){
+				val += p(cod_int(codon.replace(codon.find('N'),1,nucs,i,1)), position, nt4_table[nuc]);
+			}
+			return val/4.0;
+		} else {
+			// P(N|Nbc) or P(N|aNc) or P(N|abN)
+			for(int i=0;i<4;i++) {
+				for(int j=0;j<4;j++) {
+					val += p(cod_int(codon.replace(codon.find('N'),1,nucs,i,1)), position, j);
+				}
+			}
+			return val/16.0;
+		}
+	}
 }
 
 /* Recover alignment given backtracking matrices for DP alignment */
@@ -674,7 +706,7 @@ vector<string> backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::Matri
 
 }
 
-float alignment_score(vector<string> alignment) {
+float alignment_score(vector<string> alignment, Matrix64f& P) {
 
 	if(alignment[0].length() != alignment[1].length()) {
 		cout << "For alignment scoring both sequences must have equal lenght. Exiting!"
@@ -693,13 +725,13 @@ float alignment_score(vector<string> alignment) {
 
 	// P matrix for marginal Muse and Gaut codon model
 	Eigen::Tensor<double, 3> p(64,3,4);
-	mg94_marginal_p(p);
+	mg94_marginal_p(p, P);
 
 	string seq1 = alignment[0];
 	boost::erase_all(seq1, "-");
 	int gap_n = 0;
 
-	Eigen::Vector4d nuc_freqs(0.308, 0.185, 0.199, 0.308);
+	Vector5d nuc_freqs(0.308, 0.185, 0.199, 0.308, 0.25);
 
 	for(int i = 0; i < alignment[0].length(); i++){
 		codon = seq1.substr(((i-gap_n)/3)*3,3); // current codon
@@ -757,3 +789,11 @@ float alignment_score(vector<string> alignment) {
 
 	return(weight);
 }
+
+// /* Model combining MG94's rates and ECM exchangeabilities */
+// void hybrid() {
+// 	for(int k=0;k<3;k++) {
+// 		M(i,j) = delta(i,j,k)+(1-delta(i,j,k)*B(i,j,k))
+// 	}
+// 	R(i,j) = c*M[i][j]*f/f_mut*exp(w(i,j));
+// }

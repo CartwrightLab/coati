@@ -245,3 +245,42 @@ int cod_distance(uint8_t cod1, uint8_t cod2) {
 
 	return distance;
 }
+
+/* Cast codon to position in codon list AAA->1, AAAC->2 ... TTT->63 */
+int cod_int(string codon) {
+	return ((uint8_t) nt4_table[codon[0]]<<4)+((uint8_t) nt4_table[codon[1]]<<2)
+		+((uint8_t) nt4_table[codon[2]]);
+}
+
+
+/* Read substitution rate matrix from a CSV file */
+int parse_matrix_csv(string file, Matrix64f& P, double& br_len) {
+	ifstream input(file);
+	if(!input.good()) {
+		cerr << "Error opening '" << file << "'." << endl;
+		return EXIT_FAILURE;
+	}
+
+	string line;
+	if(input.good()) {
+		// Read branch length
+		getline(input,line);
+		br_len = stod(line);
+	}
+
+	vector<string> vec;
+	int count = 0;
+
+	while(getline(input, line)) {
+		boost::algorithm::split(vec,line,boost::is_any_of(","));
+		P(cod_int(vec[0]), cod_int(vec[1])) = stod(vec[2]);
+		count++;
+	}
+
+	if(count != 4096){
+		cout << "Error reading substitution rate CSV file. Exiting!" << endl;
+		return EXIT_FAILURE;
+	}
+
+	return 0;
+}
