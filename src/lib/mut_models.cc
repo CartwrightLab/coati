@@ -731,7 +731,8 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
 	boost::erase_all(seq1, "-");
 	int gap_n = 0;
 
-	Vector5d nuc_freqs(0.308, 0.185, 0.199, 0.308, 0.25);
+	Vector5d nuc_freqs;
+	nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
 
 	for(int i = 0; i < alignment[0].length(); i++){
 		codon = seq1.substr(((i-gap_n)/3)*3,3); // current codon
