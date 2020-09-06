@@ -1,6 +1,19 @@
 # coati
-Codon-Aware Mulitple Sequence Alignments
+Codon-Aware Multiple Sequence Alignments
 
-Branch | Status
-------- | -------
-master | [![CircleCI](https://circleci.com/gh/CartwrightLab/coati/tree/master.svg?style=svg)](https://circleci.com/gh/CartwrightLab/coati/tree/master) [![codecov](https://codecov.io/gh/CartwrightLab/coati/branch/master/graph/badge.svg)](https://codecov.io/gh/CartwrightLab/coati)
+## Pairwise Alignment: coati-alignpair
+
+```
+Usage:	coati-alignpair file.fasta [options]
+
+Allowed options:
+  -h [ --help ]                 Display this message
+  -f [ --fasta ] arg            fasta file path
+  -m [ --model ] arg (=m-coati) substitution model: coati, m-coati (default),
+                                dna, ecm, m-ecm
+  -w [ --weight ] arg           Write alignment score to file
+  -o [ --output ] arg           Alignment output file
+  -s [ --score ]                Calculate alignment score using marginal COATi
+                                model
+  -r [ --rate ] arg             Substitution rate matrix (CSV)
+ ```
