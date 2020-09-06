@@ -56,7 +56,8 @@ int main(int argc, char *argv[]) {
 		po::variables_map varm;
 		po::store(po::command_line_parser(argc,argv).options(desc).positional(pos_p).run(),varm);
 
-		if(varm.count("help")) {
+		if(varm.count("help") || argc <= 1) {
+			cout << "Usage:	coati-alignpair file.fasta [options]" << endl << endl;
 			cout << desc << endl;
 			return EXIT_SUCCESS;
 		}
