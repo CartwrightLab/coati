@@ -25,7 +25,7 @@
 
 
 /* Muse & Gaut Model (1994) P matrix */
-void mg94_p(Matrix64f& P) {
+void mg94_q(Matrix64f& Q) {
 	// Yang (1994) estimating the pattern of nucleotide substitution
 	double nuc_freqs[4] = {0.308,0.185,0.199,0.308};
 	double nuc_q[4][4] = {{-0.818, 0.132, 0.586, 0.1},{0.221, -1.349, 0.231, 0.897},\
@@ -34,8 +34,8 @@ void mg94_p(Matrix64f& P) {
 	double brlen = 0.0133;	// branch length (t)
 
 	// MG94 model - doi:10.1534/genetics.108.092254
-	Matrix64f Q = Matrix64f::Zero();
-	double Pi[64];
+	Q = Matrix64f::Zero();
+	Matrix64f Pi;
 	double w,rowSum,d = 0.0;
 	int x,y = 0;
 
@@ -43,14 +43,14 @@ void mg94_p(Matrix64f& P) {
 	for(uint8_t i=0; i<64; i++) {
 		// uint8_t codon;
 		// (codon & 48) >> 4 = nt4_table encoding of first codon nucleotide
-		// (codon & 12) >> 4 = nt4_table encoding of second codon nucleotide
-		// (codon & 03) >> 4 = nt4_table encoding of third codon nucleotide
+		// (codon & 12) >> 2 = nt4_table encoding of second codon nucleotide
+		// (codon & 03) = nt4_table encoding of third codon nucleotide
 		// e.g. 00 00 11 10 = 00 A T G = codon "ATG"
 		// (00001110 & 48) >> 4 = (00001110 & 00110000) >> 4 = 00000000 >> 4 = 0 (A)
-		// (00001110 & 12) >> 4 = (00001110 & 00001100) >> 4 = 00001100 >> 4 = 3 (T)
-		// (00001110 & 03) >> 4 = (00001110 & 00000011) >> 4 = 00000010 >> 4 = 2 (G)
+		// (00001110 & 12) >> 2 = (00001110 & 00001100) >> 2 = 00001100 >> 2 = 3 (T)
+		// (00001110 & 03) 		= (00001110 & 00000011) 	 = 00000010 	 = 2 (G)
 
-		Pi[i] = nuc_freqs[((i & 48) >> 4)] * nuc_freqs[((i & 12) >> 2)] * nuc_freqs[(i & 3)];
+		Pi(i) = nuc_freqs[((i & 48) >> 4)] * nuc_freqs[((i & 12) >> 2)] * nuc_freqs[(i & 3)];
 		rowSum = 0.0;
 		for(uint8_t j=0; j<64; j++) {
 			if(i==j) {
@@ -72,23 +72,26 @@ void mg94_p(Matrix64f& P) {
 			rowSum += Q(i,j);
 		}
 		Q(i,i) = -rowSum;
-		d += Pi[i]*rowSum;
+		d += Pi(i)*rowSum;
 	}
 
 	// normalize
 	Q = Q/d;
 
-	// P matrix
-	Q = Q * brlen;
-	P = Q.exp();
-
 }
 
 /* Muse & Gaut Model (1994) P matrix given rate matrix and branch lenght */
-void mg94_p(Matrix64f& P, Matrix64f& Q, double brlen) {
+void mg94_p(Matrix64f& P, bool q_matrix) {
+	double brlen = 0.0133;	// branch length (t)
 
-	Q = Q * brlen;
-	P = Q.exp();
+	if(q_matrix) {
+		mg94_q(P);
+	} else {
+		Matrix64f Q;
+		mg94_q(Q);
+		Q = Q * brlen;
+		P = Q.exp();
+	}
 }
 
 
@@ -351,7 +354,7 @@ constexpr double s[64][64] = {{0,0.413957,12.931524,2.075154,1.523251,0.089476,0
 
 /* ECM unrestrictied nucleotide frequencies, Kosiol et al. 2007, supplemental material
 	in A,C,G,T nucleotide order*/
-Vector64f pi((Vector64f() << 0.031090,0.020321,0.026699,0.022276,0.013120,0.017882,\
+Vector64f ecm_pi((Vector64f() << 0.031090,0.020321,0.026699,0.022276,0.013120,0.017882,\
 	0.010682,0.012656,0.009746,0.013701,0.006788,0.010310,0.012814,0.023762,0.021180,\
 	0.024759,0.017168,0.011040,0.020730,0.010671,0.011165,0.010408,0.012199,0.010425,\
 	0.004809,0.014604,0.008158,0.008491,0.007359,0.016798,0.028497,0.015167,0.034527,\
@@ -408,16 +411,16 @@ void ecm_p(Matrix64f& P) {
 			if(i==j || nt4_table[i] == '*' || nt4_table[j] == '*') {
 				continue;
 			} else if(nt4_table[i] == nt4_table[j]) {
-				Q(i,j) = s[i][j]*pi[j]*k(i,j,0);
+				Q(i,j) = s[i][j]*ecm_pi(j)*k(i,j,0);
 			} else if(nt4_table[i] != nt4_table[j]) {
-				Q(i,j) = s[i][j]*pi[j]*k(i,j,0)*omega;
+				Q(i,j) = s[i][j]*ecm_pi(j)*k(i,j,0)*omega;
 			} else {
 				exit(EXIT_FAILURE);
 			}
 			rowSum += Q(i,j);
 		}
 		Q(i,i) = -rowSum;
-		d += pi[i]*rowSum;
+		d += ecm_pi(i)*rowSum;
 	}
 
 	// normalize
@@ -626,40 +629,16 @@ vector<string> mg94_marginal(vector<string> sequences, float& w, Matrix64f& P_m)
 /* Return value from marginal MG94 model p matrix for a given transition */
 double transition(string codon, int position, char nuc, Eigen::Tensor<double, 3>& p) {
 	position = position == 0 ? 2 : --position;
-	// TODO: handle scenario when there is more than one 'N' in codon
 
-	if(codon.find('N') == string::npos) {
-		if(nuc != 'N') {
-			// P(x|abc)
-			return p(cod_int(codon), position, nt4_table[nuc]);
-		} else {
-			// P(N|abc)
-			string nucs = "ACGT";
-			double val = 0.0;
-			for(int i=0;i<4;i++){
-				val += p(cod_int(codon), position, i);
-			}
-			return val/4.0;
-		}
+	if(nuc != 'N') {
+		return p(cod_int(codon), position, nt4_table[nuc]);
 	} else {
 		string nucs = "ACGT";
 		double val = 0.0;
-
-		if(nuc != 'N') {
-			// P(x|Nbc) or P(x|aNc) or P(x|abN)
-			for(int i=0;i<4;i++){
-				val += p(cod_int(codon.replace(codon.find('N'),1,nucs,i,1)), position, nt4_table[nuc]);
-			}
-			return val/4.0;
-		} else {
-			// P(N|Nbc) or P(N|aNc) or P(N|abN)
-			for(int i=0;i<4;i++) {
-				for(int j=0;j<4;j++) {
-					val += p(cod_int(codon.replace(codon.find('N'),1,nucs,i,1)), position, j);
-				}
-			}
-			return val/16.0;
+		for(int i=0;i<4;i++){
+			val += p(cod_int(codon), position, i);
 		}
+		return val/4.0;
 	}
 }
 
@@ -791,10 +770,38 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
 	return(weight);
 }
 
-// /* Model combining MG94's rates and ECM exchangeabilities */
-// void hybrid() {
-// 	for(int k=0;k<3;k++) {
-// 		M(i,j) = delta(i,j,k)+(1-delta(i,j,k)*B(i,j,k))
-// 	}
-// 	R(i,j) = c*M[i][j]*f/f_mut*exp(w(i,j));
-// }
+/* Model combining MG94's rates and ECM exchangeabilities.
+	Method folowing Miyazawa 2011.*/
+void hybrid(Matrix64f& P) {
+	Matrix64f R; // instantaneous substitution rate matrix
+	R.setZero();
+
+	Matrix64f M; // Muse and Gaut instantaneous rate matrix
+	mg94_p(M, true);
+
+	double nuc_pi[4] = {0.308,0.185,0.199,0.308};
+	double brlen = 0.0133;	// branch length (t)
+
+	Matrix64f mut_pi;
+	for(int i=0;i<64;i++) {
+		mut_pi(i) = nuc_pi[((i & 48) >> 4)] * nuc_pi[((i & 12) >> 2)] * nuc_pi[(i & 3)];
+	}
+
+	double c, rowSum = 0.0;
+
+	for(int i=0;i<64;i++){
+		rowSum = 0.0;
+		for(int j=0;j<64;j++){
+			R(i,j) = M(i,j)*ecm_pi(j)/mut_pi(j)*exp(s[i][j]);
+			rowSum += R(i,j);
+		}
+		R(i,i) = -rowSum;
+		c += rowSum;
+	}
+	// Normalize
+	R = R/c;
+
+	// P matrix
+	R = R * brlen;
+	P = R.exp();
+}
