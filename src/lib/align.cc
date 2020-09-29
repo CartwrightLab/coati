@@ -61,12 +61,14 @@ int fst_alignment(string model, vector<VectorFst<StdArc>>& fsts, vector<string> 
 
 	if(model.compare("coati") == 0 ) {
 		mg94(mut_fst);
-	} else if(model.compare("dna")) {
+	} else if(model.compare("dna") == 0) {
 		dna(mut_fst);
-	} else if(model.compare("ecm")) {
+	} else if(model.compare("ecm") == 0) {
 		ecm(mut_fst);
-	} else if(model.compare("m-ecm")) {
+	} else if(model.compare("m-ecm") == 0) {
 		ecm_marginal(mut_fst);
+	} else if(model.compare("hybrid") == 0) {
+		hybrid(mut_fst);
 	} else {
 		cout << "Mutation model unknown. Exiting!" << endl;
 		return EXIT_FAILURE;

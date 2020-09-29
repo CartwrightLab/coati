@@ -81,17 +81,13 @@ void mg94_q(Matrix64f& Q) {
 }
 
 /* Muse & Gaut Model (1994) P matrix given rate matrix and branch lenght */
-void mg94_p(Matrix64f& P, bool q_matrix) {
+void mg94_p(Matrix64f& P) {
 	double brlen = 0.0133;	// branch length (t)
 
-	if(q_matrix) {
-		mg94_q(P);
-	} else {
-		Matrix64f Q;
-		mg94_q(Q);
-		Q = Q * brlen;
-		P = Q.exp();
-	}
+	Matrix64f Q;
+	mg94_q(Q);
+	Q = Q * brlen;
+	P = Q.exp();
 }
 
 
@@ -182,7 +178,6 @@ void dna(VectorFst<StdArc>& mut_fst) {
 	// Set final state & optimize
 	dna.SetFinal(0,0.0);
 	mut_fst = optimize(dna);
-	mut_fst.Write("dna_uint8.fst");
 }
 
 /* Create FST that maps nucleotide to AA position */
@@ -772,12 +767,12 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
 
 /* Model combining MG94's rates and ECM exchangeabilities.
 	Method folowing Miyazawa 2011.*/
-void hybrid(Matrix64f& P) {
+void hybrid_p(Matrix64f& P) {
 	Matrix64f R; // instantaneous substitution rate matrix
 	R.setZero();
 
 	Matrix64f M; // Muse and Gaut instantaneous rate matrix
-	mg94_p(M, true);
+	mg94_q(M);
 
 	double nuc_pi[4] = {0.308,0.185,0.199,0.308};
 	double brlen = 0.0133;	// branch length (t)
@@ -792,8 +787,10 @@ void hybrid(Matrix64f& P) {
 	for(int i=0;i<64;i++){
 		rowSum = 0.0;
 		for(int j=0;j<64;j++){
-			R(i,j) = M(i,j)*ecm_pi(j)/mut_pi(j)*exp(s[i][j]);
-			rowSum += R(i,j);
+			if(i != j) {
+				R(i,j) = M(i,j)*ecm_pi(j)/mut_pi(j)*exp(s[i][j]);
+				rowSum += R(i,j);
+			}
 		}
 		R(i,i) = -rowSum;
 		c += rowSum;
@@ -804,4 +801,30 @@ void hybrid(Matrix64f& P) {
 	// P matrix
 	R = R * brlen;
 	P = R.exp();
+}
+
+/* Hybrid model FST */
+void hybrid(VectorFst<StdArc>& mut_fst) {
+	Matrix64f P;
+	hybrid_p(P);
+
+	// Add state 0 and make it the start state
+	VectorFst<StdArc> hybrid;
+	hybrid.AddState();
+	hybrid.SetStart(0);
+
+	// Creat FST
+	int r = 1;
+	for(uint8_t i=0; i<64; i++) {
+		for(uint8_t j=0; j<64; j++) {
+			add_arc(hybrid, 0, r, ((i & 48) >> 4) + 1, ((j & 48) >> 4) + 1, P(i,j));
+			add_arc(hybrid, r, r+1, ((i & 12) >> 2) + 1, ((j & 12) >> 2) + 1);
+			add_arc(hybrid, r+1, 0, (i & 3) + 1, (j & 3) + 1);
+			r = r+2;
+		}
+	}
+
+	// Set final state & optimize
+	hybrid.SetFinal(0, 0.0);
+	mut_fst = optimize(hybrid);
 }
