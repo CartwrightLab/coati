@@ -65,8 +65,6 @@ int fst_alignment(string model, vector<VectorFst<StdArc>>& fsts, vector<string> 
 		dna(mut_fst);
 	} else if(model.compare("ecm") == 0) {
 		ecm(mut_fst);
-	} else if(model.compare("m-ecm") == 0) {
-		ecm_marginal(mut_fst);
 	} else {
 		cout << "Mutation model unknown. Exiting!" << endl;
 		return EXIT_FAILURE;

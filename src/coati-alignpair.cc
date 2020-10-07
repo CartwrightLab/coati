@@ -110,6 +110,9 @@ int main(int argc, char *argv[]) {
 	} else if(mut_model.compare("hybrid") == 0) {
 		hybrid_p(P);
 		return mcoati(fasta, seq_names, sequences, score, weight_f, output, P);
+	} else if(mut_model.compare("m-ecm") == 0) {
+		ecm_p(P);
+		return mcoati(fasta, seq_names, sequences, score, weight_f, output, P);
 	} else {
 		return fst_alignment(mut_model, fsts, seq_names, fasta, weight_f, output, sequences);
 	}
