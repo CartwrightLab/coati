@@ -25,7 +25,7 @@
 
 /* Alignment using dynamic programming implementation of marginal COATi model */
 int mcoati(string fasta, vector<string> seq_names, vector<string> sequences,
-	bool score, string weight_f, string output, Matrix64f& P) {
+	bool score, string weight_f, string output, string model, Matrix64f& P) {
 
 	vector<string> alignment;
 	float weight;
@@ -41,7 +41,7 @@ int mcoati(string fasta, vector<string> seq_names, vector<string> sequences,
 	if(!weight_f.empty()) {
 		// append weight and fasta file name to file
 		out_w.open(weight_f, ios::app | ios::out);
-		out_w << fasta << ",m-coati," << weight << endl;
+		out_w << fasta << "," << model << "," << weight << endl;
 		out_w.close();
 	}
 
