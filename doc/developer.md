@@ -22,16 +22,22 @@
  - `make check_all` runs all the above tests and is useful for testing code before submitting a pull request.
  
 ### Agave
-Steps to set up COATi `only-gotoh` branch on the ASU Agave server:
+Steps to set up COATi `fstlib` branch on the ASU Agave server:
+
+Dependencies
 
 ```
 module load cmake/latest
 module load boost/1.61.0-gcc-9.2.0
 module load eigen/3.3.7-gcc-stock
+```
+Install OpenFST library following instructions [here](http://openfst.org/twiki/bin/view/FST/FstDownload).
 
-git clone https://github.com/jgarciamesa/coati.git --branch only-gotoh
+Compiling
+```
+git clone https://github.com/jgarciamesa/coati.git --branch fstlib
 cd coati/build
-cmake -DFSTLIB_ROOT=~/tools/openfst-1.7.9/src/ -DEigen3_DIR=/packages/7x/eigen/3.3.7-gcc-stock/share/eigen3/cmake/ -DCMAKE_BUILD_TYPE=Release ..
+cmake -DFSTLIB_ROOT=~/path/to/openfst-1.7.9/src/ -DEigen3_DIR=/packages/7x/eigen/3.3.7-gcc-stock/share/eigen3/cmake/ -DCMAKE_BUILD_TYPE=Release ..
 make -j4
 ```
 
