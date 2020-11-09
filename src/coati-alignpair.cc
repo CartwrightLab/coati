@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if(mut_model.compare("m-coati") == 0) {
+	if((mut_model.compare("m-coati") == 0) || (mut_model.compare("no_frameshifts") == 0)) {
 		return mcoati(fasta, seq_names, sequences, score, weight_f, output, mut_model, P);
 	} else if(mut_model.compare("hybrid") == 0) {
 		hybrid_p(P);

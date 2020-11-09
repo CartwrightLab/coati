@@ -621,6 +621,209 @@ vector<string> mg94_marginal(vector<string> sequences, float& w, Matrix64f& P_m)
 	return backtracking(Bd, Bp, Bq, seq_a, seq_b);
 }
 
+/* Dynamic Programming with no frameshifts*/
+vector<string> gotoh_noframeshifts(vector<string> sequences, float& w, Matrix64f& P_m) {
+
+	// P matrix for marginal Muse and Gaut codon model
+	Eigen::Tensor<double, 3> p(64,3,4);
+
+	mg94_marginal_p(p, P_m);
+
+	string seq_a = sequences[0];
+	string seq_b = sequences[1];
+	int m = sequences[0].length();
+	int n = sequences[1].length();
+
+	// ensure that length of first sequence (reference) is multiple of 3
+	if((m%3 != 0) || (n%3 != 0)) {
+		cout << "The length of both sequences must be a multiple of 3. Exiting!" << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
+	Eigen::MatrixXf D = Eigen::MatrixXf::Ones(m+1,n+1);
+	Eigen::MatrixXf P = Eigen::MatrixXf::Ones(m+1,n+1);
+	Eigen::MatrixXf Q = Eigen::MatrixXf::Ones(m+1,n+1);
+
+	D = D * std::numeric_limits<float>::max();
+	P = D;
+	Q = D;
+
+	// backtracking info matrices for match/mismatch (Bd), insert (Bp), and deletion (Bq)
+	Eigen::MatrixXd Bd = Eigen::MatrixXd::Ones(m+1,n+1);
+	Eigen::MatrixXd Bp = Eigen::MatrixXd::Ones(m+1,n+1);
+	Eigen::MatrixXd Bq = Eigen::MatrixXd::Ones(m+1,n+1);
+	Bd = Bd * (-1);
+	Bp = Bd;
+	Bq = Bd;
+
+	double insertion = 0.001;
+	double deletion = 0.001;
+	double insertion_ext = 1.0-(1.0/6.0);
+	double deletion_ext = 1.0-(1.0/6.0);
+
+	Vector5d nuc_freqs;
+	nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
+
+	// DP and backtracking matrices initialization
+
+	// fill first values on D that are independent
+	D(0,0) = 0.0;
+	Bd(0,0) = 0;
+	D(0,3) = P(0,3) = -log(insertion) - log(nuc_freqs[nt4_table[seq_b[0]]])
+		-log(nuc_freqs[nt4_table[seq_b[1]]]) -log(nuc_freqs[nt4_table[seq_b[2]]])
+		-log(1.0-insertion_ext) - 2*log(insertion_ext);
+	D(3,0) = Q(3,0) = -log(1.0-insertion) -log(deletion) - 2*log(deletion_ext)
+		-log(1.0-deletion_ext);
+	Bd(0,3) = 1;
+	Bd(3,0) = Bp(0,3) = Bq(3,0) = 2;
+
+	// fill first row of D
+	if(n+1>=6) {
+		for(int j=6; j<n+1; j+=3) {
+			D(0,j) = P(0,j) =  D(0,j-3) - 3*log(insertion_ext) - log(nuc_freqs[nt4_table[seq_b[j-3]]])
+				- log(nuc_freqs[nt4_table[seq_b[j-2]]])- log(nuc_freqs[nt4_table[seq_b[j-1]]]);
+			Bd(0,j) = 1;
+			Bp(0,j) = 1;
+		}
+	}
+
+	// fill first column of D
+	if(m+1>=6) {
+		for(int i=6; i<m+1; i+=3) {
+			D(i,0) = D(i-3, 0) - 3*log(deletion_ext);
+			Q(i,0) = Q(i-3, 0) - 3*log(deletion_ext);
+			Bd(i,0) = 2;
+			Bq(i,0) = 1;
+		}
+	}
+
+	string codon;
+	double p1,p2,q1,q2,d,argmin,temp;
+
+	// Cells with only match/mismatch (1,1) & (2,2)
+	codon = seq_a.substr(0,3);
+	for(int i=1;i<3;i++) {
+		D(i,i) = D(i-1,i-1) -log(1.0-insertion) -log(1.0-deletion) -
+			log(transition(codon, i%3, seq_b[i-1],p));
+		Bd(i,i) = 0;
+	}
+
+	// Second and third row/column (match/mismatch && insertion || deletion)
+	for(int i=1;i<3;i++) {
+		for(int j=i+3;j<n+1;j+=3) { // rows
+			codon = seq_a.substr(0,3);
+			// match/mismatch
+			if(Bd(i-1,j-1) == 0) {
+				d = D(i-1,j-1) -log(1.0 - insertion) -log(1.0 - deletion) -
+					log(transition(codon, (i)%3, seq_b[j-1],p));
+			} else if(Bd(i-1,j-1) == 1) {
+				d = D(i-1,j-1) -log(1.0 - deletion) -log(transition(codon, (i)%3, seq_b[j-1],p));
+			} else {
+				d = D(i-1,j-1) -log(transition(codon, (i)%3, seq_b[j-1],p));
+			}
+			// insertion
+			p1 = P(i,j-3) -3*log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-3]]])
+				-log(nuc_freqs[nt4_table[seq_b[j-2]]])-log(nuc_freqs[nt4_table[seq_b[j-1]]]);
+			p2 = Bd(i,j-3) == 0 ? D(i,j-3) -log(insertion) -2*log(insertion_ext) -
+				log(nuc_freqs[nt4_table[seq_b[j-3]]]) -log(nuc_freqs[nt4_table[seq_b[j-2]]])-
+				log(nuc_freqs[nt4_table[seq_b[j-1]]]) -log(1.0-insertion_ext) :
+				Bd(i,j-1) == 1 ? D(i,j-1) -3*log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-3]]])
+				-log(nuc_freqs[nt4_table[seq_b[j-2]]])-log(nuc_freqs[nt4_table[seq_b[j-1]]])
+				: numeric_limits<double>::max();
+			P(i,j) = min(p1,p2);
+			Bp(i,j) = p1 < p2 ? 1 : 2; // 1 is insertion extension, 2 is insertion opening
+			D(i,j) = P(i,j) < d ? P(i,j) : d;
+			Bd(i,j) = P(i,j) < d ? 1 : 0;
+		}
+
+		for(int j=i+3;j<m+1;j+=3) { // columns
+			codon = seq_a.substr((((j-1)/3)*3),3); // current codon
+			// match/mismatch
+			if(Bd(j-1,i-1) == 0) {
+				d = D(j-1,i-1) -log(1.0 - insertion) -log(1.0 - deletion) -
+					log(transition(codon, (j)%3, seq_b[i-1],p));
+			} else if(Bd(j-1,i-1) == 1) {
+				d = D(j-1,i-1) -log(1.0 - deletion) -log(transition(codon, (j)%3, seq_b[i-1],p));
+			} else {
+				d = D(j-1,i-1) -log(transition(codon, (j)%3, seq_b[i-1],p));
+			}
+			// deletion
+			q1 = Q(j-3,i) -3*log(deletion_ext);
+			q2 = Bd(j-3,i) == 0 ? D(j-3,i) -log(1.0 - insertion) -log(deletion)
+				-log(1.0-deletion_ext) - 2*log(deletion_ext) :
+				Bd(j-3,i) == 1 ? D(j-3,i) -log(1.0 - deletion_ext) -log(deletion) -2*log(deletion_ext) :
+				D(j-3,i) -3*log(deletion_ext);
+			Q(j,i) = min(q1,q2);
+			Bq(j,i) = q1 < q2 ? 1 : 2; // 1 is deletion extension, 2 is deletion opening
+			D(j,i) = Q(j,i) < d ? Q(j,i) : d;
+			Bd(j,i) = Q(j,i) < d ? 1 : 2;
+		}
+	}
+
+	// Cells considering all 3 events (insertion, deletion, match/mismatch)
+	for(int i=3;i<m+1;i++) {
+		codon = seq_a.substr((((i-1)/3)*3),3); // current codon
+		for(int j=3;j<n+1;j+=3) {
+			temp = j;
+			j += i%3;
+			if(j > n) continue;
+			// match/mismatch
+			if(Bd(i-1,j-1) == 0) {
+				d = D(i-1,j-1) -log(1.0 - insertion) -log(1.0 - deletion) -
+					log(transition(codon, (i)%3, seq_b[j-1],p));
+			} else if(Bd(i-1,j-1) == 1) {
+				d = D(i-1,j-1) -log(1.0 - deletion) -log(transition(codon, (i)%3, seq_b[j-1],p));
+			} else {
+				d = D(i-1,j-1) -log(transition(codon, (i)%3, seq_b[j-1],p));
+			}
+			// insertion
+			p1 = P(i,j-3) -3*log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-3]]])
+				-log(nuc_freqs[nt4_table[seq_b[j-2]]])-log(nuc_freqs[nt4_table[seq_b[j-1]]]);
+			p2 = Bd(i,j-3) == 0 ? D(i,j-3) -log(insertion) -2*log(insertion_ext) -
+				log(nuc_freqs[nt4_table[seq_b[j-3]]]) -log(nuc_freqs[nt4_table[seq_b[j-2]]])-
+				log(nuc_freqs[nt4_table[seq_b[j-1]]]) -log(1.0-insertion_ext) :
+				Bd(i,j-1) == 1 ? D(i,j-1) -3*log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-3]]])
+				-log(nuc_freqs[nt4_table[seq_b[j-2]]])-log(nuc_freqs[nt4_table[seq_b[j-1]]])
+				: numeric_limits<double>::max();
+			P(i,j) = min(p1,p2);
+			Bp(i,j) = p1 < p2 ? 1 : 2; // 1 is insertion extension, 2 is insertion opening
+			// deletion
+			q1 = Q(i-3,j) -3*log(deletion_ext);
+			q2 = Bd(i-3,j) == 0 ? D(i-3,j) -log(1.0 - insertion) -log(deletion)
+				-log(1.0-deletion_ext) - 2*log(deletion_ext) :
+				Bd(i-3,j) == 1 ? D(i-3,j) -log(1.0 - deletion_ext) -log(deletion) -2*log(deletion_ext) :
+				D(i-3,j) -3*log(deletion_ext);
+			Q(i,j) = min(q1,q2);
+			Bq(i,j) = q1 < q2 ? 1 : 2; // 1 is deletion extension, 2 is deletion opening
+			// D[i,j] = highest weight between insertion, deletion, and match/mismatch
+			//	in this case, lowest (-log(weight)) value
+			if(d < P(i,j)) {
+				if(d < Q(i,j)) {
+					D(i,j) = d;
+					Bd(i,j) = 0;
+				} else {
+					D(i,j) = Q(i,j);
+					Bd(i,j) = 2;
+				}
+			} else {
+				if(P(i,j) < Q(i,j)) {
+					D(i,j) = P(i,j);
+					Bd(i,j) = 1;
+				} else {
+					D(i,j) = Q(i,j);
+					Bd(i,j) = 2;
+				}
+			}
+			j = temp;
+		}
+	}
+
+	w = D(m,n); // weight
+
+	// backtracking to obtain alignment
+	return backtracking_noframeshifts(Bd, Bp, Bq, seq_a, seq_b);
+}
 /* Return value from marginal MG94 model p matrix for a given transition */
 double transition(string codon, int position, char nuc, Eigen::Tensor<double, 3>& p) {
 	position = position == 0 ? 2 : --position;
@@ -673,6 +876,57 @@ vector<string> backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::Matri
 			alignment[0].insert(0,1,seqa[i-1]);
 			alignment[1].insert(0,1,'-');
 			i--;
+		}
+	}
+
+	return alignment;
+
+}
+
+/* Recover alignment given backtracking matrices for DP alignment */
+vector<string> backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq, string seqa, string seqb) {
+	int i = seqa.length();
+	int j = seqb.length();
+
+	vector<string> alignment;
+	alignment.push_back(string());
+	alignment.push_back(string());
+
+	while((i != 0) || (j != 0)) {
+		// match/mismatch
+		if(Bd(i,j) == 0) {
+			alignment[0].insert(0,1,seqa[i-1]);
+			alignment[1].insert(0,1,seqb[j-1]);
+			i--;
+			j--;
+		// insertion
+		} else if(Bd(i,j) == 1) {
+			while(Bp(i,j) == 1) {
+				for(int k=0;k<3;k++) {
+					alignment[0].insert(0,1,'-');
+					alignment[1].insert(0,1,seqb[j-1]);
+					j--;
+				}
+			}
+			for(int k=0;k<3;k++) {
+				alignment[0].insert(0,1,'-');
+				alignment[1].insert(0,1,seqb[j-1]);
+				j--;
+			}
+		// deletion
+		} else {
+			while(Bq(i,j) ==  1) {
+				for(int k=0;k<3;k++) {
+					alignment[0].insert(0,1,seqa[i-1]);
+					alignment[1].insert(0,1,'-');
+					i--;
+				}
+			}
+			for(int k=0;k<3;k++) {
+				alignment[0].insert(0,1,seqa[i-1]);
+				alignment[1].insert(0,1,'-');
+				i--;
+			}
 		}
 	}
 

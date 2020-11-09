@@ -36,7 +36,11 @@ int mcoati(string fasta, vector<string> seq_names, vector<string> sequences,
 		return EXIT_SUCCESS;
 	}
 
-	alignment = mg94_marginal(sequences, weight, P);
+	if(model.compare("no_frameshifts") == 0) {
+		alignment = gotoh_noframeshifts(sequences, weight, P);
+	} else {
+		alignment = mg94_marginal(sequences, weight, P);
+	}
 
 	if(!weight_f.empty()) {
 		// append weight and fasta file name to file
