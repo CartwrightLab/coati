@@ -32,12 +32,19 @@ module load boost/1.61.0-gcc-9.2.0
 module load eigen/3.3.7-gcc-stock
 ```
 Install OpenFST library following instructions [here](http://openfst.org/twiki/bin/view/FST/FstDownload).
+Install CppCheck
+```
+wget https://github.com/danmar/cppcheck/archive/2.2.zip
+unzip 2.2.zip
+cd cppcheck-2.2
+make
+```
 
 Compiling
 ```
 git clone https://github.com/jgarciamesa/coati.git --branch fstlib
 cd coati/build
-cmake -DFSTLIB_ROOT=~/path/to/openfst-1.7.9/src/ -DEigen3_DIR=/packages/7x/eigen/3.3.7-gcc-stock/share/eigen3/cmake/ -DCMAKE_BUILD_TYPE=Release ..
+cmake -DFSTLIB_ROOT=~/path/to/openfst-1.7.9/src/ -DEigen3_DIR=/packages/7x/eigen/3.3.7-gcc-stock/share/eigen3/cmake/ -DCPPCHECK_EXECUTABLE=~/path/to/cppcheck-2.2/cppcheck -DCMAKE_BUILD_TYPE=Release ..
 make -j4
 ```
 

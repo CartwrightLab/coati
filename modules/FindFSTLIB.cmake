@@ -90,8 +90,7 @@ if(NOT FSTLIB_VERSION_OK)
 	message(STATUS "FSTLIB version ${FSTLIB_VERSION} found in ${FSTLIB_INCLUDE_DIR}, "
                "but at least version ${FSTLIB_FIND_VERSION} is required")
 else(NOT FSTLIB_VERSION_OK)
-	set(FSTLIB_LIBRARY ${FSTLIB_INCLUDE_DIR}/fst/fstlib.h)
-	message(STATUS "FSTLIB version ${FSTLIB_VERSION} found in ${FSTLIB_INCLUDE_DIR}")
+	set(FSTLIB_LIBRARY ${FSTLIB_INCLUDE_DIR}/../lib/.libs/libfst.so)
 endif(NOT FSTLIB_VERSION_OK)
 
 
