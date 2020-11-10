@@ -64,7 +64,7 @@ target_link_libraries(coati-alignpair libcoati)
 target_link_libraries(coati-alignpair Boost::program_options)
 target_link_libraries(coati-alignpair Boost::filesystem)
 target_link_libraries(coati-alignpair Eigen3::Eigen)
-target_link_libraries(coati-alignpair fst)
+target_link_libraries(coati-alignpair FSTLIB::fst)
 
 # coati main script
 configure_file(

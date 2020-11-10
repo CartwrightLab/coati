@@ -190,25 +190,6 @@ function(clang_tidy_files name)
 endfunction()
 
 #####################################################################
-# Find Boost installation with library program_options and filesystem
-find_package(Boost 1.47.0 REQUIRED COMPONENTS program_options filesystem)
-
-#####################################################################
-#Find Eigen library
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-
-# Check if Eigen was found
-if(TARGET Eigen3::Eigen)
-	message(STATUS "Eigen3 v${EIGEN3_VERSION_STRING} found in ${EIGEN3_INCLUDE_DIR}")
-else()
-	message(FATAL_ERROR "Cannot find Eigen")
-endif(TARGET Eigen3::Eigen)
-
-#####################################################################
-# Find FST library
-find_package(FSTLIB REQUIRED)
-
-#####################################################################
 # Check All Target
 
 add_custom_target(check_test COMMAND "${CMAKE_CTEST_COMMAND}" DEPENDS pretest)
