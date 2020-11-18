@@ -35,13 +35,17 @@ list(APPEND _FSTLIB_SEARCHES _FSTLIB_SEARCH_NORMAL)
 
 set(FSTLIB_NAMES fst fstlib)
 
-# Try each search configuration
+# Try each search configuration to find include directory
 foreach(search ${_FSTLIB_SEARCHES})
 	find_path(FSTLIB_INCLUDE_DIR NAMES fst/fstlib.h ${${search}} PATH_SUFFIXES "include")
 endforeach()
 
 foreach(search ${_FSTLIB_SEARCHES})
-	find_path(FSTLIB_VERSION_FILE NAMES libfst.la ${${search}} PATH_SUFFIXES "lib")
+	find_file(FSTLIB_LIBRARY NAMES libfst.so ${${search}} PATH_SUFFIXES "lib" "lib/.libs")
+endforeach()
+
+foreach(search ${_FSTLIB_SEARCHES})
+	find_file(FSTLIB_VERSION_FILE NAMES libfst.la ${${search}} PATH_SUFFIXES "lib")
 endforeach()
 
 
@@ -63,10 +67,10 @@ if(NOT FSTLIB_FIND_VERSION)
 endif(NOT FSTLIB_FIND_VERSION)
 
 
-if(FSTLIB_INCLUDE_DIR AND EXISTS "${FSTLIB_VERSION_FILE}/libfst.la")
-	file(STRINGS "${FSTLIB_VERSION_FILE}/libfst.la" FSTLIB_VERSION_MAJOR REGEX "^current=([0-9]+)")
-	file(STRINGS "${FSTLIB_VERSION_FILE}/libfst.la" FSTLIB_VERSION_MINOR REGEX "^age=([0-9]+)")
-	file(STRINGS "${FSTLIB_VERSION_FILE}/libfst.la" FSTLIB_VERSION_PATCH REGEX "^revision=([0-9]+)")
+if(FSTLIB_INCLUDE_DIR AND EXISTS "${FSTLIB_VERSION_FILE}")
+	file(STRINGS "${FSTLIB_VERSION_FILE}" FSTLIB_VERSION_MAJOR REGEX "^current=([0-9]+)")
+	file(STRINGS "${FSTLIB_VERSION_FILE}" FSTLIB_VERSION_MINOR REGEX "^age=([0-9]+)")
+	file(STRINGS "${FSTLIB_VERSION_FILE}" FSTLIB_VERSION_PATCH REGEX "^revision=([0-9]+)")
 
 	string(REGEX REPLACE "current=" "" FSTLIB_VERSION_MAJOR "${FSTLIB_VERSION_MAJOR}")
 	string(REGEX REPLACE "age=" "" FSTLIB_VERSION_MINOR  "${FSTLIB_VERSION_MINOR}")
@@ -89,8 +93,6 @@ endif()
 if(NOT FSTLIB_VERSION_OK)
 	message(STATUS "FSTLIB version ${FSTLIB_VERSION} found in ${FSTLIB_INCLUDE_DIR}, "
                "but at least version ${FSTLIB_FIND_VERSION} is required")
-else(NOT FSTLIB_VERSION_OK)
-	set(FSTLIB_LIBRARY ${FSTLIB_INCLUDE_DIR}/../lib/.libs/libfst.so)
 endif(NOT FSTLIB_VERSION_OK)
 
 
