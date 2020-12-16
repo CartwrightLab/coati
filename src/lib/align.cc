@@ -25,7 +25,7 @@
 
 /* Alignment using dynamic programming implementation of marginal COATi model */
 int mcoati(string fasta, vector<string> seq_names, vector<string> sequences,
-	bool score, string weight_f, string output, Matrix64f& P) {
+	bool score, string weight_f, string output, string model, Matrix64f& P) {
 
 	vector<string> alignment;
 	float weight;
@@ -36,12 +36,16 @@ int mcoati(string fasta, vector<string> seq_names, vector<string> sequences,
 		return EXIT_SUCCESS;
 	}
 
-	alignment = mg94_marginal(sequences, weight, P);
+	if(model.compare("no_frameshifts") == 0) {
+		alignment = gotoh_noframeshifts(sequences, weight, P);
+	} else {
+		alignment = mg94_marginal(sequences, weight, P);
+	}
 
 	if(!weight_f.empty()) {
 		// append weight and fasta file name to file
 		out_w.open(weight_f, ios::app | ios::out);
-		out_w << fasta << ",m-coati," << weight << endl;
+		out_w << fasta << "," << model << "," << weight << endl;
 		out_w.close();
 	}
 
@@ -61,12 +65,10 @@ int fst_alignment(string model, vector<VectorFst<StdArc>>& fsts, vector<string> 
 
 	if(model.compare("coati") == 0 ) {
 		mg94(mut_fst);
-	} else if(model.compare("dna")) {
+	} else if(model.compare("dna") == 0) {
 		dna(mut_fst);
-	} else if(model.compare("ecm")) {
+	} else if(model.compare("ecm") == 0) {
 		ecm(mut_fst);
-	} else if(model.compare("m-ecm")) {
-		ecm_marginal(mut_fst);
 	} else {
 		cout << "Mutation model unknown. Exiting!" << endl;
 		return EXIT_FAILURE;

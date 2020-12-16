@@ -25,7 +25,7 @@
 
 
 /* Muse & Gaut Model (1994) P matrix */
-void mg94_p(Matrix64f& P) {
+void mg94_q(Matrix64f& Q) {
 	// Yang (1994) estimating the pattern of nucleotide substitution
 	double nuc_freqs[4] = {0.308,0.185,0.199,0.308};
 	double nuc_q[4][4] = {{-0.818, 0.132, 0.586, 0.1},{0.221, -1.349, 0.231, 0.897},\
@@ -34,8 +34,8 @@ void mg94_p(Matrix64f& P) {
 	double brlen = 0.0133;	// branch length (t)
 
 	// MG94 model - doi:10.1534/genetics.108.092254
-	Matrix64f Q = Matrix64f::Zero();
-	double Pi[64];
+	Q = Matrix64f::Zero();
+	Matrix64f Pi;
 	double w,rowSum,d = 0.0;
 	int x,y = 0;
 
@@ -43,14 +43,14 @@ void mg94_p(Matrix64f& P) {
 	for(uint8_t i=0; i<64; i++) {
 		// uint8_t codon;
 		// (codon & 48) >> 4 = nt4_table encoding of first codon nucleotide
-		// (codon & 12) >> 4 = nt4_table encoding of second codon nucleotide
-		// (codon & 03) >> 4 = nt4_table encoding of third codon nucleotide
+		// (codon & 12) >> 2 = nt4_table encoding of second codon nucleotide
+		// (codon & 03) = nt4_table encoding of third codon nucleotide
 		// e.g. 00 00 11 10 = 00 A T G = codon "ATG"
 		// (00001110 & 48) >> 4 = (00001110 & 00110000) >> 4 = 00000000 >> 4 = 0 (A)
-		// (00001110 & 12) >> 4 = (00001110 & 00001100) >> 4 = 00001100 >> 4 = 3 (T)
-		// (00001110 & 03) >> 4 = (00001110 & 00000011) >> 4 = 00000010 >> 4 = 2 (G)
+		// (00001110 & 12) >> 2 = (00001110 & 00001100) >> 2 = 00001100 >> 2 = 3 (T)
+		// (00001110 & 03) 		= (00001110 & 00000011) 	 = 00000010 	 = 2 (G)
 
-		Pi[i] = nuc_freqs[((i & 48) >> 4)] * nuc_freqs[((i & 12) >> 2)] * nuc_freqs[(i & 3)];
+		Pi(i) = nuc_freqs[((i & 48) >> 4)] * nuc_freqs[((i & 12) >> 2)] * nuc_freqs[(i & 3)];
 		rowSum = 0.0;
 		for(uint8_t j=0; j<64; j++) {
 			if(i==j) {
@@ -72,21 +72,20 @@ void mg94_p(Matrix64f& P) {
 			rowSum += Q(i,j);
 		}
 		Q(i,i) = -rowSum;
-		d += Pi[i]*rowSum;
+		d += Pi(i)*rowSum;
 	}
 
 	// normalize
 	Q = Q/d;
 
-	// P matrix
-	Q = Q * brlen;
-	P = Q.exp();
-
 }
 
 /* Muse & Gaut Model (1994) P matrix given rate matrix and branch lenght */
-void mg94_p(Matrix64f& P, Matrix64f& Q, double brlen) {
+void mg94_p(Matrix64f& P) {
+	double brlen = 0.0133;	// branch length (t)
 
+	Matrix64f Q;
+	mg94_q(Q);
 	Q = Q * brlen;
 	P = Q.exp();
 }
@@ -179,7 +178,6 @@ void dna(VectorFst<StdArc>& mut_fst) {
 	// Set final state & optimize
 	dna.SetFinal(0,0.0);
 	mut_fst = optimize(dna);
-	mut_fst.Write("dna_uint8.fst");
 }
 
 /* Create FST that maps nucleotide to AA position */
@@ -351,7 +349,7 @@ constexpr double s[64][64] = {{0,0.413957,12.931524,2.075154,1.523251,0.089476,0
 
 /* ECM unrestrictied nucleotide frequencies, Kosiol et al. 2007, supplemental material
 	in A,C,G,T nucleotide order*/
-Vector64f pi((Vector64f() << 0.031090,0.020321,0.026699,0.022276,0.013120,0.017882,\
+Vector64f ecm_pi((Vector64f() << 0.031090,0.020321,0.026699,0.022276,0.013120,0.017882,\
 	0.010682,0.012656,0.009746,0.013701,0.006788,0.010310,0.012814,0.023762,0.021180,\
 	0.024759,0.017168,0.011040,0.020730,0.010671,0.011165,0.010408,0.012199,0.010425,\
 	0.004809,0.014604,0.008158,0.008491,0.007359,0.016798,0.028497,0.015167,0.034527,\
@@ -408,16 +406,16 @@ void ecm_p(Matrix64f& P) {
 			if(i==j || nt4_table[i] == '*' || nt4_table[j] == '*') {
 				continue;
 			} else if(nt4_table[i] == nt4_table[j]) {
-				Q(i,j) = s[i][j]*pi[j]*k(i,j,0);
+				Q(i,j) = s[i][j]*ecm_pi(j)*k(i,j,0);
 			} else if(nt4_table[i] != nt4_table[j]) {
-				Q(i,j) = s[i][j]*pi[j]*k(i,j,0)*omega;
+				Q(i,j) = s[i][j]*ecm_pi(j)*k(i,j,0)*omega;
 			} else {
 				exit(EXIT_FAILURE);
 			}
 			rowSum += Q(i,j);
 		}
 		Q(i,i) = -rowSum;
-		d += pi[i]*rowSum;
+		d += ecm_pi(i)*rowSum;
 	}
 
 	// normalize
@@ -623,43 +621,222 @@ vector<string> mg94_marginal(vector<string> sequences, float& w, Matrix64f& P_m)
 	return backtracking(Bd, Bp, Bq, seq_a, seq_b);
 }
 
+/* Dynamic Programming with no frameshifts*/
+vector<string> gotoh_noframeshifts(vector<string> sequences, float& w, Matrix64f& P_m) {
+
+	// P matrix for marginal Muse and Gaut codon model
+	Eigen::Tensor<double, 3> p(64,3,4);
+
+	mg94_marginal_p(p, P_m);
+
+	string seq_a = sequences[0];
+	string seq_b = sequences[1];
+	int m = sequences[0].length();
+	int n = sequences[1].length();
+
+	// ensure that length of first sequence (reference) is multiple of 3
+	if((m%3 != 0) || (n%3 != 0)) {
+		cout << "The length of both sequences must be a multiple of 3. Exiting!" << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
+	Eigen::MatrixXf D = Eigen::MatrixXf::Ones(m+1,n+1);
+	Eigen::MatrixXf P = Eigen::MatrixXf::Ones(m+1,n+1);
+	Eigen::MatrixXf Q = Eigen::MatrixXf::Ones(m+1,n+1);
+
+	D = D * std::numeric_limits<float>::max();
+	P = D;
+	Q = D;
+
+	// backtracking info matrices for match/mismatch (Bd), insert (Bp), and deletion (Bq)
+	Eigen::MatrixXd Bd = Eigen::MatrixXd::Ones(m+1,n+1);
+	Eigen::MatrixXd Bp = Eigen::MatrixXd::Ones(m+1,n+1);
+	Eigen::MatrixXd Bq = Eigen::MatrixXd::Ones(m+1,n+1);
+	Bd = Bd * (-1);
+	Bp = Bd;
+	Bq = Bd;
+
+	double insertion = 0.001;
+	double deletion = 0.001;
+	double insertion_ext = 1.0-(1.0/6.0);
+	double deletion_ext = 1.0-(1.0/6.0);
+
+	Vector5d nuc_freqs;
+	nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
+
+	// DP and backtracking matrices initialization
+
+	// fill first values on D that are independent
+	D(0,0) = 0.0;
+	Bd(0,0) = 0;
+	D(0,3) = P(0,3) = -log(insertion) - log(nuc_freqs[nt4_table[seq_b[0]]])
+		-log(nuc_freqs[nt4_table[seq_b[1]]]) -log(nuc_freqs[nt4_table[seq_b[2]]])
+		-log(1.0-insertion_ext) - 2*log(insertion_ext);
+	D(3,0) = Q(3,0) = -log(1.0-insertion) -log(deletion) - 2*log(deletion_ext)
+		-log(1.0-deletion_ext);
+	Bd(0,3) = 1;
+	Bd(3,0) = Bp(0,3) = Bq(3,0) = 2;
+
+	// fill first row of D
+	if(n+1>=6) {
+		for(int j=6; j<n+1; j+=3) {
+			D(0,j) = P(0,j) =  D(0,j-3) - 3*log(insertion_ext) - log(nuc_freqs[nt4_table[seq_b[j-3]]])
+				- log(nuc_freqs[nt4_table[seq_b[j-2]]])- log(nuc_freqs[nt4_table[seq_b[j-1]]]);
+			Bd(0,j) = 1;
+			Bp(0,j) = 1;
+		}
+	}
+
+	// fill first column of D
+	if(m+1>=6) {
+		for(int i=6; i<m+1; i+=3) {
+			D(i,0) = D(i-3, 0) - 3*log(deletion_ext);
+			Q(i,0) = Q(i-3, 0) - 3*log(deletion_ext);
+			Bd(i,0) = 2;
+			Bq(i,0) = 1;
+		}
+	}
+
+	string codon;
+	double p1,p2,q1,q2,d,argmin,temp;
+
+	// Cells with only match/mismatch (1,1) & (2,2)
+	codon = seq_a.substr(0,3);
+	for(int i=1;i<3;i++) {
+		D(i,i) = D(i-1,i-1) -log(1.0-insertion) -log(1.0-deletion) -
+			log(transition(codon, i%3, seq_b[i-1],p));
+		Bd(i,i) = 0;
+	}
+
+	// Second and third row/column (match/mismatch && insertion || deletion)
+	for(int i=1;i<3;i++) {
+		for(int j=i+3;j<n+1;j+=3) { // rows
+			codon = seq_a.substr(0,3);
+			// match/mismatch
+			if(Bd(i-1,j-1) == 0) {
+				d = D(i-1,j-1) -log(1.0 - insertion) -log(1.0 - deletion) -
+					log(transition(codon, (i)%3, seq_b[j-1],p));
+			} else if(Bd(i-1,j-1) == 1) {
+				d = D(i-1,j-1) -log(1.0 - deletion) -log(transition(codon, (i)%3, seq_b[j-1],p));
+			} else {
+				d = D(i-1,j-1) -log(transition(codon, (i)%3, seq_b[j-1],p));
+			}
+			// insertion
+			p1 = P(i,j-3) -3*log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-3]]])
+				-log(nuc_freqs[nt4_table[seq_b[j-2]]])-log(nuc_freqs[nt4_table[seq_b[j-1]]]);
+			p2 = Bd(i,j-3) == 0 ? D(i,j-3) -log(insertion) -2*log(insertion_ext) -
+				log(nuc_freqs[nt4_table[seq_b[j-3]]]) -log(nuc_freqs[nt4_table[seq_b[j-2]]])-
+				log(nuc_freqs[nt4_table[seq_b[j-1]]]) -log(1.0-insertion_ext) :
+				Bd(i,j-1) == 1 ? D(i,j-1) -3*log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-3]]])
+				-log(nuc_freqs[nt4_table[seq_b[j-2]]])-log(nuc_freqs[nt4_table[seq_b[j-1]]])
+				: numeric_limits<double>::max();
+			P(i,j) = min(p1,p2);
+			Bp(i,j) = p1 < p2 ? 1 : 2; // 1 is insertion extension, 2 is insertion opening
+			D(i,j) = P(i,j) < d ? P(i,j) : d;
+			Bd(i,j) = P(i,j) < d ? 1 : 0;
+		}
+
+		for(int j=i+3;j<m+1;j+=3) { // columns
+			codon = seq_a.substr((((j-1)/3)*3),3); // current codon
+			// match/mismatch
+			if(Bd(j-1,i-1) == 0) {
+				d = D(j-1,i-1) -log(1.0 - insertion) -log(1.0 - deletion) -
+					log(transition(codon, (j)%3, seq_b[i-1],p));
+			} else if(Bd(j-1,i-1) == 1) {
+				d = D(j-1,i-1) -log(1.0 - deletion) -log(transition(codon, (j)%3, seq_b[i-1],p));
+			} else {
+				d = D(j-1,i-1) -log(transition(codon, (j)%3, seq_b[i-1],p));
+			}
+			// deletion
+			q1 = Q(j-3,i) -3*log(deletion_ext);
+			q2 = Bd(j-3,i) == 0 ? D(j-3,i) -log(1.0 - insertion) -log(deletion)
+				-log(1.0-deletion_ext) - 2*log(deletion_ext) :
+				Bd(j-3,i) == 1 ? D(j-3,i) -log(1.0 - deletion_ext) -log(deletion) -2*log(deletion_ext) :
+				D(j-3,i) -3*log(deletion_ext);
+			Q(j,i) = min(q1,q2);
+			Bq(j,i) = q1 < q2 ? 1 : 2; // 1 is deletion extension, 2 is deletion opening
+			D(j,i) = Q(j,i) < d ? Q(j,i) : d;
+			Bd(j,i) = Q(j,i) < d ? 1 : 2;
+		}
+	}
+
+	// Cells considering all 3 events (insertion, deletion, match/mismatch)
+	for(int i=3;i<m+1;i++) {
+		codon = seq_a.substr((((i-1)/3)*3),3); // current codon
+		for(int j=3;j<n+1;j+=3) {
+			temp = j;
+			j += i%3;
+			if(j > n) continue;
+			// match/mismatch
+			if(Bd(i-1,j-1) == 0) {
+				d = D(i-1,j-1) -log(1.0 - insertion) -log(1.0 - deletion) -
+					log(transition(codon, (i)%3, seq_b[j-1],p));
+			} else if(Bd(i-1,j-1) == 1) {
+				d = D(i-1,j-1) -log(1.0 - deletion) -log(transition(codon, (i)%3, seq_b[j-1],p));
+			} else {
+				d = D(i-1,j-1) -log(transition(codon, (i)%3, seq_b[j-1],p));
+			}
+			// insertion
+			p1 = P(i,j-3) -3*log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-3]]])
+				-log(nuc_freqs[nt4_table[seq_b[j-2]]])-log(nuc_freqs[nt4_table[seq_b[j-1]]]);
+			p2 = Bd(i,j-3) == 0 ? D(i,j-3) -log(insertion) -2*log(insertion_ext) -
+				log(nuc_freqs[nt4_table[seq_b[j-3]]]) -log(nuc_freqs[nt4_table[seq_b[j-2]]])-
+				log(nuc_freqs[nt4_table[seq_b[j-1]]]) -log(1.0-insertion_ext) :
+				Bd(i,j-1) == 1 ? D(i,j-1) -3*log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-3]]])
+				-log(nuc_freqs[nt4_table[seq_b[j-2]]])-log(nuc_freqs[nt4_table[seq_b[j-1]]])
+				: numeric_limits<double>::max();
+			P(i,j) = min(p1,p2);
+			Bp(i,j) = p1 < p2 ? 1 : 2; // 1 is insertion extension, 2 is insertion opening
+			// deletion
+			q1 = Q(i-3,j) -3*log(deletion_ext);
+			q2 = Bd(i-3,j) == 0 ? D(i-3,j) -log(1.0 - insertion) -log(deletion)
+				-log(1.0-deletion_ext) - 2*log(deletion_ext) :
+				Bd(i-3,j) == 1 ? D(i-3,j) -log(1.0 - deletion_ext) -log(deletion) -2*log(deletion_ext) :
+				D(i-3,j) -3*log(deletion_ext);
+			Q(i,j) = min(q1,q2);
+			Bq(i,j) = q1 < q2 ? 1 : 2; // 1 is deletion extension, 2 is deletion opening
+			// D[i,j] = highest weight between insertion, deletion, and match/mismatch
+			//	in this case, lowest (-log(weight)) value
+			if(d < P(i,j)) {
+				if(d < Q(i,j)) {
+					D(i,j) = d;
+					Bd(i,j) = 0;
+				} else {
+					D(i,j) = Q(i,j);
+					Bd(i,j) = 2;
+				}
+			} else {
+				if(P(i,j) < Q(i,j)) {
+					D(i,j) = P(i,j);
+					Bd(i,j) = 1;
+				} else {
+					D(i,j) = Q(i,j);
+					Bd(i,j) = 2;
+				}
+			}
+			j = temp;
+		}
+	}
+
+	w = D(m,n); // weight
+
+	// backtracking to obtain alignment
+	return backtracking_noframeshifts(Bd, Bp, Bq, seq_a, seq_b);
+}
 /* Return value from marginal MG94 model p matrix for a given transition */
 double transition(string codon, int position, char nuc, Eigen::Tensor<double, 3>& p) {
 	position = position == 0 ? 2 : --position;
-	// TODO: handle scenario when there is more than one 'N' in codon
 
-	if(codon.find('N') == string::npos) {
-		if(nuc != 'N') {
-			// P(x|abc)
-			return p(cod_int(codon), position, nt4_table[nuc]);
-		} else {
-			// P(N|abc)
-			string nucs = "ACGT";
-			double val = 0.0;
-			for(int i=0;i<4;i++){
-				val += p(cod_int(codon), position, i);
-			}
-			return val/4.0;
-		}
+	if(nuc != 'N') {
+		return p(cod_int(codon), position, nt4_table[nuc]);
 	} else {
 		string nucs = "ACGT";
 		double val = 0.0;
-
-		if(nuc != 'N') {
-			// P(x|Nbc) or P(x|aNc) or P(x|abN)
-			for(int i=0;i<4;i++){
-				val += p(cod_int(codon.replace(codon.find('N'),1,nucs,i,1)), position, nt4_table[nuc]);
-			}
-			return val/4.0;
-		} else {
-			// P(N|Nbc) or P(N|aNc) or P(N|abN)
-			for(int i=0;i<4;i++) {
-				for(int j=0;j<4;j++) {
-					val += p(cod_int(codon.replace(codon.find('N'),1,nucs,i,1)), position, j);
-				}
-			}
-			return val/16.0;
+		for(int i=0;i<4;i++){
+			val += p(cod_int(codon), position, i);
 		}
+		return val/4.0;
 	}
 }
 
@@ -699,6 +876,57 @@ vector<string> backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::Matri
 			alignment[0].insert(0,1,seqa[i-1]);
 			alignment[1].insert(0,1,'-');
 			i--;
+		}
+	}
+
+	return alignment;
+
+}
+
+/* Recover alignment given backtracking matrices for DP alignment */
+vector<string> backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq, string seqa, string seqb) {
+	int i = seqa.length();
+	int j = seqb.length();
+
+	vector<string> alignment;
+	alignment.push_back(string());
+	alignment.push_back(string());
+
+	while((i != 0) || (j != 0)) {
+		// match/mismatch
+		if(Bd(i,j) == 0) {
+			alignment[0].insert(0,1,seqa[i-1]);
+			alignment[1].insert(0,1,seqb[j-1]);
+			i--;
+			j--;
+		// insertion
+		} else if(Bd(i,j) == 1) {
+			while(Bp(i,j) == 1) {
+				for(int k=0;k<3;k++) {
+					alignment[0].insert(0,1,'-');
+					alignment[1].insert(0,1,seqb[j-1]);
+					j--;
+				}
+			}
+			for(int k=0;k<3;k++) {
+				alignment[0].insert(0,1,'-');
+				alignment[1].insert(0,1,seqb[j-1]);
+				j--;
+			}
+		// deletion
+		} else {
+			while(Bq(i,j) ==  1) {
+				for(int k=0;k<3;k++) {
+					alignment[0].insert(0,1,seqa[i-1]);
+					alignment[1].insert(0,1,'-');
+					i--;
+				}
+			}
+			for(int k=0;k<3;k++) {
+				alignment[0].insert(0,1,seqa[i-1]);
+				alignment[1].insert(0,1,'-');
+				i--;
+			}
 		}
 	}
 
@@ -791,10 +1019,66 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
 	return(weight);
 }
 
-// /* Model combining MG94's rates and ECM exchangeabilities */
-// void hybrid() {
-// 	for(int k=0;k<3;k++) {
-// 		M(i,j) = delta(i,j,k)+(1-delta(i,j,k)*B(i,j,k))
-// 	}
-// 	R(i,j) = c*M[i][j]*f/f_mut*exp(w(i,j));
-// }
+/* Model combining MG94's rates and ECM exchangeabilities.
+	Method folowing Miyazawa 2011.*/
+void hybrid_p(Matrix64f& P) {
+	Matrix64f R; // instantaneous substitution rate matrix
+	R.setZero();
+
+	Matrix64f M; // Muse and Gaut instantaneous rate matrix
+	mg94_q(M);
+
+	double nuc_pi[4] = {0.308,0.185,0.199,0.308};
+	double brlen = 0.0133;	// branch length (t)
+
+	Matrix64f mut_pi;
+	for(int i=0;i<64;i++) {
+		mut_pi(i) = nuc_pi[((i & 48) >> 4)] * nuc_pi[((i & 12) >> 2)] * nuc_pi[(i & 3)];
+	}
+
+	double c, rowSum = 0.0;
+
+	for(int i=0;i<64;i++){
+		rowSum = 0.0;
+		for(int j=0;j<64;j++){
+			if(i != j) {
+				R(i,j) = M(i,j)*ecm_pi(j)/mut_pi(j)*exp(s[i][j]);
+				rowSum += R(i,j);
+			}
+		}
+		R(i,i) = -rowSum;
+		c += rowSum;
+	}
+	// Normalize
+	R = R/c;
+
+	// P matrix
+	R = R * brlen;
+	P = R.exp();
+}
+
+/* Hybrid model FST */
+void hybrid(VectorFst<StdArc>& mut_fst) {
+	Matrix64f P;
+	hybrid_p(P);
+
+	// Add state 0 and make it the start state
+	VectorFst<StdArc> hybrid;
+	hybrid.AddState();
+	hybrid.SetStart(0);
+
+	// Creat FST
+	int r = 1;
+	for(uint8_t i=0; i<64; i++) {
+		for(uint8_t j=0; j<64; j++) {
+			add_arc(hybrid, 0, r, ((i & 48) >> 4) + 1, ((j & 48) >> 4) + 1, P(i,j));
+			add_arc(hybrid, r, r+1, ((i & 12) >> 2) + 1, ((j & 12) >> 2) + 1);
+			add_arc(hybrid, r+1, 0, (i & 3) + 1, (j & 3) + 1);
+			r = r+2;
+		}
+	}
+
+	// Set final state & optimize
+	hybrid.SetFinal(0, 0.0);
+	mut_fst = optimize(hybrid);
+}

@@ -45,11 +45,12 @@ typedef Eigen::Matrix<double, 5,  1>Vector5d;
 using namespace fst;
 using namespace std;
 
+void mg94_q(Matrix64f& Q);
 void mg94_p(Matrix64f& P);
 void mg94(VectorFst<StdArc>& mut_fst);
 void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P);
-void mg94_p(Matrix64f& P, Matrix64f& Q, double brlen);
 vector<string> mg94_marginal(vector<string> sequences, float& w, Matrix64f& P);
+vector<string> gotoh_noframeshifts(vector<string> sequences, float& w, Matrix64f& P_m);
 void nuc2pos(VectorFst<StdArc>& n2p);
 void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos);
 void dna(VectorFst<StdArc>& mut_fst);
@@ -61,6 +62,9 @@ void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
 double k(uint8_t c1, uint8_t c2, int model=0);
 double transition(string codon, int position, char nucleotide, Eigen::Tensor<double, 3>& p);
 vector<string> backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq, string seqa, string seqb);
+vector<string> backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq, string seqa, string seqb);
 float alignment_score(vector<string> alignment, Matrix64f& P);
+void hybrid_p(Matrix64f& P);
+void hybrid(VectorFst<StdArc>& mut_fst);
 
 #endif
