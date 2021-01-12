@@ -65,6 +65,7 @@ target_link_libraries(coati-alignpair Boost::program_options)
 target_link_libraries(coati-alignpair Boost::filesystem)
 target_link_libraries(coati-alignpair Eigen3::Eigen)
 target_link_libraries(coati-alignpair FSTLIB::fst)
+install(TARGETS coati-alignpair RUNTIME DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
 
 # coati main script
 configure_file(

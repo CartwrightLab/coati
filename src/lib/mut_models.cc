@@ -31,7 +31,6 @@ void mg94_q(Matrix64f& Q) {
 	double nuc_q[4][4] = {{-0.818, 0.132, 0.586, 0.1},{0.221, -1.349, 0.231, 0.897},\
 						{0.909, 0.215, -1.322, 0.198},{0.1, 0.537, 0.128, -0.765}};
 	double omega = 0.2;
-	double brlen = 0.0133;	// branch length (t)
 
 	// MG94 model - doi:10.1534/genetics.108.092254
 	Q = Matrix64f::Zero();
@@ -81,9 +80,7 @@ void mg94_q(Matrix64f& Q) {
 }
 
 /* Muse & Gaut Model (1994) P matrix given rate matrix and branch lenght */
-void mg94_p(Matrix64f& P) {
-	double brlen = 0.0133;	// branch length (t)
-
+void mg94_p(Matrix64f& P, double& brlen) {
 	Matrix64f Q;
 	mg94_q(Q);
 	Q = Q * brlen;
@@ -92,9 +89,9 @@ void mg94_p(Matrix64f& P) {
 
 
 /* Create Muse and Gaut codon model FST */
-void mg94(VectorFst<StdArc>& mut_fst) {
+void mg94(VectorFst<StdArc>& mut_fst, double& br_len) {
 	Matrix64f P;
-	mg94_p(P);
+	mg94_p(P, br_len);
 
 	// Add state 0 and make it the start state
 	VectorFst<StdArc> mg94;
@@ -120,10 +117,6 @@ void mg94(VectorFst<StdArc>& mut_fst) {
 /* Create marginal Muse and Gaut codon model P matrix*/
 void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P) {
 
-	if(P.isZero()) {
-		mg94_p(P);
-	}
-
 	double marg;
 
 	for(int i=0; i<64; i++) {
@@ -141,9 +134,9 @@ void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P) {
 }
 
 /* Create dna marginal Muse and Gaut codon model FST*/
-void dna(VectorFst<StdArc>& mut_fst) {
+void dna(VectorFst<StdArc>& mut_fst, double& br_len) {
 	Matrix64f P;
-	mg94_p(P);
+	mg94_p(P, br_len);
 
 	// Add state 0 and make it the start state
 	VectorFst<StdArc> dna;
@@ -188,7 +181,7 @@ void nuc2pos(VectorFst<StdArc> &n2p) {
 
 	int s = 1;		// variable to keep track of states
 	int c = 101;	// variable to keep track of codons
-	// TODO: find more elegant way than 3 nested for loops
+
 	for(int i=1; i<5; i++) {
 		for(int j=1; j<5; j++) {
 			for(int k=1; k<5; k++) {
@@ -360,7 +353,6 @@ Vector64f ecm_pi((Vector64f() << 0.031090,0.020321,0.026699,0.022276,0.013120,0.
 
 /* nonsynonymous-synonymous bias (\omega) and branch length (t) */
 const double omega = 0.2;	// github.com/reedacartwright/toycoati
-const double t = 0.0133;	// github.com/reedacartwright/toycoati
 const double kappa = 2.5;	// Kosiol et al. 2007, supplemental material
 
 /* calculate number of transitions and transversions between codons i and j*/
@@ -393,7 +385,7 @@ double k(uint8_t c1, uint8_t c2, int model) {
 }
 
 /* Empirical Codon Model P matrix */
-void ecm_p(Matrix64f& P) {
+void ecm_p(Matrix64f& P, double& br_len) {
 	Matrix64f Q = Matrix64f::Zero();
 
 	double rowSum;
@@ -422,14 +414,14 @@ void ecm_p(Matrix64f& P) {
 	Q = Q/d;
 
 	// P matrix
-	Q = Q * t;
+	Q = Q * br_len;
 	P = Q.exp();
 }
 
 /* Empirical Codon Model (Kosiol et al. 2007) FST */
-void ecm(VectorFst<StdArc>& mut_fst) {
+void ecm(VectorFst<StdArc>& mut_fst, double& br_len) {
 	Matrix64f P;
-	ecm_p(P);
+	ecm_p(P, br_len);
 
 	// Add state 0 and make it the start state
 	VectorFst<StdArc> ecm;
@@ -452,14 +444,14 @@ void ecm(VectorFst<StdArc>& mut_fst) {
 }
 
 /* Marginal Empirical Codon Model */
-void ecm_marginal(VectorFst<StdArc>& mut_fst) {
+void ecm_marginal(VectorFst<StdArc>& mut_fst, double& br_len) {
 	VectorFst<StdArc> fst;
 	fst.AddState();
 	fst.SetStart(0);
 
 	// get Empirical Codon Model P matrix
 	Matrix64f P;
-	ecm_p(P);
+	ecm_p(P, br_len);
 
 	int c = 101; // first codon_pos (AAA1)
 	double m;
@@ -482,7 +474,7 @@ void ecm_marginal(VectorFst<StdArc>& mut_fst) {
 }
 
 /* Dynamic Programming implementation of Marginal MG94 model*/
-vector<string> mg94_marginal(vector<string> sequences, float& w, Matrix64f& P_m) {
+int mg94_marginal(vector<string> sequences, alignment& aln, Matrix64f& P_m) {
 
 	// P matrix for marginal Muse and Gaut codon model
 	Eigen::Tensor<double, 3> p(64,3,4);
@@ -615,14 +607,14 @@ vector<string> mg94_marginal(vector<string> sequences, float& w, Matrix64f& P_m)
 		}
 	}
 
-	w = D(m,n); // weight
+	aln.weight = D(m,n); // weight
 
 	// backtracking to obtain alignment
-	return backtracking(Bd, Bp, Bq, seq_a, seq_b);
+	return backtracking(Bd, Bp, Bq, seq_a, seq_b, aln);
 }
 
 /* Dynamic Programming with no frameshifts*/
-vector<string> gotoh_noframeshifts(vector<string> sequences, float& w, Matrix64f& P_m) {
+int gotoh_noframeshifts(vector<string> sequences, alignment& aln, Matrix64f& P_m) {
 
 	// P matrix for marginal Muse and Gaut codon model
 	Eigen::Tensor<double, 3> p(64,3,4);
@@ -819,10 +811,10 @@ vector<string> gotoh_noframeshifts(vector<string> sequences, float& w, Matrix64f
 		}
 	}
 
-	w = D(m,n); // weight
+	aln.weight = D(m,n); // weight
 
 	// backtracking to obtain alignment
-	return backtracking_noframeshifts(Bd, Bp, Bq, seq_a, seq_b);
+	return backtracking_noframeshifts(Bd, Bp, Bq, seq_a, seq_b, aln);
 }
 /* Return value from marginal MG94 model p matrix for a given transition */
 double transition(string codon, int position, char nuc, Eigen::Tensor<double, 3>& p) {
@@ -841,96 +833,98 @@ double transition(string codon, int position, char nuc, Eigen::Tensor<double, 3>
 }
 
 /* Recover alignment given backtracking matrices for DP alignment */
-vector<string> backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq, string seqa, string seqb) {
+int backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
+	string seqa, string seqb, alignment& aln) {
 	int i = seqa.length();
 	int j = seqb.length();
 
-	vector<string> alignment;
-	alignment.push_back(string());
-	alignment.push_back(string());
+	// vector<string> alignment;
+	aln.f.seq_data.push_back(string());
+	aln.f.seq_data.push_back(string());
 
 	while((i != 0) || (j != 0)) {
 		// match/mismatch
 		if(Bd(i,j) == 0) {
-			alignment[0].insert(0,1,seqa[i-1]);
-			alignment[1].insert(0,1,seqb[j-1]);
+			aln.f.seq_data[0].insert(0,1,seqa[i-1]);
+			aln.f.seq_data[1].insert(0,1,seqb[j-1]);
 			i--;
 			j--;
 		// insertion
 		} else if(Bd(i,j) == 1) {
 			while(Bp(i,j) == 1) {
-				alignment[0].insert(0,1,'-');
-				alignment[1].insert(0,1,seqb[j-1]);
+				aln.f.seq_data[0].insert(0,1,'-');
+				aln.f.seq_data[1].insert(0,1,seqb[j-1]);
 				j--;
 			}
-			alignment[0].insert(0,1,'-');
-			alignment[1].insert(0,1,seqb[j-1]);
+			aln.f.seq_data[0].insert(0,1,'-');
+			aln.f.seq_data[1].insert(0,1,seqb[j-1]);
 			j--;
 		// deletion
 		} else {
 			while(Bq(i,j) ==  1) {
-				alignment[0].insert(0,1,seqa[i-1]);
-				alignment[1].insert(0,1,'-');
+				aln.f.seq_data[0].insert(0,1,seqa[i-1]);
+				aln.f.seq_data[1].insert(0,1,'-');
 				i--;
 			}
-			alignment[0].insert(0,1,seqa[i-1]);
-			alignment[1].insert(0,1,'-');
+			aln.f.seq_data[0].insert(0,1,seqa[i-1]);
+			aln.f.seq_data[1].insert(0,1,'-');
 			i--;
 		}
 	}
 
-	return alignment;
+	return 0;
 
 }
 
 /* Recover alignment given backtracking matrices for DP alignment */
-vector<string> backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq, string seqa, string seqb) {
+int backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
+	string seqa, string seqb, alignment& aln) {
 	int i = seqa.length();
 	int j = seqb.length();
 
-	vector<string> alignment;
-	alignment.push_back(string());
-	alignment.push_back(string());
+	// vector<string> alignment;
+	aln.f.seq_data.push_back(string());
+	aln.f.seq_data.push_back(string());
 
 	while((i != 0) || (j != 0)) {
 		// match/mismatch
 		if(Bd(i,j) == 0) {
-			alignment[0].insert(0,1,seqa[i-1]);
-			alignment[1].insert(0,1,seqb[j-1]);
+			aln.f.seq_data[0].insert(0,1,seqa[i-1]);
+			aln.f.seq_data[1].insert(0,1,seqb[j-1]);
 			i--;
 			j--;
 		// insertion
 		} else if(Bd(i,j) == 1) {
 			while(Bp(i,j) == 1) {
 				for(int k=0;k<3;k++) {
-					alignment[0].insert(0,1,'-');
-					alignment[1].insert(0,1,seqb[j-1]);
+					aln.f.seq_data[0].insert(0,1,'-');
+					aln.f.seq_data[1].insert(0,1,seqb[j-1]);
 					j--;
 				}
 			}
 			for(int k=0;k<3;k++) {
-				alignment[0].insert(0,1,'-');
-				alignment[1].insert(0,1,seqb[j-1]);
+				aln.f.seq_data[0].insert(0,1,'-');
+				aln.f.seq_data[1].insert(0,1,seqb[j-1]);
 				j--;
 			}
 		// deletion
 		} else {
 			while(Bq(i,j) ==  1) {
 				for(int k=0;k<3;k++) {
-					alignment[0].insert(0,1,seqa[i-1]);
-					alignment[1].insert(0,1,'-');
+					aln.f.seq_data[0].insert(0,1,seqa[i-1]);
+					aln.f.seq_data[1].insert(0,1,'-');
 					i--;
 				}
 			}
 			for(int k=0;k<3;k++) {
-				alignment[0].insert(0,1,seqa[i-1]);
-				alignment[1].insert(0,1,'-');
+				aln.f.seq_data[0].insert(0,1,seqa[i-1]);
+				aln.f.seq_data[1].insert(0,1,'-');
 				i--;
 			}
 		}
 	}
 
-	return alignment;
+	return 0;
 
 }
 
@@ -1019,66 +1013,66 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
 	return(weight);
 }
 
-/* Model combining MG94's rates and ECM exchangeabilities.
-	Method folowing Miyazawa 2011.*/
-void hybrid_p(Matrix64f& P) {
-	Matrix64f R; // instantaneous substitution rate matrix
-	R.setZero();
-
-	Matrix64f M; // Muse and Gaut instantaneous rate matrix
-	mg94_q(M);
-
-	double nuc_pi[4] = {0.308,0.185,0.199,0.308};
-	double brlen = 0.0133;	// branch length (t)
-
-	Matrix64f mut_pi;
-	for(int i=0;i<64;i++) {
-		mut_pi(i) = nuc_pi[((i & 48) >> 4)] * nuc_pi[((i & 12) >> 2)] * nuc_pi[(i & 3)];
-	}
-
-	double c, rowSum = 0.0;
-
-	for(int i=0;i<64;i++){
-		rowSum = 0.0;
-		for(int j=0;j<64;j++){
-			if(i != j) {
-				R(i,j) = M(i,j)*ecm_pi(j)/mut_pi(j)*exp(s[i][j]);
-				rowSum += R(i,j);
-			}
-		}
-		R(i,i) = -rowSum;
-		c += rowSum;
-	}
-	// Normalize
-	R = R/c;
-
-	// P matrix
-	R = R * brlen;
-	P = R.exp();
-}
-
-/* Hybrid model FST */
-void hybrid(VectorFst<StdArc>& mut_fst) {
-	Matrix64f P;
-	hybrid_p(P);
-
-	// Add state 0 and make it the start state
-	VectorFst<StdArc> hybrid;
-	hybrid.AddState();
-	hybrid.SetStart(0);
-
-	// Creat FST
-	int r = 1;
-	for(uint8_t i=0; i<64; i++) {
-		for(uint8_t j=0; j<64; j++) {
-			add_arc(hybrid, 0, r, ((i & 48) >> 4) + 1, ((j & 48) >> 4) + 1, P(i,j));
-			add_arc(hybrid, r, r+1, ((i & 12) >> 2) + 1, ((j & 12) >> 2) + 1);
-			add_arc(hybrid, r+1, 0, (i & 3) + 1, (j & 3) + 1);
-			r = r+2;
-		}
-	}
-
-	// Set final state & optimize
-	hybrid.SetFinal(0, 0.0);
-	mut_fst = optimize(hybrid);
-}
+// /* Model combining MG94's rates and ECM exchangeabilities.
+// 	Method folowing Miyazawa 2011.*/
+// void hybrid_p(Matrix64f& P) {
+// 	Matrix64f R; // instantaneous substitution rate matrix
+// 	R.setZero();
+//
+// 	Matrix64f M; // Muse and Gaut instantaneous rate matrix
+// 	mg94_q(M);
+//
+// 	double nuc_pi[4] = {0.308,0.185,0.199,0.308};
+// 	double brlen = 0.0133;	// branch length (t)
+//
+// 	Matrix64f mut_pi;
+// 	for(int i=0;i<64;i++) {
+// 		mut_pi(i) = nuc_pi[((i & 48) >> 4)] * nuc_pi[((i & 12) >> 2)] * nuc_pi[(i & 3)];
+// 	}
+//
+// 	double c, rowSum = 0.0;
+//
+// 	for(int i=0;i<64;i++){
+// 		rowSum = 0.0;
+// 		for(int j=0;j<64;j++){
+// 			if(i != j) {
+// 				R(i,j) = M(i,j)*ecm_pi(j)/mut_pi(j)*exp(s[i][j]);
+// 				rowSum += R(i,j);
+// 			}
+// 		}
+// 		R(i,i) = -rowSum;
+// 		c += rowSum;
+// 	}
+// 	// Normalize
+// 	R = R/c;
+//
+// 	// P matrix
+// 	R = R * brlen;
+// 	P = R.exp();
+// }
+//
+// /* Hybrid model FST */
+// void hybrid(VectorFst<StdArc>& mut_fst) {
+// 	Matrix64f P;
+// 	hybrid_p(P);
+//
+// 	// Add state 0 and make it the start state
+// 	VectorFst<StdArc> hybrid;
+// 	hybrid.AddState();
+// 	hybrid.SetStart(0);
+//
+// 	// Creat FST
+// 	int r = 1;
+// 	for(uint8_t i=0; i<64; i++) {
+// 		for(uint8_t j=0; j<64; j++) {
+// 			add_arc(hybrid, 0, r, ((i & 48) >> 4) + 1, ((j & 48) >> 4) + 1, P(i,j));
+// 			add_arc(hybrid, r, r+1, ((i & 12) >> 2) + 1, ((j & 12) >> 2) + 1);
+// 			add_arc(hybrid, r+1, 0, (i & 3) + 1, (j & 3) + 1);
+// 			r = r+2;
+// 		}
+// 	}
+//
+// 	// Set final state & optimize
+// 	hybrid.SetFinal(0, 0.0);
+// 	mut_fst = optimize(hybrid);
+// }

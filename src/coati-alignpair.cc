@@ -35,20 +35,25 @@ namespace po = boost::program_options;
 
 int main(int argc, char *argv[]) {
 
-	string fasta, mut_model, weight_f, output, rate;
+	string rate;
 	bool score = false;
+	input in_data;
 
 	try {
 		po::options_description desc("Allowed options");
 		desc.add_options()
 			("help,h","Display this message")
-			("fasta,f",po::value<string>(&fasta)->required(), "fasta file path")
-			("model,m",po::value<string>(&mut_model)->default_value("m-coati"),
+			("fasta,f",po::value<string>(&in_data.fasta_file.path)->required(),
+				"fasta file path")
+			("model,m",po::value<string>(&in_data.mut_model)->default_value("m-coati"),
 				"substitution model: coati, m-coati (default), dna, ecm, m-ecm")
-			("weight,w",po::value<string>(&weight_f), "Write alignment score to file")
-			("output,o",po::value<string>(&output), "Alignment output file")
+			("weight,w",po::value<string>(&in_data.weight_file),
+				"Write alignment score to file")
+			("output,o",po::value<string>(&in_data.out_file), "Alignment output file")
 			("score,s", "Calculate alignment score using marginal COATi model")
-			("rate,r", po::value<string>(&rate), "Substitution rate matrix (CSV)")
+			("rate,r", po::value<string>(&in_data.rate), "Substitution rate matrix (CSV)")
+			("evo-time,t", po::value<double>(&in_data.br_len)->default_value(0.0133),
+				"Evolutionary time or branch length")
 		;
 
 		po::positional_options_description pos_p;
@@ -56,14 +61,14 @@ int main(int argc, char *argv[]) {
 		po::variables_map varm;
 		po::store(po::command_line_parser(argc,argv).options(desc).positional(pos_p).run(),varm);
 
-		if(varm.count("help") || argc <= 1) {
-			cout << "Usage:	coati-alignpair file.fasta [options]" << endl << endl;
+		if(varm.count("help") || argc < 2) {
+			cout << "Usage:	coati alignpair file.fasta [options]" << endl << endl;
 			cout << desc << endl;
 			return EXIT_SUCCESS;
 		}
 
 		if(varm.count("score")) {
-			 score = true;
+			 in_data.score = true;
 		}
 
 		po::notify(varm);
@@ -74,9 +79,25 @@ int main(int argc, char *argv[]) {
 	}
 
 	// read input fasta file sequences as FSA (acceptors)
-	vector<string> seq_names, sequences;
 	vector<VectorFst<StdArc>> fsts;
 	Matrix64f P;
+
+	if(read_fasta(in_data.fasta_file, fsts) != 0) {
+			cerr << "Error reading " << in_data.fasta_file.path << " file. Exiting!" << endl;
+			return EXIT_FAILURE;
+	} else if(in_data.fasta_file.seq_names.size() < 2 || in_data.fasta_file.seq_names.size()
+		!= fsts.size()) {
+			cerr << "At least two sequences required. Exiting!" << endl;
+			return EXIT_FAILURE;
+	}
+
+	if(in_data.out_file.empty()) { // if no output is specified save in current dir in PHYLIP format
+		in_data.out_file = boost::filesystem::path(in_data.fasta_file.path).stem().string()+".phy";
+	} else if(boost::filesystem::extension(in_data.out_file) != ".phy" &&
+		boost::filesystem::extension(in_data.out_file) != ".fasta") {
+		cout << "Format for output file is not valid. Exiting!" << endl;
+		return EXIT_FAILURE;
+	}
 
 	if(!rate.empty()) {
 		Matrix64f Q;
@@ -85,35 +106,18 @@ int main(int argc, char *argv[]) {
 		// P matrix
 		Q = Q * br_len;
 		P = Q.exp();
+
+		return mcoati(in_data, P);
+	} else if((in_data.mut_model.compare("m-coati") == 0) ||
+		in_data.mut_model.compare("no_frameshifts") == 0 ){
+			mg94_p(P, in_data.br_len);
+			return mcoati(in_data, P);
+	} else if(in_data.mut_model.compare("m-ecm") == 0) {
+		ecm_p(P, in_data.br_len);
+		return mcoati(in_data,P);
 	} else {
 		P.setZero();
+		return fst_alignment(in_data, fsts);
 	}
 
-	if(read_fasta(fasta,seq_names, fsts, sequences) != 0) {
-		cerr << "Error reading " << fasta << " file. Exiting!" << endl;
-		return EXIT_FAILURE;
-	} else if(seq_names.size() < 2 || seq_names.size() != fsts.size()) {
-		cerr << "At least two sequences required. Exiting!" << endl;
-		return EXIT_FAILURE;
-	}
-
-	if(output.empty()) { // if no output is specified save in current dir in PHYLIP format
-		output = boost::filesystem::path(fasta).stem().string()+".phy";
-	} else if(boost::filesystem::extension(output) != ".phy" &&
-		boost::filesystem::extension(output) != ".fasta") {
-		cout << "Format for output file is not valid. Exiting!" << endl;
-		return EXIT_FAILURE;
-	}
-
-	if((mut_model.compare("m-coati") == 0) || (mut_model.compare("no_frameshifts") == 0)) {
-		return mcoati(fasta, seq_names, sequences, score, weight_f, output, mut_model, P);
-	} else if(mut_model.compare("hybrid") == 0) {
-		hybrid_p(P);
-		return mcoati(fasta, seq_names, sequences, score, weight_f, output, mut_model, P);
-	} else if(mut_model.compare("m-ecm") == 0) {
-		ecm_p(P);
-		return mcoati(fasta, seq_names, sequences, score, weight_f, output, mut_model, P);
-	} else {
-		return fst_alignment(mut_model, fsts, seq_names, fasta, weight_f, output, sequences);
-	}
 }

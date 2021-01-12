@@ -30,9 +30,7 @@
 using namespace fst;
 using namespace std;
 
-int mcoati(string fasta, vector<string> seq_names, vector<string> sequences,
-	bool score, string weight_f, string output, string model, Matrix64f& P);
-int fst_alignment(string model, vector<VectorFst<StdArc>>& fsts, vector<string> seq_names,
-	string fasta, string weight_f, string output, vector<string> sequences);
+int mcoati(input& in_data, Matrix64f& P);
+int fst_alignment(input& in_data, vector<VectorFst<StdArc>>& fsts);
 
 #endif

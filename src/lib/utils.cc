@@ -76,11 +76,10 @@ VectorFst<StdArc> optimize(VectorFst<StdArc> fst_raw) {
 }
 
 /* Read fasta format file */
-int read_fasta(string file, vector<string>& seq_names,
-		vector<VectorFst<StdArc>>& fsts, vector<string>& sequences) {
-	ifstream input(file);
+int read_fasta(fasta& fasta_file, vector<VectorFst<StdArc>>& fsts) {
+	ifstream input(fasta_file.path);
 	if(!input.good()) {
-		cerr << "Error opening '" << file << "'." << endl;
+		cerr << "Error opening '" << fasta_file.path << "'." << endl;
 		return EXIT_FAILURE;
 	}
 
@@ -91,16 +90,17 @@ int read_fasta(string file, vector<string>& seq_names,
 			if(!name.empty()) {
 				VectorFst<StdArc> accept;	// create FSA with sequence
 				if(!acceptor(content, accept)) {
-					cerr << "Creating acceptor from " << file << " failed. Exiting!" << endl;
+					cerr << "Creating acceptor from " << fasta_file.path <<
+						" failed. Exiting!" << endl;
 					return EXIT_FAILURE;
 				}
 				fsts.push_back(accept);		// Add FSA
-				sequences.push_back(content);
+				fasta_file.seq_data.push_back(content);
 				name.clear();
 			}
 			// Add name of sequence
 			name = line.substr(1);
-			seq_names.push_back(name);
+			fasta_file.seq_names.push_back(name);
 			content.clear();
 		} else if(line.empty()) {
 			continue;	// omit empty lines
@@ -113,37 +113,71 @@ int read_fasta(string file, vector<string>& seq_names,
 	if(!name.empty()) { // Add last sequence FSA if needed
 		VectorFst<StdArc> accept;
 		if(!acceptor(content, accept)) {
-			cerr << "Creating acceptor from " << file << " failed. Exiting!" << endl;
+			cerr << "Creating acceptor from " << fasta_file.path << " failed. Exiting!" << endl;
 			return EXIT_FAILURE;
 		}
 		fsts.push_back(accept);
-		sequences.push_back(content);
+		fasta_file.seq_data.push_back(content);
+	}
+
+	return 0;
+}
+
+/* Read fasta format file */
+int read_fasta(fasta& fasta_file) {
+	ifstream input(fasta_file.path);
+	if(!input.good()) {
+		cerr << "Error opening '" << fasta_file.path << "'." << endl;
+		return EXIT_FAILURE;
+	}
+
+	string line, name, content;
+	while(getline(input, line).good() ) {
+		if(line[0] == ';') continue;
+		if(line[0] == '>') { // Identifier marker
+			if(!name.empty()) {
+				fasta_file.seq_data.push_back(content);
+				name.clear();
+			}
+			// Add name of sequence
+			name = line.substr(1);
+			fasta_file.seq_names.push_back(name);
+			content.clear();
+		} else if(line.empty()) {
+			continue;	// omit empty lines
+		} else if(!name.empty()) {
+			// Remove spaces
+			line.erase(remove_if(line.begin(), line.end(), ::isspace), line.end());
+			content += line;
+		}
+	}
+	if(!name.empty()) { // Add last sequence FSA if needed
+		fasta_file.seq_data.push_back(content);
 	}
 
 	return 0;
 }
 
 /* Write alignment in Fasta format */
-int write_fasta(vector<string> alignment, string output, vector<string> seq_names) {
+int write_fasta(fasta& fasta_file) {
 	ofstream outfile;
-	outfile.open(output);
+	outfile.open(fasta_file.path);
 	if(!outfile) {
 		cerr << "Opening output file failed.\n";
 		return EXIT_FAILURE;
 	}
 
-	outfile << ">" << seq_names[0] << endl << alignment[0] << endl;
-	outfile << ">" << seq_names[1] << endl << alignment[1] << endl;
+	outfile << ">" << fasta_file.seq_names[0] << endl << fasta_file.seq_data[0] << endl;
+	outfile << ">" << fasta_file.seq_names[1] << endl << fasta_file.seq_data[1] << endl;
 	outfile.close();
 
 	return EXIT_SUCCESS;
 }
 
 /* Write shortest path (alignment) in Fasta format */
-int write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names) {
+int write_fasta(VectorFst<StdArc>& aln, fasta& fasta_file) {
 	SymbolTable *symbols = SymbolTable::ReadText("fst/dna_syms.txt");
 
-	vector<string> alignment;// seq1, seq2;
 	string seq1, seq2;
 	StdArc::StateId istate = aln.Start();
 	StateIterator<StdFst> siter(aln);	// FST state iterator
@@ -153,35 +187,35 @@ int write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names)
 		seq2.append(symbols->Find(aiter.Value().olabel));
 	}
 
-	alignment.push_back(seq1);
-	alignment.push_back(seq2);
+	fasta_file.seq_data.push_back(seq1);
+	fasta_file.seq_data.push_back(seq2);
 
 	// map all epsilons (<eps>) to gaps (-)
-	while(alignment[0].find("<eps>") != string::npos) alignment[0].replace(alignment[0].find("<eps>"),5,"-");
-	while(alignment[1].find("<eps>") != string::npos) alignment[1].replace(alignment[1].find("<eps>"),5,"-");
+	while(fasta_file.seq_data[0].find("<eps>") != string::npos) fasta_file.seq_data[0].replace(fasta_file.seq_data[0].find("<eps>"),5,"-");
+	while(fasta_file.seq_data[1].find("<eps>") != string::npos) fasta_file.seq_data[1].replace(fasta_file.seq_data[1].find("<eps>"),5,"-");
 
 	// write aligned sequences to file
-	write_fasta(alignment, output, seq_names);
+	write_fasta(fasta_file);
 	return EXIT_SUCCESS;
 }
 
 /* Write alignment in PHYLIP format */
-int write_phylip(vector<string> alignment, string output, vector<string> seq_names) {
+int write_phylip(fasta& fasta_file) {
 	ofstream outfile;
-	outfile.open(output);
+	outfile.open(fasta_file.path);
 	if(!outfile) {
 		cerr << "Opening output file failed.\n";
 		return EXIT_FAILURE;
 	}
 
 	// write aligned sequences to file
-	outfile << seq_names.size() << " " << alignment[0].length() << endl;
-	int i = PRINT_SIZE-4-max(seq_names[0].length(),seq_names[1].length());
-	outfile << seq_names[0] << "\t" << alignment[0].substr(0,i) << endl;
-	outfile << seq_names[1] << "\t" << alignment[1].substr(0,i) << endl << endl;
-	for(; i<alignment[0].length(); i+=PRINT_SIZE) {
-		outfile << alignment[0].substr(i,PRINT_SIZE) << endl;
-		outfile << alignment[1].substr(i,PRINT_SIZE) << endl;
+	outfile << fasta_file.seq_names.size() << " " << fasta_file.seq_data[0].length() << endl;
+	int i = PRINT_SIZE-4-max(fasta_file.seq_names[0].length(),fasta_file.seq_names[1].length());
+	outfile << fasta_file.seq_names[0] << "\t" << fasta_file.seq_data[0].substr(0,i) << endl;
+	outfile << fasta_file.seq_names[1] << "\t" << fasta_file.seq_data[1].substr(0,i) << endl << endl;
+	for(; i<fasta_file.seq_data[0].length(); i+=PRINT_SIZE) {
+		outfile << fasta_file.seq_data[0].substr(i,PRINT_SIZE) << endl;
+		outfile << fasta_file.seq_data[1].substr(i,PRINT_SIZE) << endl;
 		outfile << endl;
 	}
 
@@ -189,10 +223,10 @@ int write_phylip(vector<string> alignment, string output, vector<string> seq_nam
 }
 
 /* Write shortest path (alignment) in PHYLIP format */
-int write_phylip(VectorFst<StdArc>& aln, string output, vector<string> seq_names) {
+int write_phylip(VectorFst<StdArc>& aln, fasta& fasta_file) {
 	SymbolTable *symbols = SymbolTable::ReadText("fst/dna_syms.txt");
 
-	vector<string> alignment;
+	// vector<string> alignment;
 	string seq1, seq2;
 	StdArc::StateId istate = aln.Start();
 	StateIterator<StdFst> siter(aln);	// FST state iterator
@@ -202,14 +236,14 @@ int write_phylip(VectorFst<StdArc>& aln, string output, vector<string> seq_names
 		seq2.append(symbols->Find(aiter.Value().olabel));
 	}
 
-	alignment.push_back(seq1);
-	alignment.push_back(seq2);
+	fasta_file.seq_data.push_back(seq1);
+	fasta_file.seq_data.push_back(seq2);
 
 	// map all epsilons (<eps>) to gaps (-)
-	while(alignment[0].find("<eps>") != string::npos) alignment[0].replace(alignment[0].find("<eps>"),5,"-");
-	while(alignment[1].find("<eps>") != string::npos) alignment[1].replace(alignment[1].find("<eps>"),5,"-");
+	while(fasta_file.seq_data[0].find("<eps>") != string::npos) fasta_file.seq_data[0].replace(fasta_file.seq_data[0].find("<eps>"),5,"-");
+	while(fasta_file.seq_data[1].find("<eps>") != string::npos) fasta_file.seq_data[1].replace(fasta_file.seq_data[1].find("<eps>"),5,"-");
 
-	write_phylip(alignment, output, seq_names);
+	write_phylip(fasta_file);
 	return EXIT_SUCCESS;
 }
 
