@@ -50,9 +50,9 @@ int main(int argc, char *argv[]) {
 			("weight,w",po::value<string>(&in_data.weight_file),
 				"Write alignment score to file")
 			("output,o",po::value<string>(&in_data.out_file), "Alignment output file")
-			("score,s", "Calculate alignment score using marginal COATi model")
+			("score,s", "Calculate alignment score using m-coati or m-ecm models")
 			("rate,r", po::value<string>(&in_data.rate), "Substitution rate matrix (CSV)")
-			("evo-time,t", po::value<double>(&in_data.br_len)->default_value(0.0133),
+			("evo-time,t", po::value<double>(&in_data.br_len)->default_value(0.0133,"0.0133"),
 				"Evolutionary time or branch length")
 		;
 

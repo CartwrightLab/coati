@@ -40,7 +40,24 @@ make install
 
 ## `alignpair`
 
-Pairwise alignment of two nucleotide sequences. Example input files can be found in `fasta` directory. Sample runs:
+Pairwise alignment of two nucleotide sequences. Example input files can be found in `fasta` directory.
+```
+Usage:	coati alignpair file.fasta [options]
+
+Allowed options:
+  -h [ --help ]                   Display this message
+  -f [ --fasta ] arg              fasta file path
+  -m [ --model ] arg (=m-coati)   substitution model: coati, m-coati (default),
+                                  dna, ecm, m-ecm
+  -w [ --weight ] arg             Write alignment score to file
+  -o [ --output ] arg             Alignment output file
+  -s [ --score ]                  Calculate alignment score using m-coati or
+                                  m-ecm models
+  -r [ --rate ] arg               Substitution rate matrix (CSV)
+  -t [ --evo-time ] arg (=0.0133) Evolutionary time or branch length
+```
+
+### Sample runs:
 
 ```
 #Align file examle-001.fasta with m-coati model (default) and output in PHY format (default)
