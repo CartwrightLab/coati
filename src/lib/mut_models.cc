@@ -509,33 +509,37 @@ int mg94_marginal(vector<string> sequences, alignment& aln, Matrix64f& P_m) {
 	Bp = Bd;
 	Bq = Bd;
 
-	double insertion = 0.001;
-	double deletion = 0.001;
-	double insertion_ext = 1.0-(1.0/6.0);
-	double deletion_ext = 1.0-(1.0/6.0);
+	double insertion = log(0.001);
+	double deletion = log(0.001);
+	double insertion_ext = log(1.0-(1.0/6.0));
+	double deletion_ext = log(1.0-(1.0/6.0));
+	double no_insertion = log(1.0 - 0.001);
+	double no_deletion = log(1.0 - 0.001);
+	double no_insertion_ext = log(1.0/6.0);
+	double no_deletion_ext = log(1.0/6.0);
 
 	Vector5d nuc_freqs;
-	nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
+	nuc_freqs << log(0.308), log(0.185), log(0.199), log(0.308), log(0.25);
 
 	// DP and backtracking matrices initialization
 
 	// fill first values on D that are independent
-	D(0,0) = 0.0;
+	D(0,0) = 0.0;//0.0;
 	Bd(0,0) = 0;
-	D(0,1) = -log(insertion) - log(nuc_freqs[nt4_table[seq_b[0]]]) -log(1.0-insertion_ext);
-	P(0,1) = -log(insertion) - log(nuc_freqs[nt4_table[seq_b[0]]]) -log(1.0-insertion_ext);
+	D(0,1) = - insertion - nuc_freqs[nt4_table[seq_b[0]]] - no_insertion_ext;
+	P(0,1) = - insertion - nuc_freqs[nt4_table[seq_b[0]]] - no_insertion_ext;
 	Bd(0,1) = 1;
 	Bp(0,1) = 2;
-	D(1,0) = -log(1.0 - insertion) - log(deletion) -log(1.0 - deletion_ext);
-	Q(1,0) = -log(1.0 - insertion) - log(deletion) -log(1.0 - deletion_ext);
+	D(1,0) = - no_insertion - deletion - no_deletion_ext;
+	Q(1,0) = - no_insertion - deletion - no_deletion_ext;
 	Bd(1,0) = 2;
 	Bq(1,0) = 2;
 
 	// fill first row of D
 	if(n+1>=2) {
 		for(int j=2; j<n+1; j++) {
-			D(0,j) = D(0,j-1) - log(insertion_ext) - log(nuc_freqs[nt4_table[seq_b[j-1]]]);
-			P(0,j) = P(0,j-1) - log(insertion_ext) - log(nuc_freqs[nt4_table[seq_b[j-1]]]);
+			D(0,j) = D(0,j-1) - insertion_ext - nuc_freqs[nt4_table[seq_b[j-1]]];
+			P(0,j) = P(0,j-1) - insertion_ext - nuc_freqs[nt4_table[seq_b[j-1]]];
 			Bd(0,j) = 1;
 			Bp(0,j) = 1;
 		}
@@ -544,8 +548,8 @@ int mg94_marginal(vector<string> sequences, alignment& aln, Matrix64f& P_m) {
 	// fill first column of D
 	if(m+1>=2) {
 		for(int i=2; i<m+1; i++) {
-			D(i,0) = D(i-1, 0) - log(deletion_ext);
-			Q(i,0) = Q(i-1, 0) - log(deletion_ext);
+			D(i,0) = D(i-1, 0) - deletion_ext;
+			Q(i,0) = Q(i-1, 0) - deletion_ext;
 			Bd(i,0) = 2;
 			Bq(i,0) = 1;
 		}
@@ -558,28 +562,28 @@ int mg94_marginal(vector<string> sequences, alignment& aln, Matrix64f& P_m) {
 		codon = seq_a.substr((((i-1)/3)*3),3); // current codon
 		for(int j=1; j<n+1; j++) {
 			// insertion
-			p1 = P(i,j-1) -log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-1]]]);
-			p2 = Bd(i,j-1) == 0 ? D(i,j-1) -log(insertion) -
-				log(nuc_freqs[nt4_table[seq_b[j-1]]]) -log(1.0-insertion_ext) :
-				Bd(i,j-1) == 1 ? D(i,j-1) -log(insertion_ext) -log(nuc_freqs[nt4_table[seq_b[j-1]]])
+			p1 = P(i,j-1) - insertion_ext - nuc_freqs[nt4_table[seq_b[j-1]]];
+			p2 = Bd(i,j-1) == 0 ? D(i,j-1) - insertion -
+				nuc_freqs[nt4_table[seq_b[j-1]]] - no_insertion_ext :
+				Bd(i,j-1) == 1 ? D(i,j-1) - insertion_ext - nuc_freqs[nt4_table[seq_b[j-1]]]
 				: numeric_limits<double>::max();
 			P(i,j) = min(p1,p2);
 			Bp(i,j) = p1 < p2 ? 1 : 2; // 1 is insertion extension, 2 is insertion opening
 
 			// deletion
-			q1 = Q(i-1,j) -log(deletion_ext);
-			q2 = Bd(i-1,j) == 0 ? D(i-1,j) -log(1.0 - insertion) -log(deletion) -log(1.0-deletion_ext) :
-				Bd(i-1,j) == 1 ? D(i-1,j) -log(1.0 - deletion_ext) -log(deletion) :
-				D(i-1,j) -log(deletion_ext);
+			q1 = Q(i-1,j) - deletion_ext;
+			q2 = Bd(i-1,j) == 0 ? D(i-1,j) - no_insertion - deletion - no_deletion_ext :
+				Bd(i-1,j) == 1 ? D(i-1,j) - no_deletion_ext - deletion :
+				D(i-1,j) - deletion_ext;
 			Q(i,j) = min(q1,q2);
 			Bq(i,j) = q1 < q2 ? 1 : 2; // 1 is deletion extension, 2 is deletion opening
 
 			// match/mismatch
 			if(Bd(i-1,j-1) == 0) {
-				d = D(i-1,j-1) -log(1.0 - insertion) -log(1.0 - deletion) -
+				d = D(i-1,j-1) - no_insertion - no_deletion -
 					log(transition(codon, (i)%3, seq_b[j-1],p));
 			} else if(Bd(i-1,j-1) == 1) {
-				d = D(i-1,j-1) -log(1.0 - deletion) -log(transition(codon, (i)%3, seq_b[j-1],p));
+				d = D(i-1,j-1) - no_deletion -log(transition(codon, (i)%3, seq_b[j-1],p));
 			} else {
 				d = D(i-1,j-1) -log(transition(codon, (i)%3, seq_b[j-1],p));
 			}

@@ -21,7 +21,9 @@
 cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
 cmake_policy(SET CMP0025 NEW)
 cmake_policy(SET CMP0048 NEW)
-cmake_policy(SET CMP0110 NEW)
+if(POLICY CMP0110)
+	cmake_policy(SET CMP0110 NEW)
+endif()
 
 # guard against in-source builds
 set(the_source_dir "${CMAKE_SOURCE_DIR}")
