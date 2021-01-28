@@ -54,16 +54,58 @@ const uint8_t nt4_table[256] = {
 };
 
 typedef Eigen::Matrix<double, 64, 64>Matrix64f;
+typedef Eigen::Matrix<double, 5,  1>Vector5d;
 
-int read_fasta(string file, vector<string>& seq_names,
-	vector<VectorFst<StdArc>>& fsts, vector<string>& sequences);
+struct fasta {
+	string path;
+	vector<string> seq_names, seq_data;
+	fasta() {
+		path = "";
+		seq_names = {};
+		seq_data = {};
+	}
+	fasta(string f, vector<string> n, vector<string> d={}) {
+		path = f;
+		seq_names = n;
+		seq_data = d;
+	}
+};
+
+struct input {
+	string mut_model, weight_file, out_file, rate;
+	bool score;
+	double br_len;
+	fasta fasta_file;
+};
+
+struct alignment {
+	string weight_file, model;
+	float weight;
+	fasta f;
+	alignment() {
+		f = fasta();
+		weight = 0.0;
+		weight_file = "";
+		model = "";
+	}
+	alignment(string f_file, vector<string> n, vector<string> d, float w,
+		string w_f, string m) {
+			f = fasta(f_file, n, d);
+			weight = w;
+			weight_file = w_f;
+			model = m;
+		}
+};
+
+int read_fasta(fasta& fasta_file, vector<VectorFst<StdArc>>& fsts);
+int read_fasta(fasta& fasta_file);
 void add_arc(VectorFst<StdArc> &fst, int src, int dest, int ilabel=0,\
 	int olabel=0, float weight=1.0);
 VectorFst<StdArc> optimize(VectorFst<StdArc> fst);
-int write_fasta(vector<string> alignment, string output, vector<string> seq_names);
-int write_fasta(VectorFst<StdArc>& aln, string output, vector<string> seq_names);
-int write_phylip(vector<string> alignment, string output, vector<string> seq_names);
-int write_phylip(VectorFst<StdArc>& aln, string output, vector<string> seq_names);
+int write_fasta(fasta& fasta_file);
+int write_fasta(VectorFst<StdArc>& aln, fasta& fasta_file);
+int write_phylip(fasta& fasta_file);
+int write_phylip(VectorFst<StdArc>& aln, fasta& fasta_file);
 bool acceptor(std::string content, VectorFst<StdArc> &accept);
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(string codon);

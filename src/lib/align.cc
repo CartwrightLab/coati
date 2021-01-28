@@ -24,51 +24,56 @@
 #include <coati/align.hpp>
 
 /* Alignment using dynamic programming implementation of marginal COATi model */
-int mcoati(string fasta, vector<string> seq_names, vector<string> sequences,
-	bool score, string weight_f, string output, string model, Matrix64f& P) {
+int mcoati(input& in_data, Matrix64f& P) {
 
-	vector<string> alignment;
-	float weight;
 	ofstream out_w;
+	alignment aln;
+	aln.f.seq_names = in_data.fasta_file.seq_names;
+	aln.f.path = in_data.out_file;
 
-	if(score) {
-		cout << alignment_score(sequences, P) << endl;
+	if(in_data.score) {
+		cout << alignment_score(in_data.fasta_file.seq_data, P) << endl;
 		return EXIT_SUCCESS;
 	}
 
-	if(model.compare("no_frameshifts") == 0) {
-		alignment = gotoh_noframeshifts(sequences, weight, P);
+	if(in_data.mut_model.compare("no_frameshifts") == 0) {
+		if(gotoh_noframeshifts(in_data.fasta_file.seq_data, aln, P) != 0) {
+			return EXIT_FAILURE;
+		}
 	} else {
-		alignment = mg94_marginal(sequences, weight, P);
+		if(mg94_marginal(in_data.fasta_file.seq_data, aln, P) != 0) {
+			return EXIT_FAILURE;
+		}
 	}
 
-	if(!weight_f.empty()) {
+	if(!in_data.weight_file.empty()) {
 		// append weight and fasta file name to file
-		out_w.open(weight_f, ios::app | ios::out);
-		out_w << fasta << "," << model << "," << weight << endl;
+		out_w.open(in_data.weight_file, ios::app | ios::out);
+		out_w << in_data.fasta_file.path << "," << in_data.mut_model << "," << aln.weight << endl;
 		out_w.close();
 	}
 
 	// write alignment
-	if(boost::filesystem::extension(output) == ".fasta") {
-		return write_fasta(alignment, output, seq_names);
+	if(boost::filesystem::extension(aln.f.path) == ".fasta") {
+		// return write_fasta(alignment, output, seq_names);
+		return write_fasta(aln.f);
 	} else {
-		return write_phylip(alignment, output, seq_names);
+		// return write_phylip(alignment, output, seq_names);
+		return write_phylip(aln.f);
 	}
 }
 
 /* Alignment using FST library*/
-int fst_alignment(string model, vector<VectorFst<StdArc>>& fsts, vector<string> seq_names,
-	string fasta, string weight_f, string output, vector<string> sequences) {
+int fst_alignment(input& in_data, vector<VectorFst<StdArc>>& fsts) {
 
 	VectorFst<StdArc> mut_fst;
 
-	if(model.compare("coati") == 0 ) {
-		mg94(mut_fst);
-	} else if(model.compare("dna") == 0) {
-		dna(mut_fst);
-	} else if(model.compare("ecm") == 0) {
-		ecm(mut_fst);
+	if(in_data.mut_model.compare("coati") == 0 ) {
+		mg94(mut_fst, in_data.br_len);
+	} else if(in_data.mut_model.compare("dna") == 0) {
+		dna(mut_fst, in_data.br_len);
+	} else if(in_data.mut_model.compare("ecm") == 0) {
+		ecm(mut_fst, in_data.br_len);
 	} else {
 		cout << "Mutation model unknown. Exiting!" << endl;
 		return EXIT_FAILURE;
@@ -76,7 +81,7 @@ int fst_alignment(string model, vector<VectorFst<StdArc>>& fsts, vector<string> 
 
 	// get indel FST
 	VectorFst<StdArc> indel_fst;
-	indel(indel_fst, model);
+	indel(indel_fst, in_data.mut_model);
 
 	// sort mutation and indel FSTs
 	VectorFst<StdArc> mutation_sort, indel_sort;
@@ -114,24 +119,26 @@ int fst_alignment(string model, vector<VectorFst<StdArc>>& fsts, vector<string> 
 	ShortestPath(graph_fst, &aln_path);
 
 	// shortestdistance = weight of shortestpath
-	if(!weight_f.empty()) {
+	if(!in_data.weight_file.empty()) {
 		vector<StdArc::Weight> distance;
 		ofstream out_w;
 
 		ShortestDistance(aln_path, &distance);
 		// append weight and fasta file name info in file
-		out_w.open(weight_f, ios::app | ios::out);
-		out_w << fasta << "," << model << "," << distance[0] << endl;
+		out_w.open(in_data.weight_file, ios::app | ios::out);
+		out_w << in_data.fasta_file.path << "," << in_data.mut_model << "," << distance[0] << endl;
 		out_w.close();
 	}
 
 	// topsort path FST
 	TopSort(&aln_path);
 
+	fasta out_fasta(in_data.out_file, in_data.fasta_file.seq_names);
+
 	// write alignment
-	if(boost::filesystem::extension(output) == ".fasta") {
-		return write_fasta(aln_path, output, seq_names);
+	if(boost::filesystem::extension(out_fasta.path) == ".fasta") {
+		return write_fasta(aln_path, out_fasta);
 	} else {
-		return write_phylip(aln_path, output, seq_names);
+		return write_phylip(aln_path, out_fasta);
 	}
 }

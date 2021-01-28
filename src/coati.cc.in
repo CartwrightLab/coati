@@ -23,6 +23,7 @@
 #include <unistd.h>
 
 #include <cstdlib>
+#include <cstring>
 #include <vector>
 
 #include <coati/coati.hpp>
@@ -34,8 +35,11 @@ const char libexec_dir[] = "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBEXECDIR@";
 int main(int argc, char * const argv[]) {
     COATI_VERB_RUNTIME_CHECK_VERSION_NUMBER_OR_RETURN();
 
-    if(argc < 2) {
-        return EXIT_FAILURE;
+    if((argc < 2) || (strcmp(argv[1],"help") == 0)) {
+		std::cout << "Usage:   coati command [options]" << std::endl << std::endl;
+		std::cout << "Commands available:   help"<< std::endl;
+		std::cout << "                      alignpair" << std::endl;
+        return EXIT_SUCCESS;
     }
 
     // construct path to coati executable for the verb command
