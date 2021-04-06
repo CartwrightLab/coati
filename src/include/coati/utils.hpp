@@ -110,5 +110,7 @@ bool acceptor(std::string content, VectorFst<StdArc> &accept);
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(string codon);
 int parse_matrix_csv(string file, Matrix64f& P, double& br_len);
+Eigen::MatrixXd create_profile(string seq);
+Eigen::MatrixXd create_profile(vector<string>& aln);
 
 #endif

@@ -318,3 +318,72 @@ int parse_matrix_csv(string file, Matrix64f& P, double& br_len) {
 
 	return 0;
 }
+
+/* Create profile given a sequence */
+Eigen::MatrixXd create_profile(string seq) {
+	vector<string> vector_seq;
+	vector_seq.push_back(seq);
+	return create_profile(vector_seq);
+}
+
+/* Create profile given an alignment */
+Eigen::MatrixXd create_profile(vector<string>& aln) {
+	int cols = aln.at(0).length();
+	int rows = aln.size();
+	Eigen::MatrixXd profile  = Eigen::MatrixXd::Zero(5,cols);
+
+	for(int j=0; j < cols; j++) {		// for each column
+		for(int i=0; i < rows; i++) {	// for each row
+			switch(aln.at(i).at(j)) {
+				case 'A':
+				case 'a':
+					profile(0,j) += 1.0/rows;
+					break;
+				case 'C':
+				case 'c':
+					profile(1,j) += 1.0/rows; break;
+				case 'G':
+				case 'g':
+					profile(2,j) += 1.0/rows;
+					break;
+				case 'T':
+				case 't':
+					profile(3,j) += 1.0/rows;
+					break;
+				case '-':
+					profile(4,j) += 1.0/rows;
+					break;
+			}
+		}
+	}
+
+	return profile;
+}
+
+TEST_CASE("[utils.cc] create_profile") {
+	SUBCASE("alignment") {
+		vector<string> aln = {"CTCTGGATAGTG","CT----ATAGTG","CTCT---TAGTG","CTCTG--TAGTG"};
+		Eigen::MatrixXd profile = create_profile(aln);
+		Eigen::MatrixXd result(5,12);
+		result <<	0, 0, 0, 0,  0, 0, 0.5, 0, 1, 0, 0, 0,
+					1, 0, 0.75, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0.5, 0.25, 0, 0, 0, 1, 0, 1,
+					0, 1, 0, 0.75, 0, 0, 0, 1, 0, 0, 1, 0,
+					0, 0, 0.25, 0.25, 0.5, 0.75, 0.5, 0, 0, 0, 0, 0;
+
+		CHECK(profile == result);
+	}
+
+	SUBCASE("sequence") {
+		string seq = "CTCTGGATAGTG";
+		Eigen::MatrixXd profile = create_profile(seq);
+		Eigen::MatrixXd result(5,12);
+		result <<	0,0,0,0,0,0,1,0,1,0,0,0,
+					1,0,1,0,0,0,0,0,0,0,0,0,
+					0,0,0,0,1,1,0,0,0,1,0,1,
+					0,1,0,1,0,0,0,1,0,0,1,0,
+					0,0,0,0,0,0,0,0,0,0,0,0;
+
+		CHECK(profile == result);
+	}
+}
