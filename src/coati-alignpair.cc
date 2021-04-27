@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) {
 			("rate,r", po::value<string>(&in_data.rate), "Substitution rate matrix (CSV)")
 			("evo-time,t", po::value<double>(&in_data.br_len)->default_value(0.0133,"0.0133"),
 				"Evolutionary time or branch length")
+			("tree,p", po::value<string>(&in_data.tree), "Newick phylogenetic tree")
 		;
 
 		po::positional_options_description pos_p;

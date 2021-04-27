@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -72,7 +72,7 @@ struct fasta {
 };
 
 struct input {
-	string mut_model, weight_file, out_file, rate;
+	string mut_model, weight_file, out_file, rate, tree;
 	bool score;
 	double br_len;
 	fasta fasta_file;

@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,35 +23,35 @@
 #ifndef TREE_H
 #define TREE_H
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <algorithm>
 #include <Eigen/Dense>
+#include <boost/spirit/home/x3.hpp>
+#include <boost/fusion/sequence.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/fusion/include/sequence.hpp>
 
 using namespace std;
 
-struct node {
-	Eigen::MatrixXd profile;
-	vector<string> aln, aln_names;
+struct node_t {
+	string label;
+	float length;
 	bool is_leaf;
-	double dist_parent;
-	int level;
+	size_t parent{0};
+	vector<int> children;
 
-	node* parent;
-	node* lchild;
-	node* rchild;
-
-	void set_aln(vector<string> alignment, vector<string> names) {
-		aln = alignment;
-		aln_names = names;
+	node_t(string name, float len, bool leaf = false) {
+		label = name;
+		length = len;
+		is_leaf = leaf;
 	}
 };
 
-struct tree {
-	int leafs, internal_nodes;
-	// TODO: think about how to store node names, structure, and edge lengths.
-};
+using tree_t = vector<node_t>;
 
-int read_newick(string tree_file, tree& guide_tree);
+bool read_newick(string tree_file, string& content);
+int parse_newick(string content, tree_t& guide_tree);
+int aln_order(tree_t& tree, vector<int>& order_list);
 
 #endif
