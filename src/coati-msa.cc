@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,56 +20,43 @@
 # SOFTWARE.
 */
 
-#include <fst/fstlib.h>
 #include <iostream>
-#include <boost/program_options.hpp>
-#include <fstream>
-#include <boost/filesystem.hpp>
-#include <coati/mut_models.hpp>
 #include <coati/align.hpp>
+#include <coati/profile_aln.hpp>
+#include <boost/program_options.hpp>
 
-using namespace fst;
 using namespace std;
 
 namespace po = boost::program_options;
 
 int main(int argc, char *argv[]) {
 
-	string rate;
-	bool score = false;
 	input_t in_data;
 
 	try {
 		po::options_description desc("Allowed options");
 		desc.add_options()
-			("help,h","Display this message")
+			("help,h", "Display this message")
 			("fasta,f",po::value<string>(&in_data.fasta_file.path)->required(),
 				"fasta file path")
 			("model,m",po::value<string>(&in_data.mut_model)->default_value("m-coati"),
-				"substitution model: coati, m-coati (default), dna, ecm, m-ecm")
+				"substitution model: m-coati (default), m-ecm")
 			("weight,w",po::value<string>(&in_data.weight_file),
-				"Write alignment score to file")
-			("output,o",po::value<string>(&in_data.out_file), "Alignment output file")
-			("score,s", "Calculate alignment score using m-coati or m-ecm models")
-			("rate,r", po::value<string>(&in_data.rate), "Substitution rate matrix (CSV)")
-			("evo-time,t", po::value<double>(&in_data.br_len)->default_value(0.0133,"0.0133"),
-				"Evolutionary time or branch length")
-			("tree,p", po::value<string>(&in_data.tree), "Newick phylogenetic tree")
+				"write alignment score to given file")
+			("output,o",po::value<string>(&in_data.out_file), "alignment output file")
+			("tree,p", po::value<string>(&in_data.tree)->required(), "newick phylogenetic tree")
 		;
 
 		po::positional_options_description pos_p;
-		pos_p.add("fasta",-1);
+		pos_p.add("fasta",1);
+		pos_p.add("tree",1);
 		po::variables_map varm;
 		po::store(po::command_line_parser(argc,argv).options(desc).positional(pos_p).run(),varm);
 
-		if(varm.count("help") || argc < 2) {
-			cout << "Usage:	coati alignpair file.fasta [options]" << endl << endl;
+		if(varm.count("help") || argc < 3) {
+			cout << "Usage: coati msa file.fasta tree.newick [options]" << endl << endl;
 			cout << desc << endl;
 			return EXIT_SUCCESS;
-		}
-
-		if(varm.count("score")) {
-			 in_data.score = true;
 		}
 
 		po::notify(varm);
@@ -79,17 +66,13 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	// read input fasta file sequences as FSA (acceptors)
-	vector<VectorFst<StdArc>> fsts;
-	Matrix64f P;
-
-	if(read_fasta(in_data.fasta_file, fsts) != 0) {
-			cerr << "Error reading " << in_data.fasta_file.path << " file. Exiting!" << endl;
-			return EXIT_FAILURE;
-	} else if(in_data.fasta_file.seq_names.size() != 2 || in_data.fasta_file.seq_names.size()
-		!= fsts.size()) {
-			cerr << "Exactly two sequences required. Exiting!" << endl;
-			return EXIT_FAILURE;
+	// read input fasta file
+	if(read_fasta(in_data.fasta_file) != 0) {
+		cout << "Error reading " << in_data.fasta_file.path << " file. Exiting!" << endl;
+		return EXIT_FAILURE;
+	} else if(in_data.fasta_file.seq_names.size() < 3) {
+		cout << "At least three sequences required. Exiting!" << endl;
+		return EXIT_FAILURE;
 	}
 
 	if(in_data.out_file.empty()) { // if no output is specified save in current dir in PHYLIP format
@@ -100,25 +83,5 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if(!rate.empty()) {
-		Matrix64f Q;
-		double br_len;
-		parse_matrix_csv(rate, Q, br_len);
-		// P matrix
-		Q = Q * br_len;
-		P = Q.exp();
-
-		return mcoati(in_data, P);
-	} else if((in_data.mut_model.compare("m-coati") == 0) ||
-		in_data.mut_model.compare("no_frameshifts") == 0 ){
-			mg94_p(P, in_data.br_len);
-			return mcoati(in_data, P);
-	} else if(in_data.mut_model.compare("m-ecm") == 0) {
-		ecm_p(P, in_data.br_len);
-		return mcoati(in_data,P);
-	} else {
-		P.setZero();
-		return fst_alignment(in_data, fsts);
-	}
-
+	return progressive_aln(in_data);
 }

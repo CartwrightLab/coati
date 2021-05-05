@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -76,7 +76,7 @@ VectorFst<StdArc> optimize(VectorFst<StdArc> fst_raw) {
 }
 
 /* Read fasta format file */
-int read_fasta(fasta& fasta_file, vector<VectorFst<StdArc>>& fsts) {
+int read_fasta(fasta_t& fasta_file, vector<VectorFst<StdArc>>& fsts) {
 	ifstream input(fasta_file.path);
 	if(!input.good()) {
 		cerr << "Error opening '" << fasta_file.path << "'." << endl;
@@ -124,7 +124,7 @@ int read_fasta(fasta& fasta_file, vector<VectorFst<StdArc>>& fsts) {
 }
 
 /* Read fasta format file */
-int read_fasta(fasta& fasta_file) {
+int read_fasta(fasta_t& fasta_file) {
 	ifstream input(fasta_file.path);
 	if(!input.good()) {
 		cerr << "Error opening '" << fasta_file.path << "'." << endl;
@@ -159,7 +159,7 @@ int read_fasta(fasta& fasta_file) {
 }
 
 /* Write alignment in Fasta format */
-int write_fasta(fasta& fasta_file) {
+int write_fasta(fasta_t& fasta_file) {
 	ofstream outfile;
 	outfile.open(fasta_file.path);
 	if(!outfile) {
@@ -167,15 +167,16 @@ int write_fasta(fasta& fasta_file) {
 		return EXIT_FAILURE;
 	}
 
-	outfile << ">" << fasta_file.seq_names[0] << endl << fasta_file.seq_data[0] << endl;
-	outfile << ">" << fasta_file.seq_names[1] << endl << fasta_file.seq_data[1] << endl;
+	for(int i=0; i < fasta_file.seq_names.size(); i++) {
+		outfile << ">" << fasta_file.seq_names[i] << endl << fasta_file.seq_data[i] << endl;
+	}
 	outfile.close();
 
 	return EXIT_SUCCESS;
 }
 
 /* Write shortest path (alignment) in Fasta format */
-int write_fasta(VectorFst<StdArc>& aln, fasta& fasta_file) {
+int write_fasta(VectorFst<StdArc>& aln, fasta_t& fasta_file) {
 	SymbolTable *symbols = SymbolTable::ReadText("fst/dna_syms.txt");
 
 	string seq1, seq2;
@@ -200,7 +201,7 @@ int write_fasta(VectorFst<StdArc>& aln, fasta& fasta_file) {
 }
 
 /* Write alignment in PHYLIP format */
-int write_phylip(fasta& fasta_file) {
+int write_phylip(fasta_t& fasta_file) {
 	ofstream outfile;
 	outfile.open(fasta_file.path);
 	if(!outfile) {
@@ -211,11 +212,14 @@ int write_phylip(fasta& fasta_file) {
 	// write aligned sequences to file
 	outfile << fasta_file.seq_names.size() << " " << fasta_file.seq_data[0].length() << endl;
 	int i = PRINT_SIZE-4-max(fasta_file.seq_names[0].length(),fasta_file.seq_names[1].length());
-	outfile << fasta_file.seq_names[0] << "\t" << fasta_file.seq_data[0].substr(0,i) << endl;
-	outfile << fasta_file.seq_names[1] << "\t" << fasta_file.seq_data[1].substr(0,i) << endl << endl;
+	for(int j=0; j < fasta_file.seq_names.size(); j++) {
+		outfile << fasta_file.seq_names[j] << "\t" << fasta_file.seq_data[j].substr(0,i) << endl;
+	}
+
 	for(; i<fasta_file.seq_data[0].length(); i+=PRINT_SIZE) {
-		outfile << fasta_file.seq_data[0].substr(i,PRINT_SIZE) << endl;
-		outfile << fasta_file.seq_data[1].substr(i,PRINT_SIZE) << endl;
+		for(int j=0; j < fasta_file.seq_names.size(); j++) {
+			outfile << fasta_file.seq_names[j].substr(0,PRINT_SIZE) << endl;
+		}
 		outfile << endl;
 	}
 
@@ -223,10 +227,9 @@ int write_phylip(fasta& fasta_file) {
 }
 
 /* Write shortest path (alignment) in PHYLIP format */
-int write_phylip(VectorFst<StdArc>& aln, fasta& fasta_file) {
+int write_phylip(VectorFst<StdArc>& aln, fasta_t& fasta_file) {
 	SymbolTable *symbols = SymbolTable::ReadText("fst/dna_syms.txt");
 
-	// vector<string> alignment;
 	string seq1, seq2;
 	StdArc::StateId istate = aln.Start();
 	StateIterator<StdFst> siter(aln);	// FST state iterator
@@ -280,7 +283,7 @@ int cod_distance(uint8_t cod1, uint8_t cod2) {
 	return distance;
 }
 
-/* Cast codon to position in codon list AAA->1, AAAC->2 ... TTT->63 */
+/* Cast codon to position in codon list AAA->0, AAAC->1 ... TTT->63 */
 int cod_int(string codon) {
 	return ((uint8_t) nt4_table[codon[0]]<<4)+((uint8_t) nt4_table[codon[1]]<<2)
 		+((uint8_t) nt4_table[codon[2]]);
@@ -317,73 +320,4 @@ int parse_matrix_csv(string file, Matrix64f& P, double& br_len) {
 	}
 
 	return 0;
-}
-
-/* Create profile given a sequence */
-Eigen::MatrixXd create_profile(string seq) {
-	vector<string> vector_seq;
-	vector_seq.push_back(seq);
-	return create_profile(vector_seq);
-}
-
-/* Create profile given an alignment */
-Eigen::MatrixXd create_profile(vector<string>& aln) {
-	int cols = aln.at(0).length();
-	int rows = aln.size();
-	Eigen::MatrixXd profile  = Eigen::MatrixXd::Zero(5,cols);
-
-	for(int j=0; j < cols; j++) {		// for each column
-		for(int i=0; i < rows; i++) {	// for each row
-			switch(aln.at(i).at(j)) {
-				case 'A':
-				case 'a':
-					profile(0,j) += 1.0/rows;
-					break;
-				case 'C':
-				case 'c':
-					profile(1,j) += 1.0/rows; break;
-				case 'G':
-				case 'g':
-					profile(2,j) += 1.0/rows;
-					break;
-				case 'T':
-				case 't':
-					profile(3,j) += 1.0/rows;
-					break;
-				case '-':
-					profile(4,j) += 1.0/rows;
-					break;
-			}
-		}
-	}
-
-	return profile;
-}
-
-TEST_CASE("[utils.cc] create_profile") {
-	SUBCASE("alignment") {
-		vector<string> aln = {"CTCTGGATAGTG","CT----ATAGTG","CTCT---TAGTG","CTCTG--TAGTG"};
-		Eigen::MatrixXd profile = create_profile(aln);
-		Eigen::MatrixXd result(5,12);
-		result <<	0, 0, 0, 0,  0, 0, 0.5, 0, 1, 0, 0, 0,
-					1, 0, 0.75, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0.5, 0.25, 0, 0, 0, 1, 0, 1,
-					0, 1, 0, 0.75, 0, 0, 0, 1, 0, 0, 1, 0,
-					0, 0, 0.25, 0.25, 0.5, 0.75, 0.5, 0, 0, 0, 0, 0;
-
-		CHECK(profile == result);
-	}
-
-	SUBCASE("sequence") {
-		string seq = "CTCTGGATAGTG";
-		Eigen::MatrixXd profile = create_profile(seq);
-		Eigen::MatrixXd result(5,12);
-		result <<	0,0,0,0,0,0,1,0,1,0,0,0,
-					1,0,1,0,0,0,0,0,0,0,0,0,
-					0,0,0,0,1,1,0,0,0,1,0,1,
-					0,1,0,1,0,0,0,1,0,0,1,0,
-					0,0,0,0,0,0,0,0,0,0,0,0;
-
-		CHECK(profile == result);
-	}
 }

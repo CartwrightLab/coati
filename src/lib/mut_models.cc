@@ -474,7 +474,7 @@ void ecm_marginal(VectorFst<StdArc>& mut_fst, double& br_len) {
 }
 
 /* Dynamic Programming implementation of Marginal MG94 model*/
-int mg94_marginal(vector<string> sequences, alignment& aln, Matrix64f& P_m) {
+int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
 
 	// P matrix for marginal Muse and Gaut codon model
 	Eigen::Tensor<double, 3> p(64,3,4);
@@ -618,7 +618,7 @@ int mg94_marginal(vector<string> sequences, alignment& aln, Matrix64f& P_m) {
 }
 
 /* Dynamic Programming with no frameshifts*/
-int gotoh_noframeshifts(vector<string> sequences, alignment& aln, Matrix64f& P_m) {
+int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
 
 	// P matrix for marginal Muse and Gaut codon model
 	Eigen::Tensor<double, 3> p(64,3,4);
@@ -838,7 +838,7 @@ double transition(string codon, int position, char nuc, Eigen::Tensor<double, 3>
 
 /* Recover alignment given backtracking matrices for DP alignment */
 int backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
-	string seqa, string seqb, alignment& aln) {
+	string seqa, string seqb, alignment_t& aln) {
 	int i = seqa.length();
 	int j = seqb.length();
 
@@ -882,7 +882,7 @@ int backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
 
 /* Recover alignment given backtracking matrices for DP alignment */
 int backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
-	string seqa, string seqb, alignment& aln) {
+	string seqa, string seqb, alignment_t& aln) {
 	int i = seqa.length();
 	int j = seqb.length();
 

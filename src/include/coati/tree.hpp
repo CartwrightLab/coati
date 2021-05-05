@@ -27,6 +27,7 @@
 #include <iostream>
 #include <algorithm>
 #include <Eigen/Dense>
+#include <coati/utils.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/fusion/sequence.hpp>
 #include <boost/algorithm/string.hpp>
@@ -52,6 +53,7 @@ using tree_t = vector<node_t>;
 
 bool read_newick(string tree_file, string& content);
 int parse_newick(string content, tree_t& guide_tree);
-int aln_order(tree_t& tree, vector<int>& order_list);
+int aln_order(tree_t& tree, vector<pair<int,double>>& order_list);
+bool find_seq(string name, fasta_t& f, string& seq);
 
 #endif

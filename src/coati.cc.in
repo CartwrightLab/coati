@@ -39,6 +39,7 @@ int main(int argc, char * const argv[]) {
 		std::cout << "Usage:   coati command [options]" << std::endl << std::endl;
 		std::cout << "Commands available:   help"<< std::endl;
 		std::cout << "                      alignpair" << std::endl;
+		std::cout << "                      msa" << std::endl;
         return EXIT_SUCCESS;
     }
 

@@ -81,7 +81,7 @@ namespace x3 = boost::spirit::x3;
 	auto const label_def = +char_("-0-9A-Za-z/%_.");
 
 	auto const ilabel_def = label | attr("");
-	auto const length_def = (':' >> float_) | attr(0.0);	// TODO: why 1.0 by default?
+	auto const length_def = (':' >> float_) | attr(0.0);
 
 	BOOST_SPIRIT_DEFINE(label);
 	BOOST_SPIRIT_DEFINE(ilabel);
@@ -175,7 +175,7 @@ TEST_CASE("[tree.cc] parse_newick") {
 }
 
 /* Determine order of leafs for progressive alignment */
-int aln_order(tree_t& tree, vector<int>& order_list) {
+int aln_order(tree_t& tree, vector<pair<int,double>>& order_list) {
 	// Part1: find closest pair of leafs
 
 	for(int i=1; i<tree.size(); i++) {  // fill list of children
@@ -202,14 +202,16 @@ int aln_order(tree_t& tree, vector<int>& order_list) {
 		}
 	}
 
-	order_list.push_back(closest_pair.first);
-	order_list.push_back(closest_pair.second);
+	order_list.push_back(make_pair(closest_pair.first,0));
+	order_list.push_back(make_pair(closest_pair.second,tree[closest_pair.first].length +
+		tree[closest_pair.second].length));
 
 	//Part2: determine order of remaining leafs
 
 	bool visited[tree.size()] = {false}; // list of visited nodes
-	visited[order_list[0]] = visited[order_list[1]] = true;
-	int ancestor = tree[order_list.back()].parent;
+	visited[order_list[0].first] = visited[order_list[1].first] = true;
+	int ancestor = tree[order_list.back().first].parent;
+	double branch = 0;
 
 	// while not all nodes have been visited (any value in visitied is false)
 	while(any_of(visited, visited+tree.size(), [](bool b){return !b;})) {
@@ -218,7 +220,10 @@ int aln_order(tree_t& tree, vector<int>& order_list) {
 			// if children is not visited and it's leaf, visit
 			if(!visited[tree[ancestor].children[i]] && tree[tree[ancestor].children[i]].is_leaf) {
 				visited[tree[ancestor].children[i]] = true;
-				order_list.push_back(tree[ancestor].children[i]);
+
+				order_list.push_back(make_pair(tree[ancestor].children[i],
+					tree[tree[ancestor].children[i]].length + branch));
+				branch = 0;
 			}
 		}
 
@@ -230,12 +235,14 @@ int aln_order(tree_t& tree, vector<int>& order_list) {
 				if(!visited[n] && !tree[n].is_leaf) { // if !visited & inode, go down branch
 					ancestor = n;
 					visited[n] = true;
+					branch += tree[ancestor].length;
 					break;
 				}
 			}
 
 		} else { // else mark ancestor as visited & move to its parent
 			visited[ancestor] = true;
+			branch += tree[ancestor].length;
 			ancestor = tree[ancestor].parent;
 		}
 	}
@@ -245,7 +252,7 @@ int aln_order(tree_t& tree, vector<int>& order_list) {
 
 TEST_CASE("[tree.cc] aln_order") {
 	tree_t tree;
-	vector<int> order_list;
+	vector<pair<int,double>> order_list;
 	//tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
 
 	tree.push_back(node_t("",0,false));
@@ -265,9 +272,40 @@ TEST_CASE("[tree.cc] aln_order") {
 
 	REQUIRE(aln_order(tree, order_list) == 0);
 	REQUIRE(order_list.size() == 5);
-	CHECK(order_list[0] == 4);
-	CHECK(order_list[1] == 5);
-	CHECK(order_list[2] == 3);
-	CHECK(order_list[3] == 1);
-	CHECK(order_list[4] == 6);
+	CHECK(order_list[0].first == 4);
+	CHECK(order_list[0].second == 0);
+	CHECK(order_list[1].first == 5);
+	CHECK(order_list[1].second == 7);
+	CHECK(order_list[2].first == 3);
+	CHECK(order_list[2].second == 5);
+	CHECK(order_list[3].first == 1);
+	CHECK(order_list[3].second == 11);
+	CHECK(order_list[4].first == 6);
+	CHECK(order_list[4].second == 11);
+}
+
+/* Find fasta sequence given its name */
+bool find_seq(string name, fasta_t& f, string& seq) {
+	seq.clear();
+
+	for(int i=0; i < f.seq_names.size(); i++) {
+		if(f.seq_names[i].compare(name) ==0) {
+			seq = f.seq_data[i];
+		}
+	}
+
+	return !seq.empty();
+}
+
+TEST_CASE("[tree.cc] find_seq") {
+	string sequence;
+	fasta_t fasta = fasta_t("", {"A","B","C"}, {"ACGT","CGTA","GTAC"});
+
+	REQUIRE(!find_seq("Z", fasta, sequence)); // fails, Z is not found -> seq is empty
+	REQUIRE(find_seq("A", fasta, sequence));
+	CHECK(sequence.compare("ACGT") == 0);
+	REQUIRE(find_seq("B", fasta, sequence));
+	CHECK(sequence.compare("CGTA") == 0);
+	REQUIRE(find_seq("C", fasta, sequence));
+	CHECK(sequence.compare("GTAC") == 0);
 }
