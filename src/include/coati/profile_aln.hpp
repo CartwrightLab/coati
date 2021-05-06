@@ -26,8 +26,8 @@
 #include <Eigen/Dense>
 #include <coati/mut_models.hpp>
 
-typedef Eigen::Vector<double, 4>Vector4d;
-typedef Eigen::Matrix<double, 4,3>Matrix4x3d;
+typedef Eigen::Matrix<double, 4, 1>Vector4d;
+typedef Eigen::Matrix<double, 4, 3>Matrix4x3d;
 
 Eigen::MatrixXd create_profile(string seq);
 Eigen::MatrixXd create_profile(vector<string>& aln);

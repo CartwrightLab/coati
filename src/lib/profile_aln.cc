@@ -450,7 +450,8 @@ double nuc_pi(Vector4d n, Vector5d pis) {
 
 TEST_CASE("[profile_aln.cc] nuc_pi") {
 	Vector4d nucleotides = {0.25, 0.25, 0.25, 0.25};
-	Vector5d nuc_frequencies = {log(0.3),log(0.2),log(0.2),log(0.3),log(0.25)};
+	Vector5d nuc_frequencies;
+	nuc_frequencies << log(0.3),log(0.2),log(0.2),log(0.3),log(0.25);
 
 	CHECK(nuc_pi(nucleotides, nuc_frequencies) == 0.25);
 	nucleotides << 1, 0, 0, 0;

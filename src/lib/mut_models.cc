@@ -59,11 +59,16 @@ void mg94_q(Matrix64f& Q) {
 			} else {
 				w = ((nt4_table[i] == nt4_table[j]) ? 1 : omega);
 
-				for(uint8_t k=0; k<3; k++) {	// find 1 nt change
-					if((i & (uint8_t)(48/pow(4,k))) != (j & (uint8_t)(48/pow(4,k)))) {
-						x = ((i & (uint8_t)(48/pow(4,k))) >> (4-2*k));
-						y = ((j & (uint8_t)(48/pow(4,k))) >> (4-2*k));
-					}
+				// split into cases to avoid use of pow (speed-up)
+				if((i & (uint8_t)(48)) != (j & (uint8_t) 48)) {
+					x = ((i & (uint8_t) 48) >> 4);
+					y = ((j & (uint8_t) 48) >> 4);
+				} else if((i & (uint8_t) 12) != (j & (uint8_t) 12)) {
+					x = ((i & (uint8_t) 12) >> (2));
+					y = ((j & (uint8_t) 12) >> (2));
+				} else if((i & (uint8_t) 3) != (j & (uint8_t) 3)) {
+					x = ((i & (uint8_t) 3) );
+					y = ((j & (uint8_t) 3) );
 				}
 
 				Q(i,j) = w*nuc_q[x][y];
@@ -123,14 +128,28 @@ void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P) {
 		for(int j=0; j<3; j++) {
 			for(int k=0; k<4; k++) {
 				marg = 0.0;
-				for(uint8_t l=0; l<64; l++) {
-					marg += ( ((l & (uint8_t)(48/pow(4,j))) >> (4-2*j)) == k ? P(i,l) : 0.0);
+				switch(j) {		// divide cases into each value of j for spee up (reduce use of pow())
+					case 0:
+						for(uint8_t l=0; l<64; l++) {
+							marg += ( ((l & (uint8_t) 48) >> 4) == k ? P(i,l) : 0.0);
+						}
+						break;
+					case 1:
+						for(uint8_t l=0; l<64; l++) {
+							marg += ( ((l & (uint8_t) 12) >> 2) == k ? P(i,l) : 0.0);
+						}
+						break;
+					case 2:
+						for(uint8_t l=0; l<64; l++) {
+							marg += ( ((l & (uint8_t) 3) ) == k ? P(i,l) : 0.0);
+						}
+						break;
+
 				}
 				p(i,j,k) = marg;
 			}
 		}
 	}
-
 }
 
 /* Create dna marginal Muse and Gaut codon model FST*/
