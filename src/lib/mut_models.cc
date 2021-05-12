@@ -84,12 +84,34 @@ void mg94_q(Matrix64f& Q) {
 
 }
 
+TEST_CASE("[mut_models.cc] mg94_q") {
+	Matrix64f Q;
+	mg94_q(Q);
+
+	for(int i=0; i < 64; i++) {
+		CHECK(Q(i,i) < 0);		// main diagonal has negative values
+		CHECK(Q.row(i).sum() == doctest::Approx(0));	// sum of every row is 0
+	}
+}
+
 /* Muse & Gaut Model (1994) P matrix given rate matrix and branch lenght */
 void mg94_p(Matrix64f& P, double& brlen) {
 	Matrix64f Q;
 	mg94_q(Q);
 	Q = Q * brlen;
 	P = Q.exp();
+}
+
+TEST_CASE("[mut_models.cc] mg94_p") {
+	Matrix64f P;
+	double branch_length = 0.0133;
+	mg94_p(P, branch_length);
+
+	for(int i=0; i < 64; i++) {
+		CHECK(P.row(i).sum() == doctest::Approx(1));	// sum of every row is 1
+	}
+
+	CHECK(!(P.array() < 0).any());	// all values are positive
 }
 
 
@@ -117,6 +139,16 @@ void mg94(VectorFst<StdArc>& mut_fst, double& br_len) {
 	// Set final state & optimize
 	mg94.SetFinal(0, 0.0);
 	mut_fst = optimize(mg94);
+}
+
+TEST_CASE("[mut_models.cc] mg94") {
+	VectorFst<StdArc> mut_fst;
+	double branch_length = 0.0133;
+	mg94(mut_fst, branch_length);
+
+	CHECK(Verify(mut_fst));	// openfst built-in sanity check
+	CHECK(mut_fst.Properties('kAccessible',false)); // all states reachable from init state
+	// TODO: Check content
 }
 
 /* Create marginal Muse and Gaut codon model P matrix*/
