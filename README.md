@@ -16,7 +16,7 @@ Source code for the most recent beta versions is available at <https://github.co
 * CMake 3.12+ when compiling <http://www.cmake.org/download/#latest>
 * Boost 1.47+ <http://www.boost.org/>
 * Eigen 3.3+ <http://eigen.tuxfamily.org/>
-* OpenFST 1.7.3+ <http://openfst.org/twiki/bin/view/FST/FstDownload>
+* OpenFST 1.8.0+ <http://openfst.org/twiki/bin/view/FST/FstDownload>
 
 
 ### Compiling

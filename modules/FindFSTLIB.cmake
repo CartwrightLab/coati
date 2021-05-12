@@ -50,10 +50,10 @@ endforeach()
 
 
 
-# set minimum version to 17.0.0
+# set minimum version to 23.0.0
 if(NOT FSTLIB_FIND_VERSION)
 	if(NOT FSTLIB_FIND_VERSION_MAJOR)
-		set(FSTLIB_FIND_VERSION_MAJOR 17)
+		set(FSTLIB_FIND_VERSION_MAJOR 23)
 	endif(NOT FSTLIB_FIND_VERSION_MAJOR)
 	if(NOT FSTLIB_FIND_VERSION_MINOR)
 		set(FSTLIB_FIND_VERSION_MINOR 0)
@@ -91,7 +91,7 @@ else()
 endif()
 
 if(NOT FSTLIB_VERSION_OK)
-	message(STATUS "FSTLIB version ${FSTLIB_VERSION} found in ${FSTLIB_INCLUDE_DIR}, "
+	message(FATAL_ERROR "FSTLIB version ${FSTLIB_VERSION} found in ${FSTLIB_INCLUDE_DIR}, "
                "but at least version ${FSTLIB_FIND_VERSION} is required")
 endif(NOT FSTLIB_VERSION_OK)
 
