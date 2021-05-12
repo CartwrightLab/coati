@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 set(coati_sources version.cc mut_models.cc utils.cc align.cc tree.cc profile_aln.cc)
-set(coati_headers coati.hpp mut_models.hpp utils.hpp align.hpp tree.hpp profile_aln.hpp)
+set(coati_headers coati.hpp mut_models.hpp utils.hpp align.hpp tree.hpp profile_aln.hpp dna_syms.hpp)
 
 #####################################################################
 # libcoati library

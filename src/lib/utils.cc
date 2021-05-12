@@ -22,6 +22,7 @@
 
 #include <doctest/doctest.h>
 #include <coati/utils.hpp>
+#include <coati/dna_syms.hpp>
 
 #define PRINT_SIZE 100
 
@@ -46,10 +47,12 @@ void add_arc(VectorFst<StdArc> &n2p, int src, int dest, int ilabel, int olabel, 
 /* Optimize FST: remove epsilons, determinize, and minimize */
 VectorFst<StdArc> optimize(VectorFst<StdArc> fst_raw) {
 	// encode FST
-	SymbolTable *syms = SymbolTable::ReadText("fst/dna_syms.txt");
+	SymbolTable syms;
+	fill_symbol_table(syms);
+
 	EncodeMapper<StdArc> encoder(kEncodeLabels, ENCODE);
-	encoder.SetInputSymbols(syms);
-	encoder.SetOutputSymbols(syms);
+	encoder.SetInputSymbols(&syms);
+	encoder.SetOutputSymbols(&syms);
 	EncodeFst<StdArc> fst_enc = EncodeFst<StdArc>(fst_raw, encoder);
 
 	// reduce to more efficient form
@@ -177,15 +180,15 @@ int write_fasta(fasta_t& fasta_file) {
 
 /* Write shortest path (alignment) in Fasta format */
 int write_fasta(VectorFst<StdArc>& aln, fasta_t& fasta_file) {
-	SymbolTable *symbols = SymbolTable::ReadText("fst/dna_syms.txt");
+	SymbolTable symbols;
+	fill_symbol_table(symbols);
 
 	string seq1, seq2;
-	StdArc::StateId istate = aln.Start();
 	StateIterator<StdFst> siter(aln);	// FST state iterator
 	for(int i=0; i<aln.NumStates()-1; siter.Next(),i++) {
 		ArcIterator<StdFst> aiter(aln, siter.Value());	// State arc iterator
-		seq1.append(symbols->Find(aiter.Value().ilabel));
-		seq2.append(symbols->Find(aiter.Value().olabel));
+		seq1.append(symbols.Find(aiter.Value().ilabel));
+		seq2.append(symbols.Find(aiter.Value().olabel));
 	}
 
 	fasta_file.seq_data.push_back(seq1);
@@ -229,15 +232,15 @@ int write_phylip(fasta_t& fasta_file) {
 
 /* Write shortest path (alignment) in PHYLIP format */
 int write_phylip(VectorFst<StdArc>& aln, fasta_t& fasta_file) {
-	SymbolTable *symbols = SymbolTable::ReadText("fst/dna_syms.txt");
+	SymbolTable symbols;
+	fill_symbol_table(symbols);
 
 	string seq1, seq2;
-	StdArc::StateId istate = aln.Start();
 	StateIterator<StdFst> siter(aln);	// FST state iterator
 	for(int i=0; i<aln.NumStates()-1; siter.Next(),i++) {
 		ArcIterator<StdFst> aiter(aln, siter.Value());	// State arc iterator
-		seq1.append(symbols->Find(aiter.Value().ilabel));
-		seq2.append(symbols->Find(aiter.Value().olabel));
+		seq1.append(symbols.Find(aiter.Value().ilabel));
+		seq2.append(symbols.Find(aiter.Value().olabel));
 	}
 
 	fasta_file.seq_data.push_back(seq1);

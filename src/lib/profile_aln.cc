@@ -97,7 +97,7 @@ TEST_CASE("[utils.cc] create_profile") {
 }
 
 /* Return value for  */
-double transition(Matrix4x3d cod, int pos, Vector4d nuc, Eigen::Tensor<double, 3>& p) {
+double transition(Matrix4x3d cod, int pos, Vector4d nuc, const Eigen::Tensor<double, 3>& p) {
 
 	double val = 0;
 	pos = pos == 0 ? 2 : --pos;
@@ -224,20 +224,14 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2, alignment
 	}
 
 	// DP matrices for match/mismatch (D), insertion (P), deletion (Q)
-	Eigen::MatrixXf D = Eigen::MatrixXf::Ones(m+1,n+1);
-	Eigen::MatrixXf P = Eigen::MatrixXf::Ones(m+1,n+1);
-	Eigen::MatrixXf Q = Eigen::MatrixXf::Ones(m+1,n+1);
+	Eigen::MatrixXf D = Eigen::MatrixXf::Constant(m+1,n+1, std::numeric_limits<float>::max());
+	Eigen::MatrixXf P = Eigen::MatrixXf::Constant(m+1,n+1, std::numeric_limits<float>::max());
+	Eigen::MatrixXf Q = Eigen::MatrixXf::Constant(m+1,n+1, std::numeric_limits<float>::max());
 
-	D = D * std::numeric_limits<float>::max();
-	P = D;
-	Q = D;
 	// backtracking info matrices for match/mismatch (Bd), insert (Bp), and deletion (Bq)
-	Eigen::MatrixXi Bd = Eigen::MatrixXi::Ones(m+1,n+1);
-	Eigen::MatrixXi Bp = Eigen::MatrixXi::Ones(m+1,n+1);
-	Eigen::MatrixXi Bq = Eigen::MatrixXi::Ones(m+1,n+1);
-	Bd = Bd * (-1);
-	Bp = Bd;
-	Bq = Bd;
+	Eigen::MatrixXi Bd = Eigen::MatrixXi::Constant(m+1,n+1, -1);
+	Eigen::MatrixXi Bp = Eigen::MatrixXi::Constant(m+1,n+1, -1);
+	Eigen::MatrixXi Bq = Eigen::MatrixXi::Constant(m+1,n+1, -1);
 
 	double insertion = log(0.001);
 	double deletion = log(0.001);
@@ -286,7 +280,7 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2, alignment
 	}
 
 	Matrix4x3d codon;
-	double p1,p2,q1,q2,d,argmin;
+	double p1,p2,q1,q2,d;
 
 	for(int i=1; i<m+1; i++) {
 		// codon = seq_a.substr((((i-1)/3)*3),3); // current codon

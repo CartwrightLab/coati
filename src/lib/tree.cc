@@ -231,13 +231,15 @@ int aln_order(tree_t& tree, vector<pair<int,double>>& order_list) {
 		if(any_of(tree[ancestor].children.begin(),tree[ancestor].children.end(),
 			[&visited](int c){return !visited[c];})) {
 
-			for(auto n: tree[ancestor].children) {	// for each children
-				if(!visited[n] && !tree[n].is_leaf) { // if !visited & inode, go down branch
-					ancestor = n;
-					visited[n] = true;
-					branch += tree[ancestor].length;
-					break;
-				}
+			// look for !visited and inode within ancestor's children
+			auto node = find_if(begin(tree[ancestor].children), end(tree[ancestor].children),\
+				[&visited, tree](int i){ return !visited[i] && !tree[i].is_leaf;});
+
+			// if so, go down that branch
+			if(node != end(tree[ancestor].children)) {
+				ancestor = *node;
+				visited[*node] = true;
+				branch += tree[ancestor].length;
 			}
 
 		} else { // else mark ancestor as visited & move to its parent

@@ -23,6 +23,8 @@
 #include <doctest/doctest.h>
 #include <coati/mut_models.hpp>
 
+/* nonsynonymous-synonymous bias (\omega) */
+const double omega = 0.2;	// github.com/reedacartwright/toycoati
 
 /* Muse & Gaut Model (1994) P matrix */
 void mg94_q(Matrix64f& Q) {
@@ -30,12 +32,11 @@ void mg94_q(Matrix64f& Q) {
 	double nuc_freqs[4] = {0.308,0.185,0.199,0.308};
 	double nuc_q[4][4] = {{-0.818, 0.132, 0.586, 0.1},{0.221, -1.349, 0.231, 0.897},\
 						{0.909, 0.215, -1.322, 0.198},{0.1, 0.537, 0.128, -0.765}};
-	double omega = 0.2;
 
 	// MG94 model - doi:10.1534/genetics.108.092254
 	Q = Matrix64f::Zero();
 	Matrix64f Pi;
-	double w,rowSum,d = 0.0;
+	double w,d = 0.0;
 	int x,y = 0;
 
 	// construct transition matrix
@@ -50,7 +51,7 @@ void mg94_q(Matrix64f& Q) {
 		// (00001110 & 03) 		= (00001110 & 00000011) 	 = 00000010 	 = 2 (G)
 
 		Pi(i) = nuc_freqs[((i & 48) >> 4)] * nuc_freqs[((i & 12) >> 2)] * nuc_freqs[(i & 3)];
-		rowSum = 0.0;
+		double rowSum = 0.0;
 		for(uint8_t j=0; j<64; j++) {
 			if(i==j) {
 				Q(i,j) = 0;
@@ -95,7 +96,7 @@ TEST_CASE("[mut_models.cc] mg94_q") {
 }
 
 /* Muse & Gaut Model (1994) P matrix given rate matrix and branch lenght */
-void mg94_p(Matrix64f& P, double& brlen) {
+void mg94_p(Matrix64f& P, const double& brlen) {
 	Matrix64f Q;
 	mg94_q(Q);
 	Q = Q * brlen;
@@ -116,7 +117,7 @@ TEST_CASE("[mut_models.cc] mg94_p") {
 
 
 /* Create Muse and Gaut codon model FST */
-void mg94(VectorFst<StdArc>& mut_fst, double& br_len) {
+void mg94(VectorFst<StdArc>& mut_fst, const double& br_len) {
 	Matrix64f P;
 	mg94_p(P, br_len);
 
@@ -155,36 +156,36 @@ void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P) {
 
 	double marg;
 
-	for(int i=0; i<64; i++) {
-		for(int j=0; j<3; j++) {
-			for(int k=0; k<4; k++) {
+	for(int cod=0; cod<64; cod++) {
+		for(int pos=0; pos<3; pos++) {
+			for(int nuc=0; nuc<4; nuc++) {
 				marg = 0.0;
-				switch(j) {		// divide cases into each value of j for spee up (reduce use of pow())
+				switch(pos) {		// divide cases into each value of pos for spee up (reduce use of pow())
 					case 0:
-						for(uint8_t l=0; l<64; l++) {
-							marg += ( ((l & (uint8_t) 48) >> 4) == k ? P(i,l) : 0.0);
+						for(uint8_t i=0; i<64; i++) {
+							marg += ( ((i & (uint8_t) 48) >> 4) == nuc ? P(cod,i) : 0.0);
 						}
 						break;
 					case 1:
-						for(uint8_t l=0; l<64; l++) {
-							marg += ( ((l & (uint8_t) 12) >> 2) == k ? P(i,l) : 0.0);
+						for(uint8_t i=0; i<64; i++) {
+							marg += ( ((i & (uint8_t) 12) >> 2) == nuc ? P(cod,i) : 0.0);
 						}
 						break;
 					case 2:
-						for(uint8_t l=0; l<64; l++) {
-							marg += ( ((l & (uint8_t) 3) ) == k ? P(i,l) : 0.0);
+						for(uint8_t i=0; i<64; i++) {
+							marg += ( ((i & (uint8_t) 3) ) == nuc ? P(cod,i) : 0.0);
 						}
 						break;
 
 				}
-				p(i,j,k) = marg;
+				p(cod,pos,nuc) = marg;
 			}
 		}
 	}
 }
 
 /* Create dna marginal Muse and Gaut codon model FST*/
-void dna(VectorFst<StdArc>& mut_fst, double& br_len) {
+void dna(VectorFst<StdArc>& mut_fst, const double& br_len) {
 	Matrix64f P;
 	mg94_p(P, br_len);
 
@@ -194,16 +195,15 @@ void dna(VectorFst<StdArc>& mut_fst, double& br_len) {
 	dna.SetStart(0);
 
 	Matrix4f dna_p = Matrix4f::Zero();
-	double rowsum;
 
-	for(uint8_t i=0; i<64; i++) {		// for each codon
-		rowsum = 0.0;
-		for(int j=0; j<3; j++) {		// for each position in a codon
-			for(int k=0; k<4; k++) {		// for each nucleotide (from)
-				for(int l=0; l<4; l++) {		// for each nucleotide (to)
-					for(int m=0; m<64; m++) {		// sum over all codons
-						dna_p(k,l) += (((m & (uint8_t)(48/pow(4,j))) >> (4-2*j)) == l ? \
-							((i & (uint8_t)(48/pow(4,j))) >> (4-2*j)) == k ? P(i,m) : 0.0 : 0.0);
+	for(uint8_t cod=0; cod<64; cod++) {		// for each codon
+		double rowsum = 0.0;
+		for(int pos=0; pos<3; pos++) {		// for each position in a codon
+			for(int nuc=0; nuc<4; nuc++) {		// for each nucleotide (from)
+				for(int nuc2=0; nuc2<4; nuc2++) {		// for each nucleotide (to)
+					for(int i=0; i<64; i++) {		// sum over all codons
+						dna_p(nuc,nuc2) += (((i & (uint8_t)(48/pow(4,pos))) >> (4-2*pos)) == nuc2 ? \
+							((cod & (uint8_t)(48/pow(4,pos))) >> (4-2*pos)) == nuc ? P(cod,i) : 0.0 : 0.0);
 					}
 				}
 			}
@@ -229,17 +229,17 @@ void nuc2pos(VectorFst<StdArc> &n2p) {
 	n2p.AddState();
 	n2p.SetStart(0);
 
-	int s = 1;		// variable to keep track of states
-	int c = 101;	// variable to keep track of codons
+	int state = 1;		// variable to keep track of states
+	int cod = 101;	// variable to keep track of codons
 
 	for(int i=1; i<5; i++) {
 		for(int j=1; j<5; j++) {
-			for(int k=1; k<5; k++) {
-				add_arc(n2p, 0, 	s, 		i, c);
-				add_arc(n2p, s, 	s+1, 	j, c+1);
-				add_arc(n2p, s+1, 	0,		k, c+2);
-				s += 2;
-				c += 3;
+			for(int h=1; h<5; h++) {
+				add_arc(n2p, 0, 		state, 		i, cod);
+				add_arc(n2p, state, 	state+1, 	j, cod+1);
+				add_arc(n2p, state+1, 	0,			h, cod+2);
+				state += 2;
+				cod += 3;
 			}
 		}
 	}
@@ -401,18 +401,15 @@ Vector64f ecm_pi((Vector64f() << 0.031090,0.020321,0.026699,0.022276,0.013120,0.
 	0.017237,0.010366,0.010761,0.008721,0.011798,0.000000,0.007415,0.012744,0.006441,\
 	0.016195,0.021349,0.015717,0.021414).finished());
 
-/* nonsynonymous-synonymous bias (\omega) and branch length (t) */
-const double omega = 0.2;	// github.com/reedacartwright/toycoati
 const double kappa = 2.5;	// Kosiol et al. 2007, supplemental material
 
 /* calculate number of transitions and transversions between codons i and j*/
 void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv) {
-	uint8_t nt1, nt2;
 	nts = ntv = 0;
 	if(c1 == c2) return;
 	for(int i=0; i<3; i++) {
-		nt1 = ((c1 & (uint8_t)(48/pow(4,i))) >> (4-2*i));
-		nt2 = ((c2 & (uint8_t)(48/pow(4,i))) >> (4-2*i));
+		uint8_t nt1 = ((c1 & (uint8_t)(48/pow(4,i))) >> (4-2*i));
+		uint8_t nt2 = ((c2 & (uint8_t)(48/pow(4,i))) >> (4-2*i));
 
 		if(nt1 == nt2) continue;
 		((nt1 % 2 == nt2 % 2) ? nts : ntv) += 1;
@@ -435,24 +432,21 @@ double k(uint8_t c1, uint8_t c2, int model) {
 }
 
 /* Empirical Codon Model P matrix */
-void ecm_p(Matrix64f& P, double& br_len) {
+void ecm_p(Matrix64f& P, const double& br_len) {
 	Matrix64f Q = Matrix64f::Zero();
 
-	double rowSum;
 	double d = 0.0;
 
 	for(uint8_t i=0; i<64; i++) {
-		rowSum = 0.0;
+		double rowSum = 0.0;
 		for(uint8_t j=0; j<64; j++) {
 			// check if codons i or j are stop codons
 			if(i==j || nt4_table[i] == '*' || nt4_table[j] == '*') {
 				continue;
 			} else if(nt4_table[i] == nt4_table[j]) {
 				Q(i,j) = s[i][j]*ecm_pi(j)*k(i,j,0);
-			} else if(nt4_table[i] != nt4_table[j]) {
+			} else { // nt4_table[i] != nt4_table[j]{
 				Q(i,j) = s[i][j]*ecm_pi(j)*k(i,j,0)*omega;
-			} else {
-				exit(EXIT_FAILURE);
 			}
 			rowSum += Q(i,j);
 		}
@@ -469,7 +463,7 @@ void ecm_p(Matrix64f& P, double& br_len) {
 }
 
 /* Empirical Codon Model (Kosiol et al. 2007) FST */
-void ecm(VectorFst<StdArc>& mut_fst, double& br_len) {
+void ecm(VectorFst<StdArc>& mut_fst, const double& br_len) {
 	Matrix64f P;
 	ecm_p(P, br_len);
 
@@ -493,36 +487,6 @@ void ecm(VectorFst<StdArc>& mut_fst, double& br_len) {
 	mut_fst = optimize(ecm);
 }
 
-/* Marginal Empirical Codon Model */
-void ecm_marginal(VectorFst<StdArc>& mut_fst, double& br_len) {
-	VectorFst<StdArc> fst;
-	fst.AddState();
-	fst.SetStart(0);
-
-	// get Empirical Codon Model P matrix
-	Matrix64f P;
-	ecm_p(P, br_len);
-
-	int c = 101; // first codon_pos (AAA1)
-	double m;
-
-	// for loop extravaganza
-	for(uint8_t i=0; i<64; i++) {	// for each codon
-		for(int j=0; j<3; j++) {	// for each position in a codon
-			for(uint8_t k=0; k<4; k++) {	// for each possible nucleotide
-				m = 0.0;
-				for(int l=0; l<64; l++) {
-					m += ((((l & (uint8_t)(48/pow(4,j))) >> (4-2*j)) == k) ? P(i,l) : 0.0);
-				}
-				add_arc(fst, 0, 0, c, k+1, m);
-			}
-			c++;
-		}
-	}
-	fst.SetFinal(0,0.0);
-	marg_mut(mut_fst, fst);
-}
-
 /* Dynamic Programming implementation of Marginal MG94 model*/
 int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
 
@@ -543,21 +507,14 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
 	}
 
 	// DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
-	Eigen::MatrixXf D = Eigen::MatrixXf::Ones(m+1,n+1);
-	Eigen::MatrixXf P = Eigen::MatrixXf::Ones(m+1,n+1);
-	Eigen::MatrixXf Q = Eigen::MatrixXf::Ones(m+1,n+1);
-
-	D = D * std::numeric_limits<float>::max();
-	P = D;
-	Q = D;
+	Eigen::MatrixXf D = Eigen::MatrixXf::Constant(m+1,n+1, std::numeric_limits<float>::max());
+	Eigen::MatrixXf P = Eigen::MatrixXf::Constant(m+1,n+1, std::numeric_limits<float>::max());
+	Eigen::MatrixXf Q = Eigen::MatrixXf::Constant(m+1,n+1, std::numeric_limits<float>::max());
 
 	// backtracking info matrices for match/mismatch (Bd), insert (Bp), and deletion (Bq)
-	Eigen::MatrixXd Bd = Eigen::MatrixXd::Ones(m+1,n+1);
-	Eigen::MatrixXd Bp = Eigen::MatrixXd::Ones(m+1,n+1);
-	Eigen::MatrixXd Bq = Eigen::MatrixXd::Ones(m+1,n+1);
-	Bd = Bd * (-1);
-	Bp = Bd;
-	Bq = Bd;
+	Eigen::MatrixXd Bd = Eigen::MatrixXd::Constant(m+1,n+1, -1);
+	Eigen::MatrixXd Bp = Eigen::MatrixXd::Constant(m+1,n+1, -1);
+	Eigen::MatrixXd Bq = Eigen::MatrixXd::Constant(m+1,n+1, -1);
 
 	double insertion = log(0.001);
 	double deletion = log(0.001);
@@ -606,7 +563,7 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
 	}
 
 	string codon;
-	double p1,p2,q1,q2,d,argmin;
+	double p1,p2,q1,q2,d;
 
 	for(int i=1; i<m+1; i++) {
 		codon = seq_a.substr((((i-1)/3)*3),3); // current codon
@@ -687,21 +644,14 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln, Matrix64f& P
 	}
 
 	// DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
-	Eigen::MatrixXf D = Eigen::MatrixXf::Ones(m+1,n+1);
-	Eigen::MatrixXf P = Eigen::MatrixXf::Ones(m+1,n+1);
-	Eigen::MatrixXf Q = Eigen::MatrixXf::Ones(m+1,n+1);
-
-	D = D * std::numeric_limits<float>::max();
-	P = D;
-	Q = D;
+	Eigen::MatrixXf D = Eigen::MatrixXf::Constant(m+1,n+1, std::numeric_limits<float>::max());
+	Eigen::MatrixXf P = Eigen::MatrixXf::Constant(m+1,n+1, std::numeric_limits<float>::max());
+	Eigen::MatrixXf Q = Eigen::MatrixXf::Constant(m+1,n+1, std::numeric_limits<float>::max());
 
 	// backtracking info matrices for match/mismatch (Bd), insert (Bp), and deletion (Bq)
-	Eigen::MatrixXd Bd = Eigen::MatrixXd::Ones(m+1,n+1);
-	Eigen::MatrixXd Bp = Eigen::MatrixXd::Ones(m+1,n+1);
-	Eigen::MatrixXd Bq = Eigen::MatrixXd::Ones(m+1,n+1);
-	Bd = Bd * (-1);
-	Bp = Bd;
-	Bq = Bd;
+	Eigen::MatrixXd Bd = Eigen::MatrixXd::Constant(m+1,n+1, -1);
+	Eigen::MatrixXd Bp = Eigen::MatrixXd::Constant(m+1,n+1, -1);
+	Eigen::MatrixXd Bq = Eigen::MatrixXd::Constant(m+1,n+1, -1);
 
 	double insertion = 0.001;
 	double deletion = 0.001;
@@ -745,7 +695,7 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln, Matrix64f& P
 	}
 
 	string codon;
-	double p1,p2,q1,q2,d,argmin,temp;
+	double p1,p2,q1,q2,d,temp;
 
 	// Cells with only match/mismatch (1,1) & (2,2)
 	codon = seq_a.substr(0,3);
@@ -871,13 +821,12 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln, Matrix64f& P
 	return backtracking_noframeshifts(Bd, Bp, Bq, seq_a, seq_b, aln);
 }
 /* Return value from marginal MG94 model p matrix for a given transition */
-double transition(string codon, int position, char nuc, Eigen::Tensor<double, 3>& p) {
+double transition(string codon, int position, char nuc, const Eigen::Tensor<double, 3>& p) {
 	position = position == 0 ? 2 : --position;
 
 	if(nuc != 'N') {
 		return p(cod_int(codon), position, nt4_table[nuc]);
 	} else {
-		string nucs = "ACGT";
 		double val = 0.0;
 		for(int i=0;i<4;i++){
 			val += p(cod_int(codon), position, i);
@@ -950,13 +899,13 @@ int backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::Ma
 		// insertion
 		} else if(Bd(i,j) == 1) {
 			while(Bp(i,j) == 1) {
-				for(int k=0;k<3;k++) {
+				for(int h=0;h<3;h++) {
 					aln.f.seq_data[0].insert(0,1,'-');
 					aln.f.seq_data[1].insert(0,1,seqb[j-1]);
 					j--;
 				}
 			}
-			for(int k=0;k<3;k++) {
+			for(int h=0;h<3;h++) {
 				aln.f.seq_data[0].insert(0,1,'-');
 				aln.f.seq_data[1].insert(0,1,seqb[j-1]);
 				j--;
@@ -964,13 +913,13 @@ int backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::Ma
 		// deletion
 		} else {
 			while(Bq(i,j) ==  1) {
-				for(int k=0;k<3;k++) {
+				for(int h=0;h<3;h++) {
 					aln.f.seq_data[0].insert(0,1,seqa[i-1]);
 					aln.f.seq_data[1].insert(0,1,'-');
 					i--;
 				}
 			}
-			for(int k=0;k<3;k++) {
+			for(int h=0;h<3;h++) {
 				aln.f.seq_data[0].insert(0,1,seqa[i-1]);
 				aln.f.seq_data[1].insert(0,1,'-');
 				i--;
