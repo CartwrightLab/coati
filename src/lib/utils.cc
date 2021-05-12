@@ -215,10 +215,11 @@ int write_phylip(fasta_t& fasta_file) {
 	for(int j=0; j < fasta_file.seq_names.size(); j++) {
 		outfile << fasta_file.seq_names[j] << "\t" << fasta_file.seq_data[j].substr(0,i) << endl;
 	}
+	outfile << endl;
 
 	for(; i<fasta_file.seq_data[0].length(); i+=PRINT_SIZE) {
 		for(int j=0; j < fasta_file.seq_names.size(); j++) {
-			outfile << fasta_file.seq_names[j].substr(0,PRINT_SIZE) << endl;
+			outfile << fasta_file.seq_data[j].substr(i,PRINT_SIZE) << endl;
 		}
 		outfile << endl;
 	}

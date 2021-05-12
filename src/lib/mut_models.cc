@@ -147,7 +147,6 @@ TEST_CASE("[mut_models.cc] mg94") {
 	mg94(mut_fst, branch_length);
 
 	CHECK(Verify(mut_fst));	// openfst built-in sanity check
-	CHECK(mut_fst.Properties('kAccessible',false)); // all states reachable from init state
 	// TODO: Check content
 }
 
