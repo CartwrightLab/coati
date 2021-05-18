@@ -23,37 +23,37 @@
 #ifndef TREE_H
 #define TREE_H
 
-#include <fstream>
-#include <iostream>
-#include <algorithm>
 #include <Eigen/Dense>
-#include <coati/utils.hpp>
-#include <boost/spirit/home/x3.hpp>
-#include <boost/fusion/sequence.hpp>
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <boost/fusion/include/sequence.hpp>
+#include <boost/fusion/sequence.hpp>
+#include <boost/spirit/home/x3.hpp>
+#include <coati/utils.hpp>
+#include <fstream>
+#include <iostream>
 
 using namespace std;
 
 struct node_t {
-	string label;
-	float length;
-	bool is_leaf;
-	size_t parent{0};
-	vector<int> children;
+    string label;
+    float length;
+    bool is_leaf;
+    size_t parent{0};
+    vector<int> children;
 
-	node_t(string name, float len, bool leaf = false) {
-		label = name;
-		length = len;
-		is_leaf = leaf;
-	}
+    node_t(string name, float len, bool leaf = false) {
+        label = name;
+        length = len;
+        is_leaf = leaf;
+    }
 };
 
 using tree_t = vector<node_t>;
 
 bool read_newick(string tree_file, string& content);
 int parse_newick(string content, tree_t& guide_tree);
-int aln_order(tree_t& tree, vector<pair<int,double>>& order_list);
+int aln_order(tree_t& tree, vector<pair<int, double>>& order_list);
 bool find_seq(string name, fasta_t& f, string& seq);
 
 #endif

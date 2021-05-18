@@ -25,7 +25,7 @@
 
 #include <fst/fstlib.h>
 
-inline void fill_symbol_table(fst::SymbolTable & dna_syms) {
+inline void fill_symbol_table(fst::SymbolTable& dna_syms) {
     dna_syms.AddSymbol("<eps>", 0);
     dna_syms.AddSymbol("A", 1);
     dna_syms.AddSymbol("C", 2);

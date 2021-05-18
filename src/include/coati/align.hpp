@@ -24,10 +24,10 @@
 #define ALIGN_H
 
 // #include <fstream>
-#include <coati/tree.hpp>
-#include <coati/mut_models.hpp>
 #include <boost/filesystem.hpp>
+#include <coati/mut_models.hpp>
 #include <coati/profile_aln.hpp>
+#include <coati/tree.hpp>
 
 using namespace fst;
 using namespace std;
