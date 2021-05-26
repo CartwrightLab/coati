@@ -42,10 +42,11 @@ struct node_t {
     size_t parent{0};
     vector<int> children;
 
-    node_t(string name, float len, bool leaf = false) {
+    node_t(string name, float len, bool leaf = false, size_t ancestor = 0) {
         label = name;
         length = len;
         is_leaf = leaf;
+        parent = ancestor;
     }
 };
 
@@ -55,5 +56,7 @@ bool read_newick(string tree_file, string& content);
 int parse_newick(string content, tree_t& guide_tree);
 int aln_order(tree_t& tree, vector<pair<int, double>>& order_list);
 bool find_seq(string name, fasta_t& f, string& seq);
+bool find_node(const tree_t& tree, string name, int& ID);
+bool reroot(tree_t& tree, string label);
 
 #endif

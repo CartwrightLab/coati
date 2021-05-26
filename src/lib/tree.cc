@@ -141,7 +141,6 @@ TEST_CASE("[tree.cc] parse_newick") {
                      tree) == 0);
     REQUIRE(tree.size() == 7);
 
-    CHECK(tree[0].label.compare(""));
     CHECK(tree[0].length == 0);
     CHECK(tree[0].is_leaf == false);
     CHECK(tree[0].parent == 0);
@@ -274,20 +273,13 @@ TEST_CASE("[tree.cc] aln_order") {
     vector<pair<int, double>> order_list;
     // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
 
-    tree.push_back(node_t("", 0, false));
-    tree[0].parent = 0;
-    tree.push_back(node_t("B_b", 6, true));
-    tree[1].parent = 0;
-    tree.push_back(node_t("Ancestor", 5, false));
-    tree[2].parent = 0;
-    tree.push_back(node_t("A-a", 5, true));
-    tree[3].parent = 2;
-    tree.push_back(node_t("C/c", 3, true));
-    tree[4].parent = 2;
-    tree.push_back(node_t("E.e", 4, true));
-    tree[5].parent = 2;
-    tree.push_back(node_t("D%", 11, true));
-    tree[6].parent = 0;
+    tree.push_back(node_t("", 0, false, 0));
+    tree.push_back(node_t("B_b", 6, true, 0));
+    tree.push_back(node_t("Ancestor", 5, false, 0));
+    tree.push_back(node_t("A-a", 5, true, 2));
+    tree.push_back(node_t("C/c", 3, true, 2));
+    tree.push_back(node_t("E.e", 4, true, 2));
+    tree.push_back(node_t("D%", 11, true, 0));
 
     REQUIRE(aln_order(tree, order_list) == 0);
     REQUIRE(order_list.size() == 5);
@@ -329,3 +321,138 @@ TEST_CASE("[tree.cc] find_seq") {
     REQUIRE(find_seq("C", fasta, sequence));
     CHECK(sequence.compare("GTAC") == 0);
 }
+
+/* Find node in tree given its name */
+bool find_node(const tree_t& tree, string name, int& ID) {
+    auto it = find_if(begin(tree), end(tree),
+                      [name](const node_t node) { return node.label == name; });
+    ID = (it == end(tree) ? -1 : it - begin(tree));
+
+    return ID != -1;
+}
+
+TEST_CASE("[tree.cc] find_node") {
+    tree_t tree;
+    int ID;
+    // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
+
+    tree.push_back(node_t("", 0, false, 0));
+    tree.push_back(node_t("B_b", 6, true, 0));
+    tree.push_back(node_t("Ancestor", 5, false, 0));
+    tree.push_back(node_t("A-a", 5, true, 2));
+    tree.push_back(node_t("C/c", 3, true, 2));
+    tree.push_back(node_t("E.e", 4, true, 2));
+    tree.push_back(node_t("D%", 11, true, 0));
+
+    REQUIRE(find_node(tree, tree[3].label, ID));
+    CHECK(ID == 3);
+    REQUIRE(find_node(tree, "C/c", ID));
+    CHECK(ID == 4);
+    REQUIRE(find_node(tree, "D%", ID));
+    CHECK(ID == 6);
+    REQUIRE(!find_node(tree, "Z", ID));
+    CHECK(ID == -1);
+}
+
+/* Re-root tree given an outgroup (leaf node) */
+bool reroot(tree_t& tree, string outgroup) {
+    int ref;
+
+    // find outgroup node
+    if(!find_node(tree, outgroup, ref)) {
+        cout << "Outgroup label could not be found, re-root failed." << endl;
+        return false;
+    }
+
+    // find list of ancestors from newroot to current root
+    vector<int> ancestors;
+    int newroot = tree[ref].parent;
+    int node = newroot;
+
+    // while not current root (current root has itself as parent)
+    while(tree[node].parent != node) {
+        ancestors.push_back(node);
+        node = tree[node].parent;
+    }
+    // add current root
+    ancestors.push_back(node);
+
+    // for each inode in ancestors switch the order of parent -> descendant
+    for(int i = ancestors.size() - 1; i > 0; i--) {
+        tree[ancestors[i]].parent = ancestors[i - 1];
+        tree[ancestors[i]].length = tree[ancestors[i - 1]].length;
+    }
+
+    // set up newroot's parent as itself with length 0
+    tree[newroot].parent = newroot;
+    tree[newroot].length = 0;
+
+    return true;
+}
+
+TEST_CASE("[tree.cc] reroot") {
+    tree_t tree;
+
+    SUBCASE("One node change") {
+        // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
+        tree.push_back(node_t("", 0, false, 0));
+        tree.push_back(node_t("B_b", 6, true, 0));
+        tree.push_back(node_t("Ancestor", 5, false, 0));
+        tree.push_back(node_t("A-a", 5, true, 2));
+        tree.push_back(node_t("C/c", 3, true, 2));
+        tree.push_back(node_t("E.e", 4, true, 2));
+        tree.push_back(node_t("D%", 11, true, 0));
+
+        REQUIRE(reroot(tree, "A-a"));
+
+        CHECK(tree[0].length == 5);
+        CHECK(tree[0].parent == 2);
+        CHECK(tree[1].length == 6);
+        CHECK(tree[1].parent == 0);
+        CHECK(tree[2].length == 0);
+        CHECK(tree[2].parent == 2);
+        CHECK(tree[3].length == 5);
+        CHECK(tree[3].parent == 2);
+        CHECK(tree[4].length == 3);
+        CHECK(tree[4].parent == 2);
+        CHECK(tree[5].length == 4);
+        CHECK(tree[5].parent == 2);
+        CHECK(tree[6].length == 11);
+        CHECK(tree[6].parent == 0);
+    }
+
+    SUBCASE("Several node changes") {
+        // tree:
+        // ((raccoon:19.19959,bear:6.80041):0.84600, ((sea_lion:11.99700,
+        // seal:12.00300):7.52973, ((monkey:100.85930, cat:47.14069):20.59201,
+        // weasel:18.87953):2.09460):3.87382,dog:25.46154);
+        tree.push_back(node_t("", 0, false, 0));
+        tree.push_back(node_t("", 0.8, false, 0));
+        tree.push_back(node_t("racoon", 19.2, true, 1));
+        tree.push_back(node_t("bear", 6.8, true, 1));
+        tree.push_back(node_t("", 3.9, false, 0));
+        tree.push_back(node_t("", 7.5, false, 4));
+        tree.push_back(node_t("sea_lion", 12, true, 5));
+        tree.push_back(node_t("seal", 12, true, 5));
+        tree.push_back(node_t("", 2.1, false, 4));
+        tree.push_back(node_t("", 20.6, false, 8));
+        tree.push_back(node_t("monkey", 100.9, true, 9));
+        tree.push_back(node_t("cat", 47.1, true, 9));
+        tree.push_back(node_t("weasel", 18.9, true, 8));
+        tree.push_back(node_t("dog", 25.5, true, 0));
+
+        REQUIRE(reroot(tree, "cat"));
+
+        CHECK(tree[0].parent == 4);
+        CHECK(tree[0].length == doctest::Approx(3.9));
+        CHECK(tree[4].parent == 8);
+        CHECK(tree[4].length == doctest::Approx(2.1));
+        CHECK(tree[8].parent == 9);
+        CHECK(tree[8].length == doctest::Approx(20.6));
+        CHECK(tree[9].parent == 9);
+        CHECK(tree[9].length == doctest::Approx(0));
+    }
+}
+
+/* Find distance from REF to leaf */
+// double node_distance(const tree_t&, )
