@@ -323,17 +323,17 @@ TEST_CASE("[tree.cc] find_seq") {
 }
 
 /* Find node in tree given its name */
-bool find_node(const tree_t& tree, string name, int& ID) {
+bool find_node(const tree_t& tree, string name, int& index) {
     auto it = find_if(begin(tree), end(tree),
                       [name](const node_t node) { return node.label == name; });
-    ID = (it == end(tree) ? -1 : it - begin(tree));
+    index = (it == end(tree) ? -1 : it - begin(tree));
 
-    return ID != -1;
+    return index != -1;
 }
 
 TEST_CASE("[tree.cc] find_node") {
     tree_t tree;
-    int ID;
+    int index;
     // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
 
     tree.push_back(node_t("", 0, false, 0));
@@ -344,14 +344,14 @@ TEST_CASE("[tree.cc] find_node") {
     tree.push_back(node_t("E.e", 4, true, 2));
     tree.push_back(node_t("D%", 11, true, 0));
 
-    REQUIRE(find_node(tree, tree[3].label, ID));
-    CHECK(ID == 3);
-    REQUIRE(find_node(tree, "C/c", ID));
-    CHECK(ID == 4);
-    REQUIRE(find_node(tree, "D%", ID));
-    CHECK(ID == 6);
-    REQUIRE(!find_node(tree, "Z", ID));
-    CHECK(ID == -1);
+    REQUIRE(find_node(tree, tree[3].label, index));
+    CHECK(index == 3);
+    REQUIRE(find_node(tree, "C/c", index));
+    CHECK(index == 4);
+    REQUIRE(find_node(tree, "D%", index));
+    CHECK(index == 6);
+    REQUIRE(!find_node(tree, "Z", index));
+    CHECK(index == -1);
 }
 
 /* Re-root tree given an outgroup (leaf node) */
@@ -454,5 +454,45 @@ TEST_CASE("[tree.cc] reroot") {
     }
 }
 
-/* Find distance from REF to leaf */
-// double node_distance(const tree_t&, )
+/* Find distance from REF to node. Tree is assumed to be rerooted. */
+double distance_ref(const tree_t& tree, int ref, int node) {
+    double distance = 0;
+
+    // distance from node to root
+    while(tree[node].parent != node) {
+        distance += tree[node].length;
+        node = tree[node].parent;
+    }
+
+    // distance from root to ref
+    distance += tree[ref].length;
+
+    return distance;
+}
+
+TEST_CASE("[tree.cc] distance_ref") {
+    tree_t tree;
+    // tree:
+    // ((raccoon:19.19959,bear:6.80041):0.84600, ((sea_lion:11.99700,
+    // seal:12.00300):7.52973, ((monkey:100.85930, cat:47.14069):20.59201,
+    // weasel:18.87953):2.09460):3.87382,dog:25.46154);
+    tree.push_back(node_t("", 0, false, 0));
+    tree.push_back(node_t("", 0.8, false, 0));
+    tree.push_back(node_t("racoon", 19.2, true, 1));
+    tree.push_back(node_t("bear", 6.8, true, 1));
+    tree.push_back(node_t("", 3.9, false, 0));
+    tree.push_back(node_t("", 7.5, false, 4));
+    tree.push_back(node_t("sea_lion", 12, true, 5));
+    tree.push_back(node_t("seal", 12, true, 5));
+    tree.push_back(node_t("", 2.1, false, 4));
+    tree.push_back(node_t("", 20.6, false, 8));
+    tree.push_back(node_t("monkey", 100.9, true, 9));
+    tree.push_back(node_t("cat", 47.1, true, 9));
+    tree.push_back(node_t("weasel", 18.9, true, 8));
+    tree.push_back(node_t("dog", 25.5, true, 0));
+
+    CHECK(distance_ref(tree, 13, 2) == doctest::Approx(45.5));
+    CHECK(distance_ref(tree, 13, 6) == doctest::Approx(48.9));
+    CHECK(distance_ref(tree, 13, 12) == doctest::Approx(50.4));
+    CHECK(distance_ref(tree, 13, 11) == doctest::Approx(99.2));
+}

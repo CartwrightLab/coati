@@ -19,8 +19,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-set(coati_sources version.cc mut_models.cc utils.cc align.cc tree.cc profile_aln.cc)
-set(coati_headers coati.hpp mut_models.hpp utils.hpp align.hpp tree.hpp profile_aln.hpp dna_syms.hpp)
+set(coati_sources version.cc mut_models.cc utils.cc align.cc tree.cc profile_aln.cc insertions.cc)
+set(coati_headers coati.hpp mut_models.hpp utils.hpp align.hpp tree.hpp profile_aln.hpp dna_syms.hpp insertions.hpp)
 
 #####################################################################
 # libcoati library

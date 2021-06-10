@@ -20,68 +20,80 @@
 # SOFTWARE.
 */
 
-#include <iostream>
+#include <boost/program_options.hpp>
 #include <coati/align.hpp>
 #include <coati/profile_aln.hpp>
-#include <boost/program_options.hpp>
+#include <iostream>
 
 using namespace std;
 
 namespace po = boost::program_options;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
+    input_t in_data;
 
-	input_t in_data;
+    try {
+        po::options_description desc("Allowed options");
+        desc.add_options()("help,h", "Display this message")(
+            "fasta,f", po::value<string>(&in_data.fasta_file.path)->required(),
+            "fasta file path")(
+            "model,m",
+            po::value<string>(&in_data.mut_model)->default_value("m-coati"),
+            "substitution model: m-coati (default), m-ecm")(
+            "weight,w", po::value<string>(&in_data.weight_file),
+            "write alignment score to given file")(
+            "output,o", po::value<string>(&in_data.out_file),
+            "alignment output file")(
+            "tree,p", po::value<string>(&in_data.tree)->required(),
+            "newick phylogenetic tree")(
+            "ref,r", po::value<string>(&in_data.ref)->required(),
+            "reference sequence");
 
-	try {
-		po::options_description desc("Allowed options");
-		desc.add_options()
-			("help,h", "Display this message")
-			("fasta,f",po::value<string>(&in_data.fasta_file.path)->required(),
-				"fasta file path")
-			("model,m",po::value<string>(&in_data.mut_model)->default_value("m-coati"),
-				"substitution model: m-coati (default), m-ecm")
-			("weight,w",po::value<string>(&in_data.weight_file),
-				"write alignment score to given file")
-			("output,o",po::value<string>(&in_data.out_file), "alignment output file")
-			("tree,p", po::value<string>(&in_data.tree)->required(), "newick phylogenetic tree")
-		;
+        po::positional_options_description pos_p;
+        pos_p.add("fasta", 1);
+        pos_p.add("tree", 1);
+        po::variables_map varm;
+        po::store(po::command_line_parser(argc, argv)
+                      .options(desc)
+                      .positional(pos_p)
+                      .run(),
+                  varm);
 
-		po::positional_options_description pos_p;
-		pos_p.add("fasta",1);
-		pos_p.add("tree",1);
-		po::variables_map varm;
-		po::store(po::command_line_parser(argc,argv).options(desc).positional(pos_p).run(),varm);
+        if(varm.count("help") || argc < 3) {
+            cout << "Usage: coati msa file.fasta tree.newick [options]" << endl
+                 << endl;
+            cout << desc << endl;
+            return EXIT_SUCCESS;
+        }
 
-		if(varm.count("help") || argc < 3) {
-			cout << "Usage: coati msa file.fasta tree.newick [options]" << endl << endl;
-			cout << desc << endl;
-			return EXIT_SUCCESS;
-		}
+        po::notify(varm);
 
-		po::notify(varm);
+    } catch(po::error& e) {
+        cerr << e.what() << ". Exiting!" << endl;
+        return EXIT_FAILURE;
+    }
 
-	} catch (po::error& e) {
-		cerr << e.what() << ". Exiting!" << endl;
-		return EXIT_FAILURE;
-	}
+    // read input fasta file
+    if(read_fasta(in_data.fasta_file) != 0) {
+        cout << "Error reading " << in_data.fasta_file.path << " file. Exiting!"
+             << endl;
+        return EXIT_FAILURE;
+    } else if(in_data.fasta_file.seq_names.size() < 3) {
+        cout << "At least three sequences required. Exiting!" << endl;
+        return EXIT_FAILURE;
+    }
 
-	// read input fasta file
-	if(read_fasta(in_data.fasta_file) != 0) {
-		cout << "Error reading " << in_data.fasta_file.path << " file. Exiting!" << endl;
-		return EXIT_FAILURE;
-	} else if(in_data.fasta_file.seq_names.size() < 3) {
-		cout << "At least three sequences required. Exiting!" << endl;
-		return EXIT_FAILURE;
-	}
+    if(in_data.out_file.empty()) {  // if no output is specified save in current
+                                    // dir in PHYLIP format
+        in_data.out_file =
+            boost::filesystem::path(in_data.fasta_file.path).stem().string() +
+            ".phy";
+    } else if(boost::filesystem::extension(in_data.out_file) != ".phy" &&
+              boost::filesystem::extension(in_data.out_file) != ".fasta") {
+        cout << "Format for output file is not valid. Exiting!" << endl;
+        return EXIT_FAILURE;
+    }
 
-	if(in_data.out_file.empty()) { // if no output is specified save in current dir in PHYLIP format
-		in_data.out_file = boost::filesystem::path(in_data.fasta_file.path).stem().string()+".phy";
-	} else if(boost::filesystem::extension(in_data.out_file) != ".phy" &&
-		boost::filesystem::extension(in_data.out_file) != ".fasta") {
-		cout << "Format for output file is not valid. Exiting!" << endl;
-		return EXIT_FAILURE;
-	}
-
-	return progressive_aln(in_data);
+    // return progressive_aln(in_data);
+    return ref_indel_alignment(in_data);
 }

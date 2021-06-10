@@ -109,13 +109,12 @@ int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts) {
 
     //  case 1: ComposeFst is time: O(v1 v2 d1 (log d2 + m2)), space O(v1 v2)
     //			ShortestPath with ComposeFst (PDT) is time: O((V+E)^3),
-    //space: O((V+E)^3)
+    //          space: O((V+E)^3)
     //          Then convert to VectorFst (FST) is time, space: O(e^(O(V+E)))
     //  case 2: ComposeFst is time: O(v1 v2 d1 (log d2 + m2)), space: O(v1 v2)
     //			Convert ComposeFst (PDT) to VectorFst(FST) is time,
-    //space:
-    // O(e^(O(V+E))) 			Then ShortestPath with VectorFst is O(V log(V) +
-    // E)
+    //          space: O(e^(O(V+E)))
+    // 			Then ShortestPath with VectorFst is O(V log(V) + E)
     //  case 3: Compose is time: O(V1 V2 D1 (log D2 + M2)), space O(V1 V2 D1 M2)
     //			Then ShortestPath with VectorFst is O(V log(V) + E)
 
@@ -183,7 +182,7 @@ int progressive_aln(input_t& in_data) {
     // sequence for 1st leaf
     if(!find_seq(tree[order[0].first].label, in_data.fasta_file, seq)) {
         cout << "Error: sequence " << tree[order[0].first].label
-             << " not find in fasta file." << endl;
+             << " not found in fasta file." << endl;
         exit(EXIT_FAILURE);
     }
     closest_leafs.push_back(seq);
@@ -192,7 +191,7 @@ int progressive_aln(input_t& in_data) {
     // sequence for 2nd leaf
     if(!find_seq(tree[order[1].first].label, in_data.fasta_file, seq)) {
         cout << "Error: sequence " << tree[order[1].first].label
-             << " not find in fasta file." << endl;
+             << " not found in fasta file." << endl;
         exit(EXIT_FAILURE);
     }
     closest_leafs.push_back(seq);
@@ -218,7 +217,7 @@ int progressive_aln(input_t& in_data) {
         // find sequence of next leaf
         if(!find_seq(tree[order[i].first].label, in_data.fasta_file, seq)) {
             cout << "Error: sequence " << tree[order[i].first].label
-                 << " not find in fasta file." << endl;
+                 << " not found in fasta file." << endl;
             exit(EXIT_FAILURE);
         }
         next_leaf = {seq};
@@ -250,4 +249,191 @@ int progressive_aln(input_t& in_data) {
     } else {
         return write_phylip(aln.f);
     }
+}
+
+/* Initial msa by collapsing indels after pairwise aln with reference */
+int ref_indel_alignment(input_t& in_data) {
+    Matrix64f P;
+    tree_t tree;
+    string newick;
+    alignment_t aln, aln_tmp;
+
+    aln.f = fasta_t(in_data.out_file);
+
+    // reack newick tree file
+    if(!read_newick(in_data.tree, newick)) {
+        cout << "Error: reading newick tree failed." << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // parse tree into tree_t (vector<node_t>) variable
+    if(parse_newick(newick, tree) != 0) {
+        cout << "Error: parsing newick tree failed." << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // reroot tree
+    if(!reroot(tree, in_data.ref)) {
+        cout << "Error: re-rooting tree failed." << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // find position of ref in tree
+    int ref_pos;
+    if(!find_node(tree, in_data.ref, ref_pos)) {
+        cout << "Error: reference node not found in tree." << endl;
+    }
+
+    // find sequence of ref in in_data
+    vector<string> pair_seqs;
+    string ref_seq;
+    if(!find_seq(in_data.ref, in_data.fasta_file, ref_seq)) {
+        cout << "Error: reference sequence " << in_data.ref
+             << " not found in fasta file. " << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    pair_seqs.push_back(ref_seq);
+    pair_seqs.push_back(ref_seq);
+
+    // vector to store insertion_data_t for each node in tree
+    vector<insertion_data_t> nodes_ins(tree.size());
+
+    // add insertion_data for REF
+    nodes_ins[ref_pos] = insertion_data_t(
+        ref_seq, in_data.ref, SparseVectorInt(2 * ref_seq.length()));
+
+    // pairwise alignment for each leaf
+    string node_seq;
+    for(int node = 0; node < tree.size(); node++) {
+        if(tree[node].is_leaf && (tree[node].label != in_data.ref)) {
+            double branch = distance_ref(tree, ref_pos, node);
+            if(!find_seq(tree[node].label, in_data.fasta_file, node_seq)) {
+                cout << "Error: sequence " << tree[node].label
+                     << " not found in fasta file." << endl;
+                exit(EXIT_FAILURE);
+            }
+
+            pair_seqs[1] = node_seq;
+
+            // P matrix
+            if(in_data.mut_model.compare("m-ecm") == 0) {
+                ecm_p(P, branch);
+            } else {  // m-coati
+                mg94_p(P, branch);
+            }
+
+            aln_tmp.f.seq_data.clear();
+            if(mg94_marginal(pair_seqs, aln_tmp, P) != 0) {
+                cout << "Error: aligning reference " << in_data.ref << " and "
+                     << tree[node].label << endl;
+            }
+
+            SparseVectorInt ins_vector(2 * aln_tmp.f.seq_data[1].length());
+            insertion_flags(aln_tmp.f.seq_data[0], aln_tmp.f.seq_data[1],
+                            ins_vector);
+
+            nodes_ins[node] = insertion_data_t(aln_tmp.f.seq_data[1],
+                                               tree[node].label, ins_vector);
+        }
+    }
+
+    // get position of inodes in tree and set leafs as visited (true)
+    vector<int> inode_indexes;
+    bool visited[tree.size()] = {false};  // list of visited nodes
+
+    for(int node = 0; node < tree.size(); node++) {
+        if(!tree[node].is_leaf)
+            inode_indexes.push_back(node);  // add inode position to vector
+        else
+            visited[node] = true;  // set leafs to visited
+    }
+
+    // fill list of children
+    for(int i = 0; i < tree.size(); i++) {
+        if(tree[i].parent != i) tree[tree[i].parent].children.push_back(i);
+    }
+
+    // while not all nodes have been visited (any value in visitied is false)
+    while(any_of(visited, visited + tree.size(), [](bool b) { return !b; })) {
+        for(auto inode_pos : inode_indexes) {  // for all inodes
+            bool children_visited = true;
+            for(auto child : tree[inode_pos].children) {
+                if(!visited[child]) {
+                    children_visited = false;
+                    continue;
+                }
+            }
+
+            if(!children_visited)
+                continue;  // if all childen of inode have been visited
+
+            visited[inode_pos] = true;
+
+            // if inode only has a child pass information up
+            if(tree[inode_pos].children.size() == 1) {
+                nodes_ins[inode_pos] = nodes_ins[tree[inode_pos].children[0]];
+                continue;
+            }
+
+            // create vector of insertion_data_t with children
+            vector<insertion_data_t> tmp_ins_data(
+                tree[inode_pos].children.size());
+            for(int i = 0; i < tree[inode_pos].children.size(); i++) {
+                tmp_ins_data[i] = nodes_ins[tree[inode_pos].children[i]];
+            }
+
+            // run merge_indels(children_ins_data, nodes_ins[inode_pos]);
+            nodes_ins[inode_pos] = insertion_data_t();
+            merge_indels(tmp_ins_data, nodes_ins[inode_pos]);
+        }
+    }
+
+    // transfer result data nodes_ins[ROOT] --> aln && order sequences
+    int root = tree[ref_pos].parent;
+    for(auto name : in_data.fasta_file.seq_names) {
+        vector<string>::iterator it = find(nodes_ins[root].names.begin(),
+                                           nodes_ins[root].names.end(), name);
+        int index = distance(nodes_ins[root].names.begin(), it);
+        aln.f.seq_names.push_back(nodes_ins[root].names[index]);
+        aln.f.seq_data.push_back(nodes_ins[root].sequences[index]);
+    }
+
+    // write alignment
+    if(boost::filesystem::extension(aln.f.path) == ".fasta") {
+        return write_fasta(aln.f);
+    } else {
+        return write_phylip(aln.f);
+    }
+}
+
+TEST_CASE("[align.cc] ref_indel_alignment") {
+    input_t input_data;
+    fasta_t result;
+
+    input_data.fasta_file.path = "../../fasta/example-msa-001.fasta";
+    input_data.tree = "../../newick/example-msa-001.newick";
+    input_data.out_file = "example-msa-001.fasta";
+    input_data.mut_model = "m-coati";
+    input_data.ref = "A";
+
+    result.path = "example-msa-001.fasta";
+
+    REQUIRE(read_fasta(input_data.fasta_file) == 0);
+    REQUIRE(ref_indel_alignment(input_data) == 0);
+    REQUIRE(read_fasta(result) == 0);
+
+    CHECK(result.seq_names[0] == "A");
+    CHECK(result.seq_names[1] == "B");
+    CHECK(result.seq_names[2] == "C");
+    CHECK(result.seq_names[3] == "D");
+    CHECK(result.seq_names[4] == "E");
+
+    CHECK(result.seq_data[0] == "TCA--TCG");
+    CHECK(result.seq_data[1] == "TCA-GTCG");
+    CHECK(result.seq_data[2] == "T-A--TCG");
+    CHECK(result.seq_data[3] == "TCAC-TCG");
+    CHECK(result.seq_data[4] == "TCA--TC-");
+
+    remove("example-msa-001.fasta");
 }

@@ -63,7 +63,7 @@ struct fasta_t {
         seq_names = {};
         seq_data = {};
     }
-    fasta_t(string f, vector<string> n, vector<string> d = {}) {
+    fasta_t(string f, vector<string> n = {}, vector<string> d = {}) {
         path = f;
         seq_names = n;
         seq_data = d;
@@ -71,7 +71,7 @@ struct fasta_t {
 };
 
 struct input_t {
-    string mut_model, weight_file, out_file, rate, tree;
+    string mut_model, weight_file, out_file, rate, tree, ref;
     bool score;
     double br_len;
     fasta_t fasta_file;

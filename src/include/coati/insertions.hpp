@@ -20,44 +20,44 @@
 # SOFTWARE.
 */
 
-#ifndef TREE_H
-#define TREE_H
+#ifndef INSERTIONS_H
+#define INSERTIONS_H
 
-#include <Eigen/Dense>
-#include <algorithm>
-#include <boost/algorithm/string.hpp>
-#include <boost/fusion/include/sequence.hpp>
-#include <boost/fusion/sequence.hpp>
-#include <boost/spirit/home/x3.hpp>
-#include <coati/utils.hpp>
-#include <fstream>
+#include <Eigen/Sparse>
 #include <iostream>
+#include <numeric>
+#include <string>
+#include <vector>
 
 using namespace std;
 
-struct node_t {
-    string label;
-    float length;
-    bool is_leaf;
-    size_t parent{0};
-    vector<int> children;
+typedef Eigen::SparseVector<int, Eigen::RowMajor> SparseVectorInt;
 
-    node_t(string name, float len, bool leaf = false, size_t ancestor = 0) {
-        label = name;
-        length = len;
-        is_leaf = leaf;
-        parent = ancestor;
+struct insertion_data_t {
+    vector<string> sequences, names;
+    SparseVectorInt insertions;
+    insertion_data_t(vector<string> s, vector<string> n, SparseVectorInt i) {
+        sequences = s;
+        names = n;
+        insertions = i;
+    }
+    insertion_data_t(string s, string n, SparseVectorInt i) {
+        sequences = {s};
+        names = {n};
+        insertions = i;
+    }
+    insertion_data_t() {
+        sequences = {};
+        names = {};
+        insertions = SparseVectorInt();
     }
 };
 
-using tree_t = vector<node_t>;
-
-bool read_newick(string tree_file, string& content);
-int parse_newick(string content, tree_t& guide_tree);
-int aln_order(tree_t& tree, vector<pair<int, double>>& order_list);
-bool find_seq(string name, fasta_t& f, string& seq);
-bool find_node(const tree_t& tree, string name, int& ID);
-bool reroot(tree_t& tree, string label);
-double distance_ref(const tree_t& tree, int ref, int node);
+bool insertion_flags(const string& ref, const string& seq,
+                     SparseVectorInt& insertions_vector);
+bool merge_indels(vector<insertion_data_t>& ins_data,
+                  insertion_data_t& merged_data);
+void add_gap(vector<insertion_data_t>& ins_data, vector<int> seq_indexes,
+             int pos);
 
 #endif
