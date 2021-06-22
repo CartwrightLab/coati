@@ -2263,10 +2263,9 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
             p2 = Bd(i, j - 1) == 0
                      ? D(i, j - 1) - insertion -
                            nuc_freqs[nt4_table[seq_b[j - 1]]] - no_insertion_ext
-                     : Bd(i, j - 1) == 1
-                           ? D(i, j - 1) - insertion_ext -
-                                 nuc_freqs[nt4_table[seq_b[j - 1]]]
-                           : numeric_limits<double>::max();
+                 : Bd(i, j - 1) == 1 ? D(i, j - 1) - insertion_ext -
+                                           nuc_freqs[nt4_table[seq_b[j - 1]]]
+                                     : numeric_limits<double>::max();
             P(i, j) = min(p1, p2);
             Bp(i, j) =
                 p1 < p2
@@ -2277,9 +2276,8 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
             q1 = Q(i - 1, j) - deletion_ext;
             q2 = Bd(i - 1, j) == 0
                      ? D(i - 1, j) - no_insertion - deletion - no_deletion_ext
-                     : Bd(i - 1, j) == 1
-                           ? D(i - 1, j) - no_deletion_ext - deletion
-                           : D(i - 1, j) - deletion_ext;
+                 : Bd(i - 1, j) == 1 ? D(i - 1, j) - no_deletion_ext - deletion
+                                     : D(i - 1, j) - deletion_ext;
             Q(i, j) = min(q1, q2);
             Bq(i, j) =
                 q1 < q2 ? 1
@@ -2442,12 +2440,12 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
                            log(nuc_freqs[nt4_table[seq_b[j - 2]]]) -
                            log(nuc_freqs[nt4_table[seq_b[j - 1]]]) -
                            log(1.0 - insertion_ext)
-                     : Bd(i, j - 1) == 1
-                           ? D(i, j - 1) - 3 * log(insertion_ext) -
-                                 log(nuc_freqs[nt4_table[seq_b[j - 3]]]) -
-                                 log(nuc_freqs[nt4_table[seq_b[j - 2]]]) -
-                                 log(nuc_freqs[nt4_table[seq_b[j - 1]]])
-                           : numeric_limits<double>::max();
+                 : Bd(i, j - 1) == 1
+                     ? D(i, j - 1) - 3 * log(insertion_ext) -
+                           log(nuc_freqs[nt4_table[seq_b[j - 3]]]) -
+                           log(nuc_freqs[nt4_table[seq_b[j - 2]]]) -
+                           log(nuc_freqs[nt4_table[seq_b[j - 1]]])
+                     : numeric_limits<double>::max();
             P(i, j) = min(p1, p2);
             Bp(i, j) =
                 p1 < p2
@@ -2476,10 +2474,9 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
             q2 = Bd(j - 3, i) == 0
                      ? D(j - 3, i) - log(1.0 - insertion) - log(deletion) -
                            log(1.0 - deletion_ext) - 2 * log(deletion_ext)
-                     : Bd(j - 3, i) == 1
-                           ? D(j - 3, i) - log(1.0 - deletion_ext) -
-                                 log(deletion) - 2 * log(deletion_ext)
-                           : D(j - 3, i) - 3 * log(deletion_ext);
+                 : Bd(j - 3, i) == 1 ? D(j - 3, i) - log(1.0 - deletion_ext) -
+                                           log(deletion) - 2 * log(deletion_ext)
+                                     : D(j - 3, i) - 3 * log(deletion_ext);
             Q(j, i) = min(q1, q2);
             Bq(j, i) =
                 q1 < q2 ? 1
@@ -2519,12 +2516,12 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
                            log(nuc_freqs[nt4_table[seq_b[j - 2]]]) -
                            log(nuc_freqs[nt4_table[seq_b[j - 1]]]) -
                            log(1.0 - insertion_ext)
-                     : Bd(i, j - 1) == 1
-                           ? D(i, j - 1) - 3 * log(insertion_ext) -
-                                 log(nuc_freqs[nt4_table[seq_b[j - 3]]]) -
-                                 log(nuc_freqs[nt4_table[seq_b[j - 2]]]) -
-                                 log(nuc_freqs[nt4_table[seq_b[j - 1]]])
-                           : numeric_limits<double>::max();
+                 : Bd(i, j - 1) == 1
+                     ? D(i, j - 1) - 3 * log(insertion_ext) -
+                           log(nuc_freqs[nt4_table[seq_b[j - 3]]]) -
+                           log(nuc_freqs[nt4_table[seq_b[j - 2]]]) -
+                           log(nuc_freqs[nt4_table[seq_b[j - 1]]])
+                     : numeric_limits<double>::max();
             P(i, j) = min(p1, p2);
             Bp(i, j) =
                 p1 < p2
@@ -2535,10 +2532,9 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
             q2 = Bd(i - 3, j) == 0
                      ? D(i - 3, j) - log(1.0 - insertion) - log(deletion) -
                            log(1.0 - deletion_ext) - 2 * log(deletion_ext)
-                     : Bd(i - 3, j) == 1
-                           ? D(i - 3, j) - log(1.0 - deletion_ext) -
-                                 log(deletion) - 2 * log(deletion_ext)
-                           : D(i - 3, j) - 3 * log(deletion_ext);
+                 : Bd(i - 3, j) == 1 ? D(i - 3, j) - log(1.0 - deletion_ext) -
+                                           log(deletion) - 2 * log(deletion_ext)
+                                     : D(i - 3, j) - 3 * log(deletion_ext);
             Q(i, j) = min(q1, q2);
             Bq(i, j) =
                 q1 < q2 ? 1

@@ -36,21 +36,12 @@ typedef Eigen::SparseVector<int, Eigen::RowMajor> SparseVectorInt;
 struct insertion_data_t {
     vector<string> sequences, names;
     SparseVectorInt insertions;
-    insertion_data_t(vector<string> s, vector<string> n, SparseVectorInt i) {
-        sequences = s;
-        names = n;
-        insertions = i;
-    }
-    insertion_data_t(string s, string n, SparseVectorInt i) {
-        sequences = {s};
-        names = {n};
-        insertions = i;
-    }
-    insertion_data_t() {
-        sequences = {};
-        names = {};
-        insertions = SparseVectorInt();
-    }
+    insertion_data_t(const vector<string>& s, const vector<string>& n,
+                     SparseVectorInt i)
+        : sequences{s}, names{n}, insertions{i} {}
+    insertion_data_t(const string& s, const string& n, SparseVectorInt i)
+        : sequences{{s}}, names{{n}}, insertions{i} {}
+    insertion_data_t() : sequences{}, names{}, insertions{SparseVectorInt()} {}
 };
 
 bool insertion_flags(const string& ref, const string& seq,

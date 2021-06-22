@@ -291,10 +291,9 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
             p2 = Bd(i, j - 1) == 0
                      ? D(i, j - 1) - insertion -
                            nuc_pi(pro2.col(j - 1), nuc_freqs) - no_insertion_ext
-                     : Bd(i, j - 1) == 1
-                           ? D(i, j - 1) - insertion_ext -
-                                 nuc_pi(pro2.col(j - 1), nuc_freqs)
-                           : numeric_limits<double>::max();
+                 : Bd(i, j - 1) == 1 ? D(i, j - 1) - insertion_ext -
+                                           nuc_pi(pro2.col(j - 1), nuc_freqs)
+                                     : numeric_limits<double>::max();
             P(i, j) = min(p1, p2);
             Bp(i, j) =
                 p1 < p2
@@ -305,9 +304,8 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
             q1 = Q(i - 1, j) - deletion_ext;
             q2 = Bd(i - 1, j) == 0
                      ? D(i - 1, j) - no_insertion - deletion - no_deletion_ext
-                     : Bd(i - 1, j) == 1
-                           ? D(i - 1, j) - no_deletion_ext - deletion
-                           : D(i - 1, j) - deletion_ext;
+                 : Bd(i - 1, j) == 1 ? D(i - 1, j) - no_deletion_ext - deletion
+                                     : D(i - 1, j) - deletion_ext;
             Q(i, j) = min(q1, q2);
             Bq(i, j) =
                 q1 < q2 ? 1
@@ -448,7 +446,6 @@ int backtracking_profile(Eigen::MatrixXi Bd, Eigen::MatrixXi Bp,
 double nuc_pi(Vector4d n, Vector5d pis) {
     double val = 0;
     for(int i = 0; i < 4; i++) {
-        // val += n[i] == 0 ? 0 : log(n[i]) + pis[i];
         val += n[i] == 0 ? 0 : n[i] * exp(pis[i]);
     }
 

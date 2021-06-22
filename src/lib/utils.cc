@@ -20,7 +20,7 @@
 # SOFTWARE.
 */
 
-//#include <doctest/doctest.h>
+#include <doctest/doctest.h>
 
 #include <coati/dna_syms.hpp>
 #include <coati/utils.hpp>
@@ -90,8 +90,11 @@ int read_fasta(fasta_t& fasta_file, vector<VectorFst<StdArc>>& fsts) {
 
     string line, name, content;
     while(getline(input, line).good()) {
-        if(line[0] == ';') continue;
-        if(line[0] == '>') {  // Identifier marker
+        if(line.empty()) {
+            continue;  // omit empty lines
+        } else if(line[0] == ';') {
+            continue;
+        } else if(line[0] == '>') {  // Identifier marker
             if(!name.empty()) {
                 VectorFst<StdArc> accept;  // create FSA with sequence
                 if(!acceptor(content, accept)) {
@@ -107,8 +110,6 @@ int read_fasta(fasta_t& fasta_file, vector<VectorFst<StdArc>>& fsts) {
             name = line.substr(1);
             fasta_file.seq_names.push_back(name);
             content.clear();
-        } else if(line.empty()) {
-            continue;  // omit empty lines
         } else if(!name.empty()) {
             // Remove spaces
             line.erase(remove_if(line.begin(), line.end(), ::isspace),
@@ -140,8 +141,11 @@ int read_fasta(fasta_t& fasta_file) {
 
     string line, name, content;
     while(getline(input, line).good()) {
-        if(line[0] == ';') continue;
-        if(line[0] == '>') {  // Identifier marker
+        if(line.empty()) {
+            continue;  // omit empty lines
+        } else if(line[0] == ';') {
+            continue;
+        } else if(line[0] == '>') {  // Identifier marker
             if(!name.empty()) {
                 fasta_file.seq_data.push_back(content);
                 name.clear();
@@ -150,8 +154,6 @@ int read_fasta(fasta_t& fasta_file) {
             name = line.substr(1);
             fasta_file.seq_names.push_back(name);
             content.clear();
-        } else if(line.empty()) {
-            continue;  // omit empty lines
         } else if(!name.empty()) {
             // Remove spaces
             line.erase(remove_if(line.begin(), line.end(), ::isspace),

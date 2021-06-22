@@ -42,12 +42,9 @@ struct node_t {
     size_t parent{0};
     vector<int> children;
 
-    node_t(string name, float len, bool leaf = false, size_t ancestor = 0) {
-        label = name;
-        length = len;
-        is_leaf = leaf;
-        parent = ancestor;
-    }
+    node_t(const string& name, float len, bool leaf = false,
+           size_t ancestor = 0)
+        : label{name}, length{len}, is_leaf{leaf}, parent{ancestor} {}
 };
 
 using tree_t = vector<node_t>;

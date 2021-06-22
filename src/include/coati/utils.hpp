@@ -58,16 +58,10 @@ typedef Eigen::Matrix<double, 5, 1> Vector5d;
 struct fasta_t {
     string path;
     vector<string> seq_names, seq_data;
-    fasta_t() {
-        path = "";
-        seq_names = {};
-        seq_data = {};
-    }
-    fasta_t(string f, vector<string> n = {}, vector<string> d = {}) {
-        path = f;
-        seq_names = n;
-        seq_data = d;
-    }
+    // fasta_t() : path{""}, seq_names{}, seq_data{} {}
+    fasta_t(const string& f = "", const vector<string>& n = {},
+            const vector<string>& d = {})
+        : path{f}, seq_names{n}, seq_data{d} {}
 };
 
 struct input_t {
@@ -81,19 +75,11 @@ struct alignment_t {
     string weight_file, model;
     float weight;
     fasta_t f;
-    alignment_t() {
-        f = fasta_t();
-        weight = 0.0;
-        weight_file = "";
-        model = "";
-    }
-    alignment_t(string f_file, vector<string> n, vector<string> d, float w,
-                string w_f, string m) {
-        f = fasta_t(f_file, n, d);
-        weight = w;
-        weight_file = w_f;
-        model = m;
-    }
+    alignment_t() : f{fasta_t()}, weight{0.0}, weight_file{""}, model{""} {}
+    alignment_t(const string& f_file, const vector<string>& n,
+                const vector<string>& d, float w, const string& w_f,
+                const string& m)
+        : f{fasta_t(f_file, n, d)}, weight{w}, weight_file{w_f}, model{m} {}
 };
 
 int read_fasta(fasta_t& fasta_file, vector<VectorFst<StdArc>>& fsts);

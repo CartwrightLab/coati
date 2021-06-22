@@ -21,104 +21,116 @@
 */
 
 #include <fst/fstlib.h>
-#include <iostream>
-#include <boost/program_options.hpp>
-#include <fstream>
+
 #include <boost/filesystem.hpp>
-#include <coati/mut_models.hpp>
+#include <boost/program_options.hpp>
 #include <coati/align.hpp>
+#include <coati/mut_models.hpp>
+#include <fstream>
+#include <iostream>
 
 using namespace fst;
 using namespace std;
 
 namespace po = boost::program_options;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
+    string rate;
+    bool score = false;
+    input_t in_data;
 
-	string rate;
-	bool score = false;
-	input_t in_data;
+    try {
+        po::options_description desc("Allowed options");
+        desc.add_options()("help,h", "Display this message")(
+            "fasta,f", po::value<string>(&in_data.fasta_file.path)->required(),
+            "fasta file path")(
+            "model,m",
+            po::value<string>(&in_data.mut_model)->default_value("m-coati"),
+            "substitution model: coati, m-coati (default), dna, ecm, m-ecm")(
+            "weight,w", po::value<string>(&in_data.weight_file),
+            "Write alignment score to file")(
+            "output,o", po::value<string>(&in_data.out_file),
+            "Alignment output file")(
+            "score,s",
+            "Calculate alignment score using m-coati or m-ecm models")(
+            "rate,r", po::value<string>(&in_data.rate),
+            "Substitution rate matrix (CSV)")(
+            "evo-time,t",
+            po::value<double>(&in_data.br_len)->default_value(0.0133, "0.0133"),
+            "Evolutionary time or branch length")(
+            "tree,p", po::value<string>(&in_data.tree),
+            "Newick phylogenetic tree");
 
-	try {
-		po::options_description desc("Allowed options");
-		desc.add_options()
-			("help,h","Display this message")
-			("fasta,f",po::value<string>(&in_data.fasta_file.path)->required(),
-				"fasta file path")
-			("model,m",po::value<string>(&in_data.mut_model)->default_value("m-coati"),
-				"substitution model: coati, m-coati (default), dna, ecm, m-ecm")
-			("weight,w",po::value<string>(&in_data.weight_file),
-				"Write alignment score to file")
-			("output,o",po::value<string>(&in_data.out_file), "Alignment output file")
-			("score,s", "Calculate alignment score using m-coati or m-ecm models")
-			("rate,r", po::value<string>(&in_data.rate), "Substitution rate matrix (CSV)")
-			("evo-time,t", po::value<double>(&in_data.br_len)->default_value(0.0133,"0.0133"),
-				"Evolutionary time or branch length")
-			("tree,p", po::value<string>(&in_data.tree), "Newick phylogenetic tree")
-		;
+        po::positional_options_description pos_p;
+        pos_p.add("fasta", -1);
+        po::variables_map varm;
+        po::store(po::command_line_parser(argc, argv)
+                      .options(desc)
+                      .positional(pos_p)
+                      .run(),
+                  varm);
 
-		po::positional_options_description pos_p;
-		pos_p.add("fasta",-1);
-		po::variables_map varm;
-		po::store(po::command_line_parser(argc,argv).options(desc).positional(pos_p).run(),varm);
+        if(varm.count("help") || argc < 2) {
+            cout << "Usage:	coati alignpair file.fasta [options]" << endl
+                 << endl;
+            cout << desc << endl;
+            return EXIT_SUCCESS;
+        }
 
-		if(varm.count("help") || argc < 2) {
-			cout << "Usage:	coati alignpair file.fasta [options]" << endl << endl;
-			cout << desc << endl;
-			return EXIT_SUCCESS;
-		}
+        if(varm.count("score")) {
+            in_data.score = true;
+        }
 
-		if(varm.count("score")) {
-			 in_data.score = true;
-		}
+        po::notify(varm);
 
-		po::notify(varm);
+    } catch(po::error& e) {
+        cerr << e.what() << ". Exiting!" << endl;
+        return EXIT_FAILURE;
+    }
 
-	} catch (po::error& e) {
-		cerr << e.what() << ". Exiting!" << endl;
-		return EXIT_FAILURE;
-	}
+    // read input fasta file sequences as FSA (acceptors)
+    vector<VectorFst<StdArc>> fsts;
+    Matrix64f P;
 
-	// read input fasta file sequences as FSA (acceptors)
-	vector<VectorFst<StdArc>> fsts;
-	Matrix64f P;
+    if(read_fasta(in_data.fasta_file, fsts) != 0) {
+        cerr << "Error reading " << in_data.fasta_file.path << " file. Exiting!"
+             << endl;
+        return EXIT_FAILURE;
+    } else if(in_data.fasta_file.seq_names.size() != 2 ||
+              in_data.fasta_file.seq_names.size() != fsts.size()) {
+        cerr << "Exactly two sequences required. Exiting!" << endl;
+        return EXIT_FAILURE;
+    }
 
-	if(read_fasta(in_data.fasta_file, fsts) != 0) {
-			cerr << "Error reading " << in_data.fasta_file.path << " file. Exiting!" << endl;
-			return EXIT_FAILURE;
-	} else if(in_data.fasta_file.seq_names.size() != 2 || in_data.fasta_file.seq_names.size()
-		!= fsts.size()) {
-			cerr << "Exactly two sequences required. Exiting!" << endl;
-			return EXIT_FAILURE;
-	}
+    if(in_data.out_file.empty()) {  // if no output is specified save in current
+                                    // dir in PHYLIP format
+        in_data.out_file =
+            boost::filesystem::path(in_data.fasta_file.path).stem().string() +
+            ".phy";
+    } else if(boost::filesystem::extension(in_data.out_file) != ".phy" &&
+              boost::filesystem::extension(in_data.out_file) != ".fasta") {
+        cout << "Format for output file is not valid. Exiting!" << endl;
+        return EXIT_FAILURE;
+    }
 
-	if(in_data.out_file.empty()) { // if no output is specified save in current dir in PHYLIP format
-		in_data.out_file = boost::filesystem::path(in_data.fasta_file.path).stem().string()+".phy";
-	} else if(boost::filesystem::extension(in_data.out_file) != ".phy" &&
-		boost::filesystem::extension(in_data.out_file) != ".fasta") {
-		cout << "Format for output file is not valid. Exiting!" << endl;
-		return EXIT_FAILURE;
-	}
+    if(!rate.empty()) {
+        Matrix64f Q;
+        double br_len;
+        parse_matrix_csv(rate, Q, br_len);
+        // P matrix
+        Q = Q * br_len;
+        P = Q.exp();
 
-	if(!rate.empty()) {
-		Matrix64f Q;
-		double br_len;
-		parse_matrix_csv(rate, Q, br_len);
-		// P matrix
-		Q = Q * br_len;
-		P = Q.exp();
-
-		return mcoati(in_data, P);
-	} else if((in_data.mut_model.compare("m-coati") == 0) ||
-		in_data.mut_model.compare("no_frameshifts") == 0 ){
-			mg94_p(P, in_data.br_len);
-			return mcoati(in_data, P);
-	} else if(in_data.mut_model.compare("m-ecm") == 0) {
-		ecm_p(P, in_data.br_len);
-		return mcoati(in_data,P);
-	} else {
-		P.setZero();
-		return fst_alignment(in_data, fsts);
-	}
-
+        return mcoati(in_data, P);
+    } else if((in_data.mut_model.compare("m-coati") == 0) ||
+              in_data.mut_model.compare("no_frameshifts") == 0) {
+        mg94_p(P, in_data.br_len);
+        return mcoati(in_data, P);
+    } else if(in_data.mut_model.compare("m-ecm") == 0) {
+        ecm_p(P, in_data.br_len);
+        return mcoati(in_data, P);
+    } else {
+        P.setZero();
+        return fst_alignment(in_data, fsts);
+    }
 }

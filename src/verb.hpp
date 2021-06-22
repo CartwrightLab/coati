@@ -23,15 +23,13 @@
 #ifndef COATI_VERB_HPP
 #define COATI_VERB_HPP
 
-#include <iostream>
-
 #include <coati/coati.hpp>
+#include <iostream>
 
 namespace coati {
 namespace verb {
 
-inline
-int check_version_number() {
+inline int check_version_number() {
     if(coati::version_number_check_equal(COATI_VERSION_INTEGER) == false) {
         std::cerr << "ERROR: Version mismatch between headers (#"
                   << COATI_VERSION_INTEGER << ") and library (#"
@@ -43,15 +41,14 @@ int check_version_number() {
 }
 
 #define COATI_VERB_RUNTIME_CHECK_VERSION_NUMBER_OR_RETURN() \
-    do { \
-        auto check = coati::verb::check_version_number(); \
-        if(check != EXIT_SUCCESS) { \
-            return check; \
-        } \
-    } while(false) \
+    do {                                                    \
+        auto check = coati::verb::check_version_number();   \
+        if(check != EXIT_SUCCESS) {                         \
+            return check;                                   \
+        }                                                   \
+    } while(false)
 
-} // namespace verb
-} // namespace coati
-
+}  // namespace verb
+}  // namespace coati
 
 #endif
