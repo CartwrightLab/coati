@@ -1,4 +1,8 @@
 # coati
+[![github-actions](https://github.com/jgarciamesa/coati/actions/workflows/cmake.yml/badge.svg?branch=github-actions)]
+(https://github.com/jgarciamesa/coati/actions/workflows/cmake.yml)
+[![codecov](https://codecov.io/gh/jgarciamesa/coati/branch/main/graph/badge.svg)](https://codecov.io/gh/jgarciamesa/coati)
+
 Codon-Aware Multiple Sequence Alignments
 
 ## Table of Contents
