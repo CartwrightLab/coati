@@ -69,18 +69,23 @@ TEST_CASE("[align.cc] mcoati") {
     Matrix64f P;
     mg94_p(P, input_data.br_len);
 
-    SUBCASE("Alignment with frameshifts (default)") {
+    SUBCASE("Alignment with frameshifts (default) - output fasta") {
         input_data.fasta_file.path = "../../fasta/example-001.fasta";
         input_data.out_file = "example-001.fasta";
         input_data.mut_model = "m-coati";
         input_data.weight_file = "score.log";
-        result.path = "example-001.fasta";
+        result.path = input_data.out_file;
+
+        if(boost::filesystem::exists(input_data.out_file))
+            boost::filesystem::remove(input_data.out_file);
+        if(boost::filesystem::exists(input_data.weight_file))
+            boost::filesystem::remove(input_data.weight_file);
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(remove("example-001.fasta") == 0);
+        CHECK(boost::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
@@ -88,24 +93,56 @@ TEST_CASE("[align.cc] mcoati") {
         CHECK(result.seq_data[0] == "CTCTGGATAGTG");
         CHECK(result.seq_data[1] == "CT----ATAGTG");
 
-        ifstream infile("score.log");
+        ifstream infile(input_data.weight_file);
         string s;
         infile >> s;
-        CHECK(remove("score.log") == 0);
+        CHECK(boost::filesystem::remove("score.log"));
         CHECK(s.substr(s.length() - 7) == "9.29064");
+    }
+
+    SUBCASE("Alignment with frameshifts (default) - output phylip") {
+        input_data.fasta_file.path = "../../fasta/example-001.fasta";
+        input_data.out_file = "example-001.phy";
+        input_data.mut_model = "m-coati";
+
+        if(boost::filesystem::exists(input_data.out_file))
+            boost::filesystem::remove(input_data.out_file);
+
+        REQUIRE(read_fasta(input_data.fasta_file) == 0);
+        REQUIRE(mcoati(input_data, P) == 0);
+
+        ifstream infile(input_data.out_file);
+        string s1, s2;
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("12") == 0);
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("1") == 0);
+        CHECK(s2.compare("CTCTGGATAGTG") == 0);
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("CT----ATAGTG") == 0);
+
+        CHECK(boost::filesystem::remove(input_data.out_file));
     }
 
     SUBCASE("Alignment with no frameshifts") {
         input_data.fasta_file.path = "../../fasta/example-002.fasta";
         input_data.out_file = "example-002.fasta";
         input_data.mut_model = "no_frameshifts";
-        result.path = "example-002.fasta";
+        result.path = input_data.out_file;
+
+        if(boost::filesystem::exists(input_data.out_file))
+            boost::filesystem::remove(input_data.out_file);
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(remove("example-002.fasta") == 0);
+        CHECK(boost::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
@@ -118,13 +155,16 @@ TEST_CASE("[align.cc] mcoati") {
         input_data.fasta_file.path = "../../fasta/example-001.fasta";
         input_data.out_file = "example-001.fasta";
         input_data.mut_model = "m-coati";
-        result.path = "example-001.fasta";
+        result.path = input_data.out_file;
+
+        if(boost::filesystem::exists(input_data.out_file))
+            boost::filesystem::remove(input_data.out_file);
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(remove("example-001.fasta") == 0);
+        CHECK(boost::filesystem::remove(input_data.out_file));
 
         CHECK(alignment_score(result.seq_data, P) == doctest::Approx(9.29064));
     }
@@ -227,16 +267,21 @@ TEST_CASE("[align.cc] fst_alignment") {
     input_data.out_file = "example-001.fasta";
     input_data.weight_file = "score.log";
     fasta_t result;
-    result.path = "example-001.fasta";
+    result.path = input_data.out_file;
 
-    SUBCASE("coati model") {
+    if(boost::filesystem::exists(input_data.out_file))
+        boost::filesystem::remove(input_data.out_file);
+    if(boost::filesystem::exists(input_data.weight_file))
+        boost::filesystem::remove(input_data.weight_file);
+
+    SUBCASE("coati model, output fasta") {
         input_data.mut_model = "coati";
 
         REQUIRE(read_fasta(input_data.fasta_file, fsts) == 0);
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(remove("example-001.fasta") == 0);
+        CHECK(boost::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
@@ -244,11 +289,37 @@ TEST_CASE("[align.cc] fst_alignment") {
         CHECK(result.seq_data[0] == "CTCTGGATAGTG");
         CHECK(result.seq_data[1] == "CT----ATAGTG");
 
-        ifstream infile("score.log");
+        ifstream infile(input_data.weight_file);
         string s;
         infile >> s;
-        CHECK(remove("score.log") == 0);
+        CHECK(boost::filesystem::remove(input_data.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31397");
+    }
+
+    SUBCASE("coati model, output phylip") {
+        input_data.mut_model = "coati";
+        input_data.out_file = "example-001.phy";
+
+        REQUIRE(read_fasta(input_data.fasta_file, fsts) == 0);
+        REQUIRE(fst_alignment(input_data, fsts) == 0);
+
+        ifstream infile(input_data.out_file);
+        string s1, s2;
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("12") == 0);
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("1") == 0);
+        CHECK(s2.compare("CTCTGGATAGTG") == 0);
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("CT----ATAGTG") == 0);
+
+        CHECK(boost::filesystem::remove(input_data.out_file));
+        CHECK(boost::filesystem::remove(input_data.weight_file));
     }
 
     SUBCASE("dna model") {
@@ -258,7 +329,7 @@ TEST_CASE("[align.cc] fst_alignment") {
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(remove("example-001.fasta") == 0);
+        CHECK(boost::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
@@ -266,10 +337,10 @@ TEST_CASE("[align.cc] fst_alignment") {
         CHECK(result.seq_data[0] == "CTCTGGATAGTG");
         CHECK(result.seq_data[1] == "CT----ATAGTG");
 
-        ifstream infile("score.log");
+        ifstream infile(input_data.weight_file);
         string s;
         infile >> s;
-        CHECK(remove("score.log") == 0);
+        CHECK(boost::filesystem::remove(input_data.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31994");
     }
 
@@ -280,7 +351,7 @@ TEST_CASE("[align.cc] fst_alignment") {
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(remove("example-001.fasta") == 0);
+        CHECK(boost::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
@@ -288,10 +359,10 @@ TEST_CASE("[align.cc] fst_alignment") {
         CHECK(result.seq_data[0] == "CTCTGGATAGTG");
         CHECK(result.seq_data[1] == "CT----ATAGTG");
 
-        ifstream infile("score.log");
+        ifstream infile(input_data.weight_file);
         string s;
         infile >> s;
-        CHECK(remove("score.log") == 0);
+        CHECK(boost::filesystem::remove(input_data.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31388");
     }
 
