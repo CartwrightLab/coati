@@ -130,7 +130,6 @@ int main(int argc, char* argv[]) {
         ecm_p(P, in_data.br_len);
         return mcoati(in_data, P);
     } else {
-        P.setZero();
         return fst_alignment(in_data, fsts);
     }
 }

@@ -1168,7 +1168,11 @@ void mg94(VectorFst<StdArc>& mut_fst, const double& br_len) {
 
     // Set final state & optimize
     mg94.SetFinal(0, 0.0);
-    mut_fst = optimize(mg94);
+
+    VectorFst<StdArc> mg94_rmep;
+    mg94_rmep = RmEpsilonFst<StdArc>(mg94);  // epsilon removal
+
+    mut_fst = optimize(mg94_rmep);
 }
 
 TEST_CASE("[mut_models.cc] mg94") {
@@ -1324,31 +1328,6 @@ TEST_CASE("[mut_models.cc] nuc2pos") {
     CHECK(n2p_fst.NumStates() == 129);  // 64 AA with 2 states each + init state
 }
 
-/* Marginal model FST */
-void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos) {
-    VectorFst<StdArc> nuc2pos_raw;
-    nuc2pos(nuc2pos_raw);
-
-    // optimize raw FSTs
-    VectorFst<StdArc> nuc2cod_fst, cod2pos_fst, marg_pos_fst, nuc2pos_fst;
-    marg_pos_fst = optimize(marg_pos);
-    nuc2pos_fst = optimize(nuc2pos_raw);
-
-    // sort FSTs
-    VectorFst<StdArc> nuc2cod_sort, cod2pos_sort, marg_pos_sort, nuc2pos_sort;
-    marg_pos_sort = ArcSortFst<StdArc, ILabelCompare<StdArc>>(
-        marg_pos_fst, ILabelCompare<StdArc>());
-    nuc2pos_sort = ArcSortFst<StdArc, OLabelCompare<StdArc>>(
-        nuc2pos_fst, OLabelCompare<StdArc>());
-
-    // compose FSTs
-    ComposeFst<StdArc> marg_mut =
-        ComposeFst<StdArc>(nuc2pos_sort, marg_pos_sort);
-
-    // optimize final marginalized mutation FST
-    mut_fst = optimize(VectorFst<StdArc>(marg_mut));
-}
-
 /* Create affine gap indel model FST*/
 void indel(VectorFst<StdArc>& indel_model, string model) {
     double deletion = 0.001, insertion = 0.001;
@@ -1398,7 +1377,25 @@ void indel(VectorFst<StdArc>& indel_model, string model) {
 
     // Set final state & optimize
     indel_fst.SetFinal(7, 0.0);
-    indel_model = optimize(indel_fst);
+
+    VectorFst<StdArc> indel_rmep;
+    indel_rmep = RmEpsilonFst<StdArc>(indel_fst);  // epsilon removal
+
+    indel_model = optimize(indel_rmep);
+}
+
+TEST_CASE("[mut_models.cc] indel") {
+    VectorFst<StdArc> indel_model;
+    string model = "m-coati";
+
+    indel(indel_model, model);
+
+    CHECK(Verify(indel_model));  // openfst built-in sanity check
+    CHECK(indel_model.NumStates() == 4);
+    CHECK(indel_model.NumArcs(0) == 17);  // number of outcoming arcs
+    CHECK(indel_model.NumArcs(1) == 17);
+    CHECK(indel_model.NumArcs(2) == 12);
+    CHECK(indel_model.NumArcs(3) == 1);
 }
 
 /* ECM unrestricted exchangeabilities, Kosiol et al. 2007, supplemental data

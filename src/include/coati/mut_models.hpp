@@ -50,7 +50,6 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P);
 int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
                         Matrix64f& P_m);
 void nuc2pos(VectorFst<StdArc>& n2p);
-void marg_mut(VectorFst<StdArc>& mut_fst, VectorFst<StdArc> marg_pos);
 void dna(VectorFst<StdArc>& mut_fst, const double& br_len);
 void indel(VectorFst<StdArc>& indel_model, string model);
 void ecm_p(Matrix64f& P, const double& br_len);

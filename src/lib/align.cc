@@ -62,6 +62,74 @@ int mcoati(input_t& in_data, Matrix64f& P) {
     }
 }
 
+TEST_CASE("[align.cc] mcoati") {
+    input_t input_data;
+    input_data.br_len = 0.0133;
+    fasta_t result;
+    Matrix64f P;
+    mg94_p(P, input_data.br_len);
+
+    SUBCASE("Alignment with frameshifts (default)") {
+        input_data.fasta_file.path = "../../fasta/example-001.fasta";
+        input_data.out_file = "example-001.fasta";
+        input_data.mut_model = "m-coati";
+        input_data.weight_file = "score.log";
+        result.path = "example-001.fasta";
+
+        REQUIRE(read_fasta(input_data.fasta_file) == 0);
+        REQUIRE(mcoati(input_data, P) == 0);
+        REQUIRE(read_fasta(result) == 0);
+
+        CHECK(remove("example-001.fasta") == 0);
+
+        CHECK(result.seq_names[0] == "1");
+        CHECK(result.seq_names[1] == "2");
+
+        CHECK(result.seq_data[0] == "CTCTGGATAGTG");
+        CHECK(result.seq_data[1] == "CT----ATAGTG");
+
+        ifstream infile("score.log");
+        string s;
+        infile >> s;
+        CHECK(remove("score.log") == 0);
+        CHECK(s.substr(s.length() - 7) == "9.29064");
+    }
+
+    SUBCASE("Alignment with no frameshifts") {
+        input_data.fasta_file.path = "../../fasta/example-002.fasta";
+        input_data.out_file = "example-002.fasta";
+        input_data.mut_model = "no_frameshifts";
+        result.path = "example-002.fasta";
+
+        REQUIRE(read_fasta(input_data.fasta_file) == 0);
+        REQUIRE(mcoati(input_data, P) == 0);
+        REQUIRE(read_fasta(result) == 0);
+
+        CHECK(remove("example-002.fasta") == 0);
+
+        CHECK(result.seq_names[0] == "1");
+        CHECK(result.seq_names[1] == "2");
+
+        CHECK(result.seq_data[0] == "GCGATTGCTGTT");
+        CHECK(result.seq_data[1] == "GCGA---CTGTT");
+    }
+
+    SUBCASE("Score alignment") {
+        input_data.fasta_file.path = "../../fasta/example-001.fasta";
+        input_data.out_file = "example-001.fasta";
+        input_data.mut_model = "m-coati";
+        result.path = "example-001.fasta";
+
+        REQUIRE(read_fasta(input_data.fasta_file) == 0);
+        REQUIRE(mcoati(input_data, P) == 0);
+        REQUIRE(read_fasta(result) == 0);
+
+        CHECK(remove("example-001.fasta") == 0);
+
+        CHECK(alignment_score(result.seq_data, P) == doctest::Approx(9.29064));
+    }
+}
+
 /* Alignment using FST library*/
 int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts) {
     VectorFst<StdArc> mut_fst;
@@ -96,9 +164,12 @@ int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts) {
     VectorFst<StdArc> coati_fst;
     coati_fst = optimize(VectorFst<StdArc>(coati_comp));
 
+    VectorFst<StdArc> coati_rmep;
+    coati_rmep = RmEpsilonFst<StdArc>(coati_fst);  // epsilon removal
+
     // find alignment graph
     // 1. compose in_tape and coati FSTs
-    ComposeFst<StdArc> aln_inter = ComposeFst<StdArc>(fsts[0], coati_fst);
+    ComposeFst<StdArc> aln_inter = ComposeFst<StdArc>(fsts[0], coati_rmep);
     // 2. sort intermediate composition
     VectorFst<StdArc> aln_inter_sort;
     aln_inter_sort = ArcSortFst<StdArc, OLabelCompare<StdArc>>(
@@ -148,106 +219,86 @@ int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts) {
     }
 }
 
-/* Progressive alignment  */
-int progressive_aln(input_t& in_data) {
-    Matrix64f P;
-    vector<pair<int, double>> order;
-    tree_t tree;
-    string newick;
-    ofstream out_w;
-    alignment_t aln;
+TEST_CASE("[align.cc] fst_alignment") {
+    vector<VectorFst<StdArc>> fsts;
+    input_t input_data;
+    input_data.br_len = 0.0133;
+    input_data.fasta_file.path = "../../fasta/example-001.fasta";
+    input_data.out_file = "example-001.fasta";
+    input_data.weight_file = "score.log";
+    fasta_t result;
+    result.path = "example-001.fasta";
 
-    aln.f.seq_names = in_data.fasta_file.seq_names;
-    aln.f.path = in_data.out_file;
+    SUBCASE("coati model") {
+        input_data.mut_model = "coati";
 
-    // reack newick tree file
-    if(!read_newick(in_data.tree, newick)) {
-        cout << "Error: reading newick tree failed." << endl;
-        exit(EXIT_FAILURE);
+        REQUIRE(read_fasta(input_data.fasta_file, fsts) == 0);
+        REQUIRE(fst_alignment(input_data, fsts) == 0);
+        REQUIRE(read_fasta(result) == 0);
+
+        CHECK(remove("example-001.fasta") == 0);
+
+        CHECK(result.seq_names[0] == "1");
+        CHECK(result.seq_names[1] == "2");
+
+        CHECK(result.seq_data[0] == "CTCTGGATAGTG");
+        CHECK(result.seq_data[1] == "CT----ATAGTG");
+
+        ifstream infile("score.log");
+        string s;
+        infile >> s;
+        CHECK(remove("score.log") == 0);
+        CHECK(s.substr(s.length() - 7) == "9.31397");
     }
 
-    // parse tree into tree_t (vector<node_t>) variable
-    if(parse_newick(newick, tree) != 0) {
-        cout << "Error: parsing newick tree failed." << endl;
-        exit(EXIT_FAILURE);
+    SUBCASE("dna model") {
+        input_data.mut_model = "dna";
+
+        REQUIRE(read_fasta(input_data.fasta_file, fsts) == 0);
+        REQUIRE(fst_alignment(input_data, fsts) == 0);
+        REQUIRE(read_fasta(result) == 0);
+
+        CHECK(remove("example-001.fasta") == 0);
+
+        CHECK(result.seq_names[0] == "1");
+        CHECK(result.seq_names[1] == "2");
+
+        CHECK(result.seq_data[0] == "CTCTGGATAGTG");
+        CHECK(result.seq_data[1] == "CT----ATAGTG");
+
+        ifstream infile("score.log");
+        string s;
+        infile >> s;
+        CHECK(remove("score.log") == 0);
+        CHECK(s.substr(s.length() - 7) == "9.31994");
     }
 
-    // get order of leafs to align and branch lengths
-    aln_order(tree, order);
+    SUBCASE("ecm model") {
+        input_data.mut_model = "ecm";
 
-    // retrieve closest leafs' sequences
-    vector<string> closest_leafs, next_leaf;
-    string seq;
+        REQUIRE(read_fasta(input_data.fasta_file, fsts) == 0);
+        REQUIRE(fst_alignment(input_data, fsts) == 0);
+        REQUIRE(read_fasta(result) == 0);
 
-    // sequence for 1st leaf
-    if(!find_seq(tree[order[0].first].label, in_data.fasta_file, seq)) {
-        cout << "Error: sequence " << tree[order[0].first].label
-             << " not found in fasta file." << endl;
-        exit(EXIT_FAILURE);
-    }
-    closest_leafs.push_back(seq);
-    aln.f.seq_names[0] = tree[order[0].first].label;  // label (name) of leaf
+        CHECK(remove("example-001.fasta") == 0);
 
-    // sequence for 2nd leaf
-    if(!find_seq(tree[order[1].first].label, in_data.fasta_file, seq)) {
-        cout << "Error: sequence " << tree[order[1].first].label
-             << " not found in fasta file." << endl;
-        exit(EXIT_FAILURE);
-    }
-    closest_leafs.push_back(seq);
-    aln.f.seq_names[1] = tree[order[1].first].label;  // label (name) of leaf
+        CHECK(result.seq_names[0] == "1");
+        CHECK(result.seq_names[1] == "2");
 
-    // get branch length and create P matrix
-    double branch = order[1].second;
-    if(in_data.mut_model.compare("m-ecm") == 0) {
-        ecm_p(P, branch);
-    } else {  // m-coati
-        mg94_p(P, branch);
+        CHECK(result.seq_data[0] == "CTCTGGATAGTG");
+        CHECK(result.seq_data[1] == "CT----ATAGTG");
+
+        ifstream infile("score.log");
+        string s;
+        infile >> s;
+        CHECK(remove("score.log") == 0);
+        CHECK(s.substr(s.length() - 7) == "9.31388");
     }
 
-    // alignpair closest leafs
-    if(mg94_marginal(closest_leafs, aln, P) != 0) {
-        cout << "Error: aligning closest leafs " << tree[order[0].first].label
-             << " and " << tree[order[1].first].label << endl;
-        exit(EXIT_FAILURE);
-    }
+    SUBCASE("Unknown model") {
+        input_data.mut_model = "unknown";
 
-    // align rest of leafs in order
-    for(int i = 2; i < order.size(); i++) {
-        // find sequence of next leaf
-        if(!find_seq(tree[order[i].first].label, in_data.fasta_file, seq)) {
-            cout << "Error: sequence " << tree[order[i].first].label
-                 << " not found in fasta file." << endl;
-            exit(EXIT_FAILURE);
-        }
-        next_leaf = {seq};
-        // new branch length and update P matrix
-        if(in_data.mut_model.compare("m-ecm") == 0) {
-            ecm_p(P, order[i].second);
-        } else {  // m-coati
-            mg94_p(P, order[i].second);
-        }
-
-        // align
-        gotoh_profile_marginal(aln.f.seq_data, next_leaf, aln, P);
-        aln.f.seq_names[i] =
-            tree[order[i].first].label;  // add sequence label (name)
-    }
-
-    // if file to save weight of alignment is provided do so
-    if(!in_data.weight_file.empty()) {
-        // append weight and fasta file name to file
-        out_w.open(in_data.weight_file, ios::app | ios::out);
-        out_w << in_data.fasta_file.path << "," << in_data.mut_model << ","
-              << aln.weight << endl;
-        out_w.close();
-    }
-
-    // write alignment
-    if(boost::filesystem::extension(aln.f.path) == ".fasta") {
-        return write_fasta(aln.f);
-    } else {
-        return write_phylip(aln.f);
+        REQUIRE(fst_alignment(input_data, fsts) == EXIT_FAILURE);
     }
 }
 
@@ -282,6 +333,7 @@ int ref_indel_alignment(input_t& in_data) {
     int ref_pos;
     if(!find_node(tree, in_data.ref, ref_pos)) {
         cout << "Error: reference node not found in tree." << endl;
+        exit(EXIT_FAILURE);
     }
 
     // find sequence of ref in in_data
@@ -354,7 +406,8 @@ int ref_indel_alignment(input_t& in_data) {
         if(tree[i].parent != i) tree[tree[i].parent].children.push_back(i);
     }
 
-    // while not all nodes have been visited (any value in visitied is false)
+    // while not all nodes have been visited (any value in visitied is
+    // false)
     while(any_of(visited, visited + tree.size(), [](bool b) { return !b; })) {
         for(auto inode_pos : inode_indexes) {  // for all inodes
             bool children_visited = true;
@@ -413,27 +466,53 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
 
     input_data.fasta_file.path = "../../fasta/example-msa-001.fasta";
     input_data.tree = "../../newick/example-msa-001.newick";
-    input_data.out_file = "example-msa-001.fasta";
-    input_data.mut_model = "m-coati";
     input_data.ref = "A";
 
-    result.path = "example-msa-001.fasta";
+    SUBCASE("m-coati model") {
+        input_data.mut_model = "m-coati";
+        input_data.out_file = "example-mcoati-msa.fasta";
+        result.path = "example-mcoati-msa.fasta";
 
-    REQUIRE(read_fasta(input_data.fasta_file) == 0);
-    REQUIRE(ref_indel_alignment(input_data) == 0);
-    REQUIRE(read_fasta(result) == 0);
+        REQUIRE(read_fasta(input_data.fasta_file) == 0);
+        REQUIRE(ref_indel_alignment(input_data) == 0);
+        REQUIRE(read_fasta(result) == 0);
 
-    CHECK(result.seq_names[0] == "A");
-    CHECK(result.seq_names[1] == "B");
-    CHECK(result.seq_names[2] == "C");
-    CHECK(result.seq_names[3] == "D");
-    CHECK(result.seq_names[4] == "E");
+        CHECK(remove("example-mcoati-msa.fasta") == 0);
 
-    CHECK(result.seq_data[0] == "TCA--TCG");
-    CHECK(result.seq_data[1] == "TCA-GTCG");
-    CHECK(result.seq_data[2] == "T-A--TCG");
-    CHECK(result.seq_data[3] == "TCAC-TCG");
-    CHECK(result.seq_data[4] == "TCA--TC-");
+        CHECK(result.seq_names[0] == "A");
+        CHECK(result.seq_names[1] == "B");
+        CHECK(result.seq_names[2] == "C");
+        CHECK(result.seq_names[3] == "D");
+        CHECK(result.seq_names[4] == "E");
 
-    remove("example-msa-001.fasta");
+        CHECK(result.seq_data[0] == "TCA--TCG");
+        CHECK(result.seq_data[1] == "TCA-GTCG");
+        CHECK(result.seq_data[2] == "T-A--TCG");
+        CHECK(result.seq_data[3] == "TCAC-TCG");
+        CHECK(result.seq_data[4] == "TCA--TC-");
+    }
+
+    SUBCASE("m-ecm model") {
+        input_data.mut_model = "m-ecm";
+        input_data.out_file = "example-mecm-msa.fasta";
+        result.path = "example-mecm-msa.fasta";
+
+        REQUIRE(read_fasta(input_data.fasta_file) == 0);
+        REQUIRE(ref_indel_alignment(input_data) == 0);
+        REQUIRE(read_fasta(result) == 0);
+
+        CHECK(remove("example-mecm-msa.fasta") == 0);
+
+        CHECK(result.seq_names[0] == "A");
+        CHECK(result.seq_names[1] == "B");
+        CHECK(result.seq_names[2] == "C");
+        CHECK(result.seq_names[3] == "D");
+        CHECK(result.seq_names[4] == "E");
+
+        CHECK(result.seq_data[0] == "TC--ATCG");
+        CHECK(result.seq_data[1] == "TC-AGTCG");
+        CHECK(result.seq_data[2] == "T---ATCG");
+        CHECK(result.seq_data[3] == "TCA-CTCG");
+        CHECK(result.seq_data[4] == "TC--ATC-");
+    }
 }

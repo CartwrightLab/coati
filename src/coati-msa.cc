@@ -94,6 +94,5 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    // return progressive_aln(in_data);
     return ref_indel_alignment(in_data);
 }

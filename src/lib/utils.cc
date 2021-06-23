@@ -67,17 +67,12 @@ VectorFst<StdArc> optimize(VectorFst<StdArc> fst_raw) {
     fst_det = DeterminizeFst<StdArc>(fst_rmep);
 
     // 3. minimize
-    VectorFst<StdArc> fst_min;
-    Minimize(&fst_det, &fst_min);
+    Minimize(&fst_det);
 
     // decode
-    DecodeFst<StdArc> fst_dec = DecodeFst<StdArc>(fst_det, encoder);
+    Decode(&fst_det, encoder);
 
-    // epsilon removal after decoding
-    VectorFst<StdArc> fst_opt;
-    fst_opt = RmEpsilonFst<StdArc>(fst_dec);
-
-    return fst_opt;
+    return fst_det;
 }
 
 /* Read fasta format file */
