@@ -20,11 +20,12 @@
 # SOFTWARE.
 */
 
-#ifndef PROFILE_ALN_H
-#define PROFILE_ALN_H
+#ifndef PROFILE_ALN_HPP
+#define PROFILE_ALN_HPP
 
 #include <Eigen/Dense>
-#include <coati/mut_models.hpp>
+#include <coati/gotoh.hpp>
+#include <coati/mutation_ecm.hpp>
 
 typedef Eigen::Matrix<double, 4, 1> Vector4d;
 typedef Eigen::Matrix<double, 4, 3> Matrix4x3d;

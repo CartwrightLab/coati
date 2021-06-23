@@ -20,20 +20,12 @@
 # SOFTWARE.
 */
 
-#ifndef TREE_H
-#define TREE_H
+#ifndef TREE_HPP
+#define TREE_HPP
 
-#include <Eigen/Dense>
 #include <algorithm>
-#include <boost/algorithm/string.hpp>
-#include <boost/fusion/include/sequence.hpp>
-#include <boost/fusion/sequence.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <coati/utils.hpp>
-#include <fstream>
-#include <iostream>
-
-using namespace std;
 
 struct node_t {
     string label;

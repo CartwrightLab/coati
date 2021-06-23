@@ -22,10 +22,6 @@
 
 #include <boost/program_options.hpp>
 #include <coati/align.hpp>
-#include <coati/profile_aln.hpp>
-#include <iostream>
-
-using namespace std;
 
 namespace po = boost::program_options;
 

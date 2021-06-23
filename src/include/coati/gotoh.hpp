@@ -20,34 +20,20 @@
 # SOFTWARE.
 */
 
-#ifndef INSERTIONS_HPP
-#define INSERTIONS_HPP
+#ifndef GOTOH_HPP
+#define GOTOH_HPP
 
-#include <Eigen/Sparse>
-#include <iostream>
-#include <numeric>
-#include <vector>
+#include <coati/mutation_coati.hpp>
 
-using namespace std;
-
-typedef Eigen::SparseVector<int, Eigen::RowMajor> SparseVectorInt;
-
-struct insertion_data_t {
-    vector<string> sequences, names;
-    SparseVectorInt insertions;
-    insertion_data_t(const vector<string>& s, const vector<string>& n,
-                     SparseVectorInt i)
-        : sequences{s}, names{n}, insertions{i} {}
-    insertion_data_t(const string& s, const string& n, SparseVectorInt i)
-        : sequences{{s}}, names{{n}}, insertions{i} {}
-    insertion_data_t() : sequences{}, names{}, insertions{SparseVectorInt()} {}
-};
-
-bool insertion_flags(const string& ref, const string& seq,
-                     SparseVectorInt& insertions_vector);
-bool merge_indels(vector<insertion_data_t>& ins_data,
-                  insertion_data_t& merged_data);
-void add_gap(vector<insertion_data_t>& ins_data, vector<int> seq_indexes,
-             int pos);
+int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P);
+int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
+                        Matrix64f& P_m);
+double transition(string codon, int position, char nucleotide,
+                  const Eigen::Tensor<double, 3>& p);
+int backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
+                 string seqa, string seqb, alignment_t& aln);
+int backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp,
+                               Eigen::MatrixXd Bq, string seqa, string seqb,
+                               alignment_t& aln);
 
 #endif

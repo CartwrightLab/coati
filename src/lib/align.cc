@@ -516,3 +516,93 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
         CHECK(result.seq_data[4] == "TC--ATC-");
     }
 }
+
+float alignment_score(vector<string> alignment, Matrix64f& P) {
+    if(alignment[0].length() != alignment[1].length()) {
+        cout << "For alignment scoring both sequences must have equal lenght. "
+                "Exiting!"
+             << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    int state = 0;
+    double weight = 0.0;
+    string codon;
+
+    double insertion = 0.001;
+    double deletion = 0.001;
+    double insertion_ext = 1.0 - (1.0 / 6.0);
+    double deletion_ext = 1.0 - (1.0 / 6.0);
+
+    // P matrix for marginal Muse and Gaut codon model
+    Eigen::Tensor<double, 3> p(64, 3, 4);
+    mg94_marginal_p(p, P);
+
+    string seq1 = alignment[0];
+    boost::erase_all(seq1, "-");
+    int gap_n = 0;
+
+    Vector5d nuc_freqs;
+    nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
+
+    for(int i = 0; i < alignment[0].length(); i++) {
+        codon = seq1.substr(((i - gap_n) / 3) * 3, 3);  // current codon
+        switch(state) {
+        case 0:
+            if(alignment[0][i] == '-') {
+                // insertion;
+                weight = weight - log(insertion) -
+                         log(nuc_freqs[nt4_table[alignment[1][i]]]) -
+                         log(1.0 - insertion_ext);
+                state = 1;
+                gap_n++;
+            } else if(alignment[1][i] == '-') {
+                // deletion;
+                weight = weight - log(1.0 - insertion) - log(deletion) -
+                         log(1.0 - deletion_ext);
+                state = 2;
+            } else {
+                // match/mismatch;
+                weight = weight - log(1.0 - insertion) - log(1.0 - deletion) -
+                         log(transition(codon, (i + 1 - gap_n) % 3,
+                                        alignment[1][i], p));
+            }
+            break;
+
+        case 1:
+            if(alignment[0][i] == '-') {
+                // insertion_ext
+                weight = weight - log(insertion_ext) -
+                         log(nuc_freqs[nt4_table[alignment[1][i]]]);
+                gap_n++;
+            } else if(alignment[1][i] == '-') {
+                // deletion
+                weight = weight - log(deletion) - log(1.0 - deletion_ext);
+                state = 2;
+            } else {
+                // match/mismatch
+                weight = weight - log(1.0 - deletion) -
+                         log(transition(codon, (i + 1 - gap_n) % 3,
+                                        alignment[1][i], p));
+                state = 0;
+            }
+            break;
+
+        case 2:
+            if(alignment[0][i] == '-') {
+                cout << "Insertion after deletion is not modeled. Exiting!";
+                exit(EXIT_FAILURE);
+            } else if(alignment[1][i] == '-') {
+                // deletion_ext
+                weight = weight - log(deletion_ext);
+            } else {
+                // match/mismatch
+                weight = weight - log(transition(codon, (i + 1 - gap_n) % 3,
+                                                 alignment[1][i], p));
+                state = 0;
+            }
+        }
+    }
+
+    return (weight);
+}

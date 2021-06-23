@@ -20,22 +20,18 @@
 # SOFTWARE.
 */
 
-#ifndef ALIGN_H
-#define ALIGN_H
+#ifndef ALIGN_HPP
+#define ALIGN_HPP
 
-// #include <fstream>
 #include <boost/filesystem.hpp>
 #include <coati/insertions.hpp>
-#include <coati/mut_models.hpp>
 #include <coati/profile_aln.hpp>
 #include <coati/tree.hpp>
-
-using namespace fst;
-using namespace std;
 
 int mcoati(input_t& in_data, Matrix64f& P);
 int progressive_aln(input_t& in_data);
 int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts);
 int ref_indel_alignment(input_t& in_data);
+float alignment_score(vector<string> alignment_t, Matrix64f& P);
 
 #endif

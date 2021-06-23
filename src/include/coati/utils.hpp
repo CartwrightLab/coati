@@ -20,13 +20,12 @@
 # SOFTWARE.
 */
 
-#ifndef UTILS_H
-#define UTILS_H
-
-#include <fst/fstlib.h>
+#ifndef UTILS_HPP
+#define UTILS_HPP
 
 #include <Eigen/Dense>
 #include <boost/algorithm/string.hpp>
+#include <coati/dna_syms.hpp>
 #include <fstream>
 #include <iostream>
 

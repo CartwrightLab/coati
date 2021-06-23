@@ -20,34 +20,14 @@
 # SOFTWARE.
 */
 
-#ifndef INSERTIONS_HPP
-#define INSERTIONS_HPP
+#ifndef MUTATION_ECM_HPP
+#define MUTATION_ECM_HPP
 
-#include <Eigen/Sparse>
-#include <iostream>
-#include <numeric>
-#include <vector>
+#include <coati/mutation_fst.hpp>
 
-using namespace std;
-
-typedef Eigen::SparseVector<int, Eigen::RowMajor> SparseVectorInt;
-
-struct insertion_data_t {
-    vector<string> sequences, names;
-    SparseVectorInt insertions;
-    insertion_data_t(const vector<string>& s, const vector<string>& n,
-                     SparseVectorInt i)
-        : sequences{s}, names{n}, insertions{i} {}
-    insertion_data_t(const string& s, const string& n, SparseVectorInt i)
-        : sequences{{s}}, names{{n}}, insertions{i} {}
-    insertion_data_t() : sequences{}, names{}, insertions{SparseVectorInt()} {}
-};
-
-bool insertion_flags(const string& ref, const string& seq,
-                     SparseVectorInt& insertions_vector);
-bool merge_indels(vector<insertion_data_t>& ins_data,
-                  insertion_data_t& merged_data);
-void add_gap(vector<insertion_data_t>& ins_data, vector<int> seq_indexes,
-             int pos);
+void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
+double k(uint8_t c1, uint8_t c2, int model = 0);
+void ecm_p(Matrix64f& P, const double& br_len);
+void ecm(VectorFst<StdArc>& mut_fst, const double& br_len);
 
 #endif

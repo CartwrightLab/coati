@@ -22,7 +22,6 @@
 
 #include <doctest/doctest.h>
 
-#include <coati/dna_syms.hpp>
 #include <coati/utils.hpp>
 
 #define PRINT_SIZE 100

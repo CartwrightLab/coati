@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,18 +20,15 @@
 # SOFTWARE.
 */
 
-#ifndef MUT_MODELS_H
-#define MUT_MODELS_H
-
-#include <fst/fstlib.h>
+#ifndef MUTATION_COATI_HPP
+#define MUTATION_COATI_HPP
 
 #include <algorithm>
 #include <cmath>
 #include <coati/utils.hpp>
-#include <iostream>
 #include <limits>
-#include <map>
-#include <unordered_map>
+// #include <map>
+// #include <unordered_map>
 #include <unsupported/Eigen/CXX11/Tensor>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
@@ -39,32 +36,8 @@
 typedef Eigen::Matrix<double, 64, 1> Vector64f;
 typedef Eigen::Matrix<double, 4, 4> Matrix4f;
 
-using namespace fst;
-using namespace std;
-
 void mg94_q(Matrix64f& Q);
 void mg94_p(Matrix64f& P, const double& br_len);
-void mg94(VectorFst<StdArc>& mut_fst, const double& br_len);
 void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P);
-int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P);
-int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
-                        Matrix64f& P_m);
-void nuc2pos(VectorFst<StdArc>& n2p);
-void dna(VectorFst<StdArc>& mut_fst, const double& br_len);
-void indel(VectorFst<StdArc>& indel_model, string model);
-void ecm_p(Matrix64f& P, const double& br_len);
-void ecm(VectorFst<StdArc>& mut_fst, const double& br_len);
-void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
-double k(uint8_t c1, uint8_t c2, int model = 0);
-double transition(string codon, int position, char nucleotide,
-                  const Eigen::Tensor<double, 3>& p);
-int backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
-                 string seqa, string seqb, alignment_t& aln);
-int backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp,
-                               Eigen::MatrixXd Bq, string seqa, string seqb,
-                               alignment_t& aln);
-float alignment_score(vector<string> alignment_t, Matrix64f& P);
-void hybrid_p(Matrix64f& P);
-void hybrid(VectorFst<StdArc>& mut_fst);
 
 #endif

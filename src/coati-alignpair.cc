@@ -22,15 +22,8 @@
 
 #include <fst/fstlib.h>
 
-#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <coati/align.hpp>
-#include <coati/mut_models.hpp>
-#include <fstream>
-#include <iostream>
-
-using namespace fst;
-using namespace std;
 
 namespace po = boost::program_options;
 
