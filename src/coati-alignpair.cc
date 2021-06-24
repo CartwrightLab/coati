@@ -50,9 +50,7 @@ int main(int argc, char* argv[]) {
             "Substitution rate matrix (CSV)")(
             "evo-time,t",
             po::value<double>(&in_data.br_len)->default_value(0.0133, "0.0133"),
-            "Evolutionary time or branch length")(
-            "tree,p", po::value<string>(&in_data.tree),
-            "Newick phylogenetic tree");
+            "Evolutionary time or branch length");
 
         po::positional_options_description pos_p;
         pos_p.add("fasta", -1);
@@ -107,6 +105,8 @@ int main(int argc, char* argv[]) {
     }
 
     if(!rate.empty()) {
+        in_data.mut_model = "user_marg_model";
+
         Matrix64f Q;
         double br_len;
         parse_matrix_csv(rate, Q, br_len);

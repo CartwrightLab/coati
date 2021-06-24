@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
             po::value<string>(&in_data.mut_model)->default_value("m-coati"),
             "substitution model: m-coati (default), m-ecm")(
             "weight,w", po::value<string>(&in_data.weight_file),
-            "write alignment score to given file")(
+            "write alignment score to file (coming soon)")(
             "output,o", po::value<string>(&in_data.out_file),
             "alignment output file")(
             "tree,p", po::value<string>(&in_data.tree)->required(),

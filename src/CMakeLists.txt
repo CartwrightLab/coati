@@ -93,11 +93,11 @@ target_link_libraries(coati-doctest libcoati-doctest doctest::doctest)
 
 doctest_discover_tests(coati-doctest PROPERTIES "FIXTURES_REQUIRED;doctest_fixture")
 
-add_test(NAME [=[[pretest] build_coati-doctest]=] COMMAND "${CMAKE_COMMAND}"
+add_test(NAME [=["[pretest] build_coati-doctest"]=] COMMAND "${CMAKE_COMMAND}"
   --build "${CMAKE_BINARY_DIR}"
   --config "$<CONFIG>"
   --target coati-doctest
 )
-set_tests_properties([=[[pretest] build_coati-doctest]=] PROPERTIES FIXTURES_SETUP doctest_fixture)
+set_tests_properties([=["[pretest] build_coati-doctest"]=] PROPERTIES FIXTURES_SETUP doctest_fixture)
 
 add_dependencies(pretest coati-doctest)
