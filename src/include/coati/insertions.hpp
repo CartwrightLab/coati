@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,35 +20,34 @@
 # SOFTWARE.
 */
 
-#ifndef COATI_VERB_HPP
-#define COATI_VERB_HPP
+#ifndef INSERTIONS_HPP
+#define INSERTIONS_HPP
 
-#include <coati/coati.hpp>
+#include <Eigen/Sparse>
 #include <iostream>
+#include <numeric>
+#include <vector>
 
-namespace coati {
-namespace verb {
+using namespace std;
 
-inline int check_version_number() {
-    if(coati::version_number_check_equal(COATI_VERSION_INTEGER) == false) {
-        std::cerr << "ERROR: Version mismatch between headers (#"
-                  << COATI_VERSION_INTEGER << ") and library (#"
-                  << coati::version_integer() << ").\n";
-        std::cerr << "       COATi linked against wrong version of library.\n";
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
-}
+typedef Eigen::SparseVector<int, Eigen::RowMajor> SparseVectorInt;
 
-#define COATI_VERB_RUNTIME_CHECK_VERSION_NUMBER_OR_RETURN() \
-    do {                                                    \
-        auto check = coati::verb::check_version_number();   \
-        if(check != EXIT_SUCCESS) {                         \
-            return check;                                   \
-        }                                                   \
-    } while(false)
+struct insertion_data_t {
+    vector<string> sequences, names;
+    SparseVectorInt insertions;
+    insertion_data_t(const vector<string>& s, const vector<string>& n,
+                     SparseVectorInt i)
+        : sequences{s}, names{n}, insertions{i} {}
+    insertion_data_t(const string& s, const string& n, SparseVectorInt i)
+        : sequences{{s}}, names{{n}}, insertions{i} {}
+    insertion_data_t() : sequences{}, names{}, insertions{SparseVectorInt()} {}
+};
 
-}  // namespace verb
-}  // namespace coati
+bool insertion_flags(const string& ref, const string& seq,
+                     SparseVectorInt& insertions_vector);
+bool merge_indels(vector<insertion_data_t>& ins_data,
+                  insertion_data_t& merged_data);
+void add_gap(vector<insertion_data_t>& ins_data, vector<int> seq_indexes,
+             int pos);
 
 #endif

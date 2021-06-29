@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,18 +20,25 @@
 # SOFTWARE.
 */
 
-#ifndef ALIGN_HPP
-#define ALIGN_HPP
+#ifndef PROFILE_ALN_HPP
+#define PROFILE_ALN_HPP
 
-#include <boost/filesystem.hpp>
-#include <coati/insertions.hpp>
-#include <coati/profile_aln.hpp>
-#include <coati/tree.hpp>
+#include <Eigen/Dense>
+#include <coati/gotoh.hpp>
+#include <coati/mutation_ecm.hpp>
 
-int mcoati(input_t& in_data, Matrix64f& P);
-int progressive_aln(input_t& in_data);
-int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts);
-int ref_indel_alignment(input_t& in_data);
-float alignment_score(vector<string> alignment_t, Matrix64f& P);
+typedef Eigen::Matrix<double, 4, 1> Vector4d;
+typedef Eigen::Matrix<double, 4, 3> Matrix4x3d;
+
+Eigen::MatrixXd create_profile(string seq);
+Eigen::MatrixXd create_profile(vector<string>& aln);
+double transition(Matrix4x3d cod, int pos, Vector4d nuc,
+                  const Eigen::Tensor<double, 3>& p);
+int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
+                           alignment_t& aln, Matrix64f& P_m);
+int backtracking_profile(Eigen::MatrixXi Bd, Eigen::MatrixXi Bp,
+                         Eigen::MatrixXi Bq, vector<string> seqs1,
+                         vector<string> seqs2, alignment_t& aln);
+double nuc_pi(Vector4d n, Vector5d pis);
 
 #endif

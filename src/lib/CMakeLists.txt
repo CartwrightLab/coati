@@ -1,4 +1,5 @@
 # Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,8 +19,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-set(coati_sources version.cc mut_models.cc utils.cc align.cc)
-set(coati_headers coati.hpp mut_models.hpp utils.hpp align.hpp)
+set(coati_sources version.cc mutation_coati.cc utils.cc align.cc tree.cc profile_aln.cc insertions.cc mutation_ecm.cc mutation_fst.cc gotoh.cc)
+set(coati_headers coati.hpp mutation_coati.hpp utils.hpp align.hpp tree.hpp profile_aln.hpp dna_syms.hpp insertions.hpp mutation_ecm.hpp mutation_fst.hpp gotoh.hpp)
 
 #####################################################################
 # libcoati library

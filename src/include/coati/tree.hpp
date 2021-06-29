@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,18 +20,33 @@
 # SOFTWARE.
 */
 
-#ifndef ALIGN_HPP
-#define ALIGN_HPP
+#ifndef TREE_HPP
+#define TREE_HPP
 
-#include <boost/filesystem.hpp>
-#include <coati/insertions.hpp>
-#include <coati/profile_aln.hpp>
-#include <coati/tree.hpp>
+#include <algorithm>
+#include <boost/spirit/home/x3.hpp>
+#include <coati/utils.hpp>
 
-int mcoati(input_t& in_data, Matrix64f& P);
-int progressive_aln(input_t& in_data);
-int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts);
-int ref_indel_alignment(input_t& in_data);
-float alignment_score(vector<string> alignment_t, Matrix64f& P);
+struct node_t {
+    string label;
+    float length;
+    bool is_leaf;
+    size_t parent{0};
+    vector<int> children;
+
+    node_t(const string& name, float len, bool leaf = false,
+           size_t ancestor = 0)
+        : label{name}, length{len}, is_leaf{leaf}, parent{ancestor} {}
+};
+
+using tree_t = vector<node_t>;
+
+bool read_newick(string tree_file, string& content);
+int parse_newick(string content, tree_t& guide_tree);
+int aln_order(tree_t& tree, vector<pair<int, double>>& order_list);
+bool find_seq(string name, fasta_t& f, string& seq);
+bool find_node(const tree_t& tree, string name, int& ID);
+bool reroot(tree_t& tree, string label);
+double distance_ref(const tree_t& tree, int ref, int node);
 
 #endif
