@@ -23,6 +23,7 @@
 #include <doctest/doctest.h>
 
 #include <coati/tree.hpp>
+#include <cfloat>
 
 namespace newick {
 namespace x3 = boost::spirit::x3;
