@@ -68,8 +68,15 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
 
     if(ins_data.size() < 2) return false;
 
+    // count total number of insertion flags to process
+    int num_gaps = 0, processed_gaps = 0;
+    for(auto in_d : ins_data) {
+        in_d.insertions.prune(1);
+        num_gaps += in_d.insertions.nonZeros();
+    }
+
     int pos = 0;
-    while(pos < ins_data[0].sequences[0].length()) {  // for each position
+    while(processed_gaps < num_gaps) {  // while gaps not processed
         // (i) for every closed insertion --> add gap to other sequences
         for(int seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
             if(ins_data[seq].insertions.coeffRef(pos) ==
@@ -77,6 +84,7 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
                 add_gap(ins_data, {seq}, pos);  // add gaps to rest of seqs
                 seq--;  // start over checking for closed gaps
                 pos++;  // move to next pos to not count ins added in this iter
+                processed_gaps++;
             }
         }
 
@@ -84,6 +92,10 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
         bool all_open_gaps = true;
         char nuc = '0';
         for(int seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
+            if(ins_data[seq].sequences[0].length() < pos) {
+                all_open_gaps = false;
+                break;
+            }
             if(nuc == '0') {
                 nuc = ins_data[seq].sequences[0][pos];
             }
@@ -93,6 +105,7 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
         }
         if(all_open_gaps) {
             pos++;
+            processed_gaps += ins_data.size();
             continue;
         }
 
@@ -101,6 +114,9 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
         nuc = '0';
         for(int seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
             if(ins_data[seq].insertions.coeffRef(pos) == 111) {
+                if(ins_data[seq].sequences[0].length() < pos) {
+                    continue;
+                }
                 if(nuc == '0') {
                     nuc = ins_data[seq].sequences[0][pos];
                     indexes.push_back(seq);
@@ -114,6 +130,7 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
 
         if(indexes.size() > 0) {
             add_gap(ins_data, indexes, pos);
+            processed_gaps += indexes.size();
         }
 
         pos++;
@@ -146,7 +163,7 @@ TEST_CASE("[insertions.cc] merge_indels") {
 
         vector<insertion_data_t> ins_data = {dataA, dataB};
 
-        merge_indels(ins_data, results);
+        REQUIRE(merge_indels(ins_data, results));
 
         CHECK(results.sequences[0] == "TCA-TCG");
         CHECK(results.sequences[1] == "TCAGTCG");
@@ -170,7 +187,8 @@ TEST_CASE("[insertions.cc] merge_indels") {
 
         vector<insertion_data_t> ins_data = {dataABC, dataD};
 
-        merge_indels(ins_data, results);
+        REQUIRE(merge_indels(ins_data, results));
+
         CHECK(results.sequences[0] == "TCA--TCG");
         CHECK(results.sequences[1] == "TCAG-TCG");
         CHECK(results.sequences[2] == "T-A--TCG");
@@ -196,7 +214,8 @@ TEST_CASE("[insertions.cc] merge_indels") {
 
         vector<insertion_data_t> ins_data = {dataABC, dataD};
 
-        merge_indels(ins_data, results);
+        REQUIRE(merge_indels(ins_data, results));
+
         CHECK(results.sequences[0] == "TCA--TCG");
         CHECK(results.sequences[1] == "TCAG-TCG");
         CHECK(results.sequences[2] == "T-A--TCG");
@@ -218,12 +237,43 @@ TEST_CASE("[insertions.cc] merge_indels") {
 
         vector<insertion_data_t> ins_data = {dataA, dataB};
 
-        merge_indels(ins_data, results);
+        REQUIRE(merge_indels(ins_data, results));
 
         CHECK(results.sequences[0] == "TCAC-TCG");
         CHECK(results.sequences[1] == "TCA-GTCG");
         CHECK(results.insertions.coeffRef(3) == 99);  // close gap at 3
         CHECK(results.insertions.coeffRef(4) == 99);  // open gap at 4
+    }
+
+    SUBCASE("Three sequences, one insertion (len 21) in C sequence") {
+        SparseVectorInt insH(54);  // human
+        SparseVectorInt insG(54);  // gorilla
+        SparseVectorInt insC(96);  // chimp
+
+        for(int i = 27; i < 48; i++) {
+            insC.insert(i) = 111;  // open gap
+        }
+
+        insertion_data_t results;
+        insertion_data_t dataH("AAATTCCAACAACATAAACAAATCTGA", "H", insH);
+        insertion_data_t dataG("AAATTCCAACAACATAAACAAATCTGA", "G", insG);
+        insertion_data_t dataC(
+            "AAATTCCAACAACATAAACAGATCGGAAGAGAAACTATGCTTTTCTAG", "C", insC);
+
+        vector<insertion_data_t> ins_data = {dataH, dataG, dataC};
+
+        REQUIRE(merge_indels(ins_data, results));
+
+        CHECK(results.sequences[0] ==
+              "AAATTCCAACAACATAAACAAATCTGA---------------------");
+        CHECK(results.sequences[1] ==
+              "AAATTCCAACAACATAAACAAATCTGA---------------------");
+        CHECK(results.sequences[2] ==
+              "AAATTCCAACAACATAAACAGATCGGAAGAGAAACTATGCTTTTCTAG");
+
+        for(int i = 27; i < 48; i++) {
+            CHECK(results.insertions.coeffRef(i) == 99);  // closed gap
+        }
     }
 }
 

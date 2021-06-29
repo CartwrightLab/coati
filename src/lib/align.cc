@@ -542,7 +542,7 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
     SUBCASE("m-coati model") {
         input_data.mut_model = "m-coati";
         input_data.out_file = "example-mcoati-msa.fasta";
-        result.path = "example-mcoati-msa.fasta";
+        result.path = input_data.out_file;
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(ref_indel_alignment(input_data) == 0);
@@ -566,7 +566,7 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
     SUBCASE("m-ecm model") {
         input_data.mut_model = "m-ecm";
         input_data.out_file = "example-mecm-msa.fasta";
-        result.path = "example-mecm-msa.fasta";
+        result.path = input_data.out_file;
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(ref_indel_alignment(input_data) == 0);

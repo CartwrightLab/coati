@@ -125,6 +125,37 @@ int read_fasta(fasta_t& fasta_file, vector<VectorFst<StdArc>>& fsts) {
     return 0;
 }
 
+TEST_CASE("[utils.cc] read_fasta - fst") {
+    fasta_t fasta;
+    vector<VectorFst<StdArc>> fsts;
+
+    SUBCASE("Read example-001.fasta") {
+        fasta.path = "../../fasta/example-001.fasta";
+
+        REQUIRE(read_fasta(fasta, fsts) == 0);
+
+        CHECK(fasta.seq_data[0] == "CTCTGGATAGTG");
+        CHECK(fasta.seq_data[1] == "CTATAGTG");
+
+        CHECK(fsts[0].NumStates() == 13);
+        CHECK(fsts[1].NumStates() == 9);
+
+        for(int i = 0; i < 12; i++) {
+            CHECK(fsts[0].NumArcs(i) == 1);
+        }
+
+        for(int i = 0; i < 8; i++) {
+            CHECK(fsts[0].NumArcs(i) == 1);
+        }
+    }
+
+    SUBCASE("Error opening fasta") {
+        fasta.path = "../../fasta/example-9999999999.fasta";
+
+        REQUIRE(read_fasta(fasta, fsts) == EXIT_FAILURE);
+    }
+}
+
 /* Read fasta format file */
 int read_fasta(fasta_t& fasta_file) {
     ifstream input(fasta_file.path);
@@ -160,6 +191,25 @@ int read_fasta(fasta_t& fasta_file) {
     }
 
     return 0;
+}
+
+TEST_CASE("[utils.cc] read_fasta") {
+    fasta_t fasta;
+
+    SUBCASE("Read example-001.fasta") {
+        fasta.path = "../../fasta/example-001.fasta";
+
+        REQUIRE(read_fasta(fasta) == 0);
+
+        CHECK(fasta.seq_data[0] == "CTCTGGATAGTG");
+        CHECK(fasta.seq_data[1] == "CTATAGTG");
+    }
+
+    SUBCASE("Error opening fasta") {
+        fasta.path = "../../fasta/example-9999999999.fasta";
+
+        REQUIRE(read_fasta(fasta) == EXIT_FAILURE);
+    }
 }
 
 /* Write alignment in Fasta format */
