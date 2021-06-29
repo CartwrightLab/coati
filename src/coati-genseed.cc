@@ -21,8 +21,8 @@
 */
 
 #include <charconv>
-#include <minion.hpp>
 #include <coati/coati.hpp>
+#include <minion.hpp>
 
 #include "verb.hpp"
 

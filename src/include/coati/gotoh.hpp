@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,18 +20,20 @@
 # SOFTWARE.
 */
 
-#ifndef ALIGN_HPP
-#define ALIGN_HPP
+#ifndef GOTOH_HPP
+#define GOTOH_HPP
 
-#include <boost/filesystem.hpp>
-#include <coati/insertions.hpp>
-#include <coati/profile_aln.hpp>
-#include <coati/tree.hpp>
+#include <coati/mutation_coati.hpp>
 
-int mcoati(input_t& in_data, Matrix64f& P);
-int progressive_aln(input_t& in_data);
-int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts);
-int ref_indel_alignment(input_t& in_data);
-float alignment_score(vector<string> alignment_t, Matrix64f& P);
+int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P);
+int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
+                        Matrix64f& P_m);
+double transition(string codon, int position, char nucleotide,
+                  const Eigen::Tensor<double, 3>& p);
+int backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
+                 string seqa, string seqb, alignment_t& aln);
+int backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp,
+                               Eigen::MatrixXd Bq, string seqa, string seqb,
+                               alignment_t& aln);
 
 #endif

@@ -20,9 +20,9 @@
 # SOFTWARE.
 */
 
+#include <coati/coati.hpp>
 #include <cstdlib>
 #include <iostream>
-#include <coati/coati.hpp>
 
 #include "verb.hpp"
 

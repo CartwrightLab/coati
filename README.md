@@ -1,4 +1,10 @@
 # coati
+
+Branch | Status
+------ | ------
+CartwrightLab/master | [![github-actions](https://github.com/CartwrightLab/coati/actions/workflows/cmake.yml/badge.svg?branch=master)](https://github.com/CartwrightLab/coati/actions/workflows/cmake.yml) [![codecov](https://codecov.io/gh/CartwrightLab/coati/branch/master/graph/badge.svg)](https://codecov.io/gh/CartwrightLab/coati)
+jgarciamesa/coati | [![github-actions](https://github.com/jgarciamesa/coati/actions/workflows/cmake.yml/badge.svg?branch=main)](https://github.com/jgarciamesa/coati/actions/workflows/cmake.yml) [![codecov](https://codecov.io/gh/jgarciamesa/coati/branch/main/graph/badge.svg)](https://codecov.io/gh/jgarciamesa/coati)
+
 Codon-Aware Multiple Sequence Alignments
 
 ## Table of Contents
@@ -16,7 +22,7 @@ Source code for the most recent beta versions is available at <https://github.co
 * CMake 3.12+ when compiling <http://www.cmake.org/download/#latest>
 * Boost 1.47+ <http://www.boost.org/>
 * Eigen 3.3+ <http://eigen.tuxfamily.org/>
-* OpenFST 1.7.3+ <http://openfst.org/twiki/bin/view/FST/FstDownload>
+* OpenFST 1.8.0+ <http://openfst.org/twiki/bin/view/FST/FstDownload>
 
 
 ### Compiling

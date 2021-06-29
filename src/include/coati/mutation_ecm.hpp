@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,18 +20,14 @@
 # SOFTWARE.
 */
 
-#ifndef ALIGN_HPP
-#define ALIGN_HPP
+#ifndef MUTATION_ECM_HPP
+#define MUTATION_ECM_HPP
 
-#include <boost/filesystem.hpp>
-#include <coati/insertions.hpp>
-#include <coati/profile_aln.hpp>
-#include <coati/tree.hpp>
+#include <coati/mutation_fst.hpp>
 
-int mcoati(input_t& in_data, Matrix64f& P);
-int progressive_aln(input_t& in_data);
-int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts);
-int ref_indel_alignment(input_t& in_data);
-float alignment_score(vector<string> alignment_t, Matrix64f& P);
+void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
+double k(uint8_t c1, uint8_t c2, int model = 0);
+void ecm_p(Matrix64f& P, const double& br_len);
+void ecm(VectorFst<StdArc>& mut_fst, const double& br_len);
 
 #endif

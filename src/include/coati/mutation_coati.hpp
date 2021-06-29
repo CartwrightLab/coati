@@ -20,18 +20,24 @@
 # SOFTWARE.
 */
 
-#ifndef ALIGN_HPP
-#define ALIGN_HPP
+#ifndef MUTATION_COATI_HPP
+#define MUTATION_COATI_HPP
 
-#include <boost/filesystem.hpp>
-#include <coati/insertions.hpp>
-#include <coati/profile_aln.hpp>
-#include <coati/tree.hpp>
+#include <algorithm>
+#include <cmath>
+#include <coati/utils.hpp>
+#include <limits>
+// #include <map>
+// #include <unordered_map>
+#include <unsupported/Eigen/CXX11/Tensor>
+#include <unsupported/Eigen/MatrixFunctions>
+#include <vector>
 
-int mcoati(input_t& in_data, Matrix64f& P);
-int progressive_aln(input_t& in_data);
-int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts);
-int ref_indel_alignment(input_t& in_data);
-float alignment_score(vector<string> alignment_t, Matrix64f& P);
+typedef Eigen::Matrix<double, 64, 1> Vector64f;
+typedef Eigen::Matrix<double, 4, 4> Matrix4f;
+
+void mg94_q(Matrix64f& Q);
+void mg94_p(Matrix64f& P, const double& br_len);
+void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P);
 
 #endif

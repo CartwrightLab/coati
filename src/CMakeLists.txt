@@ -1,4 +1,5 @@
 # Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -66,6 +67,14 @@ target_link_libraries(coati-alignpair Boost::filesystem)
 target_link_libraries(coati-alignpair Eigen3::Eigen)
 target_link_libraries(coati-alignpair FSTLIB::fst)
 install(TARGETS coati-alignpair RUNTIME DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
+
+# coati-msa
+add_executable(coati-msa coati-msa.cc)
+target_link_libraries(coati-msa libcoati)
+target_link_libraries(coati-msa Boost::program_options)
+target_link_libraries(coati-msa Boost::filesystem)
+target_link_libraries(coati-msa Eigen3::Eigen)
+install(TARGETS coati-msa RUNTIME DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
 
 # coati main script
 configure_file(
