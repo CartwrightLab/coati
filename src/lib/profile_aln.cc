@@ -25,6 +25,11 @@
 #include <coati/profile_aln.hpp>
 #include <typeinfo>
 
+#include <string>
+#include <vector>
+
+using namespace std;
+
 /* Create profile given a sequence */
 Eigen::MatrixXd create_profile(string seq) {
     vector<string> vector_seq;

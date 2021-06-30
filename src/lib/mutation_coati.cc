@@ -24,6 +24,8 @@
 
 #include <coati/mutation_coati.hpp>
 
+using namespace std;
+
 /* nonsynonymous-synonymous bias (\omega) */
 const double omega = 0.2;  // github.com/reedacartwright/toycoati
 
@@ -279,7 +281,7 @@ TEST_CASE("[mutation_coati.cc] mg94_q") {
 }
 
 /* Muse & Gaut Model (1994) P matrix given rate matrix and branch lenght */
-void mg94_p(Matrix64f& P, const double& brlen) {
+void mg94_p(Matrix64f& P, double brlen) {
     Matrix64f Q;
     mg94_q(Q);
 

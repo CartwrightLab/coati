@@ -23,17 +23,17 @@
 #ifndef GOTOH_HPP
 #define GOTOH_HPP
 
-#include <coati/mutation_coati.hpp>
+#include "mutation_coati.hpp"
 
-int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P);
-int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
+int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln, Matrix64f& P);
+int gotoh_noframeshifts(std::vector<std::string> sequences, alignment_t& aln,
                         Matrix64f& P_m);
-double transition(string codon, int position, char nucleotide,
+double transition(std::string codon, int position, char nucleotide,
                   const Eigen::Tensor<double, 3>& p);
 int backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
-                 string seqa, string seqb, alignment_t& aln);
+                 std::string seqa, std::string seqb, alignment_t& aln);
 int backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp,
-                               Eigen::MatrixXd Bq, string seqa, string seqb,
+                               Eigen::MatrixXd Bq, std::string seqa, std::string seqb,
                                alignment_t& aln);
 
 #endif

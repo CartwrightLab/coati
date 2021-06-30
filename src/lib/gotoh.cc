@@ -24,6 +24,8 @@
 
 #include <coati/gotoh.hpp>
 
+using namespace std;
+
 /* Dynamic Programming implementation of Marginal MG94 model*/
 int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
     // P matrix for marginal Muse and Gaut codon model

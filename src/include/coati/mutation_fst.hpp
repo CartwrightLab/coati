@@ -23,11 +23,11 @@
 #ifndef MUTATION_FST_HPP
 #define MUTATION_FST_HPP
 
-#include <coati/mutation_coati.hpp>
+#include "mutation_coati.hpp"
 
-void mg94(VectorFst<StdArc>& mut_fst, const double& br_len);
-void nuc2pos(VectorFst<StdArc>& n2p);
-void dna(VectorFst<StdArc>& mut_fst, const double& br_len);
-void indel(VectorFst<StdArc>& indel_model, string model);
+void mg94(fst::VectorFst<fst::StdArc>& mut_fst, double br_len);
+void nuc2pos(fst::VectorFst<fst::StdArc>& n2p);
+void dna(fst::VectorFst<fst::StdArc>& mut_fst, double br_len);
+void indel(fst::VectorFst<fst::StdArc>& indel_model, std::string model);
 
 #endif

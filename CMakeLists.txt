@@ -111,7 +111,7 @@ install(FILES README.md LICENSE DESTINATION ${CMAKE_DOC_DIR})
 
 #####################################################################
 # Find Boost installation with library program_options and filesystem
-find_package(Boost 1.47.0 REQUIRED COMPONENTS program_options filesystem)
+find_package(Boost 1.47.0 REQUIRED COMPONENTS program_options)
 # Find Eigen library
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 # Find openFST library

@@ -23,11 +23,11 @@
 #ifndef MUTATION_ECM_HPP
 #define MUTATION_ECM_HPP
 
-#include <coati/mutation_fst.hpp>
+#include "mutation_fst.hpp"
 
 void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
 double k(uint8_t c1, uint8_t c2, int model = 0);
-void ecm_p(Matrix64f& P, const double& br_len);
-void ecm(VectorFst<StdArc>& mut_fst, const double& br_len);
+void ecm_p(Matrix64f& P, double br_len);
+void ecm(fst::VectorFst<fst::StdArc>& mut_fst, double br_len);
 
 #endif

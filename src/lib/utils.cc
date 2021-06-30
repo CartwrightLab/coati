@@ -24,7 +24,12 @@
 
 #include <coati/utils.hpp>
 
+#include <cfloat>
+
 #define PRINT_SIZE 100
+
+using namespace std;
+using namespace fst;
 
 /* Add arc to FST */
 void add_arc(VectorFst<StdArc>& n2p, int src, int dest, int ilabel, int olabel,
@@ -32,7 +37,7 @@ void add_arc(VectorFst<StdArc>& n2p, int src, int dest, int ilabel, int olabel,
     if(weight == 1.0) {
         weight = 0.0;
     } else if(weight == 0.0) {
-        weight = INT_MAX;
+        weight = FLT_MAX;
     } else {
         weight = -log(weight);
     }

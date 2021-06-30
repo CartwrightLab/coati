@@ -23,9 +23,10 @@
 #ifndef MUTATION_COATI_HPP
 #define MUTATION_COATI_HPP
 
+#include "utils.hpp"
+
 #include <algorithm>
 #include <cmath>
-#include <coati/utils.hpp>
 #include <limits>
 // #include <map>
 // #include <unordered_map>
@@ -37,7 +38,7 @@ typedef Eigen::Matrix<double, 64, 1> Vector64f;
 typedef Eigen::Matrix<double, 4, 4> Matrix4f;
 
 void mg94_q(Matrix64f& Q);
-void mg94_p(Matrix64f& P, const double& br_len);
+void mg94_p(Matrix64f& P, double br_len);
 void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P);
 
 #endif

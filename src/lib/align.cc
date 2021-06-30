@@ -24,6 +24,11 @@
 
 #include <coati/align.hpp>
 
+#include <filesystem>
+
+using namespace std;
+using namespace fst;
+
 /* Alignment using dynamic programming implementation of marginal COATi model */
 int mcoati(input_t& in_data, Matrix64f& P) {
     ofstream out_w;
@@ -55,7 +60,7 @@ int mcoati(input_t& in_data, Matrix64f& P) {
     }
 
     // write alignment
-    if(boost::filesystem::extension(aln.f.path) == ".fasta") {
+    if(aln.f.path.extension() == ".fasta") {
         return write_fasta(aln.f);
     } else {
         return write_phylip(aln.f);
@@ -76,16 +81,16 @@ TEST_CASE("[align.cc] mcoati") {
         input_data.weight_file = "score.log";
         result.path = input_data.out_file;
 
-        if(boost::filesystem::exists(input_data.out_file))
-            boost::filesystem::remove(input_data.out_file);
-        if(boost::filesystem::exists(input_data.weight_file))
-            boost::filesystem::remove(input_data.weight_file);
+        if(std::filesystem::exists(input_data.out_file))
+            std::filesystem::remove(input_data.out_file);
+        if(std::filesystem::exists(input_data.weight_file))
+            std::filesystem::remove(input_data.weight_file);
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(boost::filesystem::remove(input_data.out_file));
+        CHECK(std::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
@@ -96,7 +101,7 @@ TEST_CASE("[align.cc] mcoati") {
         ifstream infile(input_data.weight_file);
         string s;
         infile >> s;
-        CHECK(boost::filesystem::remove("score.log"));
+        CHECK(std::filesystem::remove("score.log"));
         CHECK(s.substr(s.length() - 7) == "9.29064");
     }
 
@@ -105,8 +110,8 @@ TEST_CASE("[align.cc] mcoati") {
         input_data.out_file = "example-001.phy";
         input_data.mut_model = "m-coati";
 
-        if(boost::filesystem::exists(input_data.out_file))
-            boost::filesystem::remove(input_data.out_file);
+        if(std::filesystem::exists(input_data.out_file))
+            std::filesystem::remove(input_data.out_file);
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
@@ -126,7 +131,7 @@ TEST_CASE("[align.cc] mcoati") {
         CHECK(s1.compare("2") == 0);
         CHECK(s2.compare("CT----ATAGTG") == 0);
 
-        CHECK(boost::filesystem::remove(input_data.out_file));
+        CHECK(std::filesystem::remove(input_data.out_file));
     }
 
     SUBCASE("Alignment with no frameshifts") {
@@ -135,14 +140,14 @@ TEST_CASE("[align.cc] mcoati") {
         input_data.mut_model = "no_frameshifts";
         result.path = input_data.out_file;
 
-        if(boost::filesystem::exists(input_data.out_file))
-            boost::filesystem::remove(input_data.out_file);
+        if(std::filesystem::exists(input_data.out_file))
+            std::filesystem::remove(input_data.out_file);
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(boost::filesystem::remove(input_data.out_file));
+        CHECK(std::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
@@ -157,14 +162,14 @@ TEST_CASE("[align.cc] mcoati") {
         input_data.mut_model = "m-coati";
         result.path = input_data.out_file;
 
-        if(boost::filesystem::exists(input_data.out_file))
-            boost::filesystem::remove(input_data.out_file);
+        if(std::filesystem::exists(input_data.out_file))
+            std::filesystem::remove(input_data.out_file);
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(boost::filesystem::remove(input_data.out_file));
+        CHECK(std::filesystem::remove(input_data.out_file));
 
         CHECK(alignment_score(result.seq_data, P) == doctest::Approx(9.29064));
     }
@@ -252,11 +257,10 @@ int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts) {
     fasta_t out_fasta(in_data.out_file, in_data.fasta_file.seq_names);
 
     // write alignment
-    if(boost::filesystem::extension(out_fasta.path) == ".fasta") {
+    if(out_fasta.path.extension() == ".fasta") {
         return write_fasta(aln_path, out_fasta);
-    } else {
-        return write_phylip(aln_path, out_fasta);
     }
+    return write_phylip(aln_path, out_fasta);
 }
 
 TEST_CASE("[align.cc] fst_alignment") {
@@ -269,10 +273,10 @@ TEST_CASE("[align.cc] fst_alignment") {
     fasta_t result;
     result.path = input_data.out_file;
 
-    if(boost::filesystem::exists(input_data.out_file))
-        boost::filesystem::remove(input_data.out_file);
-    if(boost::filesystem::exists(input_data.weight_file))
-        boost::filesystem::remove(input_data.weight_file);
+    if(std::filesystem::exists(input_data.out_file))
+        std::filesystem::remove(input_data.out_file);
+    if(std::filesystem::exists(input_data.weight_file))
+        std::filesystem::remove(input_data.weight_file);
 
     SUBCASE("coati model, output fasta") {
         input_data.mut_model = "coati";
@@ -281,7 +285,7 @@ TEST_CASE("[align.cc] fst_alignment") {
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(boost::filesystem::remove(input_data.out_file));
+        CHECK(std::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
@@ -292,7 +296,7 @@ TEST_CASE("[align.cc] fst_alignment") {
         ifstream infile(input_data.weight_file);
         string s;
         infile >> s;
-        CHECK(boost::filesystem::remove(input_data.weight_file));
+        CHECK(std::filesystem::remove(input_data.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31397");
     }
 
@@ -318,8 +322,8 @@ TEST_CASE("[align.cc] fst_alignment") {
         CHECK(s1.compare("2") == 0);
         CHECK(s2.compare("CT----ATAGTG") == 0);
 
-        CHECK(boost::filesystem::remove(input_data.out_file));
-        CHECK(boost::filesystem::remove(input_data.weight_file));
+        CHECK(std::filesystem::remove(input_data.out_file));
+        CHECK(std::filesystem::remove(input_data.weight_file));
     }
 
     SUBCASE("dna model") {
@@ -329,7 +333,7 @@ TEST_CASE("[align.cc] fst_alignment") {
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(boost::filesystem::remove(input_data.out_file));
+        CHECK(std::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
@@ -340,7 +344,7 @@ TEST_CASE("[align.cc] fst_alignment") {
         ifstream infile(input_data.weight_file);
         string s;
         infile >> s;
-        CHECK(boost::filesystem::remove(input_data.weight_file));
+        CHECK(std::filesystem::remove(input_data.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31994");
     }
 
@@ -351,7 +355,7 @@ TEST_CASE("[align.cc] fst_alignment") {
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(boost::filesystem::remove(input_data.out_file));
+        CHECK(std::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
@@ -362,7 +366,7 @@ TEST_CASE("[align.cc] fst_alignment") {
         ifstream infile(input_data.weight_file);
         string s;
         infile >> s;
-        CHECK(boost::filesystem::remove(input_data.weight_file));
+        CHECK(std::filesystem::remove(input_data.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31388");
     }
 
@@ -463,7 +467,7 @@ int ref_indel_alignment(input_t& in_data) {
 
     // get position of inodes in tree and set leafs as visited (true)
     vector<int> inode_indexes;
-    bool visited[tree.size()] = {false};  // list of visited nodes
+    std::vector<int> visited(tree.size(), false); // list of visited nodes
 
     for(int node = 0; node < tree.size(); node++) {
         if(!tree[node].is_leaf)
@@ -479,7 +483,7 @@ int ref_indel_alignment(input_t& in_data) {
 
     // while not all nodes have been visited (any value in visitied is
     // false)
-    while(any_of(visited, visited + tree.size(), [](bool b) { return !b; })) {
+    while(any_of(visited.begin(), visited.end(), [](bool b) { return !b; })) {
         for(auto inode_pos : inode_indexes) {  // for all inodes
             bool children_visited = true;
             for(auto child : tree[inode_pos].children) {
@@ -524,7 +528,7 @@ int ref_indel_alignment(input_t& in_data) {
     }
 
     // write alignment
-    if(boost::filesystem::extension(aln.f.path) == ".fasta") {
+    if(aln.f.path == ".fasta") {
         return write_fasta(aln.f);
     } else {
         return write_phylip(aln.f);

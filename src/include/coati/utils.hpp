@@ -26,11 +26,13 @@
 #include <Eigen/Dense>
 #include <boost/algorithm/string.hpp>
 #include <coati/dna_syms.hpp>
+
+#include <fst/fstlib.h>
 #include <fstream>
 #include <iostream>
-
-using namespace fst;
-using namespace std;
+#include <filesystem>
+#include <string>
+#include <vector>
 
 /* Table for converting a nucleotide character to 2-bit encoding and for
         looking up coding amino acid based on codon index (AAA:0, AAC:1, ...,
@@ -55,44 +57,44 @@ typedef Eigen::Matrix<double, 64, 64> Matrix64f;
 typedef Eigen::Matrix<double, 5, 1> Vector5d;
 
 struct fasta_t {
-    string path;
-    vector<string> seq_names, seq_data;
+    std::filesystem::path path;
+    std::vector<std::string> seq_names, seq_data;
     // fasta_t() : path{""}, seq_names{}, seq_data{} {}
-    fasta_t(const string& f = "", const vector<string>& n = {},
-            const vector<string>& d = {})
-        : path{f}, seq_names{n}, seq_data{d} {}
+    fasta_t(std::string f = "", std::vector<std::string> n = {},
+            const std::vector<std::string> d = {})
+        : path{std::move(f)}, seq_names{std::move(n)}, seq_data{std::move(d)} {}
 };
 
 struct input_t {
-    string mut_model, weight_file, out_file, rate, tree, ref;
+    std::string mut_model, weight_file, out_file, rate, tree, ref;
     bool score;
     double br_len;
     fasta_t fasta_file;
 };
 
 struct alignment_t {
-    string weight_file, model;
+    std::string weight_file, model;
     float weight;
     fasta_t f;
     alignment_t() : f{fasta_t()}, weight{0.0}, weight_file{""}, model{""} {}
-    alignment_t(const string& f_file, const vector<string>& n,
-                const vector<string>& d, float w, const string& w_f,
-                const string& m)
+    alignment_t(const std::string& f_file, const std::vector<std::string>& n,
+                const std::vector<std::string>& d, float w, const std::string& w_f,
+                const std::string& m)
         : f{fasta_t(f_file, n, d)}, weight{w}, weight_file{w_f}, model{m} {}
 };
 
-int read_fasta(fasta_t& fasta_file, vector<VectorFst<StdArc>>& fsts);
+int read_fasta(fasta_t& fasta_file, std::vector<fst::VectorFst<fst::StdArc>>& fsts);
 int read_fasta(fasta_t& fasta_file);
-void add_arc(VectorFst<StdArc>& fst, int src, int dest, int ilabel = 0,
+void add_arc(fst::VectorFst<fst::StdArc>& fst, int src, int dest, int ilabel = 0,
              int olabel = 0, float weight = 1.0);
-VectorFst<StdArc> optimize(VectorFst<StdArc> fst);
+fst::VectorFst<fst::StdArc> optimize(fst::VectorFst<fst::StdArc> fst);
 int write_fasta(fasta_t& fasta_file);
-int write_fasta(VectorFst<StdArc>& aln, fasta_t& fasta_file);
+int write_fasta(fst::VectorFst<fst::StdArc>& aln, fasta_t& fasta_file);
 int write_phylip(fasta_t& fasta_file);
-int write_phylip(VectorFst<StdArc>& aln, fasta_t& fasta_file);
-bool acceptor(std::string content, VectorFst<StdArc>& accept);
+int write_phylip(fst::VectorFst<fst::StdArc>& aln, fasta_t& fasta_file);
+bool acceptor(std::string content, fst::VectorFst<fst::StdArc>& accept);
 int cod_distance(uint8_t cod1, uint8_t cod2);
-int cod_int(string codon);
-int parse_matrix_csv(string file, Matrix64f& P, double& br_len);
+int cod_int(std::string codon);
+int parse_matrix_csv(std::string file, Matrix64f& P, double& br_len);
 
 #endif

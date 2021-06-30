@@ -24,8 +24,11 @@
 
 #include <coati/mutation_fst.hpp>
 
+using namespace std;
+using namespace fst;
+
 /* Create Muse and Gaut codon model FST */
-void mg94(VectorFst<StdArc>& mut_fst, const double& br_len) {
+void mg94(VectorFst<StdArc>& mut_fst, double br_len) {
     Matrix64f P;
     mg94_p(P, br_len);
 
@@ -66,7 +69,7 @@ TEST_CASE("[mutation_fst.cc] mg94") {
 }
 
 /* Create dna marginal Muse and Gaut codon model FST*/
-void dna(VectorFst<StdArc>& mut_fst, const double& br_len) {
+void dna(VectorFst<StdArc>& mut_fst, double br_len) {
     Matrix64f P;
     mg94_p(P, br_len);
 

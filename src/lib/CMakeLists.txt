@@ -39,7 +39,6 @@ target_compile_definitions(libcoati PRIVATE DOCTEST_CONFIG_DISABLE)
 target_link_libraries(libcoati PRIVATE doctest::doctest)
 target_link_libraries(libcoati PRIVATE minionrng::minionrng)
 target_link_libraries(libcoati PRIVATE Boost::program_options)
-target_link_libraries(libcoati PRIVATE Boost::filesystem)
 target_link_libraries(libcoati PRIVATE Eigen3::Eigen)
 target_link_libraries(libcoati PRIVATE FSTLIB::fst)
 

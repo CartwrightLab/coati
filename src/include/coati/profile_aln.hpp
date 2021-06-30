@@ -23,22 +23,23 @@
 #ifndef PROFILE_ALN_HPP
 #define PROFILE_ALN_HPP
 
+#include "gotoh.hpp"
+#include "mutation_ecm.hpp"
+
 #include <Eigen/Dense>
-#include <coati/gotoh.hpp>
-#include <coati/mutation_ecm.hpp>
 
 typedef Eigen::Matrix<double, 4, 1> Vector4d;
 typedef Eigen::Matrix<double, 4, 3> Matrix4x3d;
 
-Eigen::MatrixXd create_profile(string seq);
-Eigen::MatrixXd create_profile(vector<string>& aln);
+Eigen::MatrixXd create_profile(std::string seq);
+Eigen::MatrixXd create_profile(std::vector<std::string>& aln);
 double transition(Matrix4x3d cod, int pos, Vector4d nuc,
                   const Eigen::Tensor<double, 3>& p);
-int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
+int gotoh_profile_marginal(std::vector<std::string> seqs1, std::vector<std::string> seqs2,
                            alignment_t& aln, Matrix64f& P_m);
 int backtracking_profile(Eigen::MatrixXi Bd, Eigen::MatrixXi Bp,
-                         Eigen::MatrixXi Bq, vector<string> seqs1,
-                         vector<string> seqs2, alignment_t& aln);
+                         Eigen::MatrixXi Bq, std::vector<std::string> seqs1,
+                         std::vector<std::string> seqs2, alignment_t& aln);
 double nuc_pi(Vector4d n, Vector5d pis);
 
 #endif

@@ -23,6 +23,7 @@
 #include <doctest/doctest.h>
 
 #include <coati/tree.hpp>
+
 #include <cfloat>
 
 namespace newick {
@@ -42,8 +43,8 @@ using x3::lit;
 using x3::ascii::char_;
 
 // rule declaration
-x3::rule<class label, string> const label = "label";
-x3::rule<class ilabel, string> const ilabel = "ilabel";
+x3::rule<class label, std::string> const label = "label";
+x3::rule<class ilabel, std::string> const ilabel = "ilabel";
 x3::rule<class length, float> const length = "length";
 x3::rule<class leaf, tree_t> const leaf = "leaf";
 x3::rule<class inode, tree_t> const inode = "inode";
@@ -95,7 +96,9 @@ BOOST_SPIRIT_DEFINE(tree);
 
 }  // namespace newick
 
-bool read_newick(string tree_file, string& content) {
+using namespace std;
+
+bool read_newick(string tree_file, std::string& content) {
     ifstream input(tree_file);  // open input stream
     if(!input.good()) {
         cout << "Error opening '" << tree_file << "'." << endl;
@@ -103,12 +106,12 @@ bool read_newick(string tree_file, string& content) {
     }
 
     // read newick tree file
-    string text((istreambuf_iterator<char>(input)),
+    std::string text((istreambuf_iterator<char>(input)),
                 istreambuf_iterator<char>());
     content = text;
 
     if(content.length() == 0) {  // Check file isn't empty
-        cout << "Reading tree failed, file is empty!" << endl;
+        cout << "Reading tree failed, file is empty!" << std::endl;
         return false;
     }
 
@@ -219,13 +222,14 @@ int aln_order(tree_t& tree, vector<pair<int, double>>& order_list) {
 
     // Part2: determine order of remaining leafs
 
-    bool visited[tree.size()] = {false};  // list of visited nodes
+    std::vector<int> visited(tree.size(), false); // list of visited nodes
+
     visited[order_list[0].first] = visited[order_list[1].first] = true;
     int ancestor = tree[order_list.back().first].parent;
     double branch = 0;
 
     // while not all nodes have been visited (any value in visitied is false)
-    while(any_of(visited, visited + tree.size(), [](bool b) { return !b; })) {
+    while(any_of(visited.begin(), visited.end(), [](bool b) { return !b; })) {
         // find leafs
         for(int i = 0; i < tree[ancestor].children.size(); i++) {
             // if children is not visited and it's leaf, visit

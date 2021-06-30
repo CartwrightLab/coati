@@ -23,30 +23,32 @@
 #ifndef TREE_HPP
 #define TREE_HPP
 
+#include "utils.hpp"
+
+
 #include <algorithm>
 #include <boost/spirit/home/x3.hpp>
-#include <coati/utils.hpp>
 
 struct node_t {
-    string label;
+    std::string label;
     float length;
     bool is_leaf;
     size_t parent{0};
-    vector<int> children;
+    std::vector<int> children;
 
-    node_t(const string& name, float len, bool leaf = false,
+    node_t(std::string name, float len, bool leaf = false,
            size_t ancestor = 0)
-        : label{name}, length{len}, is_leaf{leaf}, parent{ancestor} {}
+        : label{std::move(name)}, length{len}, is_leaf{leaf}, parent{ancestor} {}
 };
 
-using tree_t = vector<node_t>;
+using tree_t = std::vector<node_t>;
 
-bool read_newick(string tree_file, string& content);
-int parse_newick(string content, tree_t& guide_tree);
-int aln_order(tree_t& tree, vector<pair<int, double>>& order_list);
-bool find_seq(string name, fasta_t& f, string& seq);
-bool find_node(const tree_t& tree, string name, int& ID);
-bool reroot(tree_t& tree, string label);
+bool read_newick(std::string tree_file, std::string& content);
+int parse_newick(std::string content, tree_t& guide_tree);
+int aln_order(tree_t& tree, std::vector<std::pair<int, double>>& order_list);
+bool find_seq(std::string name, fasta_t& f, std::string& seq);
+bool find_node(const tree_t& tree, std::string name, int& ID);
+bool reroot(tree_t& tree, std::string label);
 double distance_ref(const tree_t& tree, int ref, int node);
 
 #endif

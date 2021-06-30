@@ -739,7 +739,7 @@ TEST_CASE("[mutation_coati.cc] k") {
 }
 
 /* Empirical Codon Model P matrix */
-void ecm_p(Matrix64f& P, const double& br_len) {
+void ecm_p(Matrix64f& P, double br_len) {
     Matrix64f Q = Matrix64f::Zero();
 
     double d = 0.0;
@@ -770,12 +770,12 @@ void ecm_p(Matrix64f& P, const double& br_len) {
 }
 
 /* Empirical Codon Model (Kosiol et al. 2007) FST */
-void ecm(VectorFst<StdArc>& mut_fst, const double& br_len) {
+void ecm(fst::VectorFst<fst::StdArc>& mut_fst, double br_len) {
     Matrix64f P;
     ecm_p(P, br_len);
 
     // Add state 0 and make it the start state
-    VectorFst<StdArc> ecm;
+    fst::VectorFst<fst::StdArc> ecm;
     ecm.AddState();
     ecm.SetStart(0);
 

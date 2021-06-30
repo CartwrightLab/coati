@@ -27,6 +27,8 @@
 
 namespace po = boost::program_options;
 
+using namespace fst;
+
 int main(int argc, char* argv[]) {
     string rate;
     bool score = false;
@@ -35,7 +37,7 @@ int main(int argc, char* argv[]) {
     try {
         po::options_description desc("Allowed options");
         desc.add_options()("help,h", "Display this message")(
-            "fasta,f", po::value<string>(&in_data.fasta_file.path)->required(),
+            "fasta,f", po::value<std::filesystem::path>(&in_data.fasta_file.path)->required(),
             "fasta file path")(
             "model,m",
             po::value<string>(&in_data.mut_model)->default_value("m-coati"),
@@ -96,10 +98,10 @@ int main(int argc, char* argv[]) {
     if(in_data.out_file.empty()) {  // if no output is specified save in current
                                     // dir in PHYLIP format
         in_data.out_file =
-            boost::filesystem::path(in_data.fasta_file.path).stem().string() +
+            std::filesystem::path(in_data.fasta_file.path).stem().string() +
             ".phy";
-    } else if(boost::filesystem::extension(in_data.out_file) != ".phy" &&
-              boost::filesystem::extension(in_data.out_file) != ".fasta") {
+    } else if(std::filesystem::path(in_data.out_file).extension() != ".phy" &&
+              std::filesystem::path(in_data.out_file).extension() != ".fasta") {
         cout << "Format for output file is not valid. Exiting!" << endl;
         return EXIT_FAILURE;
     }

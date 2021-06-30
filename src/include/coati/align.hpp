@@ -23,15 +23,18 @@
 #ifndef ALIGN_HPP
 #define ALIGN_HPP
 
-#include <boost/filesystem.hpp>
-#include <coati/insertions.hpp>
-#include <coati/profile_aln.hpp>
-#include <coati/tree.hpp>
+#include "insertions.hpp"
+#include "profile_aln.hpp"
+#include "tree.hpp"
+#include "utils.hpp"
+
+#include <vector>
+#include <fst/fstlib.h>
 
 int mcoati(input_t& in_data, Matrix64f& P);
 int progressive_aln(input_t& in_data);
-int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts);
+int fst_alignment(input_t& in_data, std::vector<fst::VectorFst<fst::StdArc>>& fsts);
 int ref_indel_alignment(input_t& in_data);
-float alignment_score(vector<string> alignment_t, Matrix64f& P);
+float alignment_score(std::vector<std::string> alignment_t, Matrix64f& P);
 
 #endif
