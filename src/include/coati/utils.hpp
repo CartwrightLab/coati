@@ -23,14 +23,14 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include <fst/fstlib.h>
+
 #include <Eigen/Dense>
 #include <boost/algorithm/string.hpp>
 #include <coati/dna_syms.hpp>
-
-#include <fst/fstlib.h>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -61,7 +61,7 @@ struct fasta_t {
     std::vector<std::string> seq_names, seq_data;
     // fasta_t() : path{""}, seq_names{}, seq_data{} {}
     fasta_t(std::string f = "", std::vector<std::string> n = {},
-            const std::vector<std::string> d = {})
+            const std::vector<std::string>& d = {})
         : path{std::move(f)}, seq_names{std::move(n)}, seq_data{std::move(d)} {}
 };
 
@@ -78,16 +78,17 @@ struct alignment_t {
     fasta_t f;
     alignment_t() : f{fasta_t()}, weight{0.0}, weight_file{""}, model{""} {}
     alignment_t(const std::string& f_file, const std::vector<std::string>& n,
-                const std::vector<std::string>& d, float w, const std::string& w_f,
-                const std::string& m)
+                const std::vector<std::string>& d, float w,
+                const std::string& w_f, const std::string& m)
         : f{fasta_t(f_file, n, d)}, weight{w}, weight_file{w_f}, model{m} {}
 };
 
-int read_fasta(fasta_t& fasta_file, std::vector<fst::VectorFst<fst::StdArc>>& fsts);
+int read_fasta(fasta_t& fasta_file,
+               std::vector<fst::VectorFst<fst::StdArc>>& fsts);
 int read_fasta(fasta_t& fasta_file);
-void add_arc(fst::VectorFst<fst::StdArc>& fst, int src, int dest, int ilabel = 0,
-             int olabel = 0, float weight = 1.0);
-fst::VectorFst<fst::StdArc> optimize(fst::VectorFst<fst::StdArc> fst);
+void add_arc(fst::VectorFst<fst::StdArc>& fst, int src, int dest,
+             int ilabel = 0, int olabel = 0, float weight = 1.0);
+fst::VectorFst<fst::StdArc> optimize(fst::VectorFst<fst::StdArc> fst_raw);
 int write_fasta(fasta_t& fasta_file);
 int write_fasta(fst::VectorFst<fst::StdArc>& aln, fasta_t& fasta_file);
 int write_phylip(fasta_t& fasta_file);

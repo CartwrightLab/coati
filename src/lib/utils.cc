@@ -22,9 +22,8 @@
 
 #include <doctest/doctest.h>
 
+#include <climits>
 #include <coati/utils.hpp>
-
-#include <cfloat>
 
 #define PRINT_SIZE 100
 
@@ -37,7 +36,7 @@ void add_arc(VectorFst<StdArc>& n2p, int src, int dest, int ilabel, int olabel,
     if(weight == 1.0) {
         weight = 0.0;
     } else if(weight == 0.0) {
-        weight = FLT_MAX;
+        weight = INT_MAX;
     } else {
         weight = -log(weight);
     }
@@ -59,16 +58,15 @@ VectorFst<StdArc> optimize(VectorFst<StdArc> fst_raw) {
     EncodeMapper<StdArc> encoder(kEncodeLabels, ENCODE);
     encoder.SetInputSymbols(&syms);
     encoder.SetOutputSymbols(&syms);
-    EncodeFst<StdArc> fst_enc = EncodeFst<StdArc>(fst_raw, encoder);
+    Encode(&fst_raw, &encoder);
 
     // reduce to more efficient form
     // 1. epsilon removal
-    VectorFst<StdArc> fst_rmep;
-    fst_rmep = RmEpsilonFst<StdArc>(fst_enc);
+    RmEpsilon(&fst_raw);
 
     // 2. determinize
     VectorFst<StdArc> fst_det;
-    fst_det = DeterminizeFst<StdArc>(fst_rmep);
+    Determinize(fst_raw, &fst_det);
 
     // 3. minimize
     Minimize(&fst_det);

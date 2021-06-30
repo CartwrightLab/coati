@@ -23,7 +23,6 @@
 #include <doctest/doctest.h>
 
 #include <coati/align.hpp>
-
 #include <filesystem>
 
 using namespace std;
@@ -467,7 +466,7 @@ int ref_indel_alignment(input_t& in_data) {
 
     // get position of inodes in tree and set leafs as visited (true)
     vector<int> inode_indexes;
-    std::vector<int> visited(tree.size(), false); // list of visited nodes
+    std::vector<int> visited(tree.size(), false);  // list of visited nodes
 
     for(int node = 0; node < tree.size(); node++) {
         if(!tree[node].is_leaf)
@@ -528,7 +527,7 @@ int ref_indel_alignment(input_t& in_data) {
     }
 
     // write alignment
-    if(aln.f.path == ".fasta") {
+    if(std::filesystem::path(aln.f.path).extension() == ".fasta") {
         return write_fasta(aln.f);
     } else {
         return write_phylip(aln.f);

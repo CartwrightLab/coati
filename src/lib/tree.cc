@@ -22,9 +22,8 @@
 
 #include <doctest/doctest.h>
 
-#include <coati/tree.hpp>
-
 #include <cfloat>
+#include <coati/tree.hpp>
 
 namespace newick {
 namespace x3 = boost::spirit::x3;
@@ -107,7 +106,7 @@ bool read_newick(string tree_file, std::string& content) {
 
     // read newick tree file
     std::string text((istreambuf_iterator<char>(input)),
-                istreambuf_iterator<char>());
+                     istreambuf_iterator<char>());
     content = text;
 
     if(content.length() == 0) {  // Check file isn't empty
@@ -222,7 +221,7 @@ int aln_order(tree_t& tree, vector<pair<int, double>>& order_list) {
 
     // Part2: determine order of remaining leafs
 
-    std::vector<int> visited(tree.size(), false); // list of visited nodes
+    std::vector<int> visited(tree.size(), false);  // list of visited nodes
 
     visited[order_list[0].first] = visited[order_list[1].first] = true;
     int ancestor = tree[order_list.back().first].parent;

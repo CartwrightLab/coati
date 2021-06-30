@@ -23,16 +23,14 @@
 #ifndef MUTATION_COATI_HPP
 #define MUTATION_COATI_HPP
 
-#include "utils.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <limits>
-// #include <map>
-// #include <unordered_map>
 #include <unsupported/Eigen/CXX11/Tensor>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
+
+#include "utils.hpp"
 
 typedef Eigen::Matrix<double, 64, 1> Vector64f;
 typedef Eigen::Matrix<double, 4, 4> Matrix4f;

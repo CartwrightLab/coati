@@ -23,11 +23,10 @@
 #ifndef TREE_HPP
 #define TREE_HPP
 
-#include "utils.hpp"
-
-
 #include <algorithm>
 #include <boost/spirit/home/x3.hpp>
+
+#include "utils.hpp"
 
 struct node_t {
     std::string label;
@@ -36,9 +35,11 @@ struct node_t {
     size_t parent{0};
     std::vector<int> children;
 
-    node_t(std::string name, float len, bool leaf = false,
-           size_t ancestor = 0)
-        : label{std::move(name)}, length{len}, is_leaf{leaf}, parent{ancestor} {}
+    node_t(std::string name, float len, bool leaf = false, size_t ancestor = 0)
+        : label{std::move(name)},
+          length{len},
+          is_leaf{leaf},
+          parent{ancestor} {}
 };
 
 using tree_t = std::vector<node_t>;

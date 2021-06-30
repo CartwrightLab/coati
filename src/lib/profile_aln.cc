@@ -23,9 +23,8 @@
 #include <doctest/doctest.h>
 
 #include <coati/profile_aln.hpp>
-#include <typeinfo>
-
 #include <string>
+#include <typeinfo>
 #include <vector>
 
 using namespace std;
