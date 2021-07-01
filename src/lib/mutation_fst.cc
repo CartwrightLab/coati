@@ -81,7 +81,6 @@ void dna(VectorFst<StdArc>& mut_fst, double br_len) {
     Matrix4f dna_p = Matrix4f::Zero();
 
     for(uint8_t cod = 0; cod < 64; cod++) {  // for each codon
-        double rowsum = 0.0;
         for(int pos = 0; pos < 3; pos++) {      // for each position in a codon
             for(int nuc = 0; nuc < 4; nuc++) {  // for each nucleotide (from)
                 for(int nuc2 = 0; nuc2 < 4;

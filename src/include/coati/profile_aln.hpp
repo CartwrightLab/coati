@@ -28,8 +28,8 @@
 #include "gotoh.hpp"
 #include "mutation_ecm.hpp"
 
-typedef Eigen::Matrix<double, 4, 1> Vector4d;
-typedef Eigen::Matrix<double, 4, 3> Matrix4x3d;
+using Vector4d = Eigen::Matrix<double, 4, 1>;
+using Matrix4x3d = Eigen::Matrix<double, 4, 3>;
 
 Eigen::MatrixXd create_profile(std::string seq);
 Eigen::MatrixXd create_profile(std::vector<std::string>& aln);

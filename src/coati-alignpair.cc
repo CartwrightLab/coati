@@ -27,11 +27,11 @@
 
 namespace po = boost::program_options;
 
+using namespace std;
 using namespace fst;
 
 int main(int argc, char* argv[]) {
     string rate;
-    bool score = false;
     input_t in_data;
 
     try {

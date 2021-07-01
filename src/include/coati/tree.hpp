@@ -50,6 +50,6 @@ int aln_order(tree_t& tree, std::vector<std::pair<int, double>>& order_list);
 bool find_seq(std::string name, fasta_t& f, std::string& seq);
 bool find_node(const tree_t& tree, std::string name, int& ID);
 bool reroot(tree_t& tree, std::string label);
-double distance_ref(const tree_t& tree, int ref, int node);
+double distance_ref(const tree_t& tree, size_t ref, size_t node);
 
 #endif

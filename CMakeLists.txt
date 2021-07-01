@@ -45,7 +45,6 @@ set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 ## Compiling options
 option(USE_STATIC_LIBS "Link against static libraries.")
 option(USE_STATIC_FLAG "Use -static flag to create completely static binaries.")
-option(DEVEL_MODE "Enable developer mode.")
 
 ################################################################################
 # Init Project

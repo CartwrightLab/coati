@@ -73,9 +73,10 @@ struct input_t {
 };
 
 struct alignment_t {
-    std::string weight_file, model;
-    float weight;
     fasta_t f;
+    float weight;
+    std::string weight_file, model;
+
     alignment_t() : f{fasta_t()}, weight{0.0}, weight_file{""}, model{""} {}
     alignment_t(const std::string& f_file, const std::vector<std::string>& n,
                 const std::vector<std::string>& d, float w,

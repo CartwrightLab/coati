@@ -384,19 +384,15 @@ int backtracking_profile(Eigen::MatrixXi Bd, Eigen::MatrixXi Bp,
                          vector<string> seqs2, alignment_t& aln) {
     int i = seqs1[0].length();
     int j = seqs2[0].length();
-    vector<string> aln_seqs;
-
-    for(int s = 0; s < seqs1.size() + seqs2.size(); s++) {
-        aln_seqs.push_back(string());
-    }
+    vector<string> aln_seqs(seqs1.size()+seqs2.size());
 
     while((i != 0) || (j != 0)) {
         switch(Bd(i, j)) {
         case 0:  // match/mismatch
-            for(int s = 0; s < seqs1.size(); s++) {
+            for(size_t s = 0; s < seqs1.size(); s++) {
                 aln_seqs[s].insert(0, 1, seqs1[s][i - 1]);
             }
-            for(int s = 0; s < seqs2.size(); s++) {
+            for(size_t s = 0; s < seqs2.size(); s++) {
                 aln_seqs[seqs1.size() + s].insert(0, 1, seqs2[s][j - 1]);
             }
             i--;
@@ -404,36 +400,36 @@ int backtracking_profile(Eigen::MatrixXi Bd, Eigen::MatrixXi Bp,
             break;
         case 1:  // insertion
             while(Bp(i, j) == 1) {
-                for(int s = 0; s < seqs1.size(); s++) {
+                for(size_t s = 0; s < seqs1.size(); s++) {
                     aln_seqs[s].insert(0, 1, '-');
                 }
-                for(int s = 0; s < seqs2.size(); s++) {
+                for(size_t s = 0; s < seqs2.size(); s++) {
                     aln_seqs[seqs1.size() + s].insert(0, 1, seqs2[s][j - 1]);
                 }
                 j--;
             }
-            for(int s = 0; s < seqs1.size(); s++) {
+            for(size_t s = 0; s < seqs1.size(); s++) {
                 aln_seqs[s].insert(0, 1, '-');
             }
-            for(int s = 0; s < seqs2.size(); s++) {
+            for(size_t s = 0; s < seqs2.size(); s++) {
                 aln_seqs[seqs1.size() + s].insert(0, 1, seqs2[s][j - 1]);
             }
             j--;
             break;
         case 2:  // deletion
             while(Bq(i, j) == 1) {
-                for(int s = 0; s < seqs1.size(); s++) {
+                for(size_t s = 0; s < seqs1.size(); s++) {
                     aln_seqs[s].insert(0, 1, seqs1[s][i - 1]);
                 }
-                for(int s = 0; s < seqs2.size(); s++) {
+                for(size_t s = 0; s < seqs2.size(); s++) {
                     aln_seqs[seqs1.size() + s].insert(0, 1, '-');
                 }
                 i--;
             }
-            for(int s = 0; s < seqs1.size(); s++) {
+            for(size_t s = 0; s < seqs1.size(); s++) {
                 aln_seqs[s].insert(0, 1, seqs1[s][i - 1]);
             }
-            for(int s = 0; s < seqs2.size(); s++) {
+            for(size_t s = 0; s < seqs2.size(); s++) {
                 aln_seqs[seqs1.size() + s].insert(0, 1, '-');
             }
             i--;

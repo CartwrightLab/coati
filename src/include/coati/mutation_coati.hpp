@@ -32,8 +32,8 @@
 
 #include "utils.hpp"
 
-typedef Eigen::Matrix<double, 64, 1> Vector64f;
-typedef Eigen::Matrix<double, 4, 4> Matrix4f;
+using Vector64f = Eigen::Matrix<double, 64, 1>;
+using Matrix4f = Eigen::Matrix<double, 4, 4>;
 
 void mg94_q(Matrix64f& Q);
 void mg94_p(Matrix64f& P, double br_len);

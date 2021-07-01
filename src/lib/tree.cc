@@ -183,18 +183,18 @@ TEST_CASE("[tree.cc] parse_newick") {
 int aln_order(tree_t& tree, vector<pair<int, double>>& order_list) {
     // Part1: find closest pair of leafs
 
-    for(int i = 1; i < tree.size(); i++) {  // fill list of children
+    for(size_t i = 1; i < tree.size(); i++) {  // fill list of children
         tree[tree[i].parent].children.push_back(i);
     }
 
     pair<int, int> closest_pair;
     float d = FLT_MAX;
 
-    for(int i = 0; i < tree.size(); i++) {      // for each node in tree
+    for(size_t i = 0; i < tree.size(); i++) {      // for each node in tree
         if(tree[i].children.empty()) continue;  // if no descendants skip
-        for(int j = 0; j < tree[i].children.size() - 1;
+        for(size_t j = 0; j < tree[i].children.size() - 1;
             j++) {  // look for closest pair
-            for(int k = j + 1; k < tree[i].children.size(); k++) {
+            for(size_t k = j + 1; k < tree[i].children.size(); k++) {
                 // if both nodes aren't children skip
                 if(!(tree[tree[i].children[j]].is_leaf &&
                      tree[tree[i].children[k]].is_leaf)) {
@@ -230,7 +230,7 @@ int aln_order(tree_t& tree, vector<pair<int, double>>& order_list) {
     // while not all nodes have been visited (any value in visitied is false)
     while(any_of(visited.begin(), visited.end(), [](bool b) { return !b; })) {
         // find leafs
-        for(int i = 0; i < tree[ancestor].children.size(); i++) {
+        for(size_t i = 0; i < tree[ancestor].children.size(); i++) {
             // if children is not visited and it's leaf, visit
             if(!visited[tree[ancestor].children[i]] &&
                tree[tree[ancestor].children[i]].is_leaf) {
@@ -303,7 +303,7 @@ TEST_CASE("[tree.cc] aln_order") {
 bool find_seq(string name, fasta_t& f, string& seq) {
     seq.clear();
 
-    for(int i = 0; i < f.seq_names.size(); i++) {
+    for(size_t i = 0; i < f.seq_names.size(); i++) {
         if(f.seq_names[i].compare(name) == 0) {
             seq = f.seq_data[i];
         }
@@ -371,7 +371,7 @@ bool reroot(tree_t& tree, string outgroup) {
     // find list of ancestors from newroot to current root
     vector<int> ancestors;
     int newroot = tree[ref].parent;
-    int node = newroot;
+    size_t node = newroot;
 
     // while not current root (current root has itself as parent)
     while(tree[node].parent != node) {
@@ -459,7 +459,7 @@ TEST_CASE("[tree.cc] reroot") {
 }
 
 /* Find distance from REF to node. Tree is assumed to be rerooted. */
-double distance_ref(const tree_t& tree, int ref, int node) {
+double distance_ref(const tree_t& tree, size_t ref, size_t node) {
     double distance = 0;
 
     // distance from node to root

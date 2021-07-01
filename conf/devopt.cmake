@@ -1,8 +1,20 @@
 # This CMake File defines several useful developer options
 
+SET(DEVOPT_ENABLE_WALL OFF CACHE BOOL "Enable all warnings and make all warnings errors.")
 SET(DEVOPT_ENABLE_GPERFTOOLS OFF CACHE BOOL "Enable profiling with gperftools.")
 SET(DEVOPT_ENABLE_COVERAGE_REPORT OFF CACHE BOOL "Enable code coverage reporting.")
 SET(DEVOPT_EXCLUDE_PRETEST_FROM_ALL OFF CACHE BOOL "Do not build the pretest target by default.")
+
+
+if(DEVOPT_ENABLE_WALL)
+  if (MSVC)
+      # warning level 4 and all warnings as errors
+      add_compile_options(/W4 /WX)
+  else()
+      # lots of warnings and all warnings as errors
+      add_compile_options(-Wall -Wextra -pedantic -Werror)
+  endif()
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 

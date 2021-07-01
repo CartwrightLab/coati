@@ -24,12 +24,14 @@
 
 #include <coati/insertions.hpp>
 
+using namespace std;
+
 /* Create sparse vector with positions in which there are (open) insertions */
 bool insertion_flags(const string& ref, const string& seq,
                      SparseVectorInt& insertions_vector) {
     if(ref.length() != seq.length()) return false;
 
-    for(int i = 0; i < ref.length(); i++) {
+    for(size_t i = 0; i < ref.length(); i++) {
         if(ref[i] == '-') {
             insertions_vector.coeffRef(i) =
                 111;  // 'o' (open) in ASCII dec value
@@ -78,7 +80,7 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
     int pos = 0;
     while(processed_gaps < num_gaps) {  // while gaps not processed
         // (i) for every closed insertion --> add gap to other sequences
-        for(int seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
+        for(int seq = 0; seq < static_cast<int>(ins_data.size()); seq++) {  // foreach set of seqs
             if(ins_data[seq].insertions.coeffRef(pos) ==
                99) {                            // insertion is closed
                 add_gap(ins_data, {seq}, pos);  // add gaps to rest of seqs
@@ -91,8 +93,8 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
         // (ii) if insertions at every seq & all open & same char: continue
         bool all_open_gaps = true;
         char nuc = '0';
-        for(int seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
-            if(ins_data[seq].sequences[0].length() < pos) {
+        for(size_t seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
+            if(pos > static_cast<int>(ins_data[seq].sequences[0].length())) {
                 all_open_gaps = false;
                 break;
             }
@@ -112,9 +114,9 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
         // (iii) for every open ins --> find all open ins w/ same char,
         vector<int> indexes;
         nuc = '0';
-        for(int seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
+        for(size_t seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
             if(ins_data[seq].insertions.coeffRef(pos) == 111) {
-                if(ins_data[seq].sequences[0].length() < pos) {
+                if(pos > static_cast<int>(ins_data[seq].sequences[0].length())) {
                     continue;
                 }
                 if(nuc == '0') {
@@ -138,7 +140,7 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
     // populate output variable with results
     //  first sequences and names
     for(auto dat : ins_data) {
-        for(int i = 0; i < dat.sequences.size(); i++) {
+        for(size_t i = 0; i < dat.sequences.size(); i++) {
             merged_data.sequences.push_back(dat.sequences[i]);
             merged_data.names.push_back(dat.names[i]);
         }
@@ -294,9 +296,9 @@ void add_gap(vector<insertion_data_t>& ins_data, vector<int> seq_indexes,
 
     // add closed insertion
     for(auto seq : add) {
-        for(int s = 0; s < ins_data[seq].sequences.size(); s++) {
+        for(size_t s = 0; s < ins_data[seq].sequences.size(); s++) {
             // add gap to nucleotide sequence
-            string::iterator it = ins_data[seq].sequences[s].insert(
+            ins_data[seq].sequences[s].insert(
                 ins_data[seq].sequences[s].begin() + pos, '-');
         }
         // add closed gap to insertion SparseVector

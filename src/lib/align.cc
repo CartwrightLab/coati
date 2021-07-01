@@ -431,7 +431,7 @@ int ref_indel_alignment(input_t& in_data) {
 
     // pairwise alignment for each leaf
     string node_seq;
-    for(int node = 0; node < tree.size(); node++) {
+    for(size_t node = 0; node < tree.size(); node++) {
         if(tree[node].is_leaf && (tree[node].label != in_data.ref)) {
             double branch = distance_ref(tree, ref_pos, node);
             if(!find_seq(tree[node].label, in_data.fasta_file, node_seq)) {
@@ -468,7 +468,7 @@ int ref_indel_alignment(input_t& in_data) {
     vector<int> inode_indexes;
     std::vector<int> visited(tree.size(), false);  // list of visited nodes
 
-    for(int node = 0; node < tree.size(); node++) {
+    for(size_t node = 0; node < tree.size(); node++) {
         if(!tree[node].is_leaf)
             inode_indexes.push_back(node);  // add inode position to vector
         else
@@ -476,7 +476,7 @@ int ref_indel_alignment(input_t& in_data) {
     }
 
     // fill list of children
-    for(int i = 0; i < tree.size(); i++) {
+    for(size_t i = 0; i < tree.size(); i++) {
         if(tree[i].parent != i) tree[tree[i].parent].children.push_back(i);
     }
 
@@ -506,7 +506,7 @@ int ref_indel_alignment(input_t& in_data) {
             // create vector of insertion_data_t with children
             vector<insertion_data_t> tmp_ins_data(
                 tree[inode_pos].children.size());
-            for(int i = 0; i < tree[inode_pos].children.size(); i++) {
+            for(size_t i = 0; i < tree[inode_pos].children.size(); i++) {
                 tmp_ins_data[i] = nodes_ins[tree[inode_pos].children[i]];
             }
 
@@ -619,14 +619,15 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
     Vector5d nuc_freqs;
     nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
 
-    for(int i = 0; i < alignment[0].length(); i++) {
+    for(size_t i = 0; i < alignment[0].length(); i++) {
         codon = seq1.substr(((i - gap_n) / 3) * 3, 3);  // current codon
         switch(state) {
         case 0:
             if(alignment[0][i] == '-') {
                 // insertion;
+                unsigned char pos = alignment[1][i];
                 weight = weight - log(insertion) -
-                         log(nuc_freqs[nt4_table[alignment[1][i]]]) -
+                         log(nuc_freqs[nt4_table[pos]]) -
                          log(1.0 - insertion_ext);
                 state = 1;
                 gap_n++;
@@ -646,8 +647,9 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
         case 1:
             if(alignment[0][i] == '-') {
                 // insertion_ext
+                unsigned char pos = alignment[1][i];
                 weight = weight - log(insertion_ext) -
-                         log(nuc_freqs[nt4_table[alignment[1][i]]]);
+                         log(nuc_freqs[nt4_table[pos]]);
                 gap_n++;
             } else if(alignment[1][i] == '-') {
                 // deletion

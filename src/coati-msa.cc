@@ -25,6 +25,9 @@
 
 namespace po = boost::program_options;
 
+using namespace std;
+using namespace fst;
+
 int main(int argc, char* argv[]) {
     input_t in_data;
 

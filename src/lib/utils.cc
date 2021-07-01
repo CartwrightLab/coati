@@ -36,7 +36,7 @@ void add_arc(VectorFst<StdArc>& n2p, int src, int dest, int ilabel, int olabel,
     if(weight == 1.0) {
         weight = 0.0;
     } else if(weight == 0.0) {
-        weight = INT_MAX;
+        weight = static_cast<float>(INT_MAX);
     } else {
         weight = -log(weight);
     }
@@ -224,7 +224,7 @@ int write_fasta(fasta_t& fasta_file) {
         return EXIT_FAILURE;
     }
 
-    for(int i = 0; i < fasta_file.seq_names.size(); i++) {
+    for(size_t i = 0; i < fasta_file.seq_names.size(); i++) {
         outfile << ">" << fasta_file.seq_names[i] << endl
                 << fasta_file.seq_data[i] << endl;
     }
@@ -274,17 +274,17 @@ int write_phylip(fasta_t& fasta_file) {
     // write aligned sequences to file
     outfile << fasta_file.seq_names.size() << " "
             << fasta_file.seq_data[0].length() << endl;
-    int i =
+    size_t i =
         PRINT_SIZE - 4 -
         max(fasta_file.seq_names[0].length(), fasta_file.seq_names[1].length());
-    for(int j = 0; j < fasta_file.seq_names.size(); j++) {
+    for(size_t j = 0; j < fasta_file.seq_names.size(); j++) {
         outfile << fasta_file.seq_names[j] << "\t"
                 << fasta_file.seq_data[j].substr(0, i) << endl;
     }
     outfile << endl;
 
     for(; i < fasta_file.seq_data[0].length(); i += PRINT_SIZE) {
-        for(int j = 0; j < fasta_file.seq_names.size(); j++) {
+        for(size_t j = 0; j < fasta_file.seq_names.size(); j++) {
             outfile << fasta_file.seq_data[j].substr(i, PRINT_SIZE) << endl;
         }
         outfile << endl;
@@ -327,15 +327,15 @@ int write_phylip(VectorFst<StdArc>& aln, fasta_t& fasta_file) {
 
 /* Create FSAs (acceptors) from a fasta file*/
 bool acceptor(string content, VectorFst<StdArc>& accept) {
-    map<int, char> syms = {{'-', 0}, {'A', 1}, {'C', 2}, {'G', 3},
+    map<char, int> syms = {{'-', 0}, {'A', 1}, {'C', 2}, {'G', 3},
                            {'T', 4}, {'U', 4}, {'N', 5}};
 
     // Add initial state
     accept.AddState();
     accept.SetStart(0);
 
-    for(int i = 0; i < content.length(); i++) {
-        add_arc(accept, i, i + 1, syms[content.at(i)], syms[content.at(i)]);
+    for(size_t i = 0; i < content.length(); i++) {
+        add_arc(accept, i, i + 1, syms.at(content[i]), syms.at(content[i]));
     }
 
     // Add final state and run an FST sanity check (Verify)
@@ -356,8 +356,11 @@ int cod_distance(uint8_t cod1, uint8_t cod2) {
 
 /* Cast codon to position in codon list AAA->0, AAAC->1 ... TTT->63 */
 int cod_int(string codon) {
-    return ((uint8_t)nt4_table[codon[0]] << 4) +
-           ((uint8_t)nt4_table[codon[1]] << 2) + ((uint8_t)nt4_table[codon[2]]);
+    unsigned char pos0 = codon[0];
+    unsigned char pos1 = codon[1];
+    unsigned char pos2 = codon[2];
+
+    return (nt4_table[pos0] << 4) | (nt4_table[pos1] << 2) | nt4_table[pos2];
 }
 
 /* Read substitution rate matrix from a CSV file */
