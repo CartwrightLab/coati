@@ -31,7 +31,7 @@ using namespace std;
 using namespace fst;
 
 /* Add arc to FST */
-void add_arc(VectorFst<StdArc>& n2p, int src, int dest, int ilabel, int olabel,
+void add_arc(VectorFstStdArc& n2p, int src, int dest, int ilabel, int olabel,
              float weight) {
     if(weight == 1.0) {
         weight = 0.0;
@@ -50,7 +50,7 @@ void add_arc(VectorFst<StdArc>& n2p, int src, int dest, int ilabel, int olabel,
 }
 
 /* Optimize FST: remove epsilons, determinize, and minimize */
-VectorFst<StdArc> optimize(VectorFst<StdArc> fst_raw) {
+VectorFstStdArc optimize(VectorFstStdArc fst_raw) {
     // encode FST
     SymbolTable syms;
     fill_symbol_table(syms);
@@ -65,7 +65,7 @@ VectorFst<StdArc> optimize(VectorFst<StdArc> fst_raw) {
     RmEpsilon(&fst_raw);
 
     // 2. determinize
-    VectorFst<StdArc> fst_det;
+    VectorFstStdArc fst_det;
     Determinize(fst_raw, &fst_det);
 
     // 3. minimize
@@ -78,7 +78,7 @@ VectorFst<StdArc> optimize(VectorFst<StdArc> fst_raw) {
 }
 
 /* Read fasta format file */
-int read_fasta(fasta_t& fasta_file, vector<VectorFst<StdArc>>& fsts) {
+int read_fasta(fasta_t& fasta_file, vector<VectorFstStdArc>& fsts) {
     ifstream input(fasta_file.path);
     if(!input.good()) {
         cerr << "Error opening '" << fasta_file.path << "'." << endl;
@@ -93,7 +93,7 @@ int read_fasta(fasta_t& fasta_file, vector<VectorFst<StdArc>>& fsts) {
             continue;
         } else if(line[0] == '>') {  // Identifier marker
             if(!name.empty()) {
-                VectorFst<StdArc> accept;  // create FSA with sequence
+                VectorFstStdArc accept;  // create FSA with sequence
                 if(!acceptor(content, accept)) {
                     cerr << "Creating acceptor from " << fasta_file.path
                          << " failed. Exiting!" << endl;
@@ -115,7 +115,7 @@ int read_fasta(fasta_t& fasta_file, vector<VectorFst<StdArc>>& fsts) {
         }
     }
     if(!name.empty()) {  // Add last sequence FSA if needed
-        VectorFst<StdArc> accept;
+        VectorFstStdArc accept;
         if(!acceptor(content, accept)) {
             cerr << "Creating acceptor from " << fasta_file.path
                  << " failed. Exiting!" << endl;
@@ -130,12 +130,20 @@ int read_fasta(fasta_t& fasta_file, vector<VectorFst<StdArc>>& fsts) {
 
 TEST_CASE("[utils.cc] read_fasta - fst") {
     fasta_t fasta;
-    vector<VectorFst<StdArc>> fsts;
+    vector<VectorFstStdArc> fsts;
+    ofstream outfile;
 
-    SUBCASE("Read example-001.fasta") {
-        fasta.path = "../../fasta/example-001.fasta";
+    SUBCASE("Read test-read-fasta.fasta") {
+        outfile.open("test-read-fasta.fasta");
+        REQUIRE(outfile);
+        outfile << ">1" << endl << "CTCTGGATAGTG" << endl;
+        outfile << ">2" << endl << "CTATAGTG" << endl;
+        outfile.close();
+
+        fasta.path = "test-read-fasta.fasta";
 
         REQUIRE(read_fasta(fasta, fsts) == 0);
+        CHECK(std::filesystem::remove(fasta.path));
 
         CHECK(fasta.seq_data[0] == "CTCTGGATAGTG");
         CHECK(fasta.seq_data[1] == "CTATAGTG");
@@ -153,7 +161,7 @@ TEST_CASE("[utils.cc] read_fasta - fst") {
     }
 
     SUBCASE("Error opening fasta") {
-        fasta.path = "../../fasta/example-9999999999.fasta";
+        fasta.path = "test-9999999999.fasta";
 
         REQUIRE(read_fasta(fasta, fsts) == EXIT_FAILURE);
     }
@@ -197,19 +205,29 @@ int read_fasta(fasta_t& fasta_file) {
 }
 
 TEST_CASE("[utils.cc] read_fasta") {
+    ofstream outfile;
     fasta_t fasta;
 
-    SUBCASE("Read example-001.fasta") {
-        fasta.path = "../../fasta/example-001.fasta";
+    SUBCASE("Read test-read-fasta.fasta") {
+        outfile.open("test-read-fasta.fasta");
+        REQUIRE(outfile);
+        outfile << ">1" << endl << "CTCTGGATAGTC" << endl;
+        outfile << ">2" << endl << "CTATAGTC" << endl;
+        outfile.close();
+
+        fasta.path = "test-read-fasta.fasta";
 
         REQUIRE(read_fasta(fasta) == 0);
+        CHECK(std::filesystem::remove(fasta.path));
 
-        CHECK(fasta.seq_data[0] == "CTCTGGATAGTG");
-        CHECK(fasta.seq_data[1] == "CTATAGTG");
+        CHECK(fasta.seq_names[0] == "1");
+        CHECK(fasta.seq_names[1] == "2");
+        CHECK(fasta.seq_data[0] == "CTCTGGATAGTC");
+        CHECK(fasta.seq_data[1] == "CTATAGTC");
     }
 
     SUBCASE("Error opening fasta") {
-        fasta.path = "../../fasta/example-9999999999.fasta";
+        fasta.path = "test-9999999999.fasta";
 
         REQUIRE(read_fasta(fasta) == EXIT_FAILURE);
     }
@@ -233,8 +251,30 @@ int write_fasta(fasta_t& fasta_file) {
     return EXIT_SUCCESS;
 }
 
+TEST_CASE("[utils.cc] write_fasta") {
+    fasta_t fasta;
+
+    fasta.path = "test-write-fasta.fasta";
+    fasta.seq_names = {"1", "2"};
+    fasta.seq_data = {"CTCTGGATAGTG", "CTATAGTG"};
+
+    REQUIRE(write_fasta(fasta) == 0);
+
+    ifstream infile("test-write-fasta.fasta");
+    string s1;
+    infile >> s1;
+    CHECK(s1.compare(">1") == 0);
+    infile >> s1;
+    CHECK(s1.compare("CTCTGGATAGTG") == 0);
+    infile >> s1;
+    CHECK(s1.compare(">2") == 0);
+    infile >> s1;
+    CHECK(s1.compare("CTATAGTG") == 0);
+    CHECK(std::filesystem::remove("test-write-fasta.fasta"));
+}
+
 /* Write shortest path (alignment) in Fasta format */
-int write_fasta(VectorFst<StdArc>& aln, fasta_t& fasta_file) {
+int write_fasta(VectorFstStdArc& aln, fasta_t& fasta_file) {
     SymbolTable symbols;
     fill_symbol_table(symbols);
 
@@ -260,6 +300,35 @@ int write_fasta(VectorFst<StdArc>& aln, fasta_t& fasta_file) {
     // write aligned sequences to file
     write_fasta(fasta_file);
     return EXIT_SUCCESS;
+}
+
+TEST_CASE("[utils.cc] write_fasta - fst") {
+    fasta_t fasta;
+
+    VectorFstStdArc fst_write;
+    fst_write.AddState();
+    fst_write.SetStart(0);
+    add_arc(fst_write, 0, 1, 2, 2);  // C -> C
+    add_arc(fst_write, 1, 2, 4, 4);  // T -> T
+    add_arc(fst_write, 2, 3, 1, 0);  // A -> -
+    fst_write.SetFinal(3, 0.0);
+
+    fasta.path = "test-write-fasta.fasta";
+    fasta.seq_names = {"1", "2"};
+
+    REQUIRE(write_fasta(fst_write, fasta) == 0);
+
+    ifstream infile("test-write-fasta.fasta");
+    string s1;
+    infile >> s1;
+    CHECK(s1.compare(">1") == 0);
+    infile >> s1;
+    CHECK(s1.compare("CTA") == 0);
+    infile >> s1;
+    CHECK(s1.compare(">2") == 0);
+    infile >> s1;
+    CHECK(s1.compare("CT-") == 0);
+    CHECK(std::filesystem::remove("test-write-fasta.fasta"));
 }
 
 /* Write alignment in PHYLIP format */
@@ -293,8 +362,35 @@ int write_phylip(fasta_t& fasta_file) {
     return EXIT_SUCCESS;
 }
 
+TEST_CASE("[utils.cc] write_phylip") {
+    fasta_t fasta;
+
+    fasta.path = "test-write-phylip.phylip";
+    fasta.seq_names = {"1", "2"};
+    fasta.seq_data = {"CTCTGGATAGTG", "CT----ATAGTG"};
+
+    REQUIRE(write_phylip(fasta) == 0);
+
+    ifstream infile("test-write-phylip.phylip");
+    string s1, s2;
+
+    infile >> s1 >> s2;
+    CHECK(s1.compare("2") == 0);
+    CHECK(s2.compare("12") == 0);
+
+    infile >> s1 >> s2;
+    CHECK(s1.compare("1") == 0);
+    CHECK(s2.compare("CTCTGGATAGTG") == 0);
+
+    infile >> s1 >> s2;
+    CHECK(s1.compare("2") == 0);
+    CHECK(s2.compare("CT----ATAGTG") == 0);
+
+    CHECK(std::filesystem::remove("test-write-phylip.phylip"));
+}
+
 /* Write shortest path (alignment) in PHYLIP format */
-int write_phylip(VectorFst<StdArc>& aln, fasta_t& fasta_file) {
+int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file) {
     SymbolTable symbols;
     fill_symbol_table(symbols);
 
@@ -321,12 +417,41 @@ int write_phylip(VectorFst<StdArc>& aln, fasta_t& fasta_file) {
     return EXIT_SUCCESS;
 }
 
-// TEST_CASE("[utils.cc] write_phylip") {
-//
-// }
+TEST_CASE("[utils.cc] write_phylip - fst") {
+    fasta_t fasta;
+
+    VectorFstStdArc fst_write;
+    fst_write.AddState();
+    fst_write.SetStart(0);
+    add_arc(fst_write, 0, 1, 2, 2);  // C -> C
+    add_arc(fst_write, 1, 2, 4, 4);  // T -> T
+    add_arc(fst_write, 2, 3, 1, 0);  // A -> -
+    fst_write.SetFinal(3, 0.0);
+
+    fasta.path = "test-write-phylip.phylip";
+    fasta.seq_names = {"1", "2"};
+
+    REQUIRE(write_phylip(fst_write, fasta) == 0);
+    ifstream infile("test-write-phylip.phylip");
+    string s1, s2;
+
+    infile >> s1 >> s2;
+    CHECK(s1.compare("2") == 0);
+    CHECK(s2.compare("3") == 0);
+
+    infile >> s1 >> s2;
+    CHECK(s1.compare("1") == 0);
+    CHECK(s2.compare("CTA") == 0);
+
+    infile >> s1 >> s2;
+    CHECK(s1.compare("2") == 0);
+    CHECK(s2.compare("CT-") == 0);
+
+    CHECK(std::filesystem::remove("test-write-phylip.phylip"));
+}
 
 /* Create FSAs (acceptors) from a fasta file*/
-bool acceptor(string content, VectorFst<StdArc>& accept) {
+bool acceptor(string content, VectorFstStdArc& accept) {
     map<char, int> syms = {{'-', 0}, {'A', 1}, {'C', 2}, {'G', 3},
                            {'T', 4}, {'U', 4}, {'N', 5}};
 

@@ -69,13 +69,14 @@ int mcoati(input_t& in_data, Matrix64f& P) {
 TEST_CASE("[align.cc] mcoati") {
     input_t input_data;
     input_data.br_len = 0.0133;
+    input_data.fasta_file.seq_names = {"1", "2"};
+    input_data.fasta_file.seq_data = {"CTCTGGATAGTG", "CTATAGTG"};
     fasta_t result;
     Matrix64f P;
     mg94_p(P, input_data.br_len);
 
     SUBCASE("Alignment with frameshifts (default) - output fasta") {
-        input_data.fasta_file.path = "../../fasta/example-001.fasta";
-        input_data.out_file = "example-001.fasta";
+        input_data.out_file = "test-mcoati-fasta.fasta";
         input_data.mut_model = "m-coati";
         input_data.weight_file = "score.log";
         result.path = input_data.out_file;
@@ -85,7 +86,6 @@ TEST_CASE("[align.cc] mcoati") {
         if(std::filesystem::exists(input_data.weight_file))
             std::filesystem::remove(input_data.weight_file);
 
-        REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
         REQUIRE(read_fasta(result) == 0);
 
@@ -105,14 +105,12 @@ TEST_CASE("[align.cc] mcoati") {
     }
 
     SUBCASE("Alignment with frameshifts (default) - output phylip") {
-        input_data.fasta_file.path = "../../fasta/example-001.fasta";
-        input_data.out_file = "example-001.phy";
+        input_data.out_file = "test-mcoati-phylip.phy";
         input_data.mut_model = "m-coati";
 
         if(std::filesystem::exists(input_data.out_file))
             std::filesystem::remove(input_data.out_file);
 
-        REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
 
         ifstream infile(input_data.out_file);
@@ -134,15 +132,14 @@ TEST_CASE("[align.cc] mcoati") {
     }
 
     SUBCASE("Alignment with no frameshifts") {
-        input_data.fasta_file.path = "../../fasta/example-002.fasta";
-        input_data.out_file = "example-002.fasta";
+        input_data.fasta_file.seq_data = {"GCGATTGCTGTT", "GCGACTGTT"};
+        input_data.out_file = "test-mcoati-no-frameshifts.fasta";
         input_data.mut_model = "no_frameshifts";
         result.path = input_data.out_file;
 
         if(std::filesystem::exists(input_data.out_file))
             std::filesystem::remove(input_data.out_file);
 
-        REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
         REQUIRE(read_fasta(result) == 0);
 
@@ -156,15 +153,13 @@ TEST_CASE("[align.cc] mcoati") {
     }
 
     SUBCASE("Score alignment") {
-        input_data.fasta_file.path = "../../fasta/example-001.fasta";
-        input_data.out_file = "example-001.fasta";
+        input_data.out_file = "test-mcoati-score.fasta";
         input_data.mut_model = "m-coati";
         result.path = input_data.out_file;
 
         if(std::filesystem::exists(input_data.out_file))
             std::filesystem::remove(input_data.out_file);
 
-        REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
         REQUIRE(read_fasta(result) == 0);
 
@@ -175,8 +170,8 @@ TEST_CASE("[align.cc] mcoati") {
 }
 
 /* Alignment using FST library*/
-int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts) {
-    VectorFst<StdArc> mut_fst;
+int fst_alignment(input_t& in_data, vector<VectorFstStdArc>& fsts) {
+    VectorFstStdArc mut_fst;
 
     if(in_data.mut_model.compare("coati") == 0) {
         mg94(mut_fst, in_data.br_len);
@@ -190,11 +185,11 @@ int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts) {
     }
 
     // get indel FST
-    VectorFst<StdArc> indel_fst;
+    VectorFstStdArc indel_fst;
     indel(indel_fst, in_data.mut_model);
 
     // sort mutation and indel FSTs
-    VectorFst<StdArc> mutation_sort, indel_sort;
+    VectorFstStdArc mutation_sort, indel_sort;
     mutation_sort = ArcSortFst<StdArc, OLabelCompare<StdArc>>(
         mut_fst, OLabelCompare<StdArc>());
     indel_sort = ArcSortFst<StdArc, ILabelCompare<StdArc>>(
@@ -205,21 +200,21 @@ int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts) {
         ComposeFst<StdArc>(mutation_sort, indel_sort);
 
     // optimize coati FST
-    VectorFst<StdArc> coati_fst;
-    coati_fst = optimize(VectorFst<StdArc>(coati_comp));
+    VectorFstStdArc coati_fst;
+    coati_fst = optimize(VectorFstStdArc(coati_comp));
 
-    VectorFst<StdArc> coati_rmep;
+    VectorFstStdArc coati_rmep;
     coati_rmep = RmEpsilonFst<StdArc>(coati_fst);  // epsilon removal
 
     // find alignment graph
     // 1. compose in_tape and coati FSTs
     ComposeFst<StdArc> aln_inter = ComposeFst<StdArc>(fsts[0], coati_rmep);
     // 2. sort intermediate composition
-    VectorFst<StdArc> aln_inter_sort;
+    VectorFstStdArc aln_inter_sort;
     aln_inter_sort = ArcSortFst<StdArc, OLabelCompare<StdArc>>(
         aln_inter, OLabelCompare<StdArc>());
     // 3. compose intermediate and out_tape FSTs
-    VectorFst<StdArc> graph_fst;
+    VectorFstStdArc graph_fst;
     Compose(aln_inter_sort, fsts[1], &graph_fst);
 
     //  case 1: ComposeFst is time: O(v1 v2 d1 (log d2 + m2)), space O(v1 v2)
@@ -234,7 +229,7 @@ int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts) {
     //			Then ShortestPath with VectorFst is O(V log(V) + E)
 
     // find shortest path through graph
-    VectorFst<StdArc> aln_path;
+    VectorFstStdArc aln_path;
     ShortestPath(graph_fst, &aln_path);
 
     // shortestdistance = weight of shortestpath
@@ -263,12 +258,21 @@ int fst_alignment(input_t& in_data, vector<VectorFst<StdArc>>& fsts) {
 }
 
 TEST_CASE("[align.cc] fst_alignment") {
-    vector<VectorFst<StdArc>> fsts;
+    vector<VectorFstStdArc> fsts;
+    VectorFstStdArc fsa0, fsa1;
     input_t input_data;
     input_data.br_len = 0.0133;
-    input_data.fasta_file.path = "../../fasta/example-001.fasta";
-    input_data.out_file = "example-001.fasta";
+    input_data.fasta_file.path = "test-fst-alignment.fasta";
+    input_data.fasta_file.seq_names = {"1", "2"};
+    input_data.fasta_file.seq_data = {"CTCTGGATAGTG", "CTATAGTG"};
+    input_data.out_file = "test-fst-alignment.fasta";
     input_data.weight_file = "score.log";
+
+    CHECK(acceptor("CTCTGGATAGTG", fsa0));
+    fsts.push_back(fsa0);
+    CHECK(acceptor("CTATAGTG", fsa1));
+    fsts.push_back(fsa1);
+
     fasta_t result;
     result.path = input_data.out_file;
 
@@ -280,7 +284,6 @@ TEST_CASE("[align.cc] fst_alignment") {
     SUBCASE("coati model, output fasta") {
         input_data.mut_model = "coati";
 
-        REQUIRE(read_fasta(input_data.fasta_file, fsts) == 0);
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
 
@@ -301,9 +304,8 @@ TEST_CASE("[align.cc] fst_alignment") {
 
     SUBCASE("coati model, output phylip") {
         input_data.mut_model = "coati";
-        input_data.out_file = "example-001.phy";
+        input_data.out_file = "test-fst-phylip.phy";
 
-        REQUIRE(read_fasta(input_data.fasta_file, fsts) == 0);
         REQUIRE(fst_alignment(input_data, fsts) == 0);
 
         ifstream infile(input_data.out_file);
@@ -328,7 +330,6 @@ TEST_CASE("[align.cc] fst_alignment") {
     SUBCASE("dna model") {
         input_data.mut_model = "dna";
 
-        REQUIRE(read_fasta(input_data.fasta_file, fsts) == 0);
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
 
@@ -350,7 +351,6 @@ TEST_CASE("[align.cc] fst_alignment") {
     SUBCASE("ecm model") {
         input_data.mut_model = "ecm";
 
-        REQUIRE(read_fasta(input_data.fasta_file, fsts) == 0);
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
 
@@ -537,21 +537,28 @@ int ref_indel_alignment(input_t& in_data) {
 TEST_CASE("[align.cc] ref_indel_alignment") {
     input_t input_data;
     fasta_t result;
+    ofstream outfile;
 
-    input_data.fasta_file.path = "../../fasta/example-msa-001.fasta";
-    input_data.tree = "../../newick/example-msa-001.newick";
+    input_data.fasta_file.seq_names = {"A", "B", "C", "D", "E"};
+    input_data.fasta_file.seq_data = {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG",
+                                      "TCATC"};
+    input_data.tree = "tree-msa.newick";
     input_data.ref = "A";
+
+    outfile.open(input_data.tree);
+    REQUIRE(outfile);
+    outfile << "((((A:1,B:1):1,C:1):1,D:1):1,E:1);";
+    outfile.close();
 
     SUBCASE("m-coati model") {
         input_data.mut_model = "m-coati";
         input_data.out_file = "example-mcoati-msa.fasta";
         result.path = input_data.out_file;
 
-        REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(ref_indel_alignment(input_data) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(remove("example-mcoati-msa.fasta") == 0);
+        CHECK(std::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "A");
         CHECK(result.seq_names[1] == "B");
@@ -571,11 +578,10 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
         input_data.out_file = "example-mecm-msa.fasta";
         result.path = input_data.out_file;
 
-        REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(ref_indel_alignment(input_data) == 0);
         REQUIRE(read_fasta(result) == 0);
 
-        CHECK(remove("example-mecm-msa.fasta") == 0);
+        CHECK(std::filesystem::remove(input_data.out_file));
 
         CHECK(result.seq_names[0] == "A");
         CHECK(result.seq_names[1] == "B");

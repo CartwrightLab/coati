@@ -28,12 +28,12 @@ using namespace std;
 using namespace fst;
 
 /* Create Muse and Gaut codon model FST */
-void mg94(VectorFst<StdArc>& mut_fst, double br_len) {
+void mg94(VectorFstStdArc& mut_fst, double br_len) {
     Matrix64f P;
     mg94_p(P, br_len);
 
     // Add state 0 and make it the start state
-    VectorFst<StdArc> mg94;
+    VectorFstStdArc mg94;
     mg94.AddState();
     mg94.SetStart(0);
 
@@ -52,14 +52,14 @@ void mg94(VectorFst<StdArc>& mut_fst, double br_len) {
     // Set final state & optimize
     mg94.SetFinal(0, 0.0);
 
-    VectorFst<StdArc> mg94_rmep;
+    VectorFstStdArc mg94_rmep;
     mg94_rmep = RmEpsilonFst<StdArc>(mg94);  // epsilon removal
 
     mut_fst = optimize(mg94_rmep);
 }
 
 TEST_CASE("[mutation_fst.cc] mg94") {
-    VectorFst<StdArc> mut_fst;
+    VectorFstStdArc mut_fst;
     double branch_length = 0.0133;
     mg94(mut_fst, branch_length);
 
@@ -69,12 +69,12 @@ TEST_CASE("[mutation_fst.cc] mg94") {
 }
 
 /* Create dna marginal Muse and Gaut codon model FST*/
-void dna(VectorFst<StdArc>& mut_fst, double br_len) {
+void dna(VectorFstStdArc& mut_fst, double br_len) {
     Matrix64f P;
     mg94_p(P, br_len);
 
     // Add state 0 and make it the start state
-    VectorFst<StdArc> dna;
+    VectorFstStdArc dna;
     dna.AddState();
     dna.SetStart(0);
 
@@ -113,7 +113,7 @@ void dna(VectorFst<StdArc>& mut_fst, double br_len) {
 }
 
 TEST_CASE("[mutation_fst.cc] dna") {
-    VectorFst<StdArc> dna_fst;
+    VectorFstStdArc dna_fst;
     double branch_length = 0.0133;
     dna(dna_fst, branch_length);
 
@@ -124,7 +124,7 @@ TEST_CASE("[mutation_fst.cc] dna") {
 }
 
 /* Create FST that maps nucleotide to AA position */
-void nuc2pos(VectorFst<StdArc>& n2p) {
+void nuc2pos(VectorFstStdArc& n2p) {
     // Add state 0 and make it the start state
     n2p.AddState();
     n2p.SetStart(0);
@@ -148,7 +148,7 @@ void nuc2pos(VectorFst<StdArc>& n2p) {
 }
 
 TEST_CASE("[mutation_fst.cc] nuc2pos") {
-    VectorFst<StdArc> n2p_fst;
+    VectorFstStdArc n2p_fst;
     nuc2pos(n2p_fst);
 
     CHECK(Verify(n2p_fst));             // openfst built-in sanity check
@@ -157,14 +157,14 @@ TEST_CASE("[mutation_fst.cc] nuc2pos") {
 }
 
 /* Create affine gap indel model FST*/
-void indel(VectorFst<StdArc>& indel_model, string model) {
+void indel(VectorFstStdArc& indel_model, string model) {
     double deletion = 0.001, insertion = 0.001;
     double deletion_ext = 1.0 - 1.0 / 6.0, insertion_ext = 1.0 - 1.0 / 6.0;
     double nuc_freqs[2][4] = {{0.308, 0.185, 0.199, 0.308},
                               {0.2676350, 0.2357727, 0.2539630, 0.2426323}};
     int m = model.compare("ecm") == 0 ? 1 : 0;
 
-    VectorFst<StdArc> indel_fst;
+    VectorFstStdArc indel_fst;
 
     // Add state 0 and make it the start state
     indel_fst.AddState();
@@ -206,14 +206,14 @@ void indel(VectorFst<StdArc>& indel_model, string model) {
     // Set final state & optimize
     indel_fst.SetFinal(7, 0.0);
 
-    VectorFst<StdArc> indel_rmep;
+    VectorFstStdArc indel_rmep;
     indel_rmep = RmEpsilonFst<StdArc>(indel_fst);  // epsilon removal
 
     indel_model = optimize(indel_rmep);
 }
 
 TEST_CASE("[mutation_fst.cc] indel") {
-    VectorFst<StdArc> indel_model;
+    VectorFstStdArc indel_model;
     string model = "m-coati";
 
     indel(indel_model, model);
