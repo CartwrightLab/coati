@@ -40,9 +40,7 @@ Eigen::MatrixXd create_profile(string seq) {
 Eigen::MatrixXd create_profile(vector<string>& aln) {
     for(auto s : aln) {
         if(s.length() != aln[0].length()) {
-            cout << "Error: profile matrix requires all strings of same length."
-                 << endl;
-            exit(EXIT_FAILURE);
+            throw std::invalid_argument("Profile matrix requires all strings of same length.");
         }
     }
 
@@ -216,8 +214,7 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
 
     // assert that length of 1st sequence (ref) is multiple of 3
     if(m % 3 != 0) {
-        cout << "Reference CDS length must be of length multiple of 3" << endl;
-        exit(EXIT_FAILURE);
+        throw std::invalid_argument("Reference CDS length must be of length multiple of 3.");
     }
 
     // DP matrices for match/mismatch (D), insertion (P), deletion (Q)

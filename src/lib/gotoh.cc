@@ -42,7 +42,7 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
     if(m % 3 != 0) {
         cout << "Reference coding sequence length must be a multiple of 3 ("
              << m << "). Exiting!" << endl;
-        exit(EXIT_FAILURE);
+        return(EXIT_FAILURE);
     }
 
     // DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
@@ -198,9 +198,7 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
 
     // ensure that length of first sequence (reference) is multiple of 3
     if((m % 3 != 0) || (n % 3 != 0)) {
-        cout << "The length of both sequences must be a multiple of 3. Exiting!"
-             << endl;
-        exit(EXIT_FAILURE);
+        throw std::invalid_argument("The length of both sequences must be a multiple of 3.");
     }
 
     // DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
@@ -428,19 +426,18 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
     return backtracking_noframeshifts(Bd, Bp, Bq, seq_a, seq_b, aln);
 }
 /* Return value from marginal MG94 model p matrix for a given transition */
-double transition(string codon, int position, unsigned char nuc,
+double transition(const string &codon, int position, unsigned char nuc,
                   const Eigen::Tensor<double, 3>& p) {
     position = position == 0 ? 2 : --position;
 
     if(nuc != 'N') {
         return p(cod_int(codon), position, nt4_table[nuc]);
-    } else {
-        double val = 0.0;
-        for(int i = 0; i < 4; i++) {
-            val += p(cod_int(codon), position, i);
-        }
-        return val / 4.0;
     }
+    double val = 0.0;
+    for(int i = 0; i < 4; i++) {
+        val += p(cod_int(codon), position, i);
+    }
+    return val / 4.0;    
 }
 
 /* Recover alignment given backtracking matrices for DP alignment */
@@ -450,8 +447,8 @@ int backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
     int j = seqb.length();
 
     // vector<string> alignment;
-    aln.f.seq_data.push_back(string());
-    aln.f.seq_data.push_back(string());
+    aln.f.seq_data.emplace_back();
+    aln.f.seq_data.emplace_back();
 
     while((i != 0) || (j != 0)) {
         // match/mismatch
@@ -494,8 +491,8 @@ int backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp,
     int j = seqb.length();
 
     // vector<string> alignment;
-    aln.f.seq_data.push_back(string());
-    aln.f.seq_data.push_back(string());
+    aln.f.seq_data.emplace_back();
+    aln.f.seq_data.emplace_back();
 
     while((i != 0) || (j != 0)) {
         // match/mismatch

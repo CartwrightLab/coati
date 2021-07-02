@@ -33,13 +33,16 @@ using SparseVectorInt = Eigen::SparseVector<int, Eigen::RowMajor>;
 struct insertion_data_t {
     std::vector<std::string> sequences, names;
     SparseVectorInt insertions;
+
+    insertion_data_t() = default;
+
+    insertion_data_t(const std::string& s, const std::string& n, const SparseVectorInt &i)
+        : sequences(1,s), names(1,n), insertions{i} {}
+
     
-    insertion_data_t(const std::vector<std::string>& s, const std::vector<std::string>& n,
-                     SparseVectorInt i)
-        : sequences{s}, names{n}, insertions{i} {}
-    insertion_data_t(const std::string& s, const std::string& n, SparseVectorInt i)
-        : sequences{{s}}, names{{n}}, insertions{i} {}
-    insertion_data_t() : sequences{}, names{}, insertions{SparseVectorInt()} {}
+    insertion_data_t(std::vector<std::string> s, std::vector<std::string> n,
+                     const SparseVectorInt &i)
+        : sequences{std::move(s)}, names{std::move(n)}, insertions{i} {}
 };
 
 bool insertion_flags(const std::string& ref, const std::string& seq,

@@ -282,13 +282,12 @@ TEST_CASE("[mutation_coati.cc] mg94_q") {
 
 /* Muse & Gaut Model (1994) P matrix given rate matrix and branch lenght */
 void mg94_p(Matrix64f& P, double brlen) {
+    if(brlen <= 0) {
+        throw std::out_of_range("Branch length must be positive.");
+    }
+
     Matrix64f Q;
     mg94_q(Q);
-
-    if(brlen <= 0) {
-        cout << "Branch length must be positive." << endl;
-        exit(EXIT_FAILURE);
-    }
 
     Q = Q * brlen;
     P = Q.exp();

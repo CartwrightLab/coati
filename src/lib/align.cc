@@ -61,9 +61,8 @@ int mcoati(input_t& in_data, Matrix64f& P) {
     // write alignment
     if(aln.f.path.extension() == ".fasta") {
         return write_fasta(aln.f);
-    } else {
-        return write_phylip(aln.f);
     }
+    return write_phylip(aln.f);
 }
 
 TEST_CASE("[align.cc] mcoati") {
@@ -80,10 +79,12 @@ TEST_CASE("[align.cc] mcoati") {
         input_data.weight_file = "score.log";
         result.path = input_data.out_file;
 
-        if(std::filesystem::exists(input_data.out_file))
+        if(std::filesystem::exists(input_data.out_file)) {
             std::filesystem::remove(input_data.out_file);
-        if(std::filesystem::exists(input_data.weight_file))
+        }
+        if(std::filesystem::exists(input_data.weight_file)) {
             std::filesystem::remove(input_data.weight_file);
+        }
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
@@ -109,8 +110,9 @@ TEST_CASE("[align.cc] mcoati") {
         input_data.out_file = "example-001.phy";
         input_data.mut_model = "m-coati";
 
-        if(std::filesystem::exists(input_data.out_file))
+        if(std::filesystem::exists(input_data.out_file)) {
             std::filesystem::remove(input_data.out_file);
+        }
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
@@ -139,8 +141,9 @@ TEST_CASE("[align.cc] mcoati") {
         input_data.mut_model = "no_frameshifts";
         result.path = input_data.out_file;
 
-        if(std::filesystem::exists(input_data.out_file))
+        if(std::filesystem::exists(input_data.out_file)) {
             std::filesystem::remove(input_data.out_file);
+        }
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
@@ -161,8 +164,9 @@ TEST_CASE("[align.cc] mcoati") {
         input_data.mut_model = "m-coati";
         result.path = input_data.out_file;
 
-        if(std::filesystem::exists(input_data.out_file))
+        if(std::filesystem::exists(input_data.out_file)) {
             std::filesystem::remove(input_data.out_file);
+        }
 
         REQUIRE(read_fasta(input_data.fasta_file) == 0);
         REQUIRE(mcoati(input_data, P) == 0);
@@ -385,38 +389,32 @@ int ref_indel_alignment(input_t& in_data) {
 
     aln.f = fasta_t(in_data.out_file);
 
-    // reack newick tree file
+    // read newick tree file
     if(!read_newick(in_data.tree, newick)) {
-        cout << "Error: reading newick tree failed." << endl;
-        exit(EXIT_FAILURE);
+        throw std::invalid_argument("Reading newick tree failed.");
     }
 
     // parse tree into tree_t (vector<node_t>) variable
     if(parse_newick(newick, tree) != 0) {
-        cout << "Error: parsing newick tree failed." << endl;
-        exit(EXIT_FAILURE);
+        throw std::invalid_argument("Parsing newick tree failed.");
     }
 
     // reroot tree
     if(!reroot(tree, in_data.ref)) {
-        cout << "Error: re-rooting tree failed." << endl;
-        exit(EXIT_FAILURE);
+        throw std::invalid_argument("Re-rooting tree failed.");
     }
 
     // find position of ref in tree
-    int ref_pos;
+    int ref_pos = -1;
     if(!find_node(tree, in_data.ref, ref_pos)) {
-        cout << "Error: reference node not found in tree." << endl;
-        exit(EXIT_FAILURE);
+        throw std::invalid_argument("Reference node not found in tree.");
     }
 
     // find sequence of ref in in_data
     vector<string> pair_seqs;
     string ref_seq;
     if(!find_seq(in_data.ref, in_data.fasta_file, ref_seq)) {
-        cout << "Error: reference sequence " << in_data.ref
-             << " not found in fasta file. " << endl;
-        exit(EXIT_FAILURE);
+        throw std::invalid_argument("reference sequence " + in_data.ref + " not found in fasta file.");
     }
 
     pair_seqs.push_back(ref_seq);
@@ -435,9 +433,7 @@ int ref_indel_alignment(input_t& in_data) {
         if(tree[node].is_leaf && (tree[node].label != in_data.ref)) {
             double branch = distance_ref(tree, ref_pos, node);
             if(!find_seq(tree[node].label, in_data.fasta_file, node_seq)) {
-                cout << "Error: sequence " << tree[node].label
-                     << " not found in fasta file." << endl;
-                exit(EXIT_FAILURE);
+                throw std::invalid_argument("sequence " + tree[node].label + " not found in fasta file.");
             }
 
             pair_seqs[1] = node_seq;
@@ -469,10 +465,12 @@ int ref_indel_alignment(input_t& in_data) {
     std::vector<int> visited(tree.size(), false);  // list of visited nodes
 
     for(size_t node = 0; node < tree.size(); node++) {
-        if(!tree[node].is_leaf)
+        if(!tree[node].is_leaf) {
             inode_indexes.push_back(node);  // add inode position to vector
-        else
+        }
+        else {
             visited[node] = true;  // set leafs to visited
+        }
     }
 
     // fill list of children
@@ -492,8 +490,9 @@ int ref_indel_alignment(input_t& in_data) {
                 }
             }
 
-            if(!children_visited)
+            if(!children_visited) {
                 continue;  // if all childen of inode have been visited
+            }
 
             visited[inode_pos] = true;
 
@@ -518,8 +517,8 @@ int ref_indel_alignment(input_t& in_data) {
 
     // transfer result data nodes_ins[ROOT] --> aln && order sequences
     int root = tree[ref_pos].parent;
-    for(auto name : in_data.fasta_file.seq_names) {
-        vector<string>::iterator it = find(nodes_ins[root].names.begin(),
+    for(const auto & name : in_data.fasta_file.seq_names) {
+        auto it = find(nodes_ins[root].names.begin(),
                                            nodes_ins[root].names.end(), name);
         int index = distance(nodes_ins[root].names.begin(), it);
         aln.f.seq_names.push_back(nodes_ins[root].names[index]);
@@ -529,9 +528,8 @@ int ref_indel_alignment(input_t& in_data) {
     // write alignment
     if(std::filesystem::path(aln.f.path).extension() == ".fasta") {
         return write_fasta(aln.f);
-    } else {
-        return write_phylip(aln.f);
     }
+    return write_phylip(aln.f);
 }
 
 TEST_CASE("[align.cc] ref_indel_alignment") {
@@ -593,10 +591,7 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
 
 float alignment_score(vector<string> alignment, Matrix64f& P) {
     if(alignment[0].length() != alignment[1].length()) {
-        cout << "For alignment scoring both sequences must have equal lenght. "
-                "Exiting!"
-             << endl;
-        exit(EXIT_FAILURE);
+        throw std::invalid_argument("For alignment scoring both sequences must have equal length.");
     }
 
     int state = 0;
@@ -666,8 +661,7 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
 
         case 2:
             if(alignment[0][i] == '-') {
-                cout << "Insertion after deletion is not modeled. Exiting!";
-                exit(EXIT_FAILURE);
+                throw std::runtime_error("Insertion after deletion is not modeled.");
             } else if(alignment[1][i] == '-') {
                 // deletion_ext
                 weight = weight - log(deletion_ext);

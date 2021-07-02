@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,cert-*,cppcoreguidelines-*,google-*,llvm-*,misc-*,modernize-*,performance-*,portability-*,readility-*,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-llvm-header-guard,-llvm-include-order,-clang-diagnostic-missing-braces,-misc-misplaced-widening-cast,-cppcoreguidelines-avoid-magic-numbers,-modernize-use-trailing-return-type'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,cert-*,cppcoreguidelines-*,google-*,llvm-*,misc-*,modernize-*,performance-*,portability-*,readility-*,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-llvm-header-guard,-llvm-include-order,-clang-diagnostic-missing-braces,-misc-misplaced-widening-cast,-cppcoreguidelines-avoid-magic-numbers,-modernize-use-trailing-return-type,-cppcoreguidelines-avoid-c-arrays,-modernize-avoid-c-arrays,-cppcoreguidelines-pro-bounds-constant-array-index'
 WarningsAsErrors: ''
 HeaderFilterRegex: 'src/include/coati'
 AnalyzeTemporaryDtors: false
@@ -25,7 +25,7 @@ CheckOptions:
   - key:             cppcoreguidelines-macro-usage.CheckCapsOnly
     value:           'false'
   - key:             cert-err61-cpp.MaxSize
-    value:           '-1'
+    value:           '8'
   - key:             modernize-use-default-member-init.UseAssignment
     value:           'false'
   - key:             cert-dcl37-c.AllowedIdentifiers
@@ -81,7 +81,7 @@ CheckOptions:
   - key:             modernize-avoid-bind.PermissiveParameterList
     value:           'false'
   - key:             cert-err09-cpp.MaxSize
-    value:           '-1'
+    value:           '8'
   - key:             performance-move-constructor-init.IncludeStyle
     value:           llvm
   - key:             modernize-loop-convert.UseCxx20ReverseRanges
@@ -219,7 +219,7 @@ CheckOptions:
   - key:             google-readability-namespace-comments.SpacesBeforeComments
     value:           '2'
   - key:             misc-throw-by-value-catch-by-reference.MaxSize
-    value:           '-1'
+    value:           '8'
   - key:             cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value:           'true'
   - key:             cppcoreguidelines-no-malloc.Allocations

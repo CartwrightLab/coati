@@ -53,35 +53,36 @@ const uint8_t nt4_table[256] = {
     4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
     4,  4,  4,  4,  4,  4,  4,  4,  4};
 
-typedef Eigen::Matrix<double, 64, 64> Matrix64f;
-typedef Eigen::Matrix<double, 5, 1> Vector5d;
+using Matrix64f = Eigen::Matrix<double, 64, 64>;
+using Vector5d =  Eigen::Matrix<double, 5, 1>;
 
 struct fasta_t {
     std::filesystem::path path;
     std::vector<std::string> seq_names, seq_data;
     // fasta_t() : path{""}, seq_names{}, seq_data{} {}
+    explicit
     fasta_t(std::string f = "", std::vector<std::string> n = {},
-            const std::vector<std::string>& d = {})
+            std::vector<std::string> d = {})
         : path{std::move(f)}, seq_names{std::move(n)}, seq_data{std::move(d)} {}
 };
 
 struct input_t {
     std::string mut_model, weight_file, out_file, rate, tree, ref;
-    bool score;
-    double br_len;
+    bool score{false};
+    double br_len{0.0133};
     fasta_t fasta_file;
 };
 
 struct alignment_t {
     fasta_t f;
-    float weight;
-    std::string weight_file, model;
+    float weight{0.0};
+    std::string weight_file{""}, model{""};
 
-    alignment_t() : f{fasta_t()}, weight{0.0}, weight_file{""}, model{""} {}
+    alignment_t() = default;
     alignment_t(const std::string& f_file, const std::vector<std::string>& n,
                 const std::vector<std::string>& d, float w,
-                const std::string& w_f, const std::string& m)
-        : f{fasta_t(f_file, n, d)}, weight{w}, weight_file{w_f}, model{m} {}
+                std::string w_f, std::string m)
+        : f{fasta_t(f_file, n, d)}, weight{w}, weight_file{std::move(w_f)}, model{std::move(m)} {}
 };
 
 int read_fasta(fasta_t& fasta_file,

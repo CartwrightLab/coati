@@ -750,7 +750,8 @@ void ecm_p(Matrix64f& P, double br_len) {
             // check if codons i or j are stop codons
             if(i == j || nt4_table[i] == '*' || nt4_table[j] == '*') {
                 continue;
-            } else if(nt4_table[i] == nt4_table[j]) {
+            }
+            if(nt4_table[i] == nt4_table[j]) {
                 Q(i, j) = s[i][j] * ecm_pi(j) * k(i, j, 0);
             } else {  // nt4_table[i] != nt4_table[j]{
                 Q(i, j) = s[i][j] * ecm_pi(j) * k(i, j, 0) * omega;
