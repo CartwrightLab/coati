@@ -35,30 +35,29 @@ namespace x3 = boost::spirit::x3;
 using boost::fusion::at_c;
 using x3::_attr;
 using x3::_val;
-using x3::alnum;
 using x3::attr;
 using x3::float_;
 using x3::lit;
 using x3::ascii::char_;
 
 // rule declaration
-x3::rule<class label, std::string> const label = "label";
-x3::rule<class ilabel, std::string> const ilabel = "ilabel";
-x3::rule<class length, float> const length = "length";
-x3::rule<class leaf, tree_t> const leaf = "leaf";
-x3::rule<class inode, tree_t> const inode = "inode";
-x3::rule<class node, tree_t> const node = "node";
-x3::rule<class tree, tree_t> const tree = "tree";
+x3::rule<class label, std::string> const label = "label";    // NOLINT(cert-err58-cpp)
+x3::rule<class ilabel, std::string> const ilabel = "ilabel"; // NOLINT(cert-err58-cpp)
+x3::rule<class length, float> const length = "length";       // NOLINT(cert-err58-cpp)
+x3::rule<class leaf, tree_t> const leaf = "leaf";            // NOLINT(cert-err58-cpp)
+x3::rule<class inode, tree_t> const inode = "inode";         // NOLINT(cert-err58-cpp)
+x3::rule<class node, tree_t> const node = "node";            // NOLINT(cert-err58-cpp)
+x3::rule<class tree, tree_t> const tree = "tree";            // NOLINT(cert-err58-cpp)
 
 // semantic actions
-auto make_leaf = [](auto& ctx) {
+auto const make_leaf = [](auto& ctx) {
     auto label = at_c<0>(_attr(ctx));  // get label
     auto len = at_c<1>(_attr(ctx));    // get br length
     _val(ctx) =
         tree_t(1, {label, len, true});  // set to tree_t with 1 leaf node
 };
 
-auto make_inode = [](auto& ctx) {
+auto const make_inode = [](auto& ctx) {
     auto label = at_c<1>(_attr(ctx));     // get label
     auto len = at_c<2>(_attr(ctx));       // get br length
     _val(ctx) = tree_t(1, {label, len});  // set to tree_t with 1 (i)node
@@ -74,30 +73,30 @@ auto make_inode = [](auto& ctx) {
 };
 
 // rule definition
-auto const tree_def = node >> -lit(';');
-auto const node_def = leaf | inode;
-auto const leaf_def = (label >> length)[make_leaf];
-auto const inode_def =
-    (('(' >> (node % ',') >> ')') >> ilabel >> length)[make_inode];
+auto const tree_def = node >> -lit(';'); // NOLINT(cert-err58-cpp)
+auto const node_def = leaf | inode; // NOLINT(cert-err58-cpp)
+auto const leaf_def = (label >> length)[make_leaf]; // NOLINT(cert-err58-cpp)
+auto const inode_def =                              // NOLINT(cert-err58-cpp)
+    (('(' >> (node % ',') >> ')') >> ilabel >> length)[make_inode]; // NOLINT(cert-err58-cpp)
 
-auto const label_def = +char_("-0-9A-Za-z/%_.");
+auto const label_def = +char_("-0-9A-Za-z/%_."); // NOLINT(cert-err58-cpp)
 
-auto const ilabel_def = label | attr("");
-auto const length_def = (':' >> float_) | attr(0.0);
+auto const ilabel_def = label | attr(""); // NOLINT(cert-err58-cpp)
+auto const length_def = (':' >> float_) | attr(0.0); // NOLINT(cert-err58-cpp)
 
 BOOST_SPIRIT_DEFINE(label);
 BOOST_SPIRIT_DEFINE(ilabel);
 BOOST_SPIRIT_DEFINE(length);
 BOOST_SPIRIT_DEFINE(leaf);
-BOOST_SPIRIT_DEFINE(inode);
-BOOST_SPIRIT_DEFINE(node);
+BOOST_SPIRIT_DEFINE(inode); // NOLINT(misc-no-recursion)
+BOOST_SPIRIT_DEFINE(node);  // NOLINT(misc-no-recursion)
 BOOST_SPIRIT_DEFINE(tree);
 
 }  // namespace newick
 
 using namespace std;
 
-bool read_newick(string tree_file, std::string& content) {
+bool read_newick(const string & tree_file, std::string& content) {
     ifstream input(tree_file);  // open input stream
     if(!input.good()) {
         cout << "Error opening '" << tree_file << "'." << endl;
@@ -127,6 +126,7 @@ int parse_newick(string content, tree_t& guide_tree) {
     auto it = content.begin();
     auto end = content.end();
 
+    // NOLINTNEXTLINE(misc-no-recursion)
     bool result = boost::spirit::x3::parse(it, end, newick::tree, guide_tree);
 
     if(!(result && it == end)) {
@@ -214,10 +214,10 @@ int aln_order(tree_t& tree, vector<pair<int, double>>& order_list) {
         }
     }
 
-    order_list.push_back(make_pair(closest_pair.first, 0));
-    order_list.push_back(make_pair(
+    order_list.emplace_back(closest_pair.first, 0);
+    order_list.emplace_back(
         closest_pair.second,
-        tree[closest_pair.first].length + tree[closest_pair.second].length));
+        tree[closest_pair.first].length + tree[closest_pair.second].length);
 
     // Part2: determine order of remaining leafs
 
@@ -236,9 +236,9 @@ int aln_order(tree_t& tree, vector<pair<int, double>>& order_list) {
                tree[tree[ancestor].children[i]].is_leaf) {
                 visited[tree[ancestor].children[i]] = true;
 
-                order_list.push_back(make_pair(
+                order_list.emplace_back(
                     tree[ancestor].children[i],
-                    tree[tree[ancestor].children[i]].length + branch));
+                    tree[tree[ancestor].children[i]].length + branch);
                 branch = 0;
             }
         }
@@ -300,7 +300,7 @@ TEST_CASE("[tree.cc] aln_order") {
 }
 
 /* Find fasta sequence given its name */
-bool find_seq(string name, fasta_t& f, string& seq) {
+bool find_seq(const string & name, fasta_t& f, string& seq) {
     seq.clear();
 
     for(size_t i = 0; i < f.seq_names.size(); i++) {
@@ -327,9 +327,9 @@ TEST_CASE("[tree.cc] find_seq") {
 }
 
 /* Find node in tree given its name */
-bool find_node(const tree_t& tree, string name, int& index) {
+bool find_node(const tree_t& tree, const string & name, int& index) {
     auto it = find_if(begin(tree), end(tree),
-                      [name](const node_t node) { return node.label == name; });
+                      [name](const node_t & node) { return node.label == name; });
     index = (it == end(tree) ? -1 : it - begin(tree));
 
     return index != -1;
@@ -359,7 +359,7 @@ TEST_CASE("[tree.cc] find_node") {
 }
 
 /* Re-root tree given an outgroup (leaf node) */
-bool reroot(tree_t& tree, string outgroup) {
+bool reroot(tree_t& tree, const string & outgroup) {
     int ref;
 
     // find outgroup node
