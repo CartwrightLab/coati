@@ -54,7 +54,8 @@ const uint8_t nt4_table[256] = {
     4,  4,  4,  4,  4,  4,  4,  4,  4};
 
 using Matrix64f = Eigen::Matrix<double, 64, 64>;
-using Vector5d =  Eigen::Matrix<double, 5, 1>;
+using Vector5d = Eigen::Matrix<double, 5, 1>;
+using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 struct fasta_t {
     std::filesystem::path path;
@@ -85,17 +86,16 @@ struct alignment_t {
         : f{fasta_t(f_file, n, d)}, weight{w}, weight_file{std::move(w_f)}, model{std::move(m)} {}
 };
 
-int read_fasta(fasta_t& fasta_file,
-               std::vector<fst::VectorFst<fst::StdArc>>& fsts);
+int read_fasta(fasta_t& fasta_file, std::vector<VectorFstStdArc>& fsts);
 int read_fasta(fasta_t& fasta_file);
-void add_arc(fst::VectorFst<fst::StdArc>& fst, int src, int dest,
-             int ilabel = 0, int olabel = 0, float weight = 1.0);
-fst::VectorFst<fst::StdArc> optimize(fst::VectorFst<fst::StdArc> fst_raw);
+void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel = 0,
+             int olabel = 0, float weight = 1.0);
+VectorFstStdArc optimize(VectorFstStdArc fst_raw);
 int write_fasta(fasta_t& fasta_file);
-int write_fasta(fst::VectorFst<fst::StdArc>& aln, fasta_t& fasta_file);
+int write_fasta(VectorFstStdArc& aln, fasta_t& fasta_file);
 int write_phylip(fasta_t& fasta_file);
-int write_phylip(fst::VectorFst<fst::StdArc>& aln, fasta_t& fasta_file);
-bool acceptor(std::string content, fst::VectorFst<fst::StdArc>& accept);
+int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file);
+bool acceptor(std::string content, VectorFstStdArc& accept);
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(std::string codon);
 int parse_matrix_csv(std::string file, Matrix64f& P, double& br_len);

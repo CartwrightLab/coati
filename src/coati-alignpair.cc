@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
     }
 
     // read input fasta file sequences as FSA (acceptors)
-    vector<VectorFst<StdArc>> fsts;
+    vector<VectorFstStdArc> fsts;
     Matrix64f P;
 
     if(read_fasta(in_data.fasta_file, fsts) != 0) {

@@ -35,7 +35,7 @@
 int mcoati(input_t& in_data, Matrix64f& P);
 int progressive_aln(input_t& in_data);
 int fst_alignment(input_t& in_data,
-                  std::vector<fst::VectorFst<fst::StdArc>>& fsts);
+                  std::vector<VectorFstStdArc>& fsts);
 int ref_indel_alignment(input_t& in_data);
 float alignment_score(std::vector<std::string> alignment_t, Matrix64f& P);
 

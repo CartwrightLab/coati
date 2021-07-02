@@ -28,6 +28,6 @@
 void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
 double k(uint8_t c1, uint8_t c2, int model = 0);
 void ecm_p(Matrix64f& P, double br_len);
-void ecm(fst::VectorFst<fst::StdArc>& mut_fst, double br_len);
+void ecm(VectorFstStdArc& mut_fst, double br_len);
 
 #endif

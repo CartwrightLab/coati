@@ -771,12 +771,12 @@ void ecm_p(Matrix64f& P, double br_len) {
 }
 
 /* Empirical Codon Model (Kosiol et al. 2007) FST */
-void ecm(fst::VectorFst<fst::StdArc>& mut_fst, double br_len) {
+void ecm(VectorFstStdArc& mut_fst, double br_len) {
     Matrix64f P;
     ecm_p(P, br_len);
 
     // Add state 0 and make it the start state
-    fst::VectorFst<fst::StdArc> ecm;
+    VectorFstStdArc ecm;
     ecm.AddState();
     ecm.SetStart(0);
 
