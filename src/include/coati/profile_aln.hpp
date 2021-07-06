@@ -28,19 +28,19 @@
 #include "gotoh.hpp"
 #include "mutation_ecm.hpp"
 
-using Vector4d = Eigen::Matrix<double, 4, 1>;
-using Matrix4x3d = Eigen::Matrix<double, 4, 3>;
+using Vector4f = Eigen::Matrix<float, 4, 1>;
+using Matrix4x3d = Eigen::Matrix<float, 4, 3>;
 
-Eigen::MatrixXd create_profile(std::string seq);
-Eigen::MatrixXd create_profile(std::vector<std::string>& aln);
-double transition(Matrix4x3d cod, int pos, Vector4d nuc,
-                  const Eigen::Tensor<double, 3>& p);
+Eigen::MatrixXf create_profile(std::string seq);
+Eigen::MatrixXf create_profile(std::vector<std::string>& aln);
+float transition(Matrix4x3d cod, int pos, Vector4f nuc,
+                 const Eigen::Tensor<float, 3>& p);
 int gotoh_profile_marginal(std::vector<std::string> seqs1,
                            std::vector<std::string> seqs2, alignment_t& aln,
                            Matrix64f& P_m);
 int backtracking_profile(Eigen::MatrixXi Bd, Eigen::MatrixXi Bp,
                          Eigen::MatrixXi Bq, std::vector<std::string> seqs1,
                          std::vector<std::string> seqs2, alignment_t& aln);
-double nuc_pi(Vector4d n, Vector5d pis);
+float nuc_pi(Vector4f n, Vector5f pis);
 
 #endif

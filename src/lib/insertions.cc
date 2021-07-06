@@ -80,7 +80,8 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
     int pos = 0;
     while(processed_gaps < num_gaps) {  // while gaps not processed
         // (i) for every closed insertion --> add gap to other sequences
-        for(int seq = 0; seq < static_cast<int>(ins_data.size()); seq++) {  // foreach set of seqs
+        for(int seq = 0; seq < static_cast<int>(ins_data.size());
+            seq++) {  // foreach set of seqs
             if(ins_data[seq].insertions.coeffRef(pos) ==
                99) {                            // insertion is closed
                 add_gap(ins_data, {seq}, pos);  // add gaps to rest of seqs
@@ -93,7 +94,8 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
         // (ii) if insertions at every seq & all open & same char: continue
         bool all_open_gaps = true;
         char nuc = '0';
-        for(size_t seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
+        for(size_t seq = 0; seq < ins_data.size();
+            seq++) {  // foreach set of seqs
             if(pos > static_cast<int>(ins_data[seq].sequences[0].length())) {
                 all_open_gaps = false;
                 break;
@@ -114,9 +116,11 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
         // (iii) for every open ins --> find all open ins w/ same char,
         vector<int> indexes;
         nuc = '0';
-        for(size_t seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
+        for(size_t seq = 0; seq < ins_data.size();
+            seq++) {  // foreach set of seqs
             if(ins_data[seq].insertions.coeffRef(pos) == 111) {
-                if(pos > static_cast<int>(ins_data[seq].sequences[0].length())) {
+                if(pos >
+                   static_cast<int>(ins_data[seq].sequences[0].length())) {
                     continue;
                 }
                 if(nuc == '0') {

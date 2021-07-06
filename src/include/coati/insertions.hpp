@@ -36,12 +36,12 @@ struct insertion_data_t {
 
     insertion_data_t() = default;
 
-    insertion_data_t(const std::string& s, const std::string& n, const SparseVectorInt &i)
-        : sequences(1,s), names(1,n), insertions{i} {}
+    insertion_data_t(const std::string& s, const std::string& n,
+                     const SparseVectorInt& i)
+        : sequences(1, s), names(1, n), insertions{i} {}
 
-    
     insertion_data_t(std::vector<std::string> s, std::vector<std::string> n,
-                     const SparseVectorInt &i)
+                     const SparseVectorInt& i)
         : sequences{std::move(s)}, names{std::move(n)}, insertions{i} {}
 };
 
@@ -49,7 +49,7 @@ bool insertion_flags(const std::string& ref, const std::string& seq,
                      SparseVectorInt& insertions_vector);
 bool merge_indels(std::vector<insertion_data_t>& ins_data,
                   insertion_data_t& merged_data);
-void add_gap(std::vector<insertion_data_t>& ins_data, std::vector<int> seq_indexes,
-             int pos);
+void add_gap(std::vector<insertion_data_t>& ins_data,
+             std::vector<int> seq_indexes, int pos);
 
 #endif

@@ -29,7 +29,7 @@ using namespace std;
 /* Dynamic Programming implementation of Marginal MG94 model*/
 int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
     // P matrix for marginal Muse and Gaut codon model
-    Eigen::Tensor<double, 3> p(64, 3, 4);
+    Eigen::Tensor<float, 3> p(64, 3, 4);
 
     mg94_marginal_p(p, P_m);
 
@@ -42,7 +42,7 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
     if(m % 3 != 0) {
         cout << "Reference coding sequence length must be a multiple of 3 ("
              << m << "). Exiting!" << endl;
-        return(EXIT_FAILURE);
+        return (EXIT_FAILURE);
     }
 
     // DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
@@ -55,20 +55,20 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
 
     // backtracking info matrices for match/mismatch (Bd), insert (Bp), and
     // deletion (Bq)
-    Eigen::MatrixXd Bd = Eigen::MatrixXd::Constant(m + 1, n + 1, -1);
-    Eigen::MatrixXd Bp = Eigen::MatrixXd::Constant(m + 1, n + 1, -1);
-    Eigen::MatrixXd Bq = Eigen::MatrixXd::Constant(m + 1, n + 1, -1);
+    Eigen::MatrixXf Bd = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
+    Eigen::MatrixXf Bp = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
+    Eigen::MatrixXf Bq = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
 
-    double insertion = log(0.001);
-    double deletion = log(0.001);
-    double insertion_ext = log(1.0 - (1.0 / 6.0));
-    double deletion_ext = log(1.0 - (1.0 / 6.0));
-    double no_insertion = log(1.0 - 0.001);
-    double no_deletion = log(1.0 - 0.001);
-    double no_insertion_ext = log(1.0 / 6.0);
-    double no_deletion_ext = log(1.0 / 6.0);
+    float insertion = log(0.001);
+    float deletion = log(0.001);
+    float insertion_ext = log(1.0 - (1.0 / 6.0));
+    float deletion_ext = log(1.0 - (1.0 / 6.0));
+    float no_insertion = log(1.0 - 0.001);
+    float no_deletion = log(1.0 - 0.001);
+    float no_insertion_ext = log(1.0 / 6.0);
+    float no_deletion_ext = log(1.0 / 6.0);
 
-    Vector5d nuc_freqs;
+    Vector5f nuc_freqs;
     nuc_freqs << log(0.308), log(0.185), log(0.199), log(0.308), log(0.25);
 
     // DP and backtracking matrices initialization
@@ -90,10 +90,8 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
     if(n + 1 >= 2) {
         for(int j = 2; j < n + 1; j++) {
             pos = seq_b[j - 1];
-            D(0, j) = D(0, j - 1) - insertion_ext -
-                      nuc_freqs[nt4_table[pos]];
-            P(0, j) = P(0, j - 1) - insertion_ext -
-                      nuc_freqs[nt4_table[pos]];
+            D(0, j) = D(0, j - 1) - insertion_ext - nuc_freqs[nt4_table[pos]];
+            P(0, j) = P(0, j - 1) - insertion_ext - nuc_freqs[nt4_table[pos]];
             Bd(0, j) = 1;
             Bp(0, j) = 1;
         }
@@ -110,21 +108,20 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
     }
 
     string codon;
-    double p1, p2, q1, q2, d;
+    float p1 = NAN, p2 = NAN, q1 = NAN, q2 = NAN, d = NAN;
 
     for(int i = 1; i < m + 1; i++) {
         codon = seq_a.substr((((i - 1) / 3) * 3), 3);  // current codon
         for(int j = 1; j < n + 1; j++) {
             // insertion
             pos = seq_b[j - 1];
-            p1 = P(i, j - 1) - insertion_ext -
-                 nuc_freqs[nt4_table[pos]];
+            p1 = P(i, j - 1) - insertion_ext - nuc_freqs[nt4_table[pos]];
             p2 = Bd(i, j - 1) == 0
-                     ? D(i, j - 1) - insertion -
-                           nuc_freqs[nt4_table[pos]] - no_insertion_ext
-                 : Bd(i, j - 1) == 1 ? D(i, j - 1) - insertion_ext -
-                                           nuc_freqs[nt4_table[pos]]
-                                     : numeric_limits<double>::max();
+                     ? D(i, j - 1) - insertion - nuc_freqs[nt4_table[pos]] -
+                           no_insertion_ext
+                 : Bd(i, j - 1) == 1
+                     ? D(i, j - 1) - insertion_ext - nuc_freqs[nt4_table[pos]]
+                     : numeric_limits<float>::max();
             P(i, j) = min(p1, p2);
             Bp(i, j) =
                 p1 < p2
@@ -187,7 +184,7 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
 int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
                         Matrix64f& P_m) {
     // P matrix for marginal Muse and Gaut codon model
-    Eigen::Tensor<double, 3> p(64, 3, 4);
+    Eigen::Tensor<float, 3> p(64, 3, 4);
 
     mg94_marginal_p(p, P_m);
 
@@ -198,7 +195,8 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
 
     // ensure that length of first sequence (reference) is multiple of 3
     if((m % 3 != 0) || (n % 3 != 0)) {
-        throw std::invalid_argument("The length of both sequences must be a multiple of 3.");
+        throw std::invalid_argument(
+            "The length of both sequences must be a multiple of 3.");
     }
 
     // DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
@@ -211,16 +209,16 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
 
     // backtracking info matrices for match/mismatch (Bd), insert (Bp), and
     // deletion (Bq)
-    Eigen::MatrixXd Bd = Eigen::MatrixXd::Constant(m + 1, n + 1, -1);
-    Eigen::MatrixXd Bp = Eigen::MatrixXd::Constant(m + 1, n + 1, -1);
-    Eigen::MatrixXd Bq = Eigen::MatrixXd::Constant(m + 1, n + 1, -1);
+    Eigen::MatrixXf Bd = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
+    Eigen::MatrixXf Bp = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
+    Eigen::MatrixXf Bq = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
 
-    double insertion = 0.001;
-    double deletion = 0.001;
-    double insertion_ext = 1.0 - (1.0 / 6.0);
-    double deletion_ext = 1.0 - (1.0 / 6.0);
+    float insertion = 0.001;
+    float deletion = 0.001;
+    float insertion_ext = 1.0 - (1.0 / 6.0);
+    float deletion_ext = 1.0 - (1.0 / 6.0);
 
-    Vector5d nuc_freqs;
+    Vector5f nuc_freqs;
     nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
 
     // DP and backtracking matrices initialization
@@ -228,10 +226,12 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
     // fill first values on D that are independent
     D(0, 0) = 0.0;
     Bd(0, 0) = 0;
-    D(0, 3) = P(0, 3) = -log(insertion) - log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[0])]]) -
-                        log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[1])]]) -
-                        log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[2])]]) -
-                        log(1.0 - insertion_ext) - 2 * log(insertion_ext);
+    D(0, 3) = P(0, 3) =
+        -log(insertion) -
+        log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[0])]]) -
+        log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[1])]]) -
+        log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[2])]]) -
+        log(1.0 - insertion_ext) - 2 * log(insertion_ext);
     D(3, 0) = Q(3, 0) = -log(1.0 - insertion) - log(deletion) -
                         2 * log(deletion_ext) - log(1.0 - deletion_ext);
     Bd(0, 3) = 1;
@@ -240,10 +240,14 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
     // fill first row of D
     if(n + 1 >= 6) {
         for(int j = 6; j < n + 1; j += 3) {
-            D(0, j) = P(0, j) = D(0, j - 3) - 3 * log(insertion_ext) -
-                                log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 3])]]) -
-                                log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 2])]]) -
-                                log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 1])]]);
+            D(0, j) = P(0, j) =
+                D(0, j - 3) - 3 * log(insertion_ext) -
+                log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                    seq_b[j - 3])]]) -
+                log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                    seq_b[j - 2])]]) -
+                log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                    seq_b[j - 1])]]);
             Bd(0, j) = 1;
             Bp(0, j) = 1;
         }
@@ -260,7 +264,7 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
     }
 
     string codon;
-    double p1, p2, q1, q2, d, temp;
+    float p1 = NAN, p2 = NAN, q1 = NAN, q2 = NAN, d = NAN, temp = NAN;
 
     // Cells with only match/mismatch (1,1) & (2,2)
     codon = seq_a.substr(0, 3);
@@ -288,21 +292,30 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
             }
             // insertion
             p1 = P(i, j - 3) - 3 * log(insertion_ext) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 3])]]) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 2])]]) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 1])]]);
+                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                     seq_b[j - 3])]]) -
+                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                     seq_b[j - 2])]]) -
+                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                     seq_b[j - 1])]]);
             p2 = Bd(i, j - 3) == 0
                      ? D(i, j - 3) - log(insertion) - 2 * log(insertion_ext) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 3])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 2])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 1])]]) -
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 3])]]) -
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 2])]]) -
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 1])]]) -
                            log(1.0 - insertion_ext)
                  : Bd(i, j - 1) == 1
                      ? D(i, j - 1) - 3 * log(insertion_ext) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 3])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 2])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 1])]])
-                     : numeric_limits<double>::max();
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 3])]]) -
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 2])]]) -
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 1])]])
+                     : numeric_limits<float>::max();
             P(i, j) = min(p1, p2);
             Bp(i, j) =
                 p1 < p2
@@ -364,21 +377,30 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
             }
             // insertion
             p1 = P(i, j - 3) - 3 * log(insertion_ext) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 3])]]) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 2])]]) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 1])]]);
+                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                     seq_b[j - 3])]]) -
+                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                     seq_b[j - 2])]]) -
+                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                     seq_b[j - 1])]]);
             p2 = Bd(i, j - 3) == 0
                      ? D(i, j - 3) - log(insertion) - 2 * log(insertion_ext) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 3])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 2])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 1])]]) -
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 3])]]) -
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 2])]]) -
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 1])]]) -
                            log(1.0 - insertion_ext)
                  : Bd(i, j - 1) == 1
                      ? D(i, j - 1) - 3 * log(insertion_ext) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 3])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 2])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[j - 1])]])
-                     : numeric_limits<double>::max();
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 3])]]) -
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 2])]]) -
+                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                               seq_b[j - 1])]])
+                     : numeric_limits<float>::max();
             P(i, j) = min(p1, p2);
             Bp(i, j) =
                 p1 < p2
@@ -426,22 +448,22 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
     return backtracking_noframeshifts(Bd, Bp, Bq, seq_a, seq_b, aln);
 }
 /* Return value from marginal MG94 model p matrix for a given transition */
-double transition(const string &codon, int position, unsigned char nuc,
-                  const Eigen::Tensor<double, 3>& p) {
+float transition(const string& codon, int position, unsigned char nuc,
+                 const Eigen::Tensor<float, 3>& p) {
     position = position == 0 ? 2 : --position;
 
     if(nuc != 'N') {
         return p(cod_int(codon), position, nt4_table[nuc]);
     }
-    double val = 0.0;
+    float val = 0.0;
     for(int i = 0; i < 4; i++) {
         val += p(cod_int(codon), position, i);
     }
-    return val / 4.0;    
+    return val / 4.0;
 }
 
 /* Recover alignment given backtracking matrices for DP alignment */
-int backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
+int backtracking(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp, Eigen::MatrixXf Bq,
                  string seqa, string seqb, alignment_t& aln) {
     int i = seqa.length();
     int j = seqb.length();
@@ -484,8 +506,8 @@ int backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
 }
 
 /* Recover alignment given backtracking matrices for DP alignment */
-int backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp,
-                               Eigen::MatrixXd Bq, string seqa, string seqb,
+int backtracking_noframeshifts(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp,
+                               Eigen::MatrixXf Bq, string seqa, string seqb,
                                alignment_t& aln) {
     int i = seqa.length();
     int j = seqb.length();

@@ -489,7 +489,7 @@ int cod_int(string codon) {
 }
 
 /* Read substitution rate matrix from a CSV file */
-int parse_matrix_csv(string file, Matrix64f& P, double& br_len) {
+int parse_matrix_csv(string file, Matrix64f& P, float& br_len) {
     ifstream input(file);
     if(!input.good()) {
         cerr << "Error opening '" << file << "'." << endl;

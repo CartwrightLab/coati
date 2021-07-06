@@ -41,13 +41,16 @@ using x3::lit;
 using x3::ascii::char_;
 
 // rule declaration
-x3::rule<class label, std::string> const label = "label";    // NOLINT(cert-err58-cpp)
-x3::rule<class ilabel, std::string> const ilabel = "ilabel"; // NOLINT(cert-err58-cpp)
-x3::rule<class length, float> const length = "length";       // NOLINT(cert-err58-cpp)
-x3::rule<class leaf, tree_t> const leaf = "leaf";            // NOLINT(cert-err58-cpp)
-x3::rule<class inode, tree_t> const inode = "inode";         // NOLINT(cert-err58-cpp)
-x3::rule<class node, tree_t> const node = "node";            // NOLINT(cert-err58-cpp)
-x3::rule<class tree, tree_t> const tree = "tree";            // NOLINT(cert-err58-cpp)
+x3::rule<class label, std::string> const label =
+    "label";  // NOLINT(cert-err58-cpp)
+x3::rule<class ilabel, std::string> const ilabel =
+    "ilabel";  // NOLINT(cert-err58-cpp)
+x3::rule<class length, float> const length =
+    "length";                                         // NOLINT(cert-err58-cpp)
+x3::rule<class leaf, tree_t> const leaf = "leaf";     // NOLINT(cert-err58-cpp)
+x3::rule<class inode, tree_t> const inode = "inode";  // NOLINT(cert-err58-cpp)
+x3::rule<class node, tree_t> const node = "node";     // NOLINT(cert-err58-cpp)
+x3::rule<class tree, tree_t> const tree = "tree";     // NOLINT(cert-err58-cpp)
 
 // semantic actions
 auto const make_leaf = [](auto& ctx) {
@@ -73,30 +76,31 @@ auto const make_inode = [](auto& ctx) {
 };
 
 // rule definition
-auto const tree_def = node >> -lit(';'); // NOLINT(cert-err58-cpp)
-auto const node_def = leaf | inode; // NOLINT(cert-err58-cpp)
-auto const leaf_def = (label >> length)[make_leaf]; // NOLINT(cert-err58-cpp)
-auto const inode_def =                              // NOLINT(cert-err58-cpp)
-    (('(' >> (node % ',') >> ')') >> ilabel >> length)[make_inode]; // NOLINT(cert-err58-cpp)
+auto const tree_def = node >> -lit(';');             // NOLINT(cert-err58-cpp)
+auto const node_def = leaf | inode;                  // NOLINT(cert-err58-cpp)
+auto const leaf_def = (label >> length)[make_leaf];  // NOLINT(cert-err58-cpp)
+auto const inode_def =                               // NOLINT(cert-err58-cpp)
+    (('(' >> (node % ',') >> ')') >> ilabel >>
+     length)[make_inode];  // NOLINT(cert-err58-cpp)
 
-auto const label_def = +char_("-0-9A-Za-z/%_."); // NOLINT(cert-err58-cpp)
+auto const label_def = +char_("-0-9A-Za-z/%_.");  // NOLINT(cert-err58-cpp)
 
-auto const ilabel_def = label | attr(""); // NOLINT(cert-err58-cpp)
-auto const length_def = (':' >> float_) | attr(0.0); // NOLINT(cert-err58-cpp)
+auto const ilabel_def = label | attr("");             // NOLINT(cert-err58-cpp)
+auto const length_def = (':' >> float_) | attr(0.0);  // NOLINT(cert-err58-cpp)
 
 BOOST_SPIRIT_DEFINE(label);
 BOOST_SPIRIT_DEFINE(ilabel);
 BOOST_SPIRIT_DEFINE(length);
 BOOST_SPIRIT_DEFINE(leaf);
-BOOST_SPIRIT_DEFINE(inode); // NOLINT(misc-no-recursion)
-BOOST_SPIRIT_DEFINE(node);  // NOLINT(misc-no-recursion)
+BOOST_SPIRIT_DEFINE(inode);  // NOLINT(misc-no-recursion)
+BOOST_SPIRIT_DEFINE(node);   // NOLINT(misc-no-recursion)
 BOOST_SPIRIT_DEFINE(tree);
 
 }  // namespace newick
 
 using namespace std;
 
-bool read_newick(const string & tree_file, std::string& content) {
+bool read_newick(const string& tree_file, std::string& content) {
     ifstream input(tree_file);  // open input stream
     if(!input.good()) {
         cout << "Error opening '" << tree_file << "'." << endl;
@@ -180,7 +184,7 @@ TEST_CASE("[tree.cc] parse_newick") {
 }
 
 /* Determine order of leafs for progressive alignment */
-int aln_order(tree_t& tree, vector<pair<int, double>>& order_list) {
+int aln_order(tree_t& tree, vector<pair<int, float>>& order_list) {
     // Part1: find closest pair of leafs
 
     for(size_t i = 1; i < tree.size(); i++) {  // fill list of children
@@ -190,7 +194,7 @@ int aln_order(tree_t& tree, vector<pair<int, double>>& order_list) {
     pair<int, int> closest_pair;
     float d = FLT_MAX;
 
-    for(size_t i = 0; i < tree.size(); i++) {      // for each node in tree
+    for(size_t i = 0; i < tree.size(); i++) {   // for each node in tree
         if(tree[i].children.empty()) continue;  // if no descendants skip
         for(size_t j = 0; j < tree[i].children.size() - 1;
             j++) {  // look for closest pair
@@ -225,7 +229,7 @@ int aln_order(tree_t& tree, vector<pair<int, double>>& order_list) {
 
     visited[order_list[0].first] = visited[order_list[1].first] = true;
     int ancestor = tree[order_list.back().first].parent;
-    double branch = 0;
+    float branch = 0;
 
     // while not all nodes have been visited (any value in visitied is false)
     while(any_of(visited.begin(), visited.end(), [](bool b) { return !b; })) {
@@ -274,7 +278,7 @@ int aln_order(tree_t& tree, vector<pair<int, double>>& order_list) {
 
 TEST_CASE("[tree.cc] aln_order") {
     tree_t tree;
-    vector<pair<int, double>> order_list;
+    vector<pair<int, float>> order_list;
     // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
 
     tree.push_back(node_t("", 0, false, 0));
@@ -300,7 +304,7 @@ TEST_CASE("[tree.cc] aln_order") {
 }
 
 /* Find fasta sequence given its name */
-bool find_seq(const string & name, fasta_t& f, string& seq) {
+bool find_seq(const string& name, fasta_t& f, string& seq) {
     seq.clear();
 
     for(size_t i = 0; i < f.seq_names.size(); i++) {
@@ -327,9 +331,10 @@ TEST_CASE("[tree.cc] find_seq") {
 }
 
 /* Find node in tree given its name */
-bool find_node(const tree_t& tree, const string & name, int& index) {
-    auto it = find_if(begin(tree), end(tree),
-                      [name](const node_t & node) { return node.label == name; });
+bool find_node(tree_t& tree, const string& name, int& index) {
+    auto it = find_if(begin(tree), end(tree), [name](const node_t& node) {
+        return node.label == name;
+    });
     index = (it == end(tree) ? -1 : it - begin(tree));
 
     return index != -1;
@@ -359,7 +364,7 @@ TEST_CASE("[tree.cc] find_node") {
 }
 
 /* Re-root tree given an outgroup (leaf node) */
-bool reroot(tree_t& tree, const string & outgroup) {
+bool reroot(tree_t& tree, const string& outgroup) {
     int ref;
 
     // find outgroup node
@@ -459,8 +464,8 @@ TEST_CASE("[tree.cc] reroot") {
 }
 
 /* Find distance from REF to node. Tree is assumed to be rerooted. */
-double distance_ref(const tree_t& tree, size_t ref, size_t node) {
-    double distance = 0;
+float distance_ref(const tree_t& tree, size_t ref, size_t node) {
+    float distance = 0;
 
     // distance from node to root
     while(tree[node].parent != node) {

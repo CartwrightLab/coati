@@ -28,7 +28,7 @@ using namespace std;
 using namespace fst;
 
 /* Create Muse and Gaut codon model FST */
-void mg94(VectorFstStdArc& mut_fst, double br_len) {
+void mg94(VectorFstStdArc& mut_fst, float br_len) {
     Matrix64f P;
     mg94_p(P, br_len);
 
@@ -60,7 +60,7 @@ void mg94(VectorFstStdArc& mut_fst, double br_len) {
 
 TEST_CASE("[mutation_fst.cc] mg94") {
     VectorFstStdArc mut_fst;
-    double branch_length = 0.0133;
+    float branch_length = 0.0133;
     mg94(mut_fst, branch_length);
 
     CHECK(Verify(mut_fst));           // openfst built-in sanity check
@@ -69,7 +69,7 @@ TEST_CASE("[mutation_fst.cc] mg94") {
 }
 
 /* Create dna marginal Muse and Gaut codon model FST*/
-void dna(VectorFstStdArc& mut_fst, double br_len) {
+void dna(VectorFstStdArc& mut_fst, float br_len) {
     Matrix64f P;
     mg94_p(P, br_len);
 
@@ -80,7 +80,7 @@ void dna(VectorFstStdArc& mut_fst, double br_len) {
 
     Matrix4f dna_p = Matrix4f::Zero();
 
-    for(uint8_t cod = 0; cod < 64; cod++) {  // for each codon
+    for(uint8_t cod = 0; cod < 64; cod++) {     // for each codon
         for(int pos = 0; pos < 3; pos++) {      // for each position in a codon
             for(int nuc = 0; nuc < 4; nuc++) {  // for each nucleotide (from)
                 for(int nuc2 = 0; nuc2 < 4;
@@ -114,7 +114,7 @@ void dna(VectorFstStdArc& mut_fst, double br_len) {
 
 TEST_CASE("[mutation_fst.cc] dna") {
     VectorFstStdArc dna_fst;
-    double branch_length = 0.0133;
+    float branch_length = 0.0133;
     dna(dna_fst, branch_length);
 
     CHECK(Verify(dna_fst));           // openfst built-in sanity check
@@ -158,10 +158,10 @@ TEST_CASE("[mutation_fst.cc] nuc2pos") {
 
 /* Create affine gap indel model FST*/
 void indel(VectorFstStdArc& indel_model, string model) {
-    double deletion = 0.001, insertion = 0.001;
-    double deletion_ext = 1.0 - 1.0 / 6.0, insertion_ext = 1.0 - 1.0 / 6.0;
-    double nuc_freqs[2][4] = {{0.308, 0.185, 0.199, 0.308},
-                              {0.2676350, 0.2357727, 0.2539630, 0.2426323}};
+    float deletion = 0.001, insertion = 0.001;
+    float deletion_ext = 1.0 - 1.0 / 6.0, insertion_ext = 1.0 - 1.0 / 6.0;
+    float nuc_freqs[2][4] = {{0.308, 0.185, 0.199, 0.308},
+                             {0.2676350, 0.2357727, 0.2539630, 0.2426323}};
     int m = model.compare("ecm") == 0 ? 1 : 0;
 
     VectorFstStdArc indel_fst;

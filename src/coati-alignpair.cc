@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
             "rate,r", po::value<string>(&in_data.rate),
             "Substitution rate matrix (CSV)")(
             "evo-time,t",
-            po::value<double>(&in_data.br_len)->default_value(0.0133, "0.0133"),
+            po::value<float>(&in_data.br_len)->default_value(0.0133, "0.0133"),
             "Evolutionary time or branch length");
 
         po::positional_options_description pos_p;
@@ -110,7 +110,7 @@ int main(int argc, char* argv[]) {
         in_data.mut_model = "user_marg_model";
 
         Matrix64f Q;
-        double br_len;
+        float br_len;
         parse_matrix_csv(rate, Q, br_len);
         // P matrix
         Q = Q * br_len;

@@ -25,9 +25,9 @@
 
 #include "mutation_coati.hpp"
 
-void mg94(VectorFstStdArc& mut_fst, double br_len);
+void mg94(VectorFstStdArc& mut_fst, float br_len);
 void nuc2pos(VectorFstStdArc& n2p);
-void dna(VectorFstStdArc& mut_fst, double br_len);
+void dna(VectorFstStdArc& mut_fst, float br_len);
 void indel(VectorFstStdArc& indel_model, std::string model);
 
 #endif

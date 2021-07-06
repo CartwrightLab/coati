@@ -53,24 +53,22 @@ const uint8_t nt4_table[256] = {
     4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
     4,  4,  4,  4,  4,  4,  4,  4,  4};
 
-using Matrix64f = Eigen::Matrix<double, 64, 64>;
-using Vector5d = Eigen::Matrix<double, 5, 1>;
+using Matrix64f = Eigen::Matrix<float, 64, 64>;
+using Vector5f = Eigen::Matrix<float, 5, 1>;
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 struct fasta_t {
     std::filesystem::path path;
     std::vector<std::string> seq_names, seq_data;
-    // fasta_t() : path{""}, seq_names{}, seq_data{} {}
-    explicit
-    fasta_t(std::string f = "", std::vector<std::string> n = {},
-            std::vector<std::string> d = {})
-        : path{std::move(f)}, seq_names{std::move(n)}, seq_data{std::move(d)} {}
+    explicit fasta_t(const std::string& f = "", std::vector<std::string> n = {},
+                     std::vector<std::string> d = {})
+        : path{f}, seq_names{std::move(n)}, seq_data{std::move(d)} {}
 };
 
 struct input_t {
     std::string mut_model, weight_file, out_file, rate, tree, ref;
     bool score{false};
-    double br_len{0.0133};
+    float br_len{0.0133};
     fasta_t fasta_file;
 };
 
@@ -80,10 +78,15 @@ struct alignment_t {
     std::string weight_file{""}, model{""};
 
     alignment_t() = default;
+    // NOLINTNEXTLINE(misc-unused-parameters)
     alignment_t(const std::string& f_file, const std::vector<std::string>& n,
-                const std::vector<std::string>& d, float w,
-                std::string w_f, std::string m)
-        : f{fasta_t(f_file, n, d)}, weight{w}, weight_file{std::move(w_f)}, model{std::move(m)} {}
+                // NOLINTNEXTLINE(misc-unused-parameters)
+                const std::vector<std::string>& d, float w, std::string w_f,
+                std::string m)
+        : f{fasta_t(f_file, n, d)},
+          weight{w},
+          weight_file{std::move(w_f)},
+          model{std::move(m)} {}
 };
 
 int read_fasta(fasta_t& fasta_file, std::vector<VectorFstStdArc>& fsts);
@@ -98,6 +101,6 @@ int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file);
 bool acceptor(std::string content, VectorFstStdArc& accept);
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(std::string codon);
-int parse_matrix_csv(std::string file, Matrix64f& P, double& br_len);
+int parse_matrix_csv(std::string file, Matrix64f& P, float& br_len);
 
 #endif

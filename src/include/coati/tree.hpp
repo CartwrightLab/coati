@@ -44,12 +44,12 @@ struct node_t {
 
 using tree_t = std::vector<node_t>;
 
-bool read_newick(const std::string & tree_file, std::string& content);
+bool read_newick(const std::string& tree_file, std::string& content);
 int parse_newick(std::string content, tree_t& guide_tree);
-int aln_order(tree_t& tree, std::vector<std::pair<int, double>>& order_list);
-bool find_seq(const std::string & name, fasta_t& f, std::string& seq);
-bool find_node(tree_t& tree, const std::string & name, int& ID);
-bool reroot(tree_t& tree, const std::string & label);
-double distance_ref(const tree_t& tree, size_t ref, size_t node);
+int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list);
+bool find_seq(const std::string& name, fasta_t& f, std::string& seq);
+bool find_node(tree_t& tree, const std::string& name, int& ID);
+bool reroot(tree_t& tree, const std::string& label);
+float distance_ref(const tree_t& tree, size_t ref, size_t node);
 
 #endif

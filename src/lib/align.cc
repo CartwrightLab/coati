@@ -414,7 +414,8 @@ int ref_indel_alignment(input_t& in_data) {
     vector<string> pair_seqs;
     string ref_seq;
     if(!find_seq(in_data.ref, in_data.fasta_file, ref_seq)) {
-        throw std::invalid_argument("reference sequence " + in_data.ref + " not found in fasta file.");
+        throw std::invalid_argument("reference sequence " + in_data.ref +
+                                    " not found in fasta file.");
     }
 
     pair_seqs.push_back(ref_seq);
@@ -431,9 +432,10 @@ int ref_indel_alignment(input_t& in_data) {
     string node_seq;
     for(size_t node = 0; node < tree.size(); node++) {
         if(tree[node].is_leaf && (tree[node].label != in_data.ref)) {
-            double branch = distance_ref(tree, ref_pos, node);
+            float branch = distance_ref(tree, ref_pos, node);
             if(!find_seq(tree[node].label, in_data.fasta_file, node_seq)) {
-                throw std::invalid_argument("sequence " + tree[node].label + " not found in fasta file.");
+                throw std::invalid_argument("sequence " + tree[node].label +
+                                            " not found in fasta file.");
             }
 
             pair_seqs[1] = node_seq;
@@ -467,8 +469,7 @@ int ref_indel_alignment(input_t& in_data) {
     for(size_t node = 0; node < tree.size(); node++) {
         if(!tree[node].is_leaf) {
             inode_indexes.push_back(node);  // add inode position to vector
-        }
-        else {
+        } else {
             visited[node] = true;  // set leafs to visited
         }
     }
@@ -517,9 +518,9 @@ int ref_indel_alignment(input_t& in_data) {
 
     // transfer result data nodes_ins[ROOT] --> aln && order sequences
     int root = tree[ref_pos].parent;
-    for(const auto & name : in_data.fasta_file.seq_names) {
+    for(const auto& name : in_data.fasta_file.seq_names) {
         auto it = find(nodes_ins[root].names.begin(),
-                                           nodes_ins[root].names.end(), name);
+                       nodes_ins[root].names.end(), name);
         int index = distance(nodes_ins[root].names.begin(), it);
         aln.f.seq_names.push_back(nodes_ins[root].names[index]);
         aln.f.seq_data.push_back(nodes_ins[root].sequences[index]);
@@ -597,27 +598,28 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
 
 float alignment_score(vector<string> alignment, Matrix64f& P) {
     if(alignment[0].length() != alignment[1].length()) {
-        throw std::invalid_argument("For alignment scoring both sequences must have equal length.");
+        throw std::invalid_argument(
+            "For alignment scoring both sequences must have equal length.");
     }
 
     int state = 0;
-    double weight = 0.0;
+    float weight = 0.0;
     string codon;
 
-    double insertion = 0.001;
-    double deletion = 0.001;
-    double insertion_ext = 1.0 - (1.0 / 6.0);
-    double deletion_ext = 1.0 - (1.0 / 6.0);
+    float insertion = 0.001;
+    float deletion = 0.001;
+    float insertion_ext = 1.0 - (1.0 / 6.0);
+    float deletion_ext = 1.0 - (1.0 / 6.0);
 
     // P matrix for marginal Muse and Gaut codon model
-    Eigen::Tensor<double, 3> p(64, 3, 4);
+    Eigen::Tensor<float, 3> p(64, 3, 4);
     mg94_marginal_p(p, P);
 
     string seq1 = alignment[0];
     boost::erase_all(seq1, "-");
     int gap_n = 0;
 
-    Vector5d nuc_freqs;
+    Vector5f nuc_freqs;
     nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
 
     for(size_t i = 0; i < alignment[0].length(); i++) {
@@ -667,7 +669,8 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
 
         case 2:
             if(alignment[0][i] == '-') {
-                throw std::runtime_error("Insertion after deletion is not modeled.");
+                throw std::runtime_error(
+                    "Insertion after deletion is not modeled.");
             } else if(alignment[1][i] == '-') {
                 // deletion_ext
                 weight = weight - log(deletion_ext);

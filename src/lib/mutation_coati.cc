@@ -27,21 +27,21 @@
 using namespace std;
 
 /* nonsynonymous-synonymous bias (\omega) */
-const double omega = 0.2;  // github.com/reedacartwright/toycoati
+const float omega = 0.2;  // github.com/reedacartwright/toycoati
 
 /* Muse & Gaut Model (1994) P matrix */
 void mg94_q(Matrix64f& Q) {
     // Yang (1994) estimating the pattern of nucleotide substitution
-    double nuc_freqs[4] = {0.308, 0.185, 0.199, 0.308};
-    double nuc_q[4][4] = {{-0.818, 0.132, 0.586, 0.1},
-                          {0.221, -1.349, 0.231, 0.897},
-                          {0.909, 0.215, -1.322, 0.198},
-                          {0.1, 0.537, 0.128, -0.765}};
+    float nuc_freqs[4] = {0.308, 0.185, 0.199, 0.308};
+    float nuc_q[4][4] = {{-0.818, 0.132, 0.586, 0.1},
+                         {0.221, -1.349, 0.231, 0.897},
+                         {0.909, 0.215, -1.322, 0.198},
+                         {0.1, 0.537, 0.128, -0.765}};
 
     // MG94 model - doi:10.1534/genetics.108.092254
     Q = Matrix64f::Zero();
     Matrix64f Pi;
-    double w, d = 0.0;
+    float w, d = 0.0;
     int x, y = 0;
 
     // construct transition matrix
@@ -59,7 +59,7 @@ void mg94_q(Matrix64f& Q) {
 
         Pi(i) = nuc_freqs[((i & 48) >> 4)] * nuc_freqs[((i & 12) >> 2)] *
                 nuc_freqs[(i & 3)];
-        double rowSum = 0.0;
+        float rowSum = 0.0;
         for(uint8_t j = 0; j < 64; j++) {
             if(i == j) {
                 Q(i, j) = 0;
@@ -160,7 +160,7 @@ TEST_CASE("[mutation_coati.cc] mg94_q") {
         4022, 4026, 4028, 4029, 4030, 4031, 4047, 4063, 4079, 4083, 4087, 4091,
         4092, 4093, 4094, 4095};
 
-    constexpr double mg94Q[640] = {
+    constexpr float mg94Q[640] = {
         -0.7445587, 0.0204839,  0.4546805,  0.0155181,  0.0204839,  0.09093609,
         0.0155181,  0.0204839,  0.09093609, 0.0155181,  0.03429501, -1.020005,
         0.03584682, 0.695987,   0.0204839,  0.09093609, 0.0155181,  0.0204839,
@@ -270,9 +270,8 @@ TEST_CASE("[mutation_coati.cc] mg94_q") {
         0.0155181,  0.4166611,  0.01986317, -0.6894694};
 
     // convert Q matrix to column vector
-    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Q2(
-        Q);
-    Eigen::Map<Eigen::VectorXd> mg94Q_vector(Q2.data(), 4096, 1);
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Q2(Q);
+    Eigen::Map<Eigen::VectorXf> mg94Q_vector(Q2.data(), 4096, 1);
 
     // check non-zero values
     for(int i = 0; i < 640; i++) {
@@ -281,7 +280,7 @@ TEST_CASE("[mutation_coati.cc] mg94_q") {
 }
 
 /* Muse & Gaut Model (1994) P matrix given rate matrix and branch lenght */
-void mg94_p(Matrix64f& P, double brlen) {
+void mg94_p(Matrix64f& P, float brlen) {
     if(brlen <= 0) {
         throw std::out_of_range("Branch length must be positive.");
     }
@@ -295,7 +294,7 @@ void mg94_p(Matrix64f& P, double brlen) {
 
 TEST_CASE("[mutation_coati.cc] mg94_p") {
     Matrix64f P;
-    double branch_length = 0.0133;
+    float branch_length = 0.0133;
     mg94_p(P, branch_length);
 
     for(int i = 0; i < 64; i++) {
@@ -304,7 +303,7 @@ TEST_CASE("[mutation_coati.cc] mg94_p") {
 
     CHECK(!(P.array() < 0).any());  // all values are positive
 
-    constexpr double mg94P[64][64] = {
+    constexpr float mg94P[64][64] = {
         {0.9901768,    0.0002711565, 0.005976741,  0.0002068872, 0.0002697326,
          2.215874e-07, 1.627355e-06, 1.689826e-07, 0.001196386,  3.277784e-07,
          7.221383e-06, 2.500888e-07, 0.0002051648, 1.677118e-07, 7.440474e-07,
@@ -1146,8 +1145,8 @@ TEST_CASE("[mutation_coati.cc] mg94_p") {
 }
 
 /* Create marginal Muse and Gaut codon model P matrix*/
-void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P) {
-    double marg;
+void mg94_marginal_p(Eigen::Tensor<float, 3>& p, Matrix64f& P) {
+    float marg;
 
     for(int cod = 0; cod < 64; cod++) {
         for(int pos = 0; pos < 3; pos++) {
@@ -1180,15 +1179,15 @@ void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P) {
 }
 
 TEST_CASE("[mutation_coati.cc] mg94_marginal_p") {
-    Eigen::Tensor<double, 3> p(64, 3, 4);
+    Eigen::Tensor<float, 3> p(64, 3, 4);
     Matrix64f P;
-    double branch_length = 0.0133;
+    float branch_length = 0.0133;
     mg94_p(P, branch_length);
     mg94_marginal_p(p, P);
 
     for(int cod = 0; cod < 64; cod++) {
         for(int pos = 0; pos < 3; pos++) {
-            double val = 0;
+            float val = 0;
             for(int nuc = 0; nuc < 4; nuc++) {
                 val += p(cod, pos, nuc);
                 CHECK(!(p(cod, pos, nuc) < 0));

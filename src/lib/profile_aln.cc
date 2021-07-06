@@ -30,23 +30,24 @@
 using namespace std;
 
 /* Create profile given a sequence */
-Eigen::MatrixXd create_profile(string seq) {
+Eigen::MatrixXf create_profile(string seq) {
     vector<string> vector_seq;
     vector_seq.push_back(seq);
     return create_profile(vector_seq);
 }
 
 /* Create profile given an alignment */
-Eigen::MatrixXd create_profile(vector<string>& aln) {
+Eigen::MatrixXf create_profile(vector<string>& aln) {
     for(auto s : aln) {
         if(s.length() != aln[0].length()) {
-            throw std::invalid_argument("Profile matrix requires all strings of same length.");
+            throw std::invalid_argument(
+                "Profile matrix requires all strings of same length.");
         }
     }
 
     int cols = aln.at(0).length();
     int rows = aln.size();
-    Eigen::MatrixXd profile = Eigen::MatrixXd::Zero(4, cols);
+    Eigen::MatrixXf profile = Eigen::MatrixXf::Zero(4, cols);
 
     for(int j = 0; j < cols; j++) {      // for each column
         for(int i = 0; i < rows; i++) {  // for each row
@@ -78,8 +79,8 @@ TEST_CASE("[utils.cc] create_profile") {
     SUBCASE("alignment") {
         vector<string> aln = {"CTCTGGATAGTG", "CT----ATAGTG", "CTCT---TAGTG",
                               "CTCTG--TAGTG"};
-        Eigen::MatrixXd profile = create_profile(aln);
-        Eigen::MatrixXd result(4, 12);
+        Eigen::MatrixXf profile = create_profile(aln);
+        Eigen::MatrixXf result(4, 12);
         result << 0, 0, 0, 0, 0, 0, 0.5, 0, 1, 0, 0, 0, 1, 0, 0.75, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0.5, 0.25, 0, 0, 0, 1, 0, 1, 0, 1, 0,
             0.75, 0, 0, 0, 1, 0, 0, 1, 0;
@@ -89,8 +90,8 @@ TEST_CASE("[utils.cc] create_profile") {
 
     SUBCASE("sequence") {
         string seq = "CTCTGGATAGTG";
-        Eigen::MatrixXd profile = create_profile(seq);
-        Eigen::MatrixXd result(4, 12);
+        Eigen::MatrixXf profile = create_profile(seq);
+        Eigen::MatrixXf result(4, 12);
         result << 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1,
             0, 0, 1, 0;
@@ -100,16 +101,16 @@ TEST_CASE("[utils.cc] create_profile") {
 }
 
 /* Return value for  */
-double transition(Matrix4x3d cod, int pos, Vector4d nuc,
-                  const Eigen::Tensor<double, 3>& p) {
-    double val = 0;
+float transition(Matrix4x3d cod, int pos, Vector4f nuc,
+                 const Eigen::Tensor<float, 3>& p) {
+    float val = 0;
     pos = pos == 0 ? 2 : --pos;
 
     // find highest value nucleotide per codon position
-    Eigen::VectorXd::Index max_pos0, max_pos1, max_pos2;
-    double max_cod0 = cod.col(0).maxCoeff(&max_pos0);
-    double max_cod1 = cod.col(1).maxCoeff(&max_pos1);
-    double max_cod2 = cod.col(2).maxCoeff(&max_pos2);
+    Eigen::VectorXf::Index max_pos0, max_pos1, max_pos2;
+    float max_cod0 = cod.col(0).maxCoeff(&max_pos0);
+    float max_cod1 = cod.col(1).maxCoeff(&max_pos1);
+    float max_cod2 = cod.col(2).maxCoeff(&max_pos2);
 
     // codon to int value (AAA->0, AAC->1, ... TTT-> 63)
     int cod_index = (max_pos0 << 4) + (max_pos1 << 2) + max_pos2;
@@ -123,10 +124,10 @@ double transition(Matrix4x3d cod, int pos, Vector4d nuc,
     cod.col(0)(max_pos0) = -1;
     cod.col(1)(max_pos1) = -1;
     cod.col(2)(max_pos2) = -1;
-    Eigen::VectorXd::Index max2_pos0, max2_pos1, max2_pos2;
-    double max2_cod0 = cod.col(0).maxCoeff(&max2_pos0);
-    double max2_cod1 = cod.col(1).maxCoeff(&max2_pos1);
-    double max2_cod2 = cod.col(2).maxCoeff(&max2_pos2);
+    Eigen::VectorXf::Index max2_pos0, max2_pos1, max2_pos2;
+    float max2_cod0 = cod.col(0).maxCoeff(&max2_pos0);
+    float max2_cod1 = cod.col(1).maxCoeff(&max2_pos1);
+    float max2_cod2 = cod.col(2).maxCoeff(&max2_pos2);
 
     // codon: 2nd highest nuc, highest nuc, highest nuc
     cod_index = (max2_pos0 << 4) + (max_pos1 << 2) + max_pos2;
@@ -150,13 +151,13 @@ double transition(Matrix4x3d cod, int pos, Vector4d nuc,
 }
 
 TEST_CASE("[profile_aln.cc] transition") {
-    Vector4d nuc;
+    Vector4f nuc;
     Matrix4x3d cod;
 
     Matrix64f P;
-    double br_len = 0.0133;
+    float br_len = 0.0133;
     mg94_p(P, br_len);
-    Eigen::Tensor<double, 3> p(64, 3, 4);
+    Eigen::Tensor<float, 3> p(64, 3, 4);
     mg94_marginal_p(p, P);
 
     SUBCASE("codon aaa, all nucs") {
@@ -203,18 +204,19 @@ TEST_CASE("[profile_aln.cc] transition") {
 int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
                            alignment_t& aln, Matrix64f& P_m) {
     // P matrix for marginal Muse and Gaut codon model
-    Eigen::Tensor<double, 3> p(64, 3, 4);
+    Eigen::Tensor<float, 3> p(64, 3, 4);
     mg94_marginal_p(p, P_m);
 
-    Eigen::MatrixXd pro1 = create_profile(seqs1);
-    Eigen::MatrixXd pro2 = create_profile(seqs2);
+    Eigen::MatrixXf pro1 = create_profile(seqs1);
+    Eigen::MatrixXf pro2 = create_profile(seqs2);
 
     int m = pro1.cols();
     int n = pro2.cols();
 
     // assert that length of 1st sequence (ref) is multiple of 3
     if(m % 3 != 0) {
-        throw std::invalid_argument("Reference CDS length must be of length multiple of 3.");
+        throw std::invalid_argument(
+            "Reference CDS length must be of length multiple of 3.");
     }
 
     // DP matrices for match/mismatch (D), insertion (P), deletion (Q)
@@ -231,16 +233,16 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
     Eigen::MatrixXi Bp = Eigen::MatrixXi::Constant(m + 1, n + 1, -1);
     Eigen::MatrixXi Bq = Eigen::MatrixXi::Constant(m + 1, n + 1, -1);
 
-    double insertion = log(0.001);
-    double deletion = log(0.001);
-    double insertion_ext = log(1.0 - (1.0 / 6.0));
-    double deletion_ext = log(1.0 - (1.0 / 6.0));
-    double no_insertion = log(1.0 - 0.001);
-    double no_deletion = log(1.0 - 0.001);
-    double no_insertion_ext = log(1.0 / 6.0);
-    double no_deletion_ext = log(1.0 / 6.0);
+    float insertion = log(0.001);
+    float deletion = log(0.001);
+    float insertion_ext = log(1.0 - (1.0 / 6.0));
+    float deletion_ext = log(1.0 - (1.0 / 6.0));
+    float no_insertion = log(1.0 - 0.001);
+    float no_deletion = log(1.0 - 0.001);
+    float no_insertion_ext = log(1.0 / 6.0);
+    float no_deletion_ext = log(1.0 / 6.0);
 
-    Vector5d nuc_freqs;
+    Vector5f nuc_freqs;
     nuc_freqs << log(0.308), log(0.185), log(0.199), log(0.308), log(0.25);
 
     // DP and backtracking matrices initialization
@@ -280,7 +282,7 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
     }
 
     Matrix4x3d codon;
-    double p1, p2, q1, q2, d;
+    float p1, p2, q1, q2, d;
 
     for(int i = 1; i < m + 1; i++) {
         // codon = seq_a.substr((((i-1)/3)*3),3); // current codon
@@ -294,7 +296,7 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
                            nuc_pi(pro2.col(j - 1), nuc_freqs) - no_insertion_ext
                  : Bd(i, j - 1) == 1 ? D(i, j - 1) - insertion_ext -
                                            nuc_pi(pro2.col(j - 1), nuc_freqs)
-                                     : numeric_limits<double>::max();
+                                     : numeric_limits<float>::max();
             P(i, j) = min(p1, p2);
             Bp(i, j) =
                 p1 < p2
@@ -357,7 +359,7 @@ TEST_CASE("[profile_aln.cc] gotoh_profile_marginal") {
     vector<string> seqs1, seqs2;
     alignment_t aln, aln_pair;
     Matrix64f P;
-    double branch = 0.0133;
+    float branch = 0.0133;
     mg94_p(P, branch);
 
     SUBCASE("pairwise") {  // ensure result is identical to non-profile aln
@@ -381,7 +383,7 @@ int backtracking_profile(Eigen::MatrixXi Bd, Eigen::MatrixXi Bp,
                          vector<string> seqs2, alignment_t& aln) {
     int i = seqs1[0].length();
     int j = seqs2[0].length();
-    vector<string> aln_seqs(seqs1.size()+seqs2.size());
+    vector<string> aln_seqs(seqs1.size() + seqs2.size());
 
     while((i != 0) || (j != 0)) {
         switch(Bd(i, j)) {
@@ -440,8 +442,8 @@ int backtracking_profile(Eigen::MatrixXi Bd, Eigen::MatrixXi Bp,
 }
 
 /* Weighted average of nucleotide freqs for profile */
-double nuc_pi(Vector4d n, Vector5d pis) {
-    double val = 0;
+float nuc_pi(Vector4f n, Vector5f pis) {
+    float val = 0;
     for(int i = 0; i < 4; i++) {
         val += n[i] == 0 ? 0 : n[i] * exp(pis[i]);
     }
@@ -450,13 +452,13 @@ double nuc_pi(Vector4d n, Vector5d pis) {
 }
 
 TEST_CASE("[profile_aln.cc] nuc_pi") {
-    Vector4d nucleotides = {0.25, 0.25, 0.25, 0.25};
-    Vector5d nuc_frequencies;
+    Vector4f nucleotides = {0.25, 0.25, 0.25, 0.25};
+    Vector5f nuc_frequencies;
     nuc_frequencies << log(0.3), log(0.2), log(0.2), log(0.3), log(0.25);
 
-    CHECK(nuc_pi(nucleotides, nuc_frequencies) == 0.25);
+    CHECK(nuc_pi(nucleotides, nuc_frequencies) == doctest::Approx(0.25));
     nucleotides << 1, 0, 0, 0;
-    CHECK(nuc_pi(nucleotides, nuc_frequencies) == 0.3);
+    CHECK(nuc_pi(nucleotides, nuc_frequencies) == doctest::Approx(0.3));
     nucleotides << 0.5, 0.1, 0.2, 0.2;
-    CHECK(nuc_pi(nucleotides, nuc_frequencies) == 0.27);
+    CHECK(nuc_pi(nucleotides, nuc_frequencies) == doctest::Approx(0.27));
 }

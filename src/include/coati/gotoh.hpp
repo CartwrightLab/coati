@@ -29,12 +29,12 @@ int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
                   Matrix64f& P);
 int gotoh_noframeshifts(std::vector<std::string> sequences, alignment_t& aln,
                         Matrix64f& P_m);
-double transition(const std::string& codon, int position, unsigned char nucleotide,
-                  const Eigen::Tensor<double, 3>& p);
-int backtracking(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp, Eigen::MatrixXd Bq,
+float transition(const std::string& codon, int position,
+                 unsigned char nucleotide, const Eigen::Tensor<float, 3>& p);
+int backtracking(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp, Eigen::MatrixXf Bq,
                  std::string seqa, std::string seqb, alignment_t& aln);
-int backtracking_noframeshifts(Eigen::MatrixXd Bd, Eigen::MatrixXd Bp,
-                               Eigen::MatrixXd Bq, std::string seqa,
+int backtracking_noframeshifts(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp,
+                               Eigen::MatrixXf Bq, std::string seqa,
                                std::string seqb, alignment_t& aln);
 
 #endif

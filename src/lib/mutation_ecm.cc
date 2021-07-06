@@ -25,12 +25,12 @@
 #include <coati/mutation_ecm.hpp>
 
 /* nonsynonymous-synonymous bias (\omega) */
-const double omega = 0.2;  // github.com/reedacartwright/toycoati
-const double kappa = 2.5;  // Kosiol et al. 2007, supplemental material
+const float omega = 0.2;  // github.com/reedacartwright/toycoati
+const float kappa = 2.5;  // Kosiol et al. 2007, supplemental material
 
 /* ECM unrestricted exchangeabilities, Kosiol et al. 2007, supplemental data
    [61x61] in A,C,G,T order */
-constexpr double s[64][64] = {
+constexpr float s[64][64] = {
     {0,        0.413957, 12.931524, 2.075154, 1.523251, 0.089476, 0.199589,
      0.878163, 5.815294, 0.334224,  1.868194, 1.29386,  0.667397, 0.02302,
      0.275355, 0.221536, 3.215817,  0.143479, 0.285384, 0.899262, 1.042457,
@@ -706,7 +706,7 @@ TEST_CASE("[mutation_coati.cc] nts_ntv") {
 
 /* transition-transversion bias function, depending on # of ts and tv (Nts,Ntv)
  */
-double k(uint8_t c1, uint8_t c2, int model) {
+float k(uint8_t c1, uint8_t c2, int model) {
     int nts, ntv;
     nts_ntv(c1, c2, nts, ntv);
     switch(model) {
@@ -739,13 +739,13 @@ TEST_CASE("[mutation_coati.cc] k") {
 }
 
 /* Empirical Codon Model P matrix */
-void ecm_p(Matrix64f& P, double br_len) {
+void ecm_p(Matrix64f& P, float br_len) {
     Matrix64f Q = Matrix64f::Zero();
 
-    double d = 0.0;
+    float d = 0.0;
 
     for(uint8_t i = 0; i < 64; i++) {
-        double rowSum = 0.0;
+        float rowSum = 0.0;
         for(uint8_t j = 0; j < 64; j++) {
             // check if codons i or j are stop codons
             if(i == j || nt4_table[i] == '*' || nt4_table[j] == '*') {
@@ -771,7 +771,7 @@ void ecm_p(Matrix64f& P, double br_len) {
 }
 
 /* Empirical Codon Model (Kosiol et al. 2007) FST */
-void ecm(VectorFstStdArc& mut_fst, double br_len) {
+void ecm(VectorFstStdArc& mut_fst, float br_len) {
     Matrix64f P;
     ecm_p(P, br_len);
 
