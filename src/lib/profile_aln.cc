@@ -46,29 +46,33 @@ Eigen::MatrixXf create_profile(vector<string>& aln) {
     }
 
     int cols = aln.at(0).length();
-    int rows = aln.size();
+    auto rows = aln.size();
     Eigen::MatrixXf profile = Eigen::MatrixXf::Zero(4, cols);
 
+    int nuc{0};
     for(int j = 0; j < cols; j++) {      // for each column
         for(int i = 0; i < rows; i++) {  // for each row
             switch(aln.at(i).at(j)) {
             case 'A':
             case 'a':
-                profile(0, j) += 1.0 / rows;
+                nuc = 0;
                 break;
             case 'C':
             case 'c':
-                profile(1, j) += 1.0 / rows;
+                nuc = 1;
                 break;
             case 'G':
             case 'g':
-                profile(2, j) += 1.0 / rows;
+                nuc = 2;
                 break;
             case 'T':
             case 't':
-                profile(3, j) += 1.0 / rows;
+                nuc = 3;
                 break;
+            case '-':
+                continue;
             }
+            profile(nuc, j) += 1.0f / static_cast<float>(rows);
         }
     }
 
@@ -85,6 +89,7 @@ TEST_CASE("[utils.cc] create_profile") {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0.5, 0.25, 0, 0, 0, 1, 0, 1, 0, 1, 0,
             0.75, 0, 0, 0, 1, 0, 0, 1, 0;
 
+        std::cout << profile << std::endl;
         CHECK(profile == result);
     }
 
@@ -233,17 +238,17 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
     Eigen::MatrixXi Bp = Eigen::MatrixXi::Constant(m + 1, n + 1, -1);
     Eigen::MatrixXi Bq = Eigen::MatrixXi::Constant(m + 1, n + 1, -1);
 
-    float insertion = log(0.001);
-    float deletion = log(0.001);
-    float insertion_ext = log(1.0 - (1.0 / 6.0));
-    float deletion_ext = log(1.0 - (1.0 / 6.0));
-    float no_insertion = log(1.0 - 0.001);
-    float no_deletion = log(1.0 - 0.001);
-    float no_insertion_ext = log(1.0 / 6.0);
-    float no_deletion_ext = log(1.0 / 6.0);
+    float insertion = logf(0.001);
+    float deletion = logf(0.001);
+    float insertion_ext = logf(1.0f - (1.0 / 6.0));
+    float deletion_ext = logf(1.0f - (1.0 / 6.0));
+    float no_insertion = logf(1.0f - 0.001);
+    float no_deletion = logf(1.0f - 0.001);
+    float no_insertion_ext = logf(1.0f / 6.0);
+    float no_deletion_ext = logf(1.0f / 6.0);
 
     Vector5f nuc_freqs;
-    nuc_freqs << log(0.308), log(0.185), log(0.199), log(0.308), log(0.25);
+    nuc_freqs << logf(0.308), logf(0.185), logf(0.199), logf(0.308), logf(0.25);
 
     // DP and backtracking matrices initialization
 
@@ -282,7 +287,7 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
     }
 
     Matrix4x3d codon;
-    float p1, p2, q1, q2, d;
+    float p1 = NAN, p2 = NAN, q1 = NAN, q2 = NAN, d = NAN;
 
     for(int i = 1; i < m + 1; i++) {
         // codon = seq_a.substr((((i-1)/3)*3),3); // current codon
@@ -317,18 +322,18 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
             // match/mismatch
             if(Bd(i - 1, j - 1) == 0) {
                 d = D(i - 1, j - 1) - no_insertion - no_deletion -
-                    log(transition(codon, (i) % 3, pro2.col(j - 1), p));
+                    logf(transition(codon, (i) % 3, pro2.col(j - 1), p));
             } else if(Bd(i - 1, j - 1) == 1) {
                 d = D(i - 1, j - 1) - no_deletion -
-                    log(transition(codon, (i) % 3, pro2.col(j - 1), p));
+                    logf(transition(codon, (i) % 3, pro2.col(j - 1), p));
             } else {
                 d = D(i - 1, j - 1) -
-                    log(transition(codon, (i) % 3, pro2.col(j - 1), p));
+                    logf(transition(codon, (i) % 3, pro2.col(j - 1), p));
             }
 
             // D(i,j) = highest weight between insertion, deletion, and
             // match/mismatch
-            //	in this case, lowest (-log(weight)) value
+            //	in this case, lowest (-logf(weight)) value
             if(d < P(i, j)) {
                 if(d < Q(i, j)) {
                     D(i, j) = d;
@@ -454,7 +459,7 @@ float nuc_pi(Vector4f n, Vector5f pis) {
 TEST_CASE("[profile_aln.cc] nuc_pi") {
     Vector4f nucleotides = {0.25, 0.25, 0.25, 0.25};
     Vector5f nuc_frequencies;
-    nuc_frequencies << log(0.3), log(0.2), log(0.2), log(0.3), log(0.25);
+    nuc_frequencies << logf(0.3), logf(0.2), logf(0.2), logf(0.3), logf(0.25);
 
     CHECK(nuc_pi(nucleotides, nuc_frequencies) == doctest::Approx(0.25));
     nucleotides << 1, 0, 0, 0;

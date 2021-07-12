@@ -41,8 +41,8 @@ void mg94_q(Matrix64f& Q) {
     // MG94 model - doi:10.1534/genetics.108.092254
     Q = Matrix64f::Zero();
     Matrix64f Pi;
-    float w, d = 0.0;
-    int x, y = 0;
+    float w = 0.0f, d = 0.0f;
+    int x = 0, y = 0;
 
     // construct transition matrix
     for(uint8_t i = 0; i < 64; i++) {
@@ -1146,7 +1146,7 @@ TEST_CASE("[mutation_coati.cc] mg94_p") {
 
 /* Create marginal Muse and Gaut codon model P matrix*/
 void mg94_marginal_p(Eigen::Tensor<float, 3>& p, Matrix64f& P) {
-    float marg;
+    float marg = NAN;
 
     for(int cod = 0; cod < 64; cod++) {
         for(int pos = 0; pos < 3; pos++) {
@@ -1156,19 +1156,19 @@ void mg94_marginal_p(Eigen::Tensor<float, 3>& p, Matrix64f& P) {
                                // up (reduce use of pow())
                 case 0:
                     for(uint8_t i = 0; i < 64; i++) {
-                        marg +=
-                            (((i & (uint8_t)48) >> 4) == nuc ? P(cod, i) : 0.0);
+                        marg += (((i & (uint8_t)48) >> 4) == nuc ? P(cod, i)
+                                                                 : 0.0f);
                     }
                     break;
                 case 1:
                     for(uint8_t i = 0; i < 64; i++) {
-                        marg +=
-                            (((i & (uint8_t)12) >> 2) == nuc ? P(cod, i) : 0.0);
+                        marg += (((i & (uint8_t)12) >> 2) == nuc ? P(cod, i)
+                                                                 : 0.0f);
                     }
                     break;
                 case 2:
                     for(uint8_t i = 0; i < 64; i++) {
-                        marg += (((i & (uint8_t)3)) == nuc ? P(cod, i) : 0.0);
+                        marg += (((i & (uint8_t)3)) == nuc ? P(cod, i) : 0.0f);
                     }
                     break;
                 }

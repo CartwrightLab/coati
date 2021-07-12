@@ -629,21 +629,22 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
             if(alignment[0][i] == '-') {
                 // insertion;
                 unsigned char pos = alignment[1][i];
-                weight = weight - log(insertion) -
-                         log(nuc_freqs[nt4_table[pos]]) -
-                         log(1.0 - insertion_ext);
+                weight = weight - logf(insertion) -
+                         logf(nuc_freqs[nt4_table[pos]]) -
+                         logf(1.0f - insertion_ext);
                 state = 1;
                 gap_n++;
             } else if(alignment[1][i] == '-') {
                 // deletion;
-                weight = weight - log(1.0 - insertion) - log(deletion) -
-                         log(1.0 - deletion_ext);
+                weight = weight - logf(1.0f - insertion) - logf(deletion) -
+                         logf(1.0f - deletion_ext);
                 state = 2;
             } else {
                 // match/mismatch;
-                weight = weight - log(1.0 - insertion) - log(1.0 - deletion) -
-                         log(transition(codon, (i + 1 - gap_n) % 3,
-                                        alignment[1][i], p));
+                weight = weight - logf(1.0f - insertion) -
+                         logf(1.0f - deletion) -
+                         logf(transition(codon, (i + 1 - gap_n) % 3,
+                                         alignment[1][i], p));
             }
             break;
 
@@ -651,18 +652,18 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
             if(alignment[0][i] == '-') {
                 // insertion_ext
                 unsigned char pos = alignment[1][i];
-                weight = weight - log(insertion_ext) -
-                         log(nuc_freqs[nt4_table[pos]]);
+                weight = weight - logf(insertion_ext) -
+                         logf(nuc_freqs[nt4_table[pos]]);
                 gap_n++;
             } else if(alignment[1][i] == '-') {
                 // deletion
-                weight = weight - log(deletion) - log(1.0 - deletion_ext);
+                weight = weight - logf(deletion) - logf(1.0f - deletion_ext);
                 state = 2;
             } else {
                 // match/mismatch
-                weight = weight - log(1.0 - deletion) -
-                         log(transition(codon, (i + 1 - gap_n) % 3,
-                                        alignment[1][i], p));
+                weight = weight - logf(1.0f - deletion) -
+                         logf(transition(codon, (i + 1 - gap_n) % 3,
+                                         alignment[1][i], p));
                 state = 0;
             }
             break;
@@ -673,11 +674,11 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
                     "Insertion after deletion is not modeled.");
             } else if(alignment[1][i] == '-') {
                 // deletion_ext
-                weight = weight - log(deletion_ext);
+                weight = weight - logf(deletion_ext);
             } else {
                 // match/mismatch
-                weight = weight - log(transition(codon, (i + 1 - gap_n) % 3,
-                                                 alignment[1][i], p));
+                weight = weight - logf(transition(codon, (i + 1 - gap_n) % 3,
+                                                  alignment[1][i], p));
                 state = 0;
             }
         }

@@ -38,7 +38,7 @@ void add_arc(VectorFstStdArc& n2p, int src, int dest, int ilabel, int olabel,
     } else if(weight == 0.0) {
         weight = static_cast<float>(INT_MAX);
     } else {
-        weight = -log(weight);
+        weight = -logf(weight);
     }
 
     if(n2p.NumStates() <= dest) {
@@ -500,7 +500,7 @@ int parse_matrix_csv(string file, Matrix64f& P, float& br_len) {
     if(input.good()) {
         // Read branch length
         getline(input, line);
-        br_len = stod(line);
+        br_len = stof(line);
     }
 
     vector<string> vec;
@@ -508,7 +508,7 @@ int parse_matrix_csv(string file, Matrix64f& P, float& br_len) {
 
     while(getline(input, line)) {
         boost::algorithm::split(vec, line, boost::is_any_of(","));
-        P(cod_int(vec[0]), cod_int(vec[1])) = stod(vec[2]);
+        P(cod_int(vec[0]), cod_int(vec[1])) = stof(vec[2]);
         count++;
     }
 

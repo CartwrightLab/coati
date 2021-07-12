@@ -59,17 +59,17 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
     Eigen::MatrixXf Bp = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
     Eigen::MatrixXf Bq = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
 
-    float insertion = log(0.001);
-    float deletion = log(0.001);
-    float insertion_ext = log(1.0 - (1.0 / 6.0));
-    float deletion_ext = log(1.0 - (1.0 / 6.0));
-    float no_insertion = log(1.0 - 0.001);
-    float no_deletion = log(1.0 - 0.001);
-    float no_insertion_ext = log(1.0 / 6.0);
-    float no_deletion_ext = log(1.0 / 6.0);
+    float insertion = logf(0.001);
+    float deletion = logf(0.001);
+    float insertion_ext = logf(1.0f - (1.0 / 6.0));
+    float deletion_ext = logf(1.0f - (1.0 / 6.0));
+    float no_insertion = logf(1.0f - 0.001);
+    float no_deletion = logf(1.0f - 0.001);
+    float no_insertion_ext = logf(1.0f / 6.0);
+    float no_deletion_ext = logf(1.0f / 6.0);
 
     Vector5f nuc_freqs;
-    nuc_freqs << log(0.308), log(0.185), log(0.199), log(0.308), log(0.25);
+    nuc_freqs << logf(0.308), logf(0.185), logf(0.199), logf(0.308), logf(0.25);
 
     // DP and backtracking matrices initialization
 
@@ -142,18 +142,18 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
             // match/mismatch
             if(Bd(i - 1, j - 1) == 0) {
                 d = D(i - 1, j - 1) - no_insertion - no_deletion -
-                    log(transition(codon, (i) % 3, seq_b[j - 1], p));
+                    logf(transition(codon, (i) % 3, seq_b[j - 1], p));
             } else if(Bd(i - 1, j - 1) == 1) {
                 d = D(i - 1, j - 1) - no_deletion -
-                    log(transition(codon, (i) % 3, seq_b[j - 1], p));
+                    logf(transition(codon, (i) % 3, seq_b[j - 1], p));
             } else {
                 d = D(i - 1, j - 1) -
-                    log(transition(codon, (i) % 3, seq_b[j - 1], p));
+                    logf(transition(codon, (i) % 3, seq_b[j - 1], p));
             }
 
             // D[i,j] = highest weight between insertion, deletion, and
             // match/mismatch
-            //	in this case, lowest (-log(weight)) value
+            //	in this case, lowest (-logf(weight)) value
             if(d < P(i, j)) {
                 if(d < Q(i, j)) {
                     D(i, j) = d;
@@ -227,13 +227,13 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
     D(0, 0) = 0.0;
     Bd(0, 0) = 0;
     D(0, 3) = P(0, 3) =
-        -log(insertion) -
-        log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[0])]]) -
-        log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[1])]]) -
-        log(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[2])]]) -
-        log(1.0 - insertion_ext) - 2 * log(insertion_ext);
-    D(3, 0) = Q(3, 0) = -log(1.0 - insertion) - log(deletion) -
-                        2 * log(deletion_ext) - log(1.0 - deletion_ext);
+        -logf(insertion) -
+        logf(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[0])]]) -
+        logf(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[1])]]) -
+        logf(nuc_freqs[nt4_table[static_cast<unsigned char>(seq_b[2])]]) -
+        logf(1.0f - insertion_ext) - 2 * logf(insertion_ext);
+    D(3, 0) = Q(3, 0) = -logf(1.0f - insertion) - logf(deletion) -
+                        2 * logf(deletion_ext) - logf(1.0f - deletion_ext);
     Bd(0, 3) = 1;
     Bd(3, 0) = Bp(0, 3) = Bq(3, 0) = 2;
 
@@ -241,12 +241,12 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
     if(n + 1 >= 6) {
         for(int j = 6; j < n + 1; j += 3) {
             D(0, j) = P(0, j) =
-                D(0, j - 3) - 3 * log(insertion_ext) -
-                log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                D(0, j - 3) - 3 * logf(insertion_ext) -
+                logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                     seq_b[j - 3])]]) -
-                log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                     seq_b[j - 2])]]) -
-                log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                     seq_b[j - 1])]]);
             Bd(0, j) = 1;
             Bp(0, j) = 1;
@@ -256,21 +256,23 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
     // fill first column of D
     if(m + 1 >= 6) {
         for(int i = 6; i < m + 1; i += 3) {
-            D(i, 0) = D(i - 3, 0) - 3 * log(deletion_ext);
-            Q(i, 0) = Q(i - 3, 0) - 3 * log(deletion_ext);
+            D(i, 0) = D(i - 3, 0) - 3 * logf(deletion_ext);
+            Q(i, 0) = Q(i - 3, 0) - 3 * logf(deletion_ext);
             Bd(i, 0) = 2;
             Bq(i, 0) = 1;
         }
     }
 
     string codon;
-    float p1 = NAN, p2 = NAN, q1 = NAN, q2 = NAN, d = NAN, temp = NAN;
+    float p1 = NAN, p2 = NAN, q1 = NAN, q2 = NAN, d = NAN;
+    int temp = 0;
 
     // Cells with only match/mismatch (1,1) & (2,2)
     codon = seq_a.substr(0, 3);
     for(int i = 1; i < 3; i++) {
-        D(i, i) = D(i - 1, i - 1) - log(1.0 - insertion) - log(1.0 - deletion) -
-                  log(transition(codon, i % 3, seq_b[i - 1], p));
+        D(i, i) = D(i - 1, i - 1) - logf(1.0f - insertion) -
+                  logf(1.0f - deletion) -
+                  logf(transition(codon, i % 3, seq_b[i - 1], p));
         Bd(i, i) = 0;
     }
 
@@ -280,40 +282,40 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
             codon = seq_a.substr(0, 3);
             // match/mismatch
             if(Bd(i - 1, j - 1) == 0) {
-                d = D(i - 1, j - 1) - log(1.0 - insertion) -
-                    log(1.0 - deletion) -
-                    log(transition(codon, (i) % 3, seq_b[j - 1], p));
+                d = D(i - 1, j - 1) - logf(1.0f - insertion) -
+                    logf(1.0f - deletion) -
+                    logf(transition(codon, (i) % 3, seq_b[j - 1], p));
             } else if(Bd(i - 1, j - 1) == 1) {
-                d = D(i - 1, j - 1) - log(1.0 - deletion) -
-                    log(transition(codon, (i) % 3, seq_b[j - 1], p));
+                d = D(i - 1, j - 1) - logf(1.0f - deletion) -
+                    logf(transition(codon, (i) % 3, seq_b[j - 1], p));
             } else {
                 d = D(i - 1, j - 1) -
-                    log(transition(codon, (i) % 3, seq_b[j - 1], p));
+                    logf(transition(codon, (i) % 3, seq_b[j - 1], p));
             }
             // insertion
-            p1 = P(i, j - 3) - 3 * log(insertion_ext) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+            p1 = P(i, j - 3) - 3 * logf(insertion_ext) -
+                 logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                      seq_b[j - 3])]]) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                 logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                      seq_b[j - 2])]]) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                 logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                      seq_b[j - 1])]]);
             p2 = Bd(i, j - 3) == 0
-                     ? D(i, j - 3) - log(insertion) - 2 * log(insertion_ext) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                     ? D(i, j - 3) - logf(insertion) - 2 * logf(insertion_ext) -
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 3])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 2])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 1])]]) -
-                           log(1.0 - insertion_ext)
+                           logf(1.0f - insertion_ext)
                  : Bd(i, j - 1) == 1
-                     ? D(i, j - 1) - 3 * log(insertion_ext) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                     ? D(i, j - 1) - 3 * logf(insertion_ext) -
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 3])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 2])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 1])]])
                      : numeric_limits<float>::max();
             P(i, j) = min(p1, p2);
@@ -329,24 +331,25 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
             codon = seq_a.substr((((j - 1) / 3) * 3), 3);  // current codon
             // match/mismatch
             if(Bd(j - 1, i - 1) == 0) {
-                d = D(j - 1, i - 1) - log(1.0 - insertion) -
-                    log(1.0 - deletion) -
-                    log(transition(codon, (j) % 3, seq_b[i - 1], p));
+                d = D(j - 1, i - 1) - logf(1.0f - insertion) -
+                    logf(1.0f - deletion) -
+                    logf(transition(codon, (j) % 3, seq_b[i - 1], p));
             } else if(Bd(j - 1, i - 1) == 1) {
-                d = D(j - 1, i - 1) - log(1.0 - deletion) -
-                    log(transition(codon, (j) % 3, seq_b[i - 1], p));
+                d = D(j - 1, i - 1) - logf(1.0f - deletion) -
+                    logf(transition(codon, (j) % 3, seq_b[i - 1], p));
             } else {
                 d = D(j - 1, i - 1) -
-                    log(transition(codon, (j) % 3, seq_b[i - 1], p));
+                    logf(transition(codon, (j) % 3, seq_b[i - 1], p));
             }
             // deletion
-            q1 = Q(j - 3, i) - 3 * log(deletion_ext);
+            q1 = Q(j - 3, i) - 3 * logf(deletion_ext);
             q2 = Bd(j - 3, i) == 0
-                     ? D(j - 3, i) - log(1.0 - insertion) - log(deletion) -
-                           log(1.0 - deletion_ext) - 2 * log(deletion_ext)
-                 : Bd(j - 3, i) == 1 ? D(j - 3, i) - log(1.0 - deletion_ext) -
-                                           log(deletion) - 2 * log(deletion_ext)
-                                     : D(j - 3, i) - 3 * log(deletion_ext);
+                     ? D(j - 3, i) - logf(1.0f - insertion) - logf(deletion) -
+                           logf(1.0f - deletion_ext) - 2 * logf(deletion_ext)
+                 : Bd(j - 3, i) == 1
+                     ? D(j - 3, i) - logf(1.0f - deletion_ext) -
+                           logf(deletion) - 2 * logf(deletion_ext)
+                     : D(j - 3, i) - 3 * logf(deletion_ext);
             Q(j, i) = min(q1, q2);
             Bq(j, i) =
                 q1 < q2 ? 1
@@ -365,40 +368,40 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
             if(j > n) continue;
             // match/mismatch
             if(Bd(i - 1, j - 1) == 0) {
-                d = D(i - 1, j - 1) - log(1.0 - insertion) -
-                    log(1.0 - deletion) -
-                    log(transition(codon, (i) % 3, seq_b[j - 1], p));
+                d = D(i - 1, j - 1) - logf(1.0f - insertion) -
+                    logf(1.0f - deletion) -
+                    logf(transition(codon, (i) % 3, seq_b[j - 1], p));
             } else if(Bd(i - 1, j - 1) == 1) {
-                d = D(i - 1, j - 1) - log(1.0 - deletion) -
-                    log(transition(codon, (i) % 3, seq_b[j - 1], p));
+                d = D(i - 1, j - 1) - logf(1.0f - deletion) -
+                    logf(transition(codon, (i) % 3, seq_b[j - 1], p));
             } else {
                 d = D(i - 1, j - 1) -
-                    log(transition(codon, (i) % 3, seq_b[j - 1], p));
+                    logf(transition(codon, (i) % 3, seq_b[j - 1], p));
             }
             // insertion
-            p1 = P(i, j - 3) - 3 * log(insertion_ext) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+            p1 = P(i, j - 3) - 3 * logf(insertion_ext) -
+                 logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                      seq_b[j - 3])]]) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                 logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                      seq_b[j - 2])]]) -
-                 log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                 logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                      seq_b[j - 1])]]);
             p2 = Bd(i, j - 3) == 0
-                     ? D(i, j - 3) - log(insertion) - 2 * log(insertion_ext) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                     ? D(i, j - 3) - logf(insertion) - 2 * logf(insertion_ext) -
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 3])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 2])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 1])]]) -
-                           log(1.0 - insertion_ext)
+                           logf(1.0f - insertion_ext)
                  : Bd(i, j - 1) == 1
-                     ? D(i, j - 1) - 3 * log(insertion_ext) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                     ? D(i, j - 1) - 3 * logf(insertion_ext) -
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 3])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 2])]]) -
-                           log(nuc_freqs[nt4_table[static_cast<unsigned char>(
+                           logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 1])]])
                      : numeric_limits<float>::max();
             P(i, j) = min(p1, p2);
@@ -407,20 +410,21 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
                     ? 1
                     : 2;  // 1 is insertion extension, 2 is insertion opening
             // deletion
-            q1 = Q(i - 3, j) - 3 * log(deletion_ext);
+            q1 = Q(i - 3, j) - 3 * logf(deletion_ext);
             q2 = Bd(i - 3, j) == 0
-                     ? D(i - 3, j) - log(1.0 - insertion) - log(deletion) -
-                           log(1.0 - deletion_ext) - 2 * log(deletion_ext)
-                 : Bd(i - 3, j) == 1 ? D(i - 3, j) - log(1.0 - deletion_ext) -
-                                           log(deletion) - 2 * log(deletion_ext)
-                                     : D(i - 3, j) - 3 * log(deletion_ext);
+                     ? D(i - 3, j) - logf(1.0f - insertion) - logf(deletion) -
+                           logf(1.0f - deletion_ext) - 2 * logf(deletion_ext)
+                 : Bd(i - 3, j) == 1
+                     ? D(i - 3, j) - logf(1.0f - deletion_ext) -
+                           logf(deletion) - 2 * logf(deletion_ext)
+                     : D(i - 3, j) - 3 * logf(deletion_ext);
             Q(i, j) = min(q1, q2);
             Bq(i, j) =
                 q1 < q2 ? 1
                         : 2;  // 1 is deletion extension, 2 is deletion opening
             // D[i,j] = highest weight between insertion, deletion, and
             // match/mismatch
-            //	in this case, lowest (-log(weight)) value
+            //	in this case, lowest (-logf(weight)) value
             if(d < P(i, j)) {
                 if(d < Q(i, j)) {
                     D(i, j) = d;
@@ -459,7 +463,7 @@ float transition(const string& codon, int position, unsigned char nuc,
     for(int i = 0; i < 4; i++) {
         val += p(cod_int(codon), position, i);
     }
-    return val / 4.0;
+    return val / 4.0f;
 }
 
 /* Recover alignment given backtracking matrices for DP alignment */

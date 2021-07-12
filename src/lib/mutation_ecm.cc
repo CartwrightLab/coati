@@ -681,7 +681,7 @@ void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv) {
 }
 
 TEST_CASE("[mutation_coati.cc] nts_ntv") {
-    int nts, ntv;
+    int nts = 0, ntv = 0;
 
     nts_ntv(0, 0, nts, ntv);  // AAA -> AAA
     CHECK(nts == 0);
@@ -707,15 +707,15 @@ TEST_CASE("[mutation_coati.cc] nts_ntv") {
 /* transition-transversion bias function, depending on # of ts and tv (Nts,Ntv)
  */
 float k(uint8_t c1, uint8_t c2, int model) {
-    int nts, ntv;
+    int nts = 0, ntv = 0;
     nts_ntv(c1, c2, nts, ntv);
     switch(model) {
     case 0:
         return 1;  // ECM+f+omega. Assumes ts-tv bias is accounted for
     case 1:
-        return pow(kappa, nts);  // ECM+F+omega+1k(ts)
+        return powf(kappa, static_cast<float>(nts));  // ECM+F+omega+1k(ts)
     case 2:
-        return pow(kappa, ntv);  // ECM+F+omega+1k(tv)
+        return powf(kappa, static_cast<float>(ntv));  // ECM+F+omega+1k(tv)
     default:
         return 1;  // ECM+f+omega. Assumes ts-tv bias is accounted for
     }

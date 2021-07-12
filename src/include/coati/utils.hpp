@@ -60,9 +60,9 @@ using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 struct fasta_t {
     std::filesystem::path path;
     std::vector<std::string> seq_names, seq_data;
-    explicit fasta_t(const std::string& f = "", std::vector<std::string> n = {},
+    explicit fasta_t(std::string f = "", std::vector<std::string> n = {},
                      std::vector<std::string> d = {})
-        : path{f}, seq_names{std::move(n)}, seq_data{std::move(d)} {}
+        : path{std::move(f)}, seq_names{std::move(n)}, seq_data{std::move(d)} {}
 };
 
 struct input_t {

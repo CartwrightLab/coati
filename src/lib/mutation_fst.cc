@@ -92,8 +92,8 @@ void dna(VectorFstStdArc& mut_fst, float br_len) {
                                  ? ((cod & (uint8_t)(48 / pow(4, pos))) >>
                                     (4 - 2 * pos)) == nuc
                                        ? P(cod, i)
-                                       : 0.0
-                                 : 0.0);
+                                       : 0.0f
+                                 : 0.0f);
                     }
                 }
             }
@@ -172,7 +172,7 @@ void indel(VectorFstStdArc& indel_model, string model) {
 
     // Insertion
     add_arc(indel_fst, 0, 1, 0, 0, insertion);  // 0 as ilabel/olabel is <eps>
-    add_arc(indel_fst, 0, 3, 0, 0, 1.0 - insertion);
+    add_arc(indel_fst, 0, 3, 0, 0, 1.0f - insertion);
 
     for(int i = 0; i < 4; i++) {
         add_arc(indel_fst, 1, 2, 0, i + 1, nuc_freqs[m][i]);
@@ -180,11 +180,11 @@ void indel(VectorFstStdArc& indel_model, string model) {
 
     add_arc(indel_fst, 1, 2, 0, 5);  // 5 as ilabel/olabel is N
     add_arc(indel_fst, 2, 1, 0, 0, insertion_ext);
-    add_arc(indel_fst, 2, 3, 0, 0, 1.0 - insertion_ext);
+    add_arc(indel_fst, 2, 3, 0, 0, 1.0f - insertion_ext);
 
     // Deletion
     add_arc(indel_fst, 3, 4, 0, 0, deletion);
-    add_arc(indel_fst, 3, 6, 0, 0, 1.0 - deletion);
+    add_arc(indel_fst, 3, 6, 0, 0, 1.0f - deletion);
 
     for(int i = 0; i < 4; i++) {
         add_arc(indel_fst, 4, 5, i + 1);
@@ -193,7 +193,7 @@ void indel(VectorFstStdArc& indel_model, string model) {
     add_arc(indel_fst, 4, 7);
 
     add_arc(indel_fst, 5, 4, 0, 0, deletion_ext);
-    add_arc(indel_fst, 5, 6, 0, 0, 1.0 - deletion_ext);
+    add_arc(indel_fst, 5, 6, 0, 0, 1.0f - deletion_ext);
 
     // Matches
     for(int i = 0; i < 4; i++) {
