@@ -31,21 +31,20 @@ using namespace std;
 
 /* Create profile given a sequence */
 Eigen::MatrixXf create_profile(string seq) {
-    vector<string> vector_seq;
-    vector_seq.push_back(seq);
+    vector<string> vector_seq{std::move(seq)};
     return create_profile(vector_seq);
 }
 
 /* Create profile given an alignment */
 Eigen::MatrixXf create_profile(vector<string>& aln) {
-    for(auto s : aln) {
+    for(const auto& s : aln) {
         if(s.length() != aln[0].length()) {
             throw std::invalid_argument(
                 "Profile matrix requires all strings of same length.");
         }
     }
 
-    int cols = aln.at(0).length();
+    auto cols = static_cast<int>(aln.at(0).length());
     auto rows = aln.size();
     Eigen::MatrixXf profile = Eigen::MatrixXf::Zero(4, cols);
 
@@ -112,13 +111,13 @@ float transition(Matrix4x3d cod, int pos, Vector4f nuc,
     pos = pos == 0 ? 2 : --pos;
 
     // find highest value nucleotide per codon position
-    Eigen::VectorXf::Index max_pos0, max_pos1, max_pos2;
+    Eigen::VectorXf::Index max_pos0 = 0, max_pos1 = 0, max_pos2 = 0;
     float max_cod0 = cod.col(0).maxCoeff(&max_pos0);
     float max_cod1 = cod.col(1).maxCoeff(&max_pos1);
     float max_cod2 = cod.col(2).maxCoeff(&max_pos2);
 
     // codon to int value (AAA->0, AAC->1, ... TTT-> 63)
-    int cod_index = (max_pos0 << 4) + (max_pos1 << 2) + max_pos2;
+    auto cod_index = (max_pos0 << 4) + (max_pos1 << 2) + max_pos2;
 
     // weighted average for each nuc freq with highest codon
     for(int i = 0; i < 4; i++) {
@@ -129,7 +128,7 @@ float transition(Matrix4x3d cod, int pos, Vector4f nuc,
     cod.col(0)(max_pos0) = -1;
     cod.col(1)(max_pos1) = -1;
     cod.col(2)(max_pos2) = -1;
-    Eigen::VectorXf::Index max2_pos0, max2_pos1, max2_pos2;
+    Eigen::VectorXf::Index max2_pos0 = 0, max2_pos1 = 0, max2_pos2 = 0;
     float max2_cod0 = cod.col(0).maxCoeff(&max2_pos0);
     float max2_cod1 = cod.col(1).maxCoeff(&max2_pos1);
     float max2_cod2 = cod.col(2).maxCoeff(&max2_pos2);
@@ -215,8 +214,8 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
     Eigen::MatrixXf pro1 = create_profile(seqs1);
     Eigen::MatrixXf pro2 = create_profile(seqs2);
 
-    int m = pro1.cols();
-    int n = pro2.cols();
+    int m = static_cast<int>(pro1.cols());
+    int n = static_cast<int>(pro2.cols());
 
     // assert that length of 1st sequence (ref) is multiple of 3
     if(m % 3 != 0) {
@@ -386,8 +385,8 @@ TEST_CASE("[profile_aln.cc] gotoh_profile_marginal") {
 int backtracking_profile(Eigen::MatrixXi Bd, Eigen::MatrixXi Bp,
                          Eigen::MatrixXi Bq, vector<string> seqs1,
                          vector<string> seqs2, alignment_t& aln) {
-    int i = seqs1[0].length();
-    int j = seqs2[0].length();
+    int i = static_cast<int>(seqs1[0].length());
+    int j = static_cast<int>(seqs2[0].length());
     vector<string> aln_seqs(seqs1.size() + seqs2.size());
 
     while((i != 0) || (j != 0)) {

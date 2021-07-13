@@ -87,9 +87,10 @@ void dna(VectorFstStdArc& mut_fst, float br_len) {
                     nuc2++) {                      // for each nucleotide (to)
                     for(int i = 0; i < 64; i++) {  // sum over all codons
                         dna_p(nuc, nuc2) +=
-                            (((i & (uint8_t)(48 / pow(4, pos))) >>
+                            (((i & static_cast<uint8_t>(48 / pow(4, pos))) >>
                               (4 - 2 * pos)) == nuc2
-                                 ? ((cod & (uint8_t)(48 / pow(4, pos))) >>
+                                 ? ((cod &
+                                     static_cast<uint8_t>(48 / pow(4, pos))) >>
                                     (4 - 2 * pos)) == nuc
                                        ? P(cod, i)
                                        : 0.0f
@@ -157,7 +158,7 @@ TEST_CASE("[mutation_fst.cc] nuc2pos") {
 }
 
 /* Create affine gap indel model FST*/
-void indel(VectorFstStdArc& indel_model, string model) {
+void indel(VectorFstStdArc& indel_model, const string& model) {
     float deletion = 0.001, insertion = 0.001;
     float deletion_ext = 1.0 - 1.0 / 6.0, insertion_ext = 1.0 - 1.0 / 6.0;
     float nuc_freqs[2][4] = {{0.308, 0.185, 0.199, 0.308},

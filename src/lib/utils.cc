@@ -25,7 +25,7 @@
 #include <climits>
 #include <coati/utils.hpp>
 
-#define PRINT_SIZE 100
+constexpr size_t PRINT_SIZE = 100;
 
 using namespace std;
 using namespace fst;
@@ -81,17 +81,19 @@ VectorFstStdArc optimize(VectorFstStdArc fst_raw) {
 int read_fasta(fasta_t& fasta_file, vector<VectorFstStdArc>& fsts) {
     ifstream input(fasta_file.path);
     if(!input.good()) {
-        cerr << "Error opening '" << fasta_file.path << "'." << endl;
-        return EXIT_FAILURE;
+        throw std::invalid_argument("Error opening " +
+                                    fasta_file.path.string() + ".");
     }
 
     string line, name, content;
     while(getline(input, line).good()) {
         if(line.empty()) {
             continue;  // omit empty lines
-        } else if(line[0] == ';') {
+        }
+        if(line[0] == ';') {
             continue;
-        } else if(line[0] == '>') {  // Identifier marker
+        }
+        if(line[0] == '>') {  // Identifier marker
             if(!name.empty()) {
                 VectorFstStdArc accept;  // create FSA with sequence
                 if(!acceptor(content, accept)) {
@@ -163,7 +165,7 @@ TEST_CASE("[utils.cc] read_fasta - fst") {
     SUBCASE("Error opening fasta") {
         fasta.path = "test-9999999999.fasta";
 
-        REQUIRE(read_fasta(fasta, fsts) == EXIT_FAILURE);
+        REQUIRE_THROWS_AS(read_fasta(fasta, fsts), std::invalid_argument);
     }
 }
 
@@ -179,9 +181,11 @@ int read_fasta(fasta_t& fasta_file) {
     while(getline(input, line).good()) {
         if(line.empty()) {
             continue;  // omit empty lines
-        } else if(line[0] == ';') {
+        }
+        if(line[0] == ';') {
             continue;
-        } else if(line[0] == '>') {  // Identifier marker
+        }
+        if(line[0] == '>') {  // Identifier marker
             if(!name.empty()) {
                 fasta_file.seq_data.push_back(content);
                 name.clear();
@@ -280,7 +284,7 @@ int write_fasta(VectorFstStdArc& aln, fasta_t& fasta_file) {
 
     string seq1, seq2;
     StateIterator<StdFst> siter(aln);  // FST state iterator
-    for(int i = 0; i < aln.NumStates() - 1; siter.Next(), i++) {
+    for(int i = 0; i < (aln.NumStates() - 1); siter.Next(), i++) {
         ArcIterator<StdFst> aiter(aln, siter.Value());  // State arc iterator
         seq1.append(symbols.Find(aiter.Value().ilabel));
         seq2.append(symbols.Find(aiter.Value().olabel));
@@ -290,12 +294,14 @@ int write_fasta(VectorFstStdArc& aln, fasta_t& fasta_file) {
     fasta_file.seq_data.push_back(seq2);
 
     // map all epsilons (<eps>) to gaps (-)
-    while(fasta_file.seq_data[0].find("<eps>") != string::npos)
+    while(fasta_file.seq_data[0].find("<eps>") != string::npos) {
         fasta_file.seq_data[0].replace(fasta_file.seq_data[0].find("<eps>"), 5,
                                        "-");
-    while(fasta_file.seq_data[1].find("<eps>") != string::npos)
+    }
+    while(fasta_file.seq_data[1].find("<eps>") != string::npos) {
         fasta_file.seq_data[1].replace(fasta_file.seq_data[1].find("<eps>"), 5,
                                        "-");
+    }
 
     // write aligned sequences to file
     write_fasta(fasta_file);
@@ -396,7 +402,7 @@ int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file) {
 
     string seq1, seq2;
     StateIterator<StdFst> siter(aln);  // FST state iterator
-    for(int i = 0; i < aln.NumStates() - 1; siter.Next(), i++) {
+    for(int i = 0; i < (aln.NumStates() - 1); siter.Next(), i++) {
         ArcIterator<StdFst> aiter(aln, siter.Value());  // State arc iterator
         seq1.append(symbols.Find(aiter.Value().ilabel));
         seq2.append(symbols.Find(aiter.Value().olabel));
@@ -406,15 +412,16 @@ int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file) {
     fasta_file.seq_data.push_back(seq2);
 
     // map all epsilons (<eps>) to gaps (-)
-    while(fasta_file.seq_data[0].find("<eps>") != string::npos)
+    while(fasta_file.seq_data[0].find("<eps>") != string::npos) {
         fasta_file.seq_data[0].replace(fasta_file.seq_data[0].find("<eps>"), 5,
                                        "-");
-    while(fasta_file.seq_data[1].find("<eps>") != string::npos)
+    }
+    while(fasta_file.seq_data[1].find("<eps>") != string::npos) {
         fasta_file.seq_data[1].replace(fasta_file.seq_data[1].find("<eps>"), 5,
                                        "-");
+    }
 
-    write_phylip(fasta_file);
-    return EXIT_SUCCESS;
+    return write_phylip(fasta_file);
 }
 
 TEST_CASE("[utils.cc] write_phylip - fst") {
@@ -459,7 +466,8 @@ bool acceptor(string content, VectorFstStdArc& accept) {
     accept.AddState();
     accept.SetStart(0);
 
-    for(size_t i = 0; i < content.length(); i++) {
+    for(int i = 0, content_len = static_cast<int>(content.length());
+        i < content_len; i++) {
         add_arc(accept, i, i + 1, syms.at(content[i]), syms.at(content[i]));
     }
 
@@ -489,33 +497,63 @@ int cod_int(string codon) {
 }
 
 /* Read substitution rate matrix from a CSV file */
-int parse_matrix_csv(string file, Matrix64f& P, float& br_len) {
+int parse_matrix_csv(const string& file, Matrix64f& P, float& br_len) {
     ifstream input(file);
     if(!input.good()) {
-        cerr << "Error opening '" << file << "'." << endl;
-        return EXIT_FAILURE;
+        throw std::invalid_argument("Error opening file " + file + ".");
     }
 
     string line;
-    if(input.good()) {
-        // Read branch length
-        getline(input, line);
-        br_len = stof(line);
-    }
+    // Read branch length
+    getline(input, line);
+    br_len = stof(line);
 
-    vector<string> vec;
+    vector<string> vec{"", "", ""};
     int count = 0;
 
-    while(getline(input, line)) {
-        boost::algorithm::split(vec, line, boost::is_any_of(","));
+    while(std::getline(input, line)) {
+        std::stringstream ss(line);
+        getline(ss, vec[0], ',');
+        getline(ss, vec[1], ',');
+        getline(ss, vec[2], ',');
         P(cod_int(vec[0]), cod_int(vec[1])) = stof(vec[2]);
         count++;
     }
 
+    input.close();
+
     if(count != 4096) {
-        cout << "Error reading substitution rate CSV file. Exiting!" << endl;
-        return EXIT_FAILURE;
+        throw std::invalid_argument(
+            "Error reading substitution rate CSV file. Exiting!");
     }
 
     return 0;
+}
+
+TEST_CASE("[utils.cc] parse_matrix_csv") {
+    ofstream outfile;
+    Matrix64f P;
+    float br_len = NAN;
+    const std::vector<std::string> codons = {
+        "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC",
+        "AGG", "AGT", "ATA", "ATC", "ATG", "ATT", "CAA", "CAC", "CAG", "CAT",
+        "CCA", "CCC", "CCG", "CCT", "CGA", "CGC", "CGG", "CGT", "CTA", "CTC",
+        "CTG", "CTT", "GAA", "GAC", "GAG", "GAT", "GCA", "GCC", "GCG", "GCT",
+        "GGA", "GGC", "GGG", "GGT", "GTA", "GTC", "GTG", "GTT", "TAA", "TAC",
+        "TAG", "TAT", "TCA", "TCC", "TCG", "TCT", "TGA", "TGC", "TGG", "TGT",
+        "TTA", "TTC", "TTG", "TTT"};
+
+    outfile.open("test-marg-matrix.csv");
+    REQUIRE(outfile);
+
+    outfile << "0.0133" << std::endl;  // branch length
+    for(int i = 0; i < 64; i++) {
+        for(int j = 0; j < 64; j++) {
+            outfile << codons[i] << "," << codons[j] << "," << 0.015625 << "\n";
+        }
+    }
+
+    outfile.close();
+    CHECK(parse_matrix_csv("test-marg-matrix.csv", P, br_len) == 0);
+    CHECK(std::filesystem::remove("test-marg-matrix.csv"));
 }

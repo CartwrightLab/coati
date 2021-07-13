@@ -41,12 +41,12 @@ using x3::lit;
 using x3::ascii::char_;
 
 // rule declaration
-x3::rule<class label, std::string> const label =
-    "label";  // NOLINT(cert-err58-cpp)
-x3::rule<class ilabel, std::string> const ilabel =
-    "ilabel";  // NOLINT(cert-err58-cpp)
-x3::rule<class length, float> const length =
-    "length";                                         // NOLINT(cert-err58-cpp)
+x3::rule<class label, std::string> const label =  // NOLINT(cert-err58-cpp)
+    "label";
+x3::rule<class ilabel, std::string> const ilabel =  // NOLINT(cert-err58-cpp)
+    "ilabel";
+x3::rule<class length, float> const length =  // NOLINT(cert-err58-cpp)
+    "length";
 x3::rule<class leaf, tree_t> const leaf = "leaf";     // NOLINT(cert-err58-cpp)
 x3::rule<class inode, tree_t> const inode = "inode";  // NOLINT(cert-err58-cpp)
 x3::rule<class node, tree_t> const node = "node";     // NOLINT(cert-err58-cpp)
@@ -88,40 +88,38 @@ auto const label_def = +char_("-0-9A-Za-z/%_.");  // NOLINT(cert-err58-cpp)
 auto const ilabel_def = label | attr("");             // NOLINT(cert-err58-cpp)
 auto const length_def = (':' >> float_) | attr(0.0);  // NOLINT(cert-err58-cpp)
 
-BOOST_SPIRIT_DEFINE(label);
-BOOST_SPIRIT_DEFINE(ilabel);
-BOOST_SPIRIT_DEFINE(length);
-BOOST_SPIRIT_DEFINE(leaf);
-BOOST_SPIRIT_DEFINE(inode);  // NOLINT(misc-no-recursion)
-BOOST_SPIRIT_DEFINE(node);   // NOLINT(misc-no-recursion)
-BOOST_SPIRIT_DEFINE(tree);
+BOOST_SPIRIT_DEFINE(label);   // NOLINT(performance-unnecessary-value-param)
+BOOST_SPIRIT_DEFINE(ilabel);  // NOLINT(performance-unnecessary-value-param)
+BOOST_SPIRIT_DEFINE(length);  // NOLINT(performance-unnecessary-value-param)
+BOOST_SPIRIT_DEFINE(leaf);    // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(misc-no-recursion, performance-unnecessary-value-param)
+BOOST_SPIRIT_DEFINE(inode);
+// NOLINTNEXTLINE(misc-no-recursion, performance-unnecessary-value-param)
+BOOST_SPIRIT_DEFINE(node);
+BOOST_SPIRIT_DEFINE(tree);  // NOLINT(performance-unnecessary-value-param)
 
 }  // namespace newick
 
-using namespace std;
-
-bool read_newick(const string& tree_file, std::string& content) {
-    ifstream input(tree_file);  // open input stream
+bool read_newick(const std::string& tree_file, std::string& content) {
+    std::ifstream input(tree_file);  // open input stream
     if(!input.good()) {
-        cout << "Error opening '" << tree_file << "'." << endl;
-        return false;
+        throw std::invalid_argument("Error opening " + tree_file + ".");
     }
 
     // read newick tree file
-    std::string text((istreambuf_iterator<char>(input)),
-                     istreambuf_iterator<char>());
+    std::string text((std::istreambuf_iterator<char>(input)),
+                     std::istreambuf_iterator<char>());
     content = text;
 
     if(content.length() == 0) {  // Check file isn't empty
-        cout << "Reading tree failed, file is empty!" << std::endl;
-        return false;
+        throw std::invalid_argument("Reading tree failed, file is empty!");
     }
 
     return true;
 }
 
 /* Read Newick format tree. NOTE: quotation marks on labels not supported.*/
-int parse_newick(string content, tree_t& guide_tree) {
+int parse_newick(std::string content, tree_t& guide_tree) {
     // remove tabs \t ,new lines \n, and spaces
     boost::algorithm::erase_all(content, "\t");
     boost::algorithm::erase_all(content, "\n");
@@ -184,21 +182,21 @@ TEST_CASE("[tree.cc] parse_newick") {
 }
 
 /* Determine order of leafs for progressive alignment */
-int aln_order(tree_t& tree, vector<pair<int, float>>& order_list) {
+int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list) {
     // Part1: find closest pair of leafs
 
-    for(size_t i = 1; i < tree.size(); i++) {  // fill list of children
+    for(std::size_t i = 1; i < tree.size(); i++) {  // fill list of children
         tree[tree[i].parent].children.push_back(i);
     }
 
-    pair<int, int> closest_pair;
+    std::pair<int, int> closest_pair;
     float d = FLT_MAX;
 
-    for(size_t i = 0; i < tree.size(); i++) {   // for each node in tree
-        if(tree[i].children.empty()) continue;  // if no descendants skip
-        for(size_t j = 0; j < tree[i].children.size() - 1;
+    for(std::size_t i = 0; i < tree.size(); i++) {  // for each node in tree
+        if(tree[i].children.empty()) continue;      // if no descendants skip
+        for(std::size_t j = 0; j < tree[i].children.size() - 1;
             j++) {  // look for closest pair
-            for(size_t k = j + 1; k < tree[i].children.size(); k++) {
+            for(std::size_t k = j + 1; k < tree[i].children.size(); k++) {
                 // if both nodes aren't children skip
                 if(!(tree[tree[i].children[j]].is_leaf &&
                      tree[tree[i].children[k]].is_leaf)) {
@@ -211,8 +209,8 @@ int aln_order(tree_t& tree, vector<pair<int, float>>& order_list) {
                    d) {
                     d = tree[tree[i].children[j]].length +
                         tree[tree[i].children[k]].length;
-                    closest_pair =
-                        make_pair(tree[i].children[j], tree[i].children[k]);
+                    closest_pair = std::make_pair(tree[i].children[j],
+                                                  tree[i].children[k]);
                 }
             }
         }
@@ -228,13 +226,13 @@ int aln_order(tree_t& tree, vector<pair<int, float>>& order_list) {
     std::vector<int> visited(tree.size(), false);  // list of visited nodes
 
     visited[order_list[0].first] = visited[order_list[1].first] = true;
-    int ancestor = tree[order_list.back().first].parent;
+    std::size_t ancestor = tree[order_list.back().first].parent;
     float branch = 0;
 
     // while not all nodes have been visited (any value in visitied is false)
     while(any_of(visited.begin(), visited.end(), [](bool b) { return !b; })) {
         // find leafs
-        for(size_t i = 0; i < tree[ancestor].children.size(); i++) {
+        for(std::size_t i = 0; i < tree[ancestor].children.size(); i++) {
             // if children is not visited and it's leaf, visit
             if(!visited[tree[ancestor].children[i]] &&
                tree[tree[ancestor].children[i]].is_leaf) {
@@ -278,16 +276,16 @@ int aln_order(tree_t& tree, vector<pair<int, float>>& order_list) {
 
 TEST_CASE("[tree.cc] aln_order") {
     tree_t tree;
-    vector<pair<int, float>> order_list;
+    std::vector<std::pair<int, float>> order_list;
     // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
 
-    tree.push_back(node_t("", 0, false, 0));
-    tree.push_back(node_t("B_b", 6, true, 0));
-    tree.push_back(node_t("Ancestor", 5, false, 0));
-    tree.push_back(node_t("A-a", 5, true, 2));
-    tree.push_back(node_t("C/c", 3, true, 2));
-    tree.push_back(node_t("E.e", 4, true, 2));
-    tree.push_back(node_t("D%", 11, true, 0));
+    tree.emplace_back("", 0, false, 0);
+    tree.emplace_back("B_b", 6, true, 0);
+    tree.emplace_back("Ancestor", 5, false, 0);
+    tree.emplace_back("A-a", 5, true, 2);
+    tree.emplace_back("C/c", 3, true, 2);
+    tree.emplace_back("E.e", 4, true, 2);
+    tree.emplace_back("D%", 11, true, 0);
 
     REQUIRE(aln_order(tree, order_list) == 0);
     REQUIRE(order_list.size() == 5);
@@ -304,10 +302,10 @@ TEST_CASE("[tree.cc] aln_order") {
 }
 
 /* Find fasta sequence given its name */
-bool find_seq(const string& name, fasta_t& f, string& seq) {
+bool find_seq(const std::string& name, fasta_t& f, std::string& seq) {
     seq.clear();
 
-    for(size_t i = 0; i < f.seq_names.size(); i++) {
+    for(std::size_t i = 0; i < f.seq_names.size(); i++) {
         if(f.seq_names[i].compare(name) == 0) {
             seq = f.seq_data[i];
         }
@@ -317,7 +315,7 @@ bool find_seq(const string& name, fasta_t& f, string& seq) {
 }
 
 TEST_CASE("[tree.cc] find_seq") {
-    string sequence;
+    std::string sequence;
     fasta_t fasta = fasta_t("", {"A", "B", "C"}, {"ACGT", "CGTA", "GTAC"});
 
     REQUIRE(!find_seq("Z", fasta,
@@ -331,7 +329,7 @@ TEST_CASE("[tree.cc] find_seq") {
 }
 
 /* Find node in tree given its name */
-bool find_node(tree_t& tree, const string& name, int& index) {
+bool find_node(tree_t& tree, const std::string& name, std::size_t& index) {
     auto it = find_if(begin(tree), end(tree), [name](const node_t& node) {
         return node.label == name;
     });
@@ -342,16 +340,16 @@ bool find_node(tree_t& tree, const string& name, int& index) {
 
 TEST_CASE("[tree.cc] find_node") {
     tree_t tree;
-    int index;
+    std::size_t index{0};
     // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
 
-    tree.push_back(node_t("", 0, false, 0));
-    tree.push_back(node_t("B_b", 6, true, 0));
-    tree.push_back(node_t("Ancestor", 5, false, 0));
-    tree.push_back(node_t("A-a", 5, true, 2));
-    tree.push_back(node_t("C/c", 3, true, 2));
-    tree.push_back(node_t("E.e", 4, true, 2));
-    tree.push_back(node_t("D%", 11, true, 0));
+    tree.emplace_back("", 0, false, 0);
+    tree.emplace_back("B_b", 6, true, 0);
+    tree.emplace_back("Ancestor", 5, false, 0);
+    tree.emplace_back("A-a", 5, true, 2);
+    tree.emplace_back("C/c", 3, true, 2);
+    tree.emplace_back("E.e", 4, true, 2);
+    tree.emplace_back("D%", 11, true, 0);
 
     REQUIRE(find_node(tree, tree[3].label, index));
     CHECK(index == 3);
@@ -364,19 +362,19 @@ TEST_CASE("[tree.cc] find_node") {
 }
 
 /* Re-root tree given an outgroup (leaf node) */
-bool reroot(tree_t& tree, const string& outgroup) {
-    int ref;
+bool reroot(tree_t& tree, const std::string& outgroup) {
+    std::size_t ref{0};
 
     // find outgroup node
     if(!find_node(tree, outgroup, ref)) {
-        cout << "Outgroup label could not be found, re-root failed." << endl;
-        return false;
+        throw std::invalid_argument(
+            "Outgroup label could not be found, re-root failed.");
     }
 
     // find list of ancestors from newroot to current root
-    vector<int> ancestors;
-    int newroot = tree[ref].parent;
-    size_t node = newroot;
+    std::vector<std::size_t> ancestors;
+    std::size_t newroot = tree[ref].parent;
+    std::size_t node = newroot;
 
     // while not current root (current root has itself as parent)
     while(tree[node].parent != node) {
@@ -387,7 +385,7 @@ bool reroot(tree_t& tree, const string& outgroup) {
     ancestors.push_back(node);
 
     // for each inode in ancestors switch the order of parent -> descendant
-    for(int i = ancestors.size() - 1; i > 0; i--) {
+    for(auto i = ancestors.size() - 1; i > 0; i--) {
         tree[ancestors[i]].parent = ancestors[i - 1];
         tree[ancestors[i]].length = tree[ancestors[i - 1]].length;
     }
@@ -404,13 +402,13 @@ TEST_CASE("[tree.cc] reroot") {
 
     SUBCASE("One node change") {
         // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
-        tree.push_back(node_t("", 0, false, 0));
-        tree.push_back(node_t("B_b", 6, true, 0));
-        tree.push_back(node_t("Ancestor", 5, false, 0));
-        tree.push_back(node_t("A-a", 5, true, 2));
-        tree.push_back(node_t("C/c", 3, true, 2));
-        tree.push_back(node_t("E.e", 4, true, 2));
-        tree.push_back(node_t("D%", 11, true, 0));
+        tree.emplace_back("", 0, false, 0);
+        tree.emplace_back("B_b", 6, true, 0);
+        tree.emplace_back("Ancestor", 5, false, 0);
+        tree.emplace_back("A-a", 5, true, 2);
+        tree.emplace_back("C/c", 3, true, 2);
+        tree.emplace_back("E.e", 4, true, 2);
+        tree.emplace_back("D%", 11, true, 0);
 
         REQUIRE(reroot(tree, "A-a"));
 
@@ -435,20 +433,20 @@ TEST_CASE("[tree.cc] reroot") {
         // ((raccoon:19.19959,bear:6.80041):0.84600, ((sea_lion:11.99700,
         // seal:12.00300):7.52973, ((monkey:100.85930, cat:47.14069):20.59201,
         // weasel:18.87953):2.09460):3.87382,dog:25.46154);
-        tree.push_back(node_t("", 0, false, 0));
-        tree.push_back(node_t("", 0.8, false, 0));
-        tree.push_back(node_t("racoon", 19.2, true, 1));
-        tree.push_back(node_t("bear", 6.8, true, 1));
-        tree.push_back(node_t("", 3.9, false, 0));
-        tree.push_back(node_t("", 7.5, false, 4));
-        tree.push_back(node_t("sea_lion", 12, true, 5));
-        tree.push_back(node_t("seal", 12, true, 5));
-        tree.push_back(node_t("", 2.1, false, 4));
-        tree.push_back(node_t("", 20.6, false, 8));
-        tree.push_back(node_t("monkey", 100.9, true, 9));
-        tree.push_back(node_t("cat", 47.1, true, 9));
-        tree.push_back(node_t("weasel", 18.9, true, 8));
-        tree.push_back(node_t("dog", 25.5, true, 0));
+        tree.emplace_back("", 0, false, 0);
+        tree.emplace_back("", 0.8, false, 0);
+        tree.emplace_back("racoon", 19.2, true, 1);
+        tree.emplace_back("bear", 6.8, true, 1);
+        tree.emplace_back("", 3.9, false, 0);
+        tree.emplace_back("", 7.5, false, 4);
+        tree.emplace_back("sea_lion", 12, true, 5);
+        tree.emplace_back("seal", 12, true, 5);
+        tree.emplace_back("", 2.1, false, 4);
+        tree.emplace_back("", 20.6, false, 8);
+        tree.emplace_back("monkey", 100.9, true, 9);
+        tree.emplace_back("cat", 47.1, true, 9);
+        tree.emplace_back("weasel", 18.9, true, 8);
+        tree.emplace_back("dog", 25.5, true, 0);
 
         REQUIRE(reroot(tree, "cat"));
 
@@ -464,7 +462,7 @@ TEST_CASE("[tree.cc] reroot") {
 }
 
 /* Find distance from REF to node. Tree is assumed to be rerooted. */
-float distance_ref(const tree_t& tree, size_t ref, size_t node) {
+float distance_ref(const tree_t& tree, std::size_t ref, std::size_t node) {
     float distance = 0;
 
     // distance from node to root
@@ -485,20 +483,20 @@ TEST_CASE("[tree.cc] distance_ref") {
     // ((raccoon:19.19959,bear:6.80041):0.84600, ((sea_lion:11.99700,
     // seal:12.00300):7.52973, ((monkey:100.85930, cat:47.14069):20.59201,
     // weasel:18.87953):2.09460):3.87382,dog:25.46154);
-    tree.push_back(node_t("", 0, false, 0));
-    tree.push_back(node_t("", 0.8, false, 0));
-    tree.push_back(node_t("racoon", 19.2, true, 1));
-    tree.push_back(node_t("bear", 6.8, true, 1));
-    tree.push_back(node_t("", 3.9, false, 0));
-    tree.push_back(node_t("", 7.5, false, 4));
-    tree.push_back(node_t("sea_lion", 12, true, 5));
-    tree.push_back(node_t("seal", 12, true, 5));
-    tree.push_back(node_t("", 2.1, false, 4));
-    tree.push_back(node_t("", 20.6, false, 8));
-    tree.push_back(node_t("monkey", 100.9, true, 9));
-    tree.push_back(node_t("cat", 47.1, true, 9));
-    tree.push_back(node_t("weasel", 18.9, true, 8));
-    tree.push_back(node_t("dog", 25.5, true, 0));
+    tree.emplace_back("", 0, false, 0);
+    tree.emplace_back("", 0.8, false, 0);
+    tree.emplace_back("racoon", 19.2, true, 1);
+    tree.emplace_back("bear", 6.8, true, 1);
+    tree.emplace_back("", 3.9, false, 0);
+    tree.emplace_back("", 7.5, false, 4);
+    tree.emplace_back("sea_lion", 12, true, 5);
+    tree.emplace_back("seal", 12, true, 5);
+    tree.emplace_back("", 2.1, false, 4);
+    tree.emplace_back("", 20.6, false, 8);
+    tree.emplace_back("monkey", 100.9, true, 9);
+    tree.emplace_back("cat", 47.1, true, 9);
+    tree.emplace_back("weasel", 18.9, true, 8);
+    tree.emplace_back("dog", 25.5, true, 0);
 
     CHECK(distance_ref(tree, 13, 2) == doctest::Approx(45.5));
     CHECK(distance_ref(tree, 13, 6) == doctest::Approx(48.9));

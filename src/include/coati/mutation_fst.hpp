@@ -28,6 +28,6 @@
 void mg94(VectorFstStdArc& mut_fst, float br_len);
 void nuc2pos(VectorFstStdArc& n2p);
 void dna(VectorFstStdArc& mut_fst, float br_len);
-void indel(VectorFstStdArc& indel_model, std::string model);
+void indel(VectorFstStdArc& indel_model, const std::string& model);
 
 #endif

@@ -35,8 +35,8 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
 
     string seq_a = sequences[0];
     string seq_b = sequences[1];
-    int m = sequences[0].length();
-    int n = sequences[1].length();
+    int m = static_cast<int>(sequences[0].length());
+    int n = static_cast<int>(sequences[1].length());
 
     // ensure that length of first sequence (reference) is multiple of 3
     if(m % 3 != 0) {
@@ -190,8 +190,8 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
 
     string seq_a = sequences[0];
     string seq_b = sequences[1];
-    int m = sequences[0].length();
-    int n = sequences[1].length();
+    int m = static_cast<int>(sequences[0].length());
+    int n = static_cast<int>(sequences[1].length());
 
     // ensure that length of first sequence (reference) is multiple of 3
     if((m % 3 != 0) || (n % 3 != 0)) {
@@ -469,8 +469,8 @@ float transition(const string& codon, int position, unsigned char nuc,
 /* Recover alignment given backtracking matrices for DP alignment */
 int backtracking(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp, Eigen::MatrixXf Bq,
                  string seqa, string seqb, alignment_t& aln) {
-    int i = seqa.length();
-    int j = seqb.length();
+    int i = static_cast<int>(seqa.length());
+    int j = static_cast<int>(seqb.length());
 
     // vector<string> alignment;
     aln.f.seq_data.emplace_back();
@@ -513,8 +513,8 @@ int backtracking(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp, Eigen::MatrixXf Bq,
 int backtracking_noframeshifts(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp,
                                Eigen::MatrixXf Bq, string seqa, string seqb,
                                alignment_t& aln) {
-    int i = seqa.length();
-    int j = seqb.length();
+    int i = static_cast<int>(seqa.length());
+    int j = static_cast<int>(seqb.length());
 
     // vector<string> alignment;
     aln.f.seq_data.emplace_back();

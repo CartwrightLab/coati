@@ -69,15 +69,18 @@ void mg94_q(Matrix64f& Q) {
                 w = ((nt4_table[i] == nt4_table[j]) ? 1 : omega);
 
                 // split into cases to avoid use of pow (speed-up)
-                if((i & (uint8_t)(48)) != (j & (uint8_t)48)) {
-                    x = ((i & (uint8_t)48) >> 4);
-                    y = ((j & (uint8_t)48) >> 4);
-                } else if((i & (uint8_t)12) != (j & (uint8_t)12)) {
-                    x = ((i & (uint8_t)12) >> (2));
-                    y = ((j & (uint8_t)12) >> (2));
-                } else if((i & (uint8_t)3) != (j & (uint8_t)3)) {
-                    x = ((i & (uint8_t)3));
-                    y = ((j & (uint8_t)3));
+                if((i & static_cast<uint8_t>(48)) !=
+                   (j & static_cast<uint8_t>(48))) {
+                    x = (i & static_cast<uint8_t>(48)) >> 4;
+                    y = (j & static_cast<uint8_t>(48)) >> 4;
+                } else if((i & static_cast<uint8_t>(12)) !=
+                          (j & static_cast<uint8_t>(12))) {
+                    x = (i & static_cast<uint8_t>(12)) >> 2;
+                    y = (j & static_cast<uint8_t>(12)) >> 2;
+                } else if((i & static_cast<uint8_t>(3)) !=
+                          (j & static_cast<uint8_t>(3))) {
+                    x = i & static_cast<uint8_t>(3);
+                    y = j & static_cast<uint8_t>(3);
                 }
 
                 Q(i, j) = w * nuc_q[x][y];
@@ -1156,19 +1159,23 @@ void mg94_marginal_p(Eigen::Tensor<float, 3>& p, Matrix64f& P) {
                                // up (reduce use of pow())
                 case 0:
                     for(uint8_t i = 0; i < 64; i++) {
-                        marg += (((i & (uint8_t)48) >> 4) == nuc ? P(cod, i)
-                                                                 : 0.0f);
+                        marg += (((i & static_cast<uint8_t>(48)) >> 4) == nuc
+                                     ? P(cod, i)
+                                     : 0.0f);
                     }
                     break;
                 case 1:
                     for(uint8_t i = 0; i < 64; i++) {
-                        marg += (((i & (uint8_t)12) >> 2) == nuc ? P(cod, i)
-                                                                 : 0.0f);
+                        marg += (((i & static_cast<uint8_t>(12)) >> 2) == nuc
+                                     ? P(cod, i)
+                                     : 0.0f);
                     }
                     break;
                 case 2:
                     for(uint8_t i = 0; i < 64; i++) {
-                        marg += (((i & (uint8_t)3)) == nuc ? P(cod, i) : 0.0f);
+                        marg +=
+                            ((i & static_cast<uint8_t>(3)) == nuc ? P(cod, i)
+                                                                  : 0.0f);
                     }
                     break;
                 }

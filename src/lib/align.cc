@@ -280,10 +280,12 @@ TEST_CASE("[align.cc] fst_alignment") {
     fasta_t result;
     result.path = input_data.out_file;
 
-    if(std::filesystem::exists(input_data.out_file))
+    if(std::filesystem::exists(input_data.out_file)) {
         std::filesystem::remove(input_data.out_file);
-    if(std::filesystem::exists(input_data.weight_file))
+    }
+    if(std::filesystem::exists(input_data.weight_file)) {
         std::filesystem::remove(input_data.weight_file);
+    }
 
     SUBCASE("coati model, output fasta") {
         input_data.mut_model = "coati";
@@ -405,7 +407,7 @@ int ref_indel_alignment(input_t& in_data) {
     }
 
     // find position of ref in tree
-    int ref_pos = -1;
+    size_t ref_pos = 0;
     if(!find_node(tree, in_data.ref, ref_pos)) {
         throw std::invalid_argument("Reference node not found in tree.");
     }
@@ -426,7 +428,8 @@ int ref_indel_alignment(input_t& in_data) {
 
     // add insertion_data for REF
     nodes_ins[ref_pos] = insertion_data_t(
-        ref_seq, in_data.ref, SparseVectorInt(2 * ref_seq.length()));
+        ref_seq, in_data.ref,
+        SparseVectorInt(static_cast<Eigen::Index>(2 * ref_seq.length())));
 
     // pairwise alignment for each leaf
     string node_seq;
@@ -453,7 +456,8 @@ int ref_indel_alignment(input_t& in_data) {
                      << tree[node].label << endl;
             }
 
-            SparseVectorInt ins_vector(2 * aln_tmp.f.seq_data[1].length());
+            SparseVectorInt ins_vector(
+                static_cast<Eigen::Index>(aln_tmp.f.seq_data[1].length()));
             insertion_flags(aln_tmp.f.seq_data[0], aln_tmp.f.seq_data[1],
                             ins_vector);
 
@@ -463,7 +467,7 @@ int ref_indel_alignment(input_t& in_data) {
     }
 
     // get position of inodes in tree and set leafs as visited (true)
-    vector<int> inode_indexes;
+    std::vector<std::size_t> inode_indexes;
     std::vector<int> visited(tree.size(), false);  // list of visited nodes
 
     for(size_t node = 0; node < tree.size(); node++) {
@@ -475,7 +479,7 @@ int ref_indel_alignment(input_t& in_data) {
     }
 
     // fill list of children
-    for(size_t i = 0; i < tree.size(); i++) {
+    for(std::size_t i = 0; i < tree.size(); i++) {
         if(tree[i].parent != i) tree[tree[i].parent].children.push_back(i);
     }
 
@@ -517,11 +521,11 @@ int ref_indel_alignment(input_t& in_data) {
     }
 
     // transfer result data nodes_ins[ROOT] --> aln && order sequences
-    int root = tree[ref_pos].parent;
+    auto root = tree[ref_pos].parent;
     for(const auto& name : in_data.fasta_file.seq_names) {
         auto it = find(nodes_ins[root].names.begin(),
                        nodes_ins[root].names.end(), name);
-        int index = distance(nodes_ins[root].names.begin(), it);
+        auto index = distance(nodes_ins[root].names.begin(), it);
         aln.f.seq_names.push_back(nodes_ins[root].names[index]);
         aln.f.seq_data.push_back(nodes_ins[root].sequences[index]);
     }
@@ -622,7 +626,8 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
     Vector5f nuc_freqs;
     nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
 
-    for(size_t i = 0; i < alignment[0].length(); i++) {
+    for(int i = 0, aln_len = static_cast<int>(alignment[0].length());
+        i < aln_len; i++) {
         codon = seq1.substr(((i - gap_n) / 3) * 3, 3);  // current codon
         switch(state) {
         case 0:

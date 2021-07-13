@@ -101,6 +101,6 @@ int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file);
 bool acceptor(std::string content, VectorFstStdArc& accept);
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(std::string codon);
-int parse_matrix_csv(std::string file, Matrix64f& P, float& br_len);
+int parse_matrix_csv(const std::string& file, Matrix64f& P, float& br_len);
 
 #endif
