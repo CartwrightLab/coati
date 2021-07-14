@@ -30,6 +30,8 @@
 #include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
 
+#include "mg94p.tcc"
+#include "mg94q.tcc"
 #include "utils.hpp"
 
 using Vector64f = Eigen::Matrix<float, 64, 1>;

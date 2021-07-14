@@ -35,11 +35,10 @@ Eigen::MatrixXf create_profile(std::string seq) {
 
 /* Create profile given an alignment */
 Eigen::MatrixXf create_profile(std::vector<std::string>& aln) {
-    for(const auto& s : aln) {
-        if(s.length() != aln[0].length()) {
-            throw std::invalid_argument(
-                "Profile matrix requires all strings of same length.");
-        }
+    if(std::any_of(aln.cbegin(), aln.cend(),
+                   [aln](auto s) { return s.length() != aln[0].length(); })) {
+        throw std::invalid_argument(
+            "Profile matrix requires all strings of same length.");
     }
 
     auto cols = static_cast<int>(aln.at(0).length());
@@ -78,27 +77,31 @@ Eigen::MatrixXf create_profile(std::vector<std::string>& aln) {
 
 TEST_CASE("[utils.cc] create_profile") {
     SUBCASE("alignment") {
-        std::vector<std::string> aln = {"CTCTGGATAGTG", "CT----ATAGTG",
-                                        "CTCT---TAGTG", "CTCTG--TAGTG"};
-        Eigen::MatrixXf profile = create_profile(aln);
+        std::vector<std::string> aln{"CTCTGGATAGTG", "CT----ATAGTG",
+                                     "CTCT---TAGTG", "CTCTG--TAGTG"};
         Eigen::MatrixXf result(4, 12);
+        // cppcheck-suppress constStatement
         result << 0, 0, 0, 0, 0, 0, 0.5, 0, 1, 0, 0, 0, 1, 0, 0.75, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0.5, 0.25, 0, 0, 0, 1, 0, 1, 0, 1, 0,
-            0.75, 0, 0, 0, 1, 0, 0, 1, 0;
+            0.75, 0, 0, 0, 1, 0, 0, 1, 0;  // cppcheck-suppress constStatement
 
-        std::cout << profile << std::endl;
-        CHECK(profile == result);
+        CHECK(create_profile(aln) == result);
     }
 
     SUBCASE("sequence") {
-        std::string seq = "CTCTGGATAGTG";
-        Eigen::MatrixXf profile = create_profile(seq);
+        std::string seq{"CTCTGGATAGTG"};
         Eigen::MatrixXf result(4, 12);
+        // cppcheck-suppress constStatement
         result << 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1,
-            0, 0, 1, 0;
+            0, 0, 1, 0;  // cppcheck-suppress constStatement
 
-        CHECK(profile == result);
+        CHECK(create_profile(seq) == result);
+    }
+
+    SUBCASE("different lengths") {
+        std::vector<std::string> aln{"CTC", "CT"};
+        CHECK_THROWS_AS(create_profile(aln), std::invalid_argument);
     }
 }
 
@@ -163,19 +166,23 @@ TEST_CASE("[profile_aln.cc] transition") {
     mg94_marginal_p(p, P);
 
     SUBCASE("codon aaa, all nucs") {
+        // cppcheck-suppress constStatement
         cod << 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0;
 
         CHECK(transition(cod, 0, cod.col(0), p) == doctest::Approx(0.99352));
         CHECK(transition(cod, 1, cod.col(0), p) == doctest::Approx(0.99831));
         CHECK(transition(cod, 2, cod.col(0), p) == doctest::Approx(0.99832));
+        // cppcheck-suppress constStatement
         nuc << 0, 1, 0, 0;
         CHECK(transition(cod, 0, nuc, p) == doctest::Approx(0.00027));
         CHECK(transition(cod, 1, nuc, p) == doctest::Approx(0.00027));
         CHECK(transition(cod, 2, nuc, p) == doctest::Approx(0.00027));
+        // cppcheck-suppress constStatement
         nuc << 0, 0, 1, 0;
         CHECK(transition(cod, 0, nuc, p) == doctest::Approx(0.00599));
         CHECK(transition(cod, 1, nuc, p) == doctest::Approx(0.00121));
         CHECK(transition(cod, 2, nuc, p) == doctest::Approx(0.00121));
+        // cppcheck-suppress constStatement
         nuc << 0, 0, 0, 1;
         CHECK(transition(cod, 0, nuc, p) == doctest::Approx(0.00021));
         CHECK(transition(cod, 1, nuc, p) == doctest::Approx(0.00021));
@@ -183,7 +190,9 @@ TEST_CASE("[profile_aln.cc] transition") {
     }
 
     SUBCASE("codon ACA {0.4^3}, homogeneous nucleotide freq") {
+        // cppcheck-suppress constStatement
         nuc << 0.25, 0.25, 0.25, 0.25;
+        // cppcheck-suppress constStatement
         cod << 0.4, 0.2, 0.4, 0.3, 0.4, 0.1, 0.2, 0.3, 0.2, 0.1, 0.1, 0.3;
 
         CHECK(transition(cod, 0, nuc, p) == doctest::Approx(0.052));
@@ -192,7 +201,9 @@ TEST_CASE("[profile_aln.cc] transition") {
     }
 
     SUBCASE("codon CGT {0.4,0.5,0.4}, nucleotide freq {0.3,0.2,0.2,0.3}") {
+        // cppcheck-suppress constStatement
         nuc << 0.3, 0.2, 0.2, 0.3;
+        // cppcheck-suppress constStatement
         cod << 0.3, 0.2, 0.3, 0.4, 0.2, 0.1, 0.2, 0.5, 0.2, 0.1, 0.1, 0.4;
 
         CHECK(transition(cod, 0, nuc, p) == doctest::Approx(0.06945));
@@ -285,7 +296,7 @@ int gotoh_profile_marginal(std::vector<std::string> seqs1,
     }
 
     Matrix4x3d codon;
-    float p1 = NAN, p2 = NAN, q1 = NAN, q2 = NAN, d = NAN;
+    float p1{NAN}, p2{NAN}, q1{NAN}, q2{NAN}, d{NAN};
 
     for(int i = 1; i < m + 1; i++) {
         // codon = seq_a.substr((((i-1)/3)*3),3); // current codon
@@ -359,17 +370,13 @@ int gotoh_profile_marginal(std::vector<std::string> seqs1,
 }
 
 TEST_CASE("[profile_aln.cc] gotoh_profile_marginal") {
-    std::vector<std::string> seqs1, seqs2;
     alignment_t aln, aln_pair;
     Matrix64f P;
     float branch = 0.0133;
     mg94_p(P, branch);
 
     SUBCASE("pairwise") {  // ensure result is identical to non-profile aln
-        seqs1 = {"CTCTGG"};
-        seqs2 = {"CCTGG"};
-
-        REQUIRE(gotoh_profile_marginal(seqs1, seqs2, aln, P) == 0);
+        REQUIRE(gotoh_profile_marginal({"CTCTGG"}, {"CCTGG"}, aln, P) == 0);
         CHECK(aln.weight == doctest::Approx(8.73227));
         CHECK(aln.f.seq_data[0].compare("CTCTGG") == 0);
         CHECK(aln.f.seq_data[1].compare("C-CTGG") == 0);
@@ -457,11 +464,14 @@ float nuc_pi(Vector4f n, Vector5f pis) {
 TEST_CASE("[profile_aln.cc] nuc_pi") {
     Vector4f nucleotides = {0.25, 0.25, 0.25, 0.25};
     Vector5f nuc_frequencies;
+    // cppcheck-suppress constStatement
     nuc_frequencies << logf(0.3), logf(0.2), logf(0.2), logf(0.3), logf(0.25);
 
     CHECK(nuc_pi(nucleotides, nuc_frequencies) == doctest::Approx(0.25));
+    // cppcheck-suppress constStatement
     nucleotides << 1, 0, 0, 0;
     CHECK(nuc_pi(nucleotides, nuc_frequencies) == doctest::Approx(0.3));
+    // cppcheck-suppress constStatement
     nucleotides << 0.5, 0.1, 0.2, 0.2;
     CHECK(nuc_pi(nucleotides, nuc_frequencies) == doctest::Approx(0.27));
 }

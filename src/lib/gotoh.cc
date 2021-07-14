@@ -107,7 +107,7 @@ int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
     }
 
     std::string codon;
-    float p1 = NAN, p2 = NAN, q1 = NAN, q2 = NAN, d = NAN;
+    float p1{NAN}, p2{NAN}, q1{NAN}, q2{NAN}, d{NAN};
 
     for(int i = 1; i < m + 1; i++) {
         codon = seq_a.substr((((i - 1) / 3) * 3), 3);  // current codon
@@ -218,6 +218,7 @@ int gotoh_noframeshifts(std::vector<std::string> sequences, alignment_t& aln,
     float deletion_ext = 1.0 - (1.0 / 6.0);
 
     Vector5f nuc_freqs;
+    // cppcheck-suppress constStatement
     nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
 
     // DP and backtracking matrices initialization
@@ -263,8 +264,8 @@ int gotoh_noframeshifts(std::vector<std::string> sequences, alignment_t& aln,
     }
 
     std::string codon;
-    float p1 = NAN, p2 = NAN, q1 = NAN, q2 = NAN, d = NAN;
-    int temp = 0;
+    float p1{NAN}, p2{NAN}, q1{NAN}, q2{NAN}, d{NAN};
+    int temp{0};
 
     // Cells with only match/mismatch (1,1) & (2,2)
     codon = seq_a.substr(0, 3);

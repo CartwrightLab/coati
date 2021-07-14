@@ -43,17 +43,11 @@ TEST_CASE("[insertions.cc] insertion_flags") {
     SparseVectorInt insertions(7);
 
     SUBCASE("Different length - fail") {
-        std::string reference = "TCA-TC";
-        std::string sequence = "TCAGTCG";
-
-        REQUIRE(!insertion_flags(reference, sequence, insertions));
+        REQUIRE(!insertion_flags("TCA_TC", "TCAGTCG", insertions));
     }
 
     SUBCASE("Two insertions") {
-        std::string reference = "TCA-TC-";
-        std::string sequence = "TCAGTCG";
-
-        REQUIRE(insertion_flags(reference, sequence, insertions));
+        REQUIRE(insertion_flags("TCA-TC-", "TCAGTCG", insertions));
         CHECK(insertions.nonZeros() == 2);
         CHECK(insertions.coeffRef(3) == 'o');
         CHECK(insertions.coeffRef(6) == 111);
@@ -165,7 +159,7 @@ TEST_CASE("[insertions.cc] merge_indels") {
         insertion_data_t dataA("TCATCG", "A", insA);
         insertion_data_t dataB("TCAGTCG", "B", insB);
 
-        std::vector<insertion_data_t> ins_data = {dataA, dataB};
+        std::vector<insertion_data_t> ins_data{dataA, dataB};
 
         REQUIRE(merge_indels(ins_data, results));
 
@@ -189,7 +183,7 @@ TEST_CASE("[insertions.cc] merge_indels") {
                                  {"A", "B", "C"}, insABC);
         insertion_data_t dataD("TCACTCG", "D", insD);
 
-        std::vector<insertion_data_t> ins_data = {dataABC, dataD};
+        std::vector<insertion_data_t> ins_data{dataABC, dataD};
 
         REQUIRE(merge_indels(ins_data, results));
 
@@ -216,7 +210,7 @@ TEST_CASE("[insertions.cc] merge_indels") {
                                  {"A", "B", "C"}, insABC);
         insertion_data_t dataD("TCACTCG", "D", insD);
 
-        std::vector<insertion_data_t> ins_data = {dataABC, dataD};
+        std::vector<insertion_data_t> ins_data{dataABC, dataD};
 
         REQUIRE(merge_indels(ins_data, results));
 
@@ -239,7 +233,7 @@ TEST_CASE("[insertions.cc] merge_indels") {
         insertion_data_t dataA("TCACTCG", "A", insA);
         insertion_data_t dataB("TCAGTCG", "B", insB);
 
-        std::vector<insertion_data_t> ins_data = {dataA, dataB};
+        std::vector<insertion_data_t> ins_data{dataA, dataB};
 
         REQUIRE(merge_indels(ins_data, results));
 
@@ -264,7 +258,7 @@ TEST_CASE("[insertions.cc] merge_indels") {
         insertion_data_t dataC(
             "AAATTCCAACAACATAAACAGATCGGAAGAGAAACTATGCTTTTCTAG", "C", insC);
 
-        std::vector<insertion_data_t> ins_data = {dataH, dataG, dataC};
+        std::vector<insertion_data_t> ins_data{dataH, dataG, dataC};
 
         REQUIRE(merge_indels(ins_data, results));
 

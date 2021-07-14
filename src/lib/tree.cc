@@ -276,6 +276,7 @@ int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list) {
 
 TEST_CASE("[tree.cc] aln_order") {
     tree_t tree;
+    // cppcheck-suppress unusedVariable
     std::vector<std::pair<int, float>> order_list;
     // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
 
@@ -315,8 +316,9 @@ bool find_seq(const std::string& name, fasta_t& f, std::string& seq) {
 }
 
 TEST_CASE("[tree.cc] find_seq") {
+    // cppcheck-suppress unusedVariable
     std::string sequence;
-    fasta_t fasta = fasta_t("", {"A", "B", "C"}, {"ACGT", "CGTA", "GTAC"});
+    fasta_t fasta("", {"A", "B", "C"}, {"ACGT", "CGTA", "GTAC"});
 
     REQUIRE(!find_seq("Z", fasta,
                       sequence));  // fails, Z is not found -> seq is empty
@@ -333,9 +335,9 @@ bool find_node(tree_t& tree, const std::string& name, std::size_t& index) {
     auto it = find_if(begin(tree), end(tree), [name](const node_t& node) {
         return node.label == name;
     });
-    index = (it == end(tree) ? -1 : it - begin(tree));
+    index = it - begin(tree);
 
-    return index != -1;
+    return it != end(tree);
 }
 
 TEST_CASE("[tree.cc] find_node") {
@@ -358,7 +360,6 @@ TEST_CASE("[tree.cc] find_node") {
     REQUIRE(find_node(tree, "D%", index));
     CHECK(index == 6);
     REQUIRE(!find_node(tree, "Z", index));
-    CHECK(index == -1);
 }
 
 /* Re-root tree given an outgroup (leaf node) */

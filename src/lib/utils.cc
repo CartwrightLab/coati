@@ -129,7 +129,7 @@ int read_fasta(fasta_t& fasta_file, std::vector<VectorFstStdArc>& fsts) {
 }
 
 TEST_CASE("[utils.cc] read_fasta - fst") {
-    fasta_t fasta;
+    // cppcheck-suppress unusedVariable
     std::vector<VectorFstStdArc> fsts;
     std::ofstream outfile;
 
@@ -140,7 +140,7 @@ TEST_CASE("[utils.cc] read_fasta - fst") {
         outfile << ">2" << std::endl << "CTATAGTG" << std::endl;
         outfile.close();
 
-        fasta.path = "test-read-fasta.fasta";
+        fasta_t fasta("test-read-fasta.fasta");
 
         REQUIRE(read_fasta(fasta, fsts) == 0);
         CHECK(std::filesystem::remove(fasta.path));
@@ -161,7 +161,7 @@ TEST_CASE("[utils.cc] read_fasta - fst") {
     }
 
     SUBCASE("Error opening fasta") {
-        fasta.path = "test-9999999999.fasta";
+        fasta_t fasta("test-9999999999.fasta");
 
         REQUIRE_THROWS_AS(read_fasta(fasta, fsts), std::invalid_argument);
     }
@@ -208,7 +208,6 @@ int read_fasta(fasta_t& fasta_file) {
 
 TEST_CASE("[utils.cc] read_fasta") {
     std::ofstream outfile;
-    fasta_t fasta;
 
     SUBCASE("Read test-read-fasta.fasta") {
         outfile.open("test-read-fasta.fasta");
@@ -217,7 +216,7 @@ TEST_CASE("[utils.cc] read_fasta") {
         outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
         outfile.close();
 
-        fasta.path = "test-read-fasta.fasta";
+        fasta_t fasta("test-read-fasta.fasta");
 
         REQUIRE(read_fasta(fasta) == 0);
         CHECK(std::filesystem::remove(fasta.path));
@@ -229,7 +228,7 @@ TEST_CASE("[utils.cc] read_fasta") {
     }
 
     SUBCASE("Error opening fasta") {
-        fasta.path = "test-9999999999.fasta";
+        fasta_t fasta("test-9999999999.fasta");
 
         REQUIRE_THROWS_AS(read_fasta(fasta), std::invalid_argument);
     }
@@ -253,11 +252,8 @@ int write_fasta(fasta_t& fasta_file) {
 }
 
 TEST_CASE("[utils.cc] write_fasta") {
-    fasta_t fasta;
-
-    fasta.path = "test-write-fasta.fasta";
-    fasta.seq_names = {"1", "2"};
-    fasta.seq_data = {"CTCTGGATAGTG", "CTATAGTG"};
+    fasta_t fasta("test-write-fasta.fasta", {"1", "2"},
+                  {"CTCTGGATAGTG", "CTATAGTG"});
 
     REQUIRE(write_fasta(fasta) == 0);
 
@@ -282,10 +278,10 @@ int write_fasta(VectorFstStdArc& aln, fasta_t& fasta_file) {
     std::string seq1, seq2;
     fst::StateIterator<fst::StdFst> siter(aln);  // FST state iterator
     for(int i = 0; i < (aln.NumStates() - 1); siter.Next(), i++) {
-        fst::ArcIterator<fst::StdFst> aiter(
-            aln, siter.Value());  // State arc iterator
-        seq1.append(symbols.Find(aiter.Value().ilabel));
-        seq2.append(symbols.Find(aiter.Value().olabel));
+        fst::ArcIteratorData<fst::StdArc> data;
+        aln.InitArcIterator(siter.Value(), &data);
+        seq1.append(symbols.Find(data.arcs[0].ilabel));
+        seq2.append(symbols.Find(data.arcs[0].olabel));
     }
 
     fasta_file.seq_data.push_back(seq1);
@@ -307,7 +303,7 @@ int write_fasta(VectorFstStdArc& aln, fasta_t& fasta_file) {
 }
 
 TEST_CASE("[utils.cc] write_fasta - fst") {
-    fasta_t fasta;
+    fasta_t fasta("test-write-fasta.fasta", {"1", "2"});
 
     VectorFstStdArc fst_write;
     fst_write.AddState();
@@ -316,9 +312,6 @@ TEST_CASE("[utils.cc] write_fasta - fst") {
     add_arc(fst_write, 1, 2, 4, 4);  // T -> T
     add_arc(fst_write, 2, 3, 1, 0);  // A -> -
     fst_write.SetFinal(3, 0.0);
-
-    fasta.path = "test-write-fasta.fasta";
-    fasta.seq_names = {"1", "2"};
 
     REQUIRE(write_fasta(fst_write, fasta) == 0);
 
@@ -367,11 +360,8 @@ int write_phylip(fasta_t& fasta_file) {
 }
 
 TEST_CASE("[utils.cc] write_phylip") {
-    fasta_t fasta;
-
-    fasta.path = "test-write-phylip.phylip";
-    fasta.seq_names = {"1", "2"};
-    fasta.seq_data = {"CTCTGGATAGTG", "CT----ATAGTG"};
+    fasta_t fasta("test-write-phylip.phylip", {"1", "2"},
+                  {"CTCTGGATAGTG", "CT----ATAGTG"});
 
     REQUIRE(write_phylip(fasta) == 0);
 
@@ -401,10 +391,10 @@ int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file) {
     std::string seq1, seq2;
     fst::StateIterator<fst::StdFst> siter(aln);  // FST state iterator
     for(int i = 0; i < (aln.NumStates() - 1); siter.Next(), i++) {
-        fst::ArcIterator<fst::StdFst> aiter(
-            aln, siter.Value());  // State arc iterator
-        seq1.append(symbols.Find(aiter.Value().ilabel));
-        seq2.append(symbols.Find(aiter.Value().olabel));
+        fst::ArcIteratorData<fst::StdArc> data;
+        aln.InitArcIterator(siter.Value(), &data);
+        seq1.append(symbols.Find(data.arcs[0].ilabel));
+        seq2.append(symbols.Find(data.arcs[0].olabel));
     }
 
     fasta_file.seq_data.push_back(seq1);
@@ -424,7 +414,7 @@ int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file) {
 }
 
 TEST_CASE("[utils.cc] write_phylip - fst") {
-    fasta_t fasta;
+    fasta_t fasta("test-write-phylip.phylip", {"1", "2"});
 
     VectorFstStdArc fst_write;
     fst_write.AddState();
@@ -433,9 +423,6 @@ TEST_CASE("[utils.cc] write_phylip - fst") {
     add_arc(fst_write, 1, 2, 4, 4);  // T -> T
     add_arc(fst_write, 2, 3, 1, 0);  // A -> -
     fst_write.SetFinal(3, 0.0);
-
-    fasta.path = "test-write-phylip.phylip";
-    fasta.seq_names = {"1", "2"};
 
     REQUIRE(write_phylip(fst_write, fasta) == 0);
     std::ifstream infile("test-write-phylip.phylip");
@@ -496,6 +483,7 @@ int cod_int(std::string codon) {
 }
 
 /* Read substitution rate matrix from a CSV file */
+// cppcheck-suppress constParameter
 int parse_matrix_csv(const std::string& file, Matrix64f& P, float& br_len) {
     std::ifstream input(file);
     if(!input.good()) {
@@ -532,7 +520,7 @@ int parse_matrix_csv(const std::string& file, Matrix64f& P, float& br_len) {
 TEST_CASE("[utils.cc] parse_matrix_csv") {
     std::ofstream outfile;
     Matrix64f P;
-    float br_len = NAN;
+    float br_len{NAN};
     const std::vector<std::string> codons = {
         "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC",
         "AGG", "AGT", "ATA", "ATC", "ATG", "ATT", "CAA", "CAC", "CAG", "CAT",

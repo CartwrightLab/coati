@@ -7,6 +7,3 @@ missingIncludeSystem
 
 // to suppress false positives from unittests
 unusedFunction
-
-// suppress constParameter error for eigen matrix that **is** modified
-constParameter:*utils.cc:317

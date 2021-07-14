@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 set(coati_sources version.cc mutation_coati.cc utils.cc align.cc tree.cc profile_aln.cc insertions.cc mutation_ecm.cc mutation_fst.cc gotoh.cc)
-set(coati_headers coati.hpp mutation_coati.hpp utils.hpp align.hpp tree.hpp profile_aln.hpp dna_syms.hpp insertions.hpp mutation_ecm.hpp mutation_fst.hpp gotoh.hpp)
+set(coati_headers coati.hpp mutation_coati.hpp utils.hpp align.hpp tree.hpp profile_aln.hpp dna_syms.hpp insertions.hpp mutation_ecm.hpp mutation_fst.hpp gotoh.hpp mg94p.tcc mg94q.tcc)
 
 #####################################################################
 # libcoati library

@@ -64,19 +64,14 @@ int mcoati(input_t& in_data, Matrix64f& P) {
 }
 
 TEST_CASE("[align.cc] mcoati") {
-    input_t input_data;
-    input_data.br_len = 0.0133;
-    input_data.fasta_file.seq_names = {"1", "2"};
-    input_data.fasta_file.seq_data = {"CTCTGGATAGTG", "CTATAGTG"};
-    fasta_t result;
     Matrix64f P;
-    mg94_p(P, input_data.br_len);
+    mg94_p(P, 0.0133);
 
     SUBCASE("Alignment with frameshifts (default) - output fasta") {
-        input_data.out_file = "test-mcoati-fasta.fasta";
-        input_data.mut_model = "m-coati";
-        input_data.weight_file = "score.log";
-        result.path = input_data.out_file;
+        input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
+                           "m-coati", false, 0.0133, "score.log",
+                           "test-mcoati-fasta.fasta");
+        fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
             std::filesystem::remove(input_data.out_file);
@@ -99,13 +94,15 @@ TEST_CASE("[align.cc] mcoati") {
         std::ifstream infile(input_data.weight_file);
         std::string s;
         infile >> s;
-        CHECK(std::filesystem::remove("score.log"));
+        CHECK(std::filesystem::remove(input_data.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.29064");
     }
 
     SUBCASE("Alignment with frameshifts (default) - output phylip") {
-        input_data.out_file = "test-mcoati-phylip.phy";
-        input_data.mut_model = "m-coati";
+        input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
+                           "m-coati", false, 0.0133, "score.log",
+                           "test-mcoati-phylip.phy");
+        fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
             std::filesystem::remove(input_data.out_file);
@@ -132,10 +129,10 @@ TEST_CASE("[align.cc] mcoati") {
     }
 
     SUBCASE("Alignment with no frameshifts") {
-        input_data.fasta_file.seq_data = {"GCGATTGCTGTT", "GCGACTGTT"};
-        input_data.out_file = "test-mcoati-no-frameshifts.fasta";
-        input_data.mut_model = "no_frameshifts";
-        result.path = input_data.out_file;
+        input_t input_data("", {"1", "2"}, {"GCGATTGCTGTT", "GCGACTGTT"},
+                           "no_frameshifts", false, 0.0133, "score.log",
+                           "test-mcoati-no-frameshifts.fasta");
+        fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
             std::filesystem::remove(input_data.out_file);
@@ -154,20 +151,19 @@ TEST_CASE("[align.cc] mcoati") {
     }
 
     SUBCASE("Score alignment") {
-        input_data.out_file = "test-mcoati-score.fasta";
-        input_data.mut_model = "m-coati";
-        result.path = input_data.out_file;
-
-        if(std::filesystem::exists(input_data.out_file)) {
-            std::filesystem::remove(input_data.out_file);
-        }
-
+        input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CT----ATAGTG"},
+                           "m-coati", true, 0.0133, "score.log",
+                           "test-mcoati-score.fasta");
         REQUIRE(mcoati(input_data, P) == 0);
-        REQUIRE(read_fasta(result) == 0);
+    }
 
-        CHECK(std::filesystem::remove(input_data.out_file));
+    SUBCASE("Score alignment - fail") {
+        input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
+                           "m-coati", true, 0.0133, "score.log",
+                           "test-mcoati-score.fasta");
+        fasta_t result(input_data.out_file);
 
-        CHECK(alignment_score(result.seq_data, P) == doctest::Approx(9.29064));
+        REQUIRE_THROWS_AS(mcoati(input_data, P), std::invalid_argument);
     }
 }
 
@@ -264,31 +260,24 @@ int fst_alignment(input_t& in_data, std::vector<VectorFstStdArc>& fsts) {
 TEST_CASE("[align.cc] fst_alignment") {
     std::vector<VectorFstStdArc> fsts;
     VectorFstStdArc fsa0, fsa1;
-    input_t input_data;
-    input_data.br_len = 0.0133;
-    input_data.fasta_file.path = "test-fst-alignment.fasta";
-    input_data.fasta_file.seq_names = {"1", "2"};
-    input_data.fasta_file.seq_data = {"CTCTGGATAGTG", "CTATAGTG"};
-    input_data.out_file = "test-fst-alignment.fasta";
-    input_data.weight_file = "score.log";
 
     CHECK(acceptor("CTCTGGATAGTG", fsa0));
     fsts.push_back(fsa0);
     CHECK(acceptor("CTATAGTG", fsa1));
     fsts.push_back(fsa1);
 
-    fasta_t result;
-    result.path = input_data.out_file;
-
-    if(std::filesystem::exists(input_data.out_file)) {
-        std::filesystem::remove(input_data.out_file);
-    }
-    if(std::filesystem::exists(input_data.weight_file)) {
-        std::filesystem::remove(input_data.weight_file);
-    }
-
     SUBCASE("coati model, output fasta") {
-        input_data.mut_model = "coati";
+        input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
+                           "coati", false, 0.0133, "score.log",
+                           "test-fst-alignment.fasta");
+        fasta_t result(input_data.out_file);
+
+        if(std::filesystem::exists(input_data.out_file)) {
+            std::filesystem::remove(input_data.out_file);
+        }
+        if(std::filesystem::exists(input_data.weight_file)) {
+            std::filesystem::remove(input_data.weight_file);
+        }
 
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
@@ -309,8 +298,17 @@ TEST_CASE("[align.cc] fst_alignment") {
     }
 
     SUBCASE("coati model, output phylip") {
-        input_data.mut_model = "coati";
-        input_data.out_file = "test-fst-phylip.phy";
+        input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
+                           "coati", false, 0.0133, "score.log",
+                           "test-fst-phylip.phy");
+        fasta_t result(input_data.out_file);
+
+        if(std::filesystem::exists(input_data.out_file)) {
+            std::filesystem::remove(input_data.out_file);
+        }
+        if(std::filesystem::exists(input_data.weight_file)) {
+            std::filesystem::remove(input_data.weight_file);
+        }
 
         REQUIRE(fst_alignment(input_data, fsts) == 0);
 
@@ -334,7 +332,17 @@ TEST_CASE("[align.cc] fst_alignment") {
     }
 
     SUBCASE("dna model") {
-        input_data.mut_model = "dna";
+        input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"}, "dna",
+                           false, 0.0133, "score.log",
+                           "test-fst-alignment.fasta");
+        fasta_t result(input_data.out_file);
+
+        if(std::filesystem::exists(input_data.out_file)) {
+            std::filesystem::remove(input_data.out_file);
+        }
+        if(std::filesystem::exists(input_data.weight_file)) {
+            std::filesystem::remove(input_data.weight_file);
+        }
 
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
@@ -355,7 +363,17 @@ TEST_CASE("[align.cc] fst_alignment") {
     }
 
     SUBCASE("ecm model") {
-        input_data.mut_model = "ecm";
+        input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"}, "ecm",
+                           false, 0.0133, "score.log",
+                           "test-fst-alignment.fasta");
+        fasta_t result(input_data.out_file);
+
+        if(std::filesystem::exists(input_data.out_file)) {
+            std::filesystem::remove(input_data.out_file);
+        }
+        if(std::filesystem::exists(input_data.weight_file)) {
+            std::filesystem::remove(input_data.weight_file);
+        }
 
         REQUIRE(fst_alignment(input_data, fsts) == 0);
         REQUIRE(read_fasta(result) == 0);
@@ -376,7 +394,9 @@ TEST_CASE("[align.cc] fst_alignment") {
     }
 
     SUBCASE("Unknown model") {
-        input_data.mut_model = "unknown";
+        input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
+                           "unknown", false, 0.0133, "score.log",
+                           "test-fst-alignment.fasta");
 
         REQUIRE_THROWS_AS(fst_alignment(input_data, fsts),
                           std::invalid_argument);
@@ -539,25 +559,18 @@ int ref_indel_alignment(input_t& in_data) {
 }
 
 TEST_CASE("[align.cc] ref_indel_alignment") {
-    input_t input_data;
-    fasta_t result;
     std::ofstream outfile;
-
-    input_data.fasta_file.seq_names = {"A", "B", "C", "D", "E"};
-    input_data.fasta_file.seq_data = {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG",
-                                      "TCATC"};
-    input_data.tree = "tree-msa.newick";
-    input_data.ref = "A";
-
-    outfile.open(input_data.tree);
+    outfile.open("tree-msa.newick");
     REQUIRE(outfile);
     outfile << "((((A:1,B:1):1,C:1):1,D:1):1,E:1);";
     outfile.close();
 
     SUBCASE("m-coati model") {
-        input_data.mut_model = "m-coati";
-        input_data.out_file = "example-mcoati-msa.fasta";
-        result.path = input_data.out_file;
+        input_t input_data("", {"A", "B", "C", "D", "E"},
+                           {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"},
+                           "m-coati", false, 0.0133, "score.log",
+                           "test-mcoati-msa.fasta", "tree-msa.newick", "A");
+        fasta_t result(input_data.out_file);
 
         REQUIRE(ref_indel_alignment(input_data) == 0);
         REQUIRE(read_fasta(result) == 0);
@@ -578,9 +591,11 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
     }
 
     SUBCASE("m-ecm model") {
-        input_data.mut_model = "m-ecm";
-        input_data.out_file = "example-mecm-msa.fasta";
-        result.path = input_data.out_file;
+        input_t input_data("", {"A", "B", "C", "D", "E"},
+                           {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"},
+                           "m-ecm", false, 0.0133, "score.log",
+                           "test-mecm-msa.fasta", "tree-msa.newick", "A");
+        fasta_t result(input_data.out_file);
 
         REQUIRE(ref_indel_alignment(input_data) == 0);
         REQUIRE(read_fasta(result) == 0);
@@ -625,6 +640,7 @@ float alignment_score(std::vector<std::string> alignment, Matrix64f& P) {
     int gap_n = 0;
 
     Vector5f nuc_freqs;
+    // cppcheck-suppress constStatement
     nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
 
     for(int i = 0, aln_len = static_cast<int>(alignment[0].length());
@@ -691,4 +707,14 @@ float alignment_score(std::vector<std::string> alignment, Matrix64f& P) {
     }
 
     return (weight);
+}
+
+TEST_CASE("[align.cc] alignment_score") {
+    Matrix64f P;
+    mg94_p(P, 0.0133);
+
+    REQUIRE(alignment_score({"CTCTGGATAGTG", "CT----ATAGTG"}, P) ==
+            doctest::Approx(9.29064));
+
+    REQUIRE_THROWS_AS(alignment_score({"CTC", "CT"}, P), std::invalid_argument);
 }

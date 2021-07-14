@@ -31,11 +31,13 @@ int main(int argc, char* argv[]) {
     try {
         po::options_description desc("Allowed options");
         desc.add_options()("help,h", "Display this message")(
-            "fasta,f", po::value<std::filesystem::path>(&in_data.fasta_file.path)->required(),
-            "fasta file path")(
-            "model,m",
-            po::value<std::string>(&in_data.mut_model)->default_value("m-coati"),
-            "substitution model: m-coati (default), m-ecm")(
+            "fasta,f",
+            po::value<std::filesystem::path>(&in_data.fasta_file.path)
+                ->required(),
+            "fasta file path")("model,m",
+                               po::value<std::string>(&in_data.mut_model)
+                                   ->default_value("m-coati"),
+                               "substitution model: m-coati (default), m-ecm")(
             "weight,w", po::value<std::string>(&in_data.weight_file),
             "write alignment score to file (coming soon)")(
             "output,o", po::value<std::string>(&in_data.out_file),
