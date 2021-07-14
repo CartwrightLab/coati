@@ -1,5 +1,5 @@
 # download latest lcov
-lcov_commit="40580cd65909bc8324ae09b36bca2e178652ff3f"
+lcov_commit="b9d6727cf59c1708c69fbed0b06dab6794e1992d"
 
 cd $1
 

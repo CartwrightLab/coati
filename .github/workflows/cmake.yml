@@ -17,7 +17,7 @@ jobs:
         uses: egor-tensin/setup-clang@v1
         with:
             version: latest
-            paltform: x64
+            platform: x64
 
       # install dependencies
       - name: Dependencies
@@ -67,3 +67,6 @@ jobs:
         uses: deep5050/cppcheck-action@main
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Run Clang-tidy
+        run: cmake --build build --target check_tidy
