@@ -25,18 +25,16 @@
 #include <coati/align.hpp>
 #include <filesystem>
 
-using namespace std;
-using namespace fst;
-
 /* Alignment using dynamic programming implementation of marginal COATi model */
 int mcoati(input_t& in_data, Matrix64f& P) {
-    ofstream out_w;
+    std::ofstream out_w;
     alignment_t aln;
     aln.f.seq_names = in_data.fasta_file.seq_names;
     aln.f.path = in_data.out_file;
 
     if(in_data.score) {
-        cout << alignment_score(in_data.fasta_file.seq_data, P) << endl;
+        std::cout << alignment_score(in_data.fasta_file.seq_data, P)
+                  << std::endl;
         return EXIT_SUCCESS;
     }
 
@@ -52,9 +50,9 @@ int mcoati(input_t& in_data, Matrix64f& P) {
 
     if(!in_data.weight_file.empty()) {
         // append weight and fasta file name to file
-        out_w.open(in_data.weight_file, ios::app | ios::out);
+        out_w.open(in_data.weight_file, std::ios::app | std::ios::out);
         out_w << in_data.fasta_file.path << "," << in_data.mut_model << ","
-              << aln.weight << endl;
+              << aln.weight << std::endl;
         out_w.close();
     }
 
@@ -98,8 +96,8 @@ TEST_CASE("[align.cc] mcoati") {
         CHECK(result.seq_data[0] == "CTCTGGATAGTG");
         CHECK(result.seq_data[1] == "CT----ATAGTG");
 
-        ifstream infile(input_data.weight_file);
-        string s;
+        std::ifstream infile(input_data.weight_file);
+        std::string s;
         infile >> s;
         CHECK(std::filesystem::remove("score.log"));
         CHECK(s.substr(s.length() - 7) == "9.29064");
@@ -115,8 +113,8 @@ TEST_CASE("[align.cc] mcoati") {
 
         REQUIRE(mcoati(input_data, P) == 0);
 
-        ifstream infile(input_data.out_file);
-        string s1, s2;
+        std::ifstream infile(input_data.out_file);
+        std::string s1, s2;
 
         infile >> s1 >> s2;
         CHECK(s1.compare("2") == 0);
@@ -174,7 +172,9 @@ TEST_CASE("[align.cc] mcoati") {
 }
 
 /* Alignment using FST library*/
-int fst_alignment(input_t& in_data, vector<VectorFstStdArc>& fsts) {
+int fst_alignment(input_t& in_data, std::vector<VectorFstStdArc>& fsts) {
+    using fst::StdArc;
+
     VectorFstStdArc mut_fst;
 
     if(in_data.mut_model.compare("coati") == 0) {
@@ -184,8 +184,7 @@ int fst_alignment(input_t& in_data, vector<VectorFstStdArc>& fsts) {
     } else if(in_data.mut_model.compare("ecm") == 0) {
         ecm(mut_fst, in_data.br_len);
     } else {
-        cout << "Mutation model unknown. Exiting!" << endl;
-        return EXIT_FAILURE;
+        throw std::invalid_argument("Mutation model unknown. Exiting!");
     }
 
     // get indel FST
@@ -194,32 +193,33 @@ int fst_alignment(input_t& in_data, vector<VectorFstStdArc>& fsts) {
 
     // sort mutation and indel FSTs
     VectorFstStdArc mutation_sort, indel_sort;
-    mutation_sort = ArcSortFst<StdArc, OLabelCompare<StdArc>>(
-        mut_fst, OLabelCompare<StdArc>());
-    indel_sort = ArcSortFst<StdArc, ILabelCompare<StdArc>>(
-        indel_fst, ILabelCompare<StdArc>());
+    mutation_sort = fst::ArcSortFst<StdArc, fst::OLabelCompare<StdArc>>(
+        mut_fst, fst::OLabelCompare<StdArc>());
+    indel_sort = fst::ArcSortFst<StdArc, fst::ILabelCompare<StdArc>>(
+        indel_fst, fst::ILabelCompare<StdArc>());
 
     // compose mutation and indel FSTs
-    ComposeFst<StdArc> coati_comp =
-        ComposeFst<StdArc>(mutation_sort, indel_sort);
+    fst::ComposeFst<StdArc> coati_comp =
+        fst::ComposeFst<StdArc>(mutation_sort, indel_sort);
 
     // optimize coati FST
     VectorFstStdArc coati_fst;
     coati_fst = optimize(VectorFstStdArc(coati_comp));
 
     VectorFstStdArc coati_rmep;
-    coati_rmep = RmEpsilonFst<StdArc>(coati_fst);  // epsilon removal
+    coati_rmep = fst::RmEpsilonFst<StdArc>(coati_fst);  // epsilon removal
 
     // find alignment graph
     // 1. compose in_tape and coati FSTs
-    ComposeFst<StdArc> aln_inter = ComposeFst<StdArc>(fsts[0], coati_rmep);
+    fst::ComposeFst<StdArc> aln_inter =
+        fst::ComposeFst<StdArc>(fsts[0], coati_rmep);
     // 2. sort intermediate composition
     VectorFstStdArc aln_inter_sort;
-    aln_inter_sort = ArcSortFst<StdArc, OLabelCompare<StdArc>>(
-        aln_inter, OLabelCompare<StdArc>());
+    aln_inter_sort = fst::ArcSortFst<StdArc, fst::OLabelCompare<StdArc>>(
+        aln_inter, fst::OLabelCompare<StdArc>());
     // 3. compose intermediate and out_tape FSTs
     VectorFstStdArc graph_fst;
-    Compose(aln_inter_sort, fsts[1], &graph_fst);
+    fst::Compose(aln_inter_sort, fsts[1], &graph_fst);
 
     //  case 1: ComposeFst is time: O(v1 v2 d1 (log d2 + m2)), space O(v1 v2)
     //			ShortestPath with ComposeFst (PDT) is time: O((V+E)^3),
@@ -234,23 +234,23 @@ int fst_alignment(input_t& in_data, vector<VectorFstStdArc>& fsts) {
 
     // find shortest path through graph
     VectorFstStdArc aln_path;
-    ShortestPath(graph_fst, &aln_path);
+    fst::ShortestPath(graph_fst, &aln_path);
 
     // shortestdistance = weight of shortestpath
     if(!in_data.weight_file.empty()) {
-        vector<StdArc::Weight> distance;
-        ofstream out_w;
+        std::vector<StdArc::Weight> distance;
+        std::ofstream out_w;
 
-        ShortestDistance(aln_path, &distance);
+        fst::ShortestDistance(aln_path, &distance);
         // append weight and fasta file name info in file
-        out_w.open(in_data.weight_file, ios::app | ios::out);
+        out_w.open(in_data.weight_file, std::ios::app | std::ios::out);
         out_w << in_data.fasta_file.path << "," << in_data.mut_model << ","
-              << distance[0] << endl;
+              << distance[0] << std::endl;
         out_w.close();
     }
 
     // topsort path FST
-    TopSort(&aln_path);
+    fst::TopSort(&aln_path);
 
     fasta_t out_fasta(in_data.out_file, in_data.fasta_file.seq_names);
 
@@ -262,7 +262,7 @@ int fst_alignment(input_t& in_data, vector<VectorFstStdArc>& fsts) {
 }
 
 TEST_CASE("[align.cc] fst_alignment") {
-    vector<VectorFstStdArc> fsts;
+    std::vector<VectorFstStdArc> fsts;
     VectorFstStdArc fsa0, fsa1;
     input_t input_data;
     input_data.br_len = 0.0133;
@@ -301,8 +301,8 @@ TEST_CASE("[align.cc] fst_alignment") {
         CHECK(result.seq_data[0] == "CTCTGGATAGTG");
         CHECK(result.seq_data[1] == "CT----ATAGTG");
 
-        ifstream infile(input_data.weight_file);
-        string s;
+        std::ifstream infile(input_data.weight_file);
+        std::string s;
         infile >> s;
         CHECK(std::filesystem::remove(input_data.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31397");
@@ -314,8 +314,8 @@ TEST_CASE("[align.cc] fst_alignment") {
 
         REQUIRE(fst_alignment(input_data, fsts) == 0);
 
-        ifstream infile(input_data.out_file);
-        string s1, s2;
+        std::ifstream infile(input_data.out_file);
+        std::string s1, s2;
 
         infile >> s1 >> s2;
         CHECK(s1.compare("2") == 0);
@@ -347,8 +347,8 @@ TEST_CASE("[align.cc] fst_alignment") {
         CHECK(result.seq_data[0] == "CTCTGGATAGTG");
         CHECK(result.seq_data[1] == "CT----ATAGTG");
 
-        ifstream infile(input_data.weight_file);
-        string s;
+        std::ifstream infile(input_data.weight_file);
+        std::string s;
         infile >> s;
         CHECK(std::filesystem::remove(input_data.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31994");
@@ -368,8 +368,8 @@ TEST_CASE("[align.cc] fst_alignment") {
         CHECK(result.seq_data[0] == "CTCTGGATAGTG");
         CHECK(result.seq_data[1] == "CT----ATAGTG");
 
-        ifstream infile(input_data.weight_file);
-        string s;
+        std::ifstream infile(input_data.weight_file);
+        std::string s;
         infile >> s;
         CHECK(std::filesystem::remove(input_data.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31388");
@@ -378,7 +378,8 @@ TEST_CASE("[align.cc] fst_alignment") {
     SUBCASE("Unknown model") {
         input_data.mut_model = "unknown";
 
-        REQUIRE(fst_alignment(input_data, fsts) == EXIT_FAILURE);
+        REQUIRE_THROWS_AS(fst_alignment(input_data, fsts),
+                          std::invalid_argument);
     }
 }
 
@@ -386,7 +387,7 @@ TEST_CASE("[align.cc] fst_alignment") {
 int ref_indel_alignment(input_t& in_data) {
     Matrix64f P;
     tree_t tree;
-    string newick;
+    std::string newick;
     alignment_t aln, aln_tmp;
 
     aln.f = fasta_t(in_data.out_file);
@@ -407,14 +408,14 @@ int ref_indel_alignment(input_t& in_data) {
     }
 
     // find position of ref in tree
-    size_t ref_pos = 0;
+    std::size_t ref_pos = 0;
     if(!find_node(tree, in_data.ref, ref_pos)) {
         throw std::invalid_argument("Reference node not found in tree.");
     }
 
     // find sequence of ref in in_data
-    vector<string> pair_seqs;
-    string ref_seq;
+    std::vector<std::string> pair_seqs;
+    std::string ref_seq;
     if(!find_seq(in_data.ref, in_data.fasta_file, ref_seq)) {
         throw std::invalid_argument("reference sequence " + in_data.ref +
                                     " not found in fasta file.");
@@ -424,7 +425,7 @@ int ref_indel_alignment(input_t& in_data) {
     pair_seqs.push_back(ref_seq);
 
     // vector to store insertion_data_t for each node in tree
-    vector<insertion_data_t> nodes_ins(tree.size());
+    std::vector<insertion_data_t> nodes_ins(tree.size());
 
     // add insertion_data for REF
     nodes_ins[ref_pos] = insertion_data_t(
@@ -432,8 +433,8 @@ int ref_indel_alignment(input_t& in_data) {
         SparseVectorInt(static_cast<Eigen::Index>(2 * ref_seq.length())));
 
     // pairwise alignment for each leaf
-    string node_seq;
-    for(size_t node = 0; node < tree.size(); node++) {
+    std::string node_seq;
+    for(std::size_t node = 0; node < tree.size(); node++) {
         if(tree[node].is_leaf && (tree[node].label != in_data.ref)) {
             float branch = distance_ref(tree, ref_pos, node);
             if(!find_seq(tree[node].label, in_data.fasta_file, node_seq)) {
@@ -452,8 +453,8 @@ int ref_indel_alignment(input_t& in_data) {
 
             aln_tmp.f.seq_data.clear();
             if(mg94_marginal(pair_seqs, aln_tmp, P) != 0) {
-                cout << "Error: aligning reference " << in_data.ref << " and "
-                     << tree[node].label << endl;
+                std::cout << "Error: aligning reference " << in_data.ref
+                          << " and " << tree[node].label << std::endl;
             }
 
             SparseVectorInt ins_vector(
@@ -470,7 +471,7 @@ int ref_indel_alignment(input_t& in_data) {
     std::vector<std::size_t> inode_indexes;
     std::vector<int> visited(tree.size(), false);  // list of visited nodes
 
-    for(size_t node = 0; node < tree.size(); node++) {
+    for(std::size_t node = 0; node < tree.size(); node++) {
         if(!tree[node].is_leaf) {
             inode_indexes.push_back(node);  // add inode position to vector
         } else {
@@ -508,9 +509,9 @@ int ref_indel_alignment(input_t& in_data) {
             }
 
             // create vector of insertion_data_t with children
-            vector<insertion_data_t> tmp_ins_data(
+            std::vector<insertion_data_t> tmp_ins_data(
                 tree[inode_pos].children.size());
-            for(size_t i = 0; i < tree[inode_pos].children.size(); i++) {
+            for(std::size_t i = 0; i < tree[inode_pos].children.size(); i++) {
                 tmp_ins_data[i] = nodes_ins[tree[inode_pos].children[i]];
             }
 
@@ -540,7 +541,7 @@ int ref_indel_alignment(input_t& in_data) {
 TEST_CASE("[align.cc] ref_indel_alignment") {
     input_t input_data;
     fasta_t result;
-    ofstream outfile;
+    std::ofstream outfile;
 
     input_data.fasta_file.seq_names = {"A", "B", "C", "D", "E"};
     input_data.fasta_file.seq_data = {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG",
@@ -600,7 +601,7 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
     }
 }
 
-float alignment_score(vector<string> alignment, Matrix64f& P) {
+float alignment_score(std::vector<std::string> alignment, Matrix64f& P) {
     if(alignment[0].length() != alignment[1].length()) {
         throw std::invalid_argument(
             "For alignment scoring both sequences must have equal length.");
@@ -608,7 +609,7 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
 
     int state = 0;
     float weight = 0.0;
-    string codon;
+    std::string codon;
 
     float insertion = 0.001;
     float deletion = 0.001;
@@ -619,7 +620,7 @@ float alignment_score(vector<string> alignment, Matrix64f& P) {
     Eigen::Tensor<float, 3> p(64, 3, 4);
     mg94_marginal_p(p, P);
 
-    string seq1 = alignment[0];
+    std::string seq1 = alignment[0];
     boost::erase_all(seq1, "-");
     int gap_n = 0;
 

@@ -25,9 +25,6 @@
 
 namespace po = boost::program_options;
 
-using namespace std;
-using namespace fst;
-
 int main(int argc, char* argv[]) {
     input_t in_data;
 
@@ -37,15 +34,15 @@ int main(int argc, char* argv[]) {
             "fasta,f", po::value<std::filesystem::path>(&in_data.fasta_file.path)->required(),
             "fasta file path")(
             "model,m",
-            po::value<string>(&in_data.mut_model)->default_value("m-coati"),
+            po::value<std::string>(&in_data.mut_model)->default_value("m-coati"),
             "substitution model: m-coati (default), m-ecm")(
-            "weight,w", po::value<string>(&in_data.weight_file),
+            "weight,w", po::value<std::string>(&in_data.weight_file),
             "write alignment score to file (coming soon)")(
-            "output,o", po::value<string>(&in_data.out_file),
+            "output,o", po::value<std::string>(&in_data.out_file),
             "alignment output file")(
-            "tree,p", po::value<string>(&in_data.tree)->required(),
+            "tree,p", po::value<std::string>(&in_data.tree)->required(),
             "newick phylogenetic tree")(
-            "ref,r", po::value<string>(&in_data.ref)->required(),
+            "ref,r", po::value<std::string>(&in_data.ref)->required(),
             "reference sequence");
 
         po::positional_options_description pos_p;
@@ -59,27 +56,28 @@ int main(int argc, char* argv[]) {
                   varm);
 
         if(varm.count("help") || argc < 3) {
-            cout << "Usage: coati msa file.fasta tree.newick [options]" << endl
-                 << endl;
-            cout << desc << endl;
+            std::cout << "Usage: coati msa file.fasta tree.newick [options]"
+                      << std::endl
+                      << std::endl;
+            std::cout << desc << std::endl;
             return EXIT_SUCCESS;
         }
 
         po::notify(varm);
 
     } catch(po::error& e) {
-        cerr << e.what() << ". Exiting!" << endl;
+        std::cerr << e.what() << ". Exiting!" << std::endl;
         return EXIT_FAILURE;
     }
 
     // read input fasta file
     if(read_fasta(in_data.fasta_file) != 0) {
-        cout << "Error reading " << in_data.fasta_file.path << " file. Exiting!"
-             << endl;
-        return EXIT_FAILURE;
+        throw std::invalid_argument("Error reading " +
+                                    in_data.fasta_file.path.string() +
+                                    " file. Exiting!");
     } else if(in_data.fasta_file.seq_names.size() < 3) {
-        cout << "At least three sequences required. Exiting!" << endl;
-        return EXIT_FAILURE;
+        throw std::invalid_argument(
+            "At least three sequences required. Exiting!");
     }
 
     if(in_data.out_file.empty()) {  // if no output is specified save in current
@@ -89,8 +87,8 @@ int main(int argc, char* argv[]) {
             ".phy";
     } else if(std::filesystem::path(in_data.out_file).extension() != ".phy" &&
               std::filesystem::path(in_data.out_file).extension() != ".fasta") {
-        cout << "Format for output file is not valid. Exiting!" << endl;
-        return EXIT_FAILURE;
+        throw std::invalid_argument(
+            "Format for output file is not valid. Exiting!");
     }
 
     return ref_indel_alignment(in_data);

@@ -27,11 +27,8 @@
 
 namespace po = boost::program_options;
 
-using namespace std;
-using namespace fst;
-
 int main(int argc, char* argv[]) {
-    string rate;
+    std::string rate;
     input_t in_data;
 
     try {
@@ -40,15 +37,15 @@ int main(int argc, char* argv[]) {
             "fasta,f", po::value<std::filesystem::path>(&in_data.fasta_file.path)->required(),
             "fasta file path")(
             "model,m",
-            po::value<string>(&in_data.mut_model)->default_value("m-coati"),
+            po::value<std::string>(&in_data.mut_model)->default_value("m-coati"),
             "substitution model: coati, m-coati (default), dna, ecm, m-ecm")(
-            "weight,w", po::value<string>(&in_data.weight_file),
+            "weight,w", po::value<std::string>(&in_data.weight_file),
             "Write alignment score to file")(
-            "output,o", po::value<string>(&in_data.out_file),
+            "output,o", po::value<std::string>(&in_data.out_file),
             "Alignment output file")(
             "score,s",
             "Calculate alignment score using m-coati or m-ecm models")(
-            "rate,r", po::value<string>(&in_data.rate),
+            "rate,r", po::value<std::string>(&in_data.rate),
             "Substitution rate matrix (CSV)")(
             "evo-time,t",
             po::value<float>(&in_data.br_len)->default_value(0.0133, "0.0133"),
@@ -64,9 +61,10 @@ int main(int argc, char* argv[]) {
                   varm);
 
         if(varm.count("help") || argc < 2) {
-            cout << "Usage:	coati alignpair file.fasta [options]" << endl
-                 << endl;
-            cout << desc << endl;
+            std::cout << "Usage:	coati alignpair file.fasta [options]"
+                      << std::endl
+                      << std::endl;
+            std::cout << desc << std::endl;
             return EXIT_SUCCESS;
         }
 
@@ -77,22 +75,21 @@ int main(int argc, char* argv[]) {
         po::notify(varm);
 
     } catch(po::error& e) {
-        cerr << e.what() << ". Exiting!" << endl;
+        std::cerr << e.what() << ". Exiting!" << std::endl;
         return EXIT_FAILURE;
     }
 
     // read input fasta file sequences as FSA (acceptors)
-    vector<VectorFstStdArc> fsts;
+    std::vector<VectorFstStdArc> fsts;
     Matrix64f P;
 
     if(read_fasta(in_data.fasta_file, fsts) != 0) {
-        cerr << "Error reading " << in_data.fasta_file.path << " file. Exiting!"
-             << endl;
-        return EXIT_FAILURE;
+        throw std::invalid_argument("Error reading " +
+                                    in_data.fasta_file.path.string() +
+                                    " file. Exiting!");
     } else if(in_data.fasta_file.seq_names.size() != 2 ||
               in_data.fasta_file.seq_names.size() != fsts.size()) {
-        cerr << "Exactly two sequences required. Exiting!" << endl;
-        return EXIT_FAILURE;
+        throw std::invalid_argument("Exactly two sequences required. Exiting!");
     }
 
     if(in_data.out_file.empty()) {  // if no output is specified save in current
@@ -102,7 +99,8 @@ int main(int argc, char* argv[]) {
             ".phy";
     } else if(std::filesystem::path(in_data.out_file).extension() != ".phy" &&
               std::filesystem::path(in_data.out_file).extension() != ".fasta") {
-        cout << "Format for output file is not valid. Exiting!" << endl;
+        std::cout << "Format for output file is not valid. Exiting!"
+                  << std::endl;
         return EXIT_FAILURE;
     }
 

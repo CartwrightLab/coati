@@ -24,25 +24,24 @@
 
 #include <coati/gotoh.hpp>
 
-using namespace std;
-
 /* Dynamic Programming implementation of Marginal MG94 model*/
-int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
+int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
+                  Matrix64f& P_m) {
     // P matrix for marginal Muse and Gaut codon model
     Eigen::Tensor<float, 3> p(64, 3, 4);
 
     mg94_marginal_p(p, P_m);
 
-    string seq_a = sequences[0];
-    string seq_b = sequences[1];
+    std::string seq_a = sequences[0];
+    std::string seq_b = sequences[1];
     int m = static_cast<int>(sequences[0].length());
     int n = static_cast<int>(sequences[1].length());
 
     // ensure that length of first sequence (reference) is multiple of 3
     if(m % 3 != 0) {
-        cout << "Reference coding sequence length must be a multiple of 3 ("
-             << m << "). Exiting!" << endl;
-        return (EXIT_FAILURE);
+        throw std::invalid_argument(
+            "Reference coding sequence length must be a multiple of 3 (" +
+            std::to_string(m) + "). Exiting!");
     }
 
     // DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
@@ -107,7 +106,7 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
         }
     }
 
-    string codon;
+    std::string codon;
     float p1 = NAN, p2 = NAN, q1 = NAN, q2 = NAN, d = NAN;
 
     for(int i = 1; i < m + 1; i++) {
@@ -121,8 +120,8 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
                            no_insertion_ext
                  : Bd(i, j - 1) == 1
                      ? D(i, j - 1) - insertion_ext - nuc_freqs[nt4_table[pos]]
-                     : numeric_limits<float>::max();
-            P(i, j) = min(p1, p2);
+                     : std::numeric_limits<float>::max();
+            P(i, j) = std::fmin(p1, p2);
             Bp(i, j) =
                 p1 < p2
                     ? 1
@@ -134,7 +133,7 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
                      ? D(i - 1, j) - no_insertion - deletion - no_deletion_ext
                  : Bd(i - 1, j) == 1 ? D(i - 1, j) - no_deletion_ext - deletion
                                      : D(i - 1, j) - deletion_ext;
-            Q(i, j) = min(q1, q2);
+            Q(i, j) = std::fmin(q1, q2);
             Bq(i, j) =
                 q1 < q2 ? 1
                         : 2;  // 1 is deletion extension, 2 is deletion opening
@@ -181,15 +180,15 @@ int mg94_marginal(vector<string> sequences, alignment_t& aln, Matrix64f& P_m) {
 }
 
 /* Dynamic Programming with no frameshifts*/
-int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
+int gotoh_noframeshifts(std::vector<std::string> sequences, alignment_t& aln,
                         Matrix64f& P_m) {
     // P matrix for marginal Muse and Gaut codon model
     Eigen::Tensor<float, 3> p(64, 3, 4);
 
     mg94_marginal_p(p, P_m);
 
-    string seq_a = sequences[0];
-    string seq_b = sequences[1];
+    std::string seq_a = sequences[0];
+    std::string seq_b = sequences[1];
     int m = static_cast<int>(sequences[0].length());
     int n = static_cast<int>(sequences[1].length());
 
@@ -263,7 +262,7 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
         }
     }
 
-    string codon;
+    std::string codon;
     float p1 = NAN, p2 = NAN, q1 = NAN, q2 = NAN, d = NAN;
     int temp = 0;
 
@@ -317,8 +316,8 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
                                seq_b[j - 2])]]) -
                            logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 1])]])
-                     : numeric_limits<float>::max();
-            P(i, j) = min(p1, p2);
+                     : std::numeric_limits<float>::max();
+            P(i, j) = std::fmin(p1, p2);
             Bp(i, j) =
                 p1 < p2
                     ? 1
@@ -350,7 +349,7 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
                      ? D(j - 3, i) - logf(1.0f - deletion_ext) -
                            logf(deletion) - 2 * logf(deletion_ext)
                      : D(j - 3, i) - 3 * logf(deletion_ext);
-            Q(j, i) = min(q1, q2);
+            Q(j, i) = std::fmin(q1, q2);
             Bq(j, i) =
                 q1 < q2 ? 1
                         : 2;  // 1 is deletion extension, 2 is deletion opening
@@ -403,8 +402,8 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
                                seq_b[j - 2])]]) -
                            logf(nuc_freqs[nt4_table[static_cast<unsigned char>(
                                seq_b[j - 1])]])
-                     : numeric_limits<float>::max();
-            P(i, j) = min(p1, p2);
+                     : std::numeric_limits<float>::max();
+            P(i, j) = std::fmin(p1, p2);
             Bp(i, j) =
                 p1 < p2
                     ? 1
@@ -418,7 +417,7 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
                      ? D(i - 3, j) - logf(1.0f - deletion_ext) -
                            logf(deletion) - 2 * logf(deletion_ext)
                      : D(i - 3, j) - 3 * logf(deletion_ext);
-            Q(i, j) = min(q1, q2);
+            Q(i, j) = std::fmin(q1, q2);
             Bq(i, j) =
                 q1 < q2 ? 1
                         : 2;  // 1 is deletion extension, 2 is deletion opening
@@ -452,7 +451,7 @@ int gotoh_noframeshifts(vector<string> sequences, alignment_t& aln,
     return backtracking_noframeshifts(Bd, Bp, Bq, seq_a, seq_b, aln);
 }
 /* Return value from marginal MG94 model p matrix for a given transition */
-float transition(const string& codon, int position, unsigned char nuc,
+float transition(const std::string& codon, int position, unsigned char nuc,
                  const Eigen::Tensor<float, 3>& p) {
     position = position == 0 ? 2 : --position;
 
@@ -468,7 +467,7 @@ float transition(const string& codon, int position, unsigned char nuc,
 
 /* Recover alignment given backtracking matrices for DP alignment */
 int backtracking(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp, Eigen::MatrixXf Bq,
-                 string seqa, string seqb, alignment_t& aln) {
+                 std::string seqa, std::string seqb, alignment_t& aln) {
     int i = static_cast<int>(seqa.length());
     int j = static_cast<int>(seqb.length());
 
@@ -511,8 +510,8 @@ int backtracking(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp, Eigen::MatrixXf Bq,
 
 /* Recover alignment given backtracking matrices for DP alignment */
 int backtracking_noframeshifts(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp,
-                               Eigen::MatrixXf Bq, string seqa, string seqb,
-                               alignment_t& aln) {
+                               Eigen::MatrixXf Bq, std::string seqa,
+                               std::string seqb, alignment_t& aln) {
     int i = static_cast<int>(seqa.length());
     int j = static_cast<int>(seqb.length());
 

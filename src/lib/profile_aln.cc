@@ -27,16 +27,14 @@
 #include <typeinfo>
 #include <vector>
 
-using namespace std;
-
 /* Create profile given a sequence */
-Eigen::MatrixXf create_profile(string seq) {
-    vector<string> vector_seq{std::move(seq)};
+Eigen::MatrixXf create_profile(std::string seq) {
+    std::vector<std::string> vector_seq{std::move(seq)};
     return create_profile(vector_seq);
 }
 
 /* Create profile given an alignment */
-Eigen::MatrixXf create_profile(vector<string>& aln) {
+Eigen::MatrixXf create_profile(std::vector<std::string>& aln) {
     for(const auto& s : aln) {
         if(s.length() != aln[0].length()) {
             throw std::invalid_argument(
@@ -80,8 +78,8 @@ Eigen::MatrixXf create_profile(vector<string>& aln) {
 
 TEST_CASE("[utils.cc] create_profile") {
     SUBCASE("alignment") {
-        vector<string> aln = {"CTCTGGATAGTG", "CT----ATAGTG", "CTCT---TAGTG",
-                              "CTCTG--TAGTG"};
+        std::vector<std::string> aln = {"CTCTGGATAGTG", "CT----ATAGTG",
+                                        "CTCT---TAGTG", "CTCTG--TAGTG"};
         Eigen::MatrixXf profile = create_profile(aln);
         Eigen::MatrixXf result(4, 12);
         result << 0, 0, 0, 0, 0, 0, 0.5, 0, 1, 0, 0, 0, 1, 0, 0.75, 0, 0, 0, 0,
@@ -93,7 +91,7 @@ TEST_CASE("[utils.cc] create_profile") {
     }
 
     SUBCASE("sequence") {
-        string seq = "CTCTGGATAGTG";
+        std::string seq = "CTCTGGATAGTG";
         Eigen::MatrixXf profile = create_profile(seq);
         Eigen::MatrixXf result(4, 12);
         result << 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0,
@@ -205,8 +203,9 @@ TEST_CASE("[profile_aln.cc] transition") {
 
 /* Gotoh dynamic programming alignment with marginal Muse & Gaut p matrix for
  * profile matrices  */
-int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
-                           alignment_t& aln, Matrix64f& P_m) {
+int gotoh_profile_marginal(std::vector<std::string> seqs1,
+                           std::vector<std::string> seqs2, alignment_t& aln,
+                           Matrix64f& P_m) {
     // P matrix for marginal Muse and Gaut codon model
     Eigen::Tensor<float, 3> p(64, 3, 4);
     mg94_marginal_p(p, P_m);
@@ -300,8 +299,8 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
                            nuc_pi(pro2.col(j - 1), nuc_freqs) - no_insertion_ext
                  : Bd(i, j - 1) == 1 ? D(i, j - 1) - insertion_ext -
                                            nuc_pi(pro2.col(j - 1), nuc_freqs)
-                                     : numeric_limits<float>::max();
-            P(i, j) = min(p1, p2);
+                                     : std::numeric_limits<float>::max();
+            P(i, j) = std::fmin(p1, p2);
             Bp(i, j) =
                 p1 < p2
                     ? 1
@@ -313,7 +312,7 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
                      ? D(i - 1, j) - no_insertion - deletion - no_deletion_ext
                  : Bd(i - 1, j) == 1 ? D(i - 1, j) - no_deletion_ext - deletion
                                      : D(i - 1, j) - deletion_ext;
-            Q(i, j) = min(q1, q2);
+            Q(i, j) = std::fmin(q1, q2);
             Bq(i, j) =
                 q1 < q2 ? 1
                         : 2;  // 1 is deletion extension, 2 is deletion opening
@@ -360,7 +359,7 @@ int gotoh_profile_marginal(vector<string> seqs1, vector<string> seqs2,
 }
 
 TEST_CASE("[profile_aln.cc] gotoh_profile_marginal") {
-    vector<string> seqs1, seqs2;
+    std::vector<std::string> seqs1, seqs2;
     alignment_t aln, aln_pair;
     Matrix64f P;
     float branch = 0.0133;
@@ -383,11 +382,11 @@ TEST_CASE("[profile_aln.cc] gotoh_profile_marginal") {
 /* Backtrack dynamic programming alignment of profile matrices and retrieve aln
  */
 int backtracking_profile(Eigen::MatrixXi Bd, Eigen::MatrixXi Bp,
-                         Eigen::MatrixXi Bq, vector<string> seqs1,
-                         vector<string> seqs2, alignment_t& aln) {
+                         Eigen::MatrixXi Bq, std::vector<std::string> seqs1,
+                         std::vector<std::string> seqs2, alignment_t& aln) {
     int i = static_cast<int>(seqs1[0].length());
     int j = static_cast<int>(seqs2[0].length());
-    vector<string> aln_seqs(seqs1.size() + seqs2.size());
+    std::vector<std::string> aln_seqs(seqs1.size() + seqs2.size());
 
     while((i != 0) || (j != 0)) {
         switch(Bd(i, j)) {

@@ -24,8 +24,6 @@
 
 #include <coati/mutation_coati.hpp>
 
-using namespace std;
-
 /* nonsynonymous-synonymous bias (\omega) */
 const float omega = 0.2;  // github.com/reedacartwright/toycoati
 

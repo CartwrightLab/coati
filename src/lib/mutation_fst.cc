@@ -24,9 +24,6 @@
 
 #include <coati/mutation_fst.hpp>
 
-using namespace std;
-using namespace fst;
-
 /* Create Muse and Gaut codon model FST */
 void mg94(VectorFstStdArc& mut_fst, float br_len) {
     Matrix64f P;
@@ -53,7 +50,7 @@ void mg94(VectorFstStdArc& mut_fst, float br_len) {
     mg94.SetFinal(0, 0.0);
 
     VectorFstStdArc mg94_rmep;
-    mg94_rmep = RmEpsilonFst<StdArc>(mg94);  // epsilon removal
+    mg94_rmep = fst::RmEpsilonFst<fst::StdArc>(mg94);  // epsilon removal
 
     mut_fst = optimize(mg94_rmep);
 }
@@ -152,13 +149,13 @@ TEST_CASE("[mutation_fst.cc] nuc2pos") {
     VectorFstStdArc n2p_fst;
     nuc2pos(n2p_fst);
 
-    CHECK(Verify(n2p_fst));             // openfst built-in sanity check
+    CHECK(fst::Verify(n2p_fst));        // openfst built-in sanity check
     CHECK(n2p_fst.NumArcs(0) == 64);    // one position for every aminoacid (AA)
     CHECK(n2p_fst.NumStates() == 129);  // 64 AA with 2 states each + init state
 }
 
 /* Create affine gap indel model FST*/
-void indel(VectorFstStdArc& indel_model, const string& model) {
+void indel(VectorFstStdArc& indel_model, const std::string& model) {
     float deletion = 0.001, insertion = 0.001;
     float deletion_ext = 1.0 - 1.0 / 6.0, insertion_ext = 1.0 - 1.0 / 6.0;
     float nuc_freqs[2][4] = {{0.308, 0.185, 0.199, 0.308},
@@ -208,14 +205,14 @@ void indel(VectorFstStdArc& indel_model, const string& model) {
     indel_fst.SetFinal(7, 0.0);
 
     VectorFstStdArc indel_rmep;
-    indel_rmep = RmEpsilonFst<StdArc>(indel_fst);  // epsilon removal
+    indel_rmep = fst::RmEpsilonFst<fst::StdArc>(indel_fst);  // epsilon removal
 
     indel_model = optimize(indel_rmep);
 }
 
 TEST_CASE("[mutation_fst.cc] indel") {
     VectorFstStdArc indel_model;
-    string model = "m-coati";
+    std::string model = "m-coati";
 
     indel(indel_model, model);
 
