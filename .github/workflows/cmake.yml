@@ -13,12 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Clang
-        uses: egor-tensin/setup-clang@v1
-        with:
-            version: latest
-            platform: x64
-
       # install dependencies
       - name: Dependencies
         run: |
@@ -39,9 +33,7 @@ jobs:
             && rm -rd /tmp/openfst-1.8.1
 
       - name: Configure CMake
-        run: |
-            export CXX=clang++
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DDEVOPT_ENABLE_COVERAGE_REPORT=On
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DDEVOPT_ENABLE_COVERAGE_REPORT=On
 
       - name: Build
         run: cmake --build build --config ${{env.BUILD_TYPE}} -j2

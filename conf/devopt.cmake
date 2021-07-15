@@ -169,6 +169,7 @@ function(clang_tidy_files name)
   add_custom_target(tidy_${name}
     COMMAND "${CLANG_TIDY_EXECUTABLE}"
       "-p=${CMAKE_BINARY_DIR}"
+      --extra-arg="-std=c++17"
       ${sources}
     COMMENT "Looking for programming errors with ClangTidy ..."
   )
@@ -183,6 +184,7 @@ function(clang_tidy_files name)
     COMMAND "${CLANG_TIDY_EXECUTABLE}"
       "-p=${CMAKE_BINARY_DIR}"
       -quiet
+      --extra-arg="-std=c++17"
       "-export-fixes=${CMAKE_BINARY_DIR}/check_tidy_${name}.fixes.yml"
       ${sources}
       > "${CMAKE_BINARY_DIR}/check_tidy_${name}.txt"
