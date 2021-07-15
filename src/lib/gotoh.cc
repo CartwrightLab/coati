@@ -466,6 +466,16 @@ float transition(const std::string& codon, int position, unsigned char nuc,
     return val / 4.0f;
 }
 
+TEST_CASE("[gotoh.cc] transition") {
+    std::string codon{"AAA"};
+    Matrix64f P;
+    mg94_p(P, 0.0133);
+    Eigen::Tensor<float, 3> p(64, 3, 4);
+    mg94_marginal_p(p, P);
+
+    CHECK(transition(codon, 1, 'N', p) == doctest::Approx(0.25));
+}
+
 /* Recover alignment given backtracking matrices for DP alignment */
 int backtracking(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp, Eigen::MatrixXf Bq,
                  std::string seqa, std::string seqb, alignment_t& aln) {

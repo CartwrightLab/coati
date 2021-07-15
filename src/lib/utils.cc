@@ -136,6 +136,7 @@ TEST_CASE("[utils.cc] read_fasta - fst") {
     SUBCASE("Read test-read-fasta.fasta") {
         outfile.open("test-read-fasta.fasta");
         REQUIRE(outfile);
+        outfile << "; comment line" << std::endl;
         outfile << ">1" << std::endl << "CTCTGGATAGTG" << std::endl;
         outfile << ">2" << std::endl << "CTATAGTG" << std::endl;
         outfile.close();
@@ -212,6 +213,7 @@ TEST_CASE("[utils.cc] read_fasta") {
     SUBCASE("Read test-read-fasta.fasta") {
         outfile.open("test-read-fasta.fasta");
         REQUIRE(outfile);
+        outfile << "; comment line" << std::endl;
         outfile << ">1" << std::endl << "CTCTGGATAGTC" << std::endl;
         outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
         outfile.close();
@@ -252,22 +254,30 @@ int write_fasta(fasta_t& fasta_file) {
 }
 
 TEST_CASE("[utils.cc] write_fasta") {
-    fasta_t fasta("test-write-fasta.fasta", {"1", "2"},
-                  {"CTCTGGATAGTG", "CTATAGTG"});
+    SUBCASE("Write fasta") {
+        fasta_t fasta("test-write-fasta.fasta", {"1", "2"},
+                      {"CTCTGGATAGTG", "CTATAGTG"});
 
-    REQUIRE(write_fasta(fasta) == 0);
+        REQUIRE(write_fasta(fasta) == 0);
 
-    std::ifstream infile("test-write-fasta.fasta");
-    std::string s1;
-    infile >> s1;
-    CHECK(s1.compare(">1") == 0);
-    infile >> s1;
-    CHECK(s1.compare("CTCTGGATAGTG") == 0);
-    infile >> s1;
-    CHECK(s1.compare(">2") == 0);
-    infile >> s1;
-    CHECK(s1.compare("CTATAGTG") == 0);
-    CHECK(std::filesystem::remove("test-write-fasta.fasta"));
+        std::ifstream infile("test-write-fasta.fasta");
+        std::string s1;
+        infile >> s1;
+        CHECK(s1.compare(">1") == 0);
+        infile >> s1;
+        CHECK(s1.compare("CTCTGGATAGTG") == 0);
+        infile >> s1;
+        CHECK(s1.compare(">2") == 0);
+        infile >> s1;
+        CHECK(s1.compare("CTATAGTG") == 0);
+        CHECK(std::filesystem::remove("test-write-fasta.fasta"));
+    }
+
+    SUBCASE("Opening file fails") {
+        fasta_t f("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+
+        REQUIRE_THROWS_AS(write_fasta(f), std::invalid_argument);
+    }
 }
 
 /* Write shortest path (alignment) in Fasta format */
@@ -310,8 +320,9 @@ TEST_CASE("[utils.cc] write_fasta - fst") {
     fst_write.SetStart(0);
     add_arc(fst_write, 0, 1, 2, 2);  // C -> C
     add_arc(fst_write, 1, 2, 4, 4);  // T -> T
-    add_arc(fst_write, 2, 3, 1, 0);  // A -> -
-    fst_write.SetFinal(3, 0.0);
+    add_arc(fst_write, 2, 3, 0, 2);  // - -> C
+    add_arc(fst_write, 3, 4, 1, 0);  // A -> -
+    fst_write.SetFinal(4, 0.0);
 
     REQUIRE(write_fasta(fst_write, fasta) == 0);
 
@@ -320,11 +331,11 @@ TEST_CASE("[utils.cc] write_fasta - fst") {
     infile >> s1;
     CHECK(s1.compare(">1") == 0);
     infile >> s1;
-    CHECK(s1.compare("CTA") == 0);
+    CHECK(s1.compare("CT-A") == 0);
     infile >> s1;
     CHECK(s1.compare(">2") == 0);
     infile >> s1;
-    CHECK(s1.compare("CT-") == 0);
+    CHECK(s1.compare("CTC-") == 0);
     CHECK(std::filesystem::remove("test-write-fasta.fasta"));
 }
 
@@ -360,27 +371,64 @@ int write_phylip(fasta_t& fasta_file) {
 }
 
 TEST_CASE("[utils.cc] write_phylip") {
-    fasta_t fasta("test-write-phylip.phylip", {"1", "2"},
-                  {"CTCTGGATAGTG", "CT----ATAGTG"});
+    SUBCASE("Short sequences") {
+        fasta_t fasta("test-write-phylip.phylip", {"1", "2"},
+                      {"CTCTGGATAGTG", "CT----ATAGTG"});
 
-    REQUIRE(write_phylip(fasta) == 0);
+        REQUIRE(write_phylip(fasta) == 0);
 
-    std::ifstream infile("test-write-phylip.phylip");
-    std::string s1, s2;
+        std::ifstream infile("test-write-phylip.phylip");
+        std::string s1, s2;
 
-    infile >> s1 >> s2;
-    CHECK(s1.compare("2") == 0);
-    CHECK(s2.compare("12") == 0);
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("12") == 0);
 
-    infile >> s1 >> s2;
-    CHECK(s1.compare("1") == 0);
-    CHECK(s2.compare("CTCTGGATAGTG") == 0);
+        infile >> s1 >> s2;
+        CHECK(s1.compare("1") == 0);
+        CHECK(s2.compare("CTCTGGATAGTG") == 0);
 
-    infile >> s1 >> s2;
-    CHECK(s1.compare("2") == 0);
-    CHECK(s2.compare("CT----ATAGTG") == 0);
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("CT----ATAGTG") == 0);
 
-    CHECK(std::filesystem::remove("test-write-phylip.phylip"));
+        CHECK(std::filesystem::remove("test-write-phylip.phylip"));
+    }
+
+    SUBCASE("Multi-line sequences") {
+        fasta_t fasta("test-write-phylip.phylip", {"1", "2"},
+                      {"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                       "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                       "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                       "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"});
+
+        REQUIRE(write_phylip(fasta) == 0);
+
+        std::ifstream infile("test-write-phylip.phylip");
+        std::string s1, s2;
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("100") == 0);
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("1") == 0);
+        CHECK(s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == 0);
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == 0);
+
+        CHECK(std::filesystem::remove("test-write-phylip.phylip"));
+    }
+
+    SUBCASE("Opening file fails") {
+        fasta_t fasta("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+
+        REQUIRE_THROWS_AS(write_phylip(fasta), std::invalid_argument);
+    }
 }
 
 /* Write shortest path (alignment) in PHYLIP format */
@@ -421,8 +469,9 @@ TEST_CASE("[utils.cc] write_phylip - fst") {
     fst_write.SetStart(0);
     add_arc(fst_write, 0, 1, 2, 2);  // C -> C
     add_arc(fst_write, 1, 2, 4, 4);  // T -> T
-    add_arc(fst_write, 2, 3, 1, 0);  // A -> -
-    fst_write.SetFinal(3, 0.0);
+    add_arc(fst_write, 2, 3, 0, 2);  // - -> C
+    add_arc(fst_write, 3, 4, 1, 0);  // A -> -
+    fst_write.SetFinal(4, 0.0);
 
     REQUIRE(write_phylip(fst_write, fasta) == 0);
     std::ifstream infile("test-write-phylip.phylip");
@@ -430,15 +479,15 @@ TEST_CASE("[utils.cc] write_phylip - fst") {
 
     infile >> s1 >> s2;
     CHECK(s1.compare("2") == 0);
-    CHECK(s2.compare("3") == 0);
+    CHECK(s2.compare("4") == 0);
 
     infile >> s1 >> s2;
     CHECK(s1.compare("1") == 0);
-    CHECK(s2.compare("CTA") == 0);
+    CHECK(s2.compare("CT-A") == 0);
 
     infile >> s1 >> s2;
     CHECK(s1.compare("2") == 0);
-    CHECK(s2.compare("CT-") == 0);
+    CHECK(s2.compare("CTC-") == 0);
 
     CHECK(std::filesystem::remove("test-write-phylip.phylip"));
 }

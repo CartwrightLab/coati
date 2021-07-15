@@ -25,7 +25,7 @@
 
 /* ECM unrestricted exchangeabilities, Kosiol et al. 2007, supplemental data
    [61x61] in A,C,G,T order */
-constexpr float s[64][64] = {
+constexpr float exchang[64][64] = {
     {0,        0.413957, 12.931524, 2.075154, 1.523251, 0.089476, 0.199589,
      0.878163, 5.815294, 0.334224,  1.868194, 1.29386,  0.667397, 0.02302,
      0.275355, 0.221536, 3.215817,  0.143479, 0.285384, 0.899262, 1.042457,

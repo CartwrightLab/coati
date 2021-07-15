@@ -293,7 +293,6 @@ void add_gap(std::vector<insertion_data_t>& ins_data,
     // add closed insertion
     for(auto seq : add) {
         for(auto& sequence : ins_data[seq].sequences) {
-            // for(size_t s = 0; s < ins_data[seq].sequences.size(); s++) {
             // add gap to nucleotide sequence
             sequence.insert(sequence.begin() + pos, '-');
         }

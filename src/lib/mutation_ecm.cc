@@ -116,9 +116,9 @@ void ecm_p(Matrix64f& P, float br_len) {
                 continue;
             }
             if(nt4_table[i] == nt4_table[j]) {
-                Q(i, j) = s[i][j] * ecm_pi[j] * k(i, j, 0);
+                Q(i, j) = exchang[i][j] * ecm_pi[j] * k(i, j, 0);
             } else {  // nt4_table[i] != nt4_table[j]{
-                Q(i, j) = s[i][j] * ecm_pi[j] * k(i, j, 0) * omega;
+                Q(i, j) = exchang[i][j] * ecm_pi[j] * k(i, j, 0) * omega;
             }
             rowSum += Q(i, j);
         }

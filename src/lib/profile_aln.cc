@@ -299,7 +299,6 @@ int gotoh_profile_marginal(std::vector<std::string> seqs1,
     float p1{NAN}, p2{NAN}, q1{NAN}, q2{NAN}, d{NAN};
 
     for(int i = 1; i < m + 1; i++) {
-        // codon = seq_a.substr((((i-1)/3)*3),3); // current codon
         codon = pro1.block(0, (((i - 1) / 3) * 3), 4, 3);  // 3x3
         for(int j = 1; j < n + 1; j++) {
             // insertion

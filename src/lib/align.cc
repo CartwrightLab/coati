@@ -99,7 +99,7 @@ TEST_CASE("[align.cc] mcoati") {
     }
 
     SUBCASE("Alignment with frameshifts (default) - output phylip") {
-        input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
+        input_t input_data("", {"1", "2"}, {"GCGACTGTT", "GCGATTGCTGTT"},
                            "m-coati", false, 0.0133, "score.log",
                            "test-mcoati-phylip.phy");
         fasta_t result(input_data.out_file);
@@ -119,17 +119,17 @@ TEST_CASE("[align.cc] mcoati") {
 
         infile >> s1 >> s2;
         CHECK(s1.compare("1") == 0);
-        CHECK(s2.compare("CTCTGGATAGTG") == 0);
+        CHECK(s2.compare("GCGA---CTGTT") == 0);
 
         infile >> s1 >> s2;
         CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("CT----ATAGTG") == 0);
+        CHECK(s2.compare("GCGATTGCTGTT") == 0);
 
         CHECK(std::filesystem::remove(input_data.out_file));
     }
 
     SUBCASE("Alignment with no frameshifts") {
-        input_t input_data("", {"1", "2"}, {"GCGATTGCTGTT", "GCGACTGTT"},
+        input_t input_data("", {"1", "2"}, {"TCCCTCAGAACA", "ACCTATCTCCTTCCC"},
                            "no_frameshifts", false, 0.0133, "score.log",
                            "test-mcoati-no-frameshifts.fasta");
         fasta_t result(input_data.out_file);
@@ -146,8 +146,15 @@ TEST_CASE("[align.cc] mcoati") {
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
 
-        CHECK(result.seq_data[0] == "GCGATTGCTGTT");
-        CHECK(result.seq_data[1] == "GCGA---CTGTT");
+        CHECK(result.seq_data[0] == "---------------TCCCTCAGAACA");
+        CHECK(result.seq_data[1] == "ACCTATCTCCTTCCC------------");
+    }
+
+    SUBCASE("No frameshifts length not multiple of 3 - fail") {
+        input_t input_data("", {"1", "2"}, {"GCGATTGCTGT", "GCGACTGTT"},
+                           "no_frameshifts", false, 0.0133, "score.log",
+                           "test-mcoati-no-frameshifts.fasta");
+        REQUIRE_THROWS_AS(mcoati(input_data, P), std::invalid_argument);
     }
 
     SUBCASE("Score alignment") {
@@ -155,6 +162,13 @@ TEST_CASE("[align.cc] mcoati") {
                            "m-coati", true, 0.0133, "score.log",
                            "test-mcoati-score.fasta");
         REQUIRE(mcoati(input_data, P) == 0);
+    }
+
+    SUBCASE("Reference length not multiple of 3 - fail") {
+        input_t input_data("", {"1", "2"}, {"CTCTGGATAGT", "CT----ATAGTG"},
+                           "m-coati", true, 0.0133, "score.log",
+                           "test-mcoati-score.fasta");
+        REQUIRE_THROWS_AS(mcoati(input_data, P), std::invalid_argument);
     }
 
     SUBCASE("Score alignment - fail") {
