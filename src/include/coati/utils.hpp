@@ -27,34 +27,39 @@
 
 #include <Eigen/Dense>
 #include <boost/algorithm/string.hpp>
-#include <coati/dna_syms.hpp>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
 
-/* Table for converting a nucleotide character to 2-bit encoding and for
-        looking up coding amino acid based on codon index (AAA:0, AAC:1, ...,
-   TTT:63) */
-const uint8_t nt4_table[256] = {
-    75, 78, 75, 78, 84, 84, 84, 84, 82, 83, 82, 83, 73, 73, 77, 73, 81, 72, 81,
-    72, 80, 80, 80, 80, 82, 82, 82, 82, 76, 76, 76, 76, 69, 68, 69, 68, 65, 65,
-    65, 65, 71, 71, 71, 71, 86, 86, 86, 86, 42, 89, 42, 89, 83, 83, 83, 83, 42,
-    67, 87, 67, 76, 70, 76, 70, 4,  0,  4,  1,  4,  4,  4,  2,  4,  4,  4,  4,
-    4,  4,  4,  4,  4,  4,  4,  4,  3,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
-    4,  4,  0,  4,  1,  4,  4,  4,  2,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
-    4,  4,  3,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
-    4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
-    4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
-    4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
-    4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
-    4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
-    4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
-    4,  4,  4,  4,  4,  4,  4,  4,  4};
+#include "dna_syms.hpp"
+#include "matrix.hpp"
+#include "mg94q.tcc"
+#include "mutation_coati.hpp"
 
-using Matrix64f = Eigen::Matrix<float, 64, 64>;
-using Vector5f = Eigen::Matrix<float, 5, 1>;
+/* Table for converting a nucleotide character to 2-bit encoding */
+const uint8_t nt4_table[256] = {
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 4, 1, 4, 4, 4, 2,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 0, 4, 1, 4, 4, 4, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+
+/* Table for looking up a codon ECM group */
+const uint8_t codon_table[64] = {
+    75, 78, 75, 78, 84, 84, 84, 84, 82, 83, 82, 83, 73, 73, 77, 73,
+    81, 72, 81, 72, 80, 80, 80, 80, 82, 82, 82, 82, 76, 76, 76, 76,
+    69, 68, 69, 68, 65, 65, 65, 65, 71, 71, 71, 71, 86, 86, 86, 86,
+    42, 89, 42, 89, 83, 83, 83, 83, 42, 67, 87, 67, 76, 70, 76, 70};
+
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 struct fasta_t {
@@ -118,6 +123,6 @@ int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file);
 bool acceptor(std::string content, VectorFstStdArc& accept);
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(std::string codon);
-int parse_matrix_csv(const std::string& file, Matrix64f& P, float& br_len);
+Matrix parse_matrix_csv(const std::string& file);
 
 #endif

@@ -26,11 +26,9 @@
 
 /* Dynamic Programming implementation of Marginal MG94 model*/
 int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
-                  Matrix64f& P_m) {
+                  Matrix& P_m) {
     // P matrix for marginal Muse and Gaut codon model
-    Eigen::Tensor<float, 3> p(64, 3, 4);
-
-    mg94_marginal_p(p, P_m);
+    Tensor p = mg94_marginal_p(P_m);
 
     std::string seq_a = sequences[0];
     std::string seq_b = sequences[1];
@@ -45,18 +43,15 @@ int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
     }
 
     // DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
-    Eigen::MatrixXf D = Eigen::MatrixXf::Constant(
-        m + 1, n + 1, std::numeric_limits<float>::max());
-    Eigen::MatrixXf P = Eigen::MatrixXf::Constant(
-        m + 1, n + 1, std::numeric_limits<float>::max());
-    Eigen::MatrixXf Q = Eigen::MatrixXf::Constant(
-        m + 1, n + 1, std::numeric_limits<float>::max());
+    Matrix D(m + 1, n + 1, std::numeric_limits<float>::max());
+    Matrix P(m + 1, n + 1, std::numeric_limits<float>::max());
+    Matrix Q(m + 1, n + 1, std::numeric_limits<float>::max());
 
     // backtracking info matrices for match/mismatch (Bd), insert (Bp), and
     // deletion (Bq)
-    Eigen::MatrixXf Bd = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
-    Eigen::MatrixXf Bp = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
-    Eigen::MatrixXf Bq = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
+    Matrix Bd(m + 1, n + 1, -1.0f);
+    Matrix Bp(m + 1, n + 1, -1.0f);
+    Matrix Bq(m + 1, n + 1, -1.0f);
 
     float insertion = logf(0.001);
     float deletion = logf(0.001);
@@ -67,8 +62,8 @@ int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
     float no_insertion_ext = logf(1.0f / 6.0);
     float no_deletion_ext = logf(1.0f / 6.0);
 
-    Vector5f nuc_freqs;
-    nuc_freqs << logf(0.308), logf(0.185), logf(0.199), logf(0.308), logf(0.25);
+    float nuc_freqs[5] = {logf(0.308), logf(0.185), logf(0.199), logf(0.308),
+                          logf(0.25)};
 
     // DP and backtracking matrices initialization
 
@@ -181,11 +176,9 @@ int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
 
 /* Dynamic Programming with no frameshifts*/
 int gotoh_noframeshifts(std::vector<std::string> sequences, alignment_t& aln,
-                        Matrix64f& P_m) {
+                        Matrix& P_m) {
     // P matrix for marginal Muse and Gaut codon model
-    Eigen::Tensor<float, 3> p(64, 3, 4);
-
-    mg94_marginal_p(p, P_m);
+    Tensor p = mg94_marginal_p(P_m);
 
     std::string seq_a = sequences[0];
     std::string seq_b = sequences[1];
@@ -199,27 +192,22 @@ int gotoh_noframeshifts(std::vector<std::string> sequences, alignment_t& aln,
     }
 
     // DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
-    Eigen::MatrixXf D = Eigen::MatrixXf::Constant(
-        m + 1, n + 1, std::numeric_limits<float>::max());
-    Eigen::MatrixXf P = Eigen::MatrixXf::Constant(
-        m + 1, n + 1, std::numeric_limits<float>::max());
-    Eigen::MatrixXf Q = Eigen::MatrixXf::Constant(
-        m + 1, n + 1, std::numeric_limits<float>::max());
+    Matrix D(m + 1, n + 1, std::numeric_limits<float>::max());
+    Matrix P(m + 1, n + 1, std::numeric_limits<float>::max());
+    Matrix Q(m + 1, n + 1, std::numeric_limits<float>::max());
 
     // backtracking info matrices for match/mismatch (Bd), insert (Bp), and
     // deletion (Bq)
-    Eigen::MatrixXf Bd = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
-    Eigen::MatrixXf Bp = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
-    Eigen::MatrixXf Bq = Eigen::MatrixXf::Constant(m + 1, n + 1, -1);
+    Matrix Bd(m + 1, n + 1, -1.0f);
+    Matrix Bp(m + 1, n + 1, -1.0f);
+    Matrix Bq(m + 1, n + 1, -1.0f);
 
     float insertion = 0.001;
     float deletion = 0.001;
     float insertion_ext = 1.0 - (1.0 / 6.0);
     float deletion_ext = 1.0 - (1.0 / 6.0);
 
-    Vector5f nuc_freqs;
-    // cppcheck-suppress constStatement
-    nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
+    float nuc_freqs[5] = {0.308, 0.185, 0.199, 0.308, 0.25};
 
     // DP and backtracking matrices initialization
 
@@ -453,7 +441,7 @@ int gotoh_noframeshifts(std::vector<std::string> sequences, alignment_t& aln,
 }
 /* Return value from marginal MG94 model p matrix for a given transition */
 float transition(const std::string& codon, int position, unsigned char nuc,
-                 const Eigen::Tensor<float, 3>& p) {
+                 const Tensor& p) {
     position = position == 0 ? 2 : --position;
 
     if(nuc != 'N') {
@@ -468,16 +456,14 @@ float transition(const std::string& codon, int position, unsigned char nuc,
 
 TEST_CASE("[gotoh.cc] transition") {
     std::string codon{"AAA"};
-    Matrix64f P;
-    mg94_p(P, 0.0133);
-    Eigen::Tensor<float, 3> p(64, 3, 4);
-    mg94_marginal_p(p, P);
+    Matrix P(mg94_p(0.0133));
 
-    CHECK(transition(codon, 1, 'N', p) == doctest::Approx(0.25));
+    CHECK(transition(codon, 1, 'N', mg94_marginal_p(P)) ==
+          doctest::Approx(0.25));
 }
 
 /* Recover alignment given backtracking matrices for DP alignment */
-int backtracking(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp, Eigen::MatrixXf Bq,
+int backtracking(const Matrix& Bd, const Matrix& Bp, const Matrix& Bq,
                  std::string seqa, std::string seqb, alignment_t& aln) {
     int i = static_cast<int>(seqa.length());
     int j = static_cast<int>(seqb.length());
@@ -520,8 +506,8 @@ int backtracking(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp, Eigen::MatrixXf Bq,
 }
 
 /* Recover alignment given backtracking matrices for DP alignment */
-int backtracking_noframeshifts(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp,
-                               Eigen::MatrixXf Bq, std::string seqa,
+int backtracking_noframeshifts(const Matrix& Bd, const Matrix& Bp,
+                               const Matrix& Bq, std::string seqa,
                                std::string seqb, alignment_t& aln) {
     int i = static_cast<int>(seqa.length());
     int j = static_cast<int>(seqb.length());

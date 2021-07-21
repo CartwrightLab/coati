@@ -25,9 +25,8 @@
 #include <coati/mutation_fst.hpp>
 
 /* Create Muse and Gaut codon model FST */
-void mg94(VectorFstStdArc& mut_fst, float br_len) {
-    Matrix64f P;
-    mg94_p(P, br_len);
+VectorFstStdArc mg94(float br_len) {
+    Matrix P = mg94_p(br_len);
 
     // Add state 0 and make it the start state
     VectorFstStdArc mg94;
@@ -52,13 +51,12 @@ void mg94(VectorFstStdArc& mut_fst, float br_len) {
     VectorFstStdArc mg94_rmep;
     mg94_rmep = fst::RmEpsilonFst<fst::StdArc>(mg94);  // epsilon removal
 
-    mut_fst = optimize(mg94_rmep);
+    return optimize(mg94_rmep);
 }
 
 TEST_CASE("[mutation_fst.cc] mg94") {
-    VectorFstStdArc mut_fst;
     float branch_length = 0.0133;
-    mg94(mut_fst, branch_length);
+    VectorFstStdArc mut_fst(mg94(branch_length));
 
     CHECK(Verify(mut_fst));           // openfst built-in sanity check
     CHECK(mut_fst.NumArcs(0) == 16);  // 4x4 nuc to nuc arcs from start state
@@ -66,16 +64,15 @@ TEST_CASE("[mutation_fst.cc] mg94") {
 }
 
 /* Create dna marginal Muse and Gaut codon model FST*/
-void dna(VectorFstStdArc& mut_fst, float br_len) {
-    Matrix64f P;
-    mg94_p(P, br_len);
+VectorFstStdArc dna(float br_len) {
+    Matrix P = mg94_p(br_len);
 
     // Add state 0 and make it the start state
     VectorFstStdArc dna;
     dna.AddState();
     dna.SetStart(0);
 
-    Matrix4f dna_p = Matrix4f::Zero();
+    Matrix dna_p(4, 4);
 
     for(uint8_t cod = 0; cod < 64; cod++) {     // for each codon
         for(int pos = 0; pos < 3; pos++) {      // for each position in a codon
@@ -98,32 +95,49 @@ void dna(VectorFstStdArc& mut_fst, float br_len) {
         }
     }
 
-    for(int i = 0; i < 4; i++) {
-        dna_p.row(i) /= dna_p.row(i).sum();
-        for(int j = 0; j < 4; j++) {
+    float row_sums[4]{0.0f, 0.0f, 0.0f, 0.0f};
+    for(auto i = 0; i < 4; i++) {
+        for(auto j = 0; j < 4; j++) {
+            row_sums[i] += dna_p(i, j);
+        }
+        for(auto j = 0; j < 4; j++) {
+            dna_p(i, j) /= row_sums[i];
             add_arc(dna, 0, 0, i + 1, j + 1, dna_p(i, j));
         }
     }
 
     // Set final state & optimize
     dna.SetFinal(0, 0.0);
-    mut_fst = optimize(dna);
+    return optimize(dna);
 }
 
 TEST_CASE("[mutation_fst.cc] dna") {
-    VectorFstStdArc dna_fst;
     float branch_length = 0.0133;
-    dna(dna_fst, branch_length);
+    VectorFstStdArc dna_fst = dna(branch_length);
 
     CHECK(Verify(dna_fst));           // openfst built-in sanity check
     CHECK(dna_fst.NumArcs(0) == 16);  // all 4x4 nuc transitions
     CHECK(dna_fst.NumStates() ==
           1);  // all transitions are indp, only 1 state needed
+
+    float dna_val[16]{
+        0.0035908299, 7.56063986,    5.91386986,    7.92348003,
+        7.04520988,   0.00627565011, 7.14309978,    5.38297987,
+        5.47493982,   7.21499014,    0.00562130986, 7.29403019,
+        7.92336988,   5.89603996,    7.7301898,     0.00355818006};
+    fst::StateIterator<fst::StdFst> siter(dna_fst);  // FST state iterator
+    fst::ArcIteratorData<fst::StdArc> data;
+    dna_fst.InitArcIterator(siter.Value(), &data);
+
+    for(auto i = 0; i < 16; i++) {
+        CHECK(data.arcs[i].weight.Value() == doctest::Approx(dna_val[i]));
+    }
 }
 
 /* Create FST that maps nucleotide to AA position */
-void nuc2pos(VectorFstStdArc& n2p) {
+VectorFstStdArc nuc2pos() {
     // Add state 0 and make it the start state
+    VectorFstStdArc n2p;
     n2p.AddState();
     n2p.SetStart(0);
 
@@ -143,11 +157,11 @@ void nuc2pos(VectorFstStdArc& n2p) {
     }
 
     n2p.SetFinal(0, 0.0);
+    return n2p;
 }
 
 TEST_CASE("[mutation_fst.cc] nuc2pos") {
-    VectorFstStdArc n2p_fst;
-    nuc2pos(n2p_fst);
+    VectorFstStdArc n2p_fst(nuc2pos());
 
     CHECK(fst::Verify(n2p_fst));        // openfst built-in sanity check
     CHECK(n2p_fst.NumArcs(0) == 64);    // one position for every aminoacid (AA)
@@ -155,7 +169,7 @@ TEST_CASE("[mutation_fst.cc] nuc2pos") {
 }
 
 /* Create affine gap indel model FST*/
-void indel(VectorFstStdArc& indel_model, const std::string& model) {
+VectorFstStdArc indel(const std::string& model) {
     float deletion = 0.001, insertion = 0.001;
     float deletion_ext = 1.0 - 1.0 / 6.0, insertion_ext = 1.0 - 1.0 / 6.0;
     float nuc_freqs[2][4] = {{0.308, 0.185, 0.199, 0.308},
@@ -207,14 +221,12 @@ void indel(VectorFstStdArc& indel_model, const std::string& model) {
     VectorFstStdArc indel_rmep;
     indel_rmep = fst::RmEpsilonFst<fst::StdArc>(indel_fst);  // epsilon removal
 
-    indel_model = optimize(indel_rmep);
+    return optimize(indel_rmep);
 }
 
 TEST_CASE("[mutation_fst.cc] indel") {
-    VectorFstStdArc indel_model;
     std::string model = "m-coati";
-
-    indel(indel_model, model);
+    VectorFstStdArc indel_model(indel(model));
 
     CHECK(Verify(indel_model));  // openfst built-in sanity check
     CHECK(indel_model.NumStates() == 4);

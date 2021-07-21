@@ -28,7 +28,6 @@
 namespace po = boost::program_options;
 
 int main(int argc, char* argv[]) {
-    std::string rate;
     input_t in_data;
 
     try {
@@ -84,7 +83,7 @@ int main(int argc, char* argv[]) {
 
     // read input fasta file sequences as FSA (acceptors)
     std::vector<VectorFstStdArc> fsts;
-    Matrix64f P;
+    Matrix P(64, 64);
 
     if(read_fasta(in_data.fasta_file, fsts) != 0) {
         throw std::invalid_argument("Error reading " +
@@ -107,23 +106,18 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    if(!rate.empty()) {
+    if(!in_data.rate.empty()) {
         in_data.mut_model = "user_marg_model";
 
-        Matrix64f Q;
-        float br_len;
-        parse_matrix_csv(rate, Q, br_len);
-        // P matrix
-        Q = Q * br_len;
-        P = Q.exp();
+        Matrix P = parse_matrix_csv(in_data.rate);
 
         return mcoati(in_data, P);
     } else if((in_data.mut_model.compare("m-coati") == 0) ||
               in_data.mut_model.compare("no_frameshifts") == 0) {
-        mg94_p(P, in_data.br_len);
+        P = mg94_p(in_data.br_len);
         return mcoati(in_data, P);
     } else if(in_data.mut_model.compare("m-ecm") == 0) {
-        ecm_p(P, in_data.br_len);
+        P = ecm_p(in_data.br_len);
         return mcoati(in_data, P);
     } else {
         return fst_alignment(in_data, fsts);

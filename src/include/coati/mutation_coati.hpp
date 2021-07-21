@@ -26,19 +26,13 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <unsupported/Eigen/CXX11/Tensor>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
 
 #include "mg94p.tcc"
-#include "mg94q.tcc"
 #include "utils.hpp"
 
-using Vector64f = Eigen::Matrix<float, 64, 1>;
-using Matrix4f = Eigen::Matrix<float, 4, 4>;
-
-void mg94_q(Matrix64f& Q);
-void mg94_p(Matrix64f& P, float br_len);
-void mg94_marginal_p(Eigen::Tensor<float, 3>& p, Matrix64f& P);
+Matrix mg94_p(float br_len);
+Tensor mg94_marginal_p(Matrix& P);
 
 #endif

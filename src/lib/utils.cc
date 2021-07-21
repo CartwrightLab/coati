@@ -532,8 +532,9 @@ int cod_int(std::string codon) {
 }
 
 /* Read substitution rate matrix from a CSV file */
-// cppcheck-suppress constParameter
-int parse_matrix_csv(const std::string& file, Matrix64f& P, float& br_len) {
+Matrix parse_matrix_csv(const std::string& file) {
+    float br_len{NAN};
+    Matrix64f Q;
     std::ifstream input(file);
     if(!input.good()) {
         throw std::invalid_argument("Error opening file " + file + ".");
@@ -552,7 +553,7 @@ int parse_matrix_csv(const std::string& file, Matrix64f& P, float& br_len) {
         getline(ss, vec[0], ',');
         getline(ss, vec[1], ',');
         getline(ss, vec[2], ',');
-        P(cod_int(vec[0]), cod_int(vec[1])) = stof(vec[2]);
+        Q(cod_int(vec[0]), cod_int(vec[1])) = stof(vec[2]);
         count++;
     }
 
@@ -563,12 +564,18 @@ int parse_matrix_csv(const std::string& file, Matrix64f& P, float& br_len) {
             "Error reading substitution rate CSV file. Exiting!");
     }
 
-    return 0;
+    Q = Q * br_len;
+    Q = Q.exp();
+
+    Matrix P(64, 64, Q);
+
+    return P;
 }
 
 TEST_CASE("[utils.cc] parse_matrix_csv") {
     std::ofstream outfile;
-    Matrix64f P;
+    Matrix P(mg94_p(0.0133));
+
     float br_len{NAN};
     const std::vector<std::string> codons = {
         "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC",
@@ -582,14 +589,25 @@ TEST_CASE("[utils.cc] parse_matrix_csv") {
     outfile.open("test-marg-matrix.csv");
     REQUIRE(outfile);
 
+    float Q[4096]{0.0f};
+    for(auto i = 0; i < 640; i++) {
+        Q[mg94_indexes[i]] = mg94Q[i];
+    }
+
     outfile << "0.0133" << std::endl;  // branch length
-    for(int i = 0; i < 64; i++) {
-        for(int j = 0; j < 64; j++) {
-            outfile << codons[i] << "," << codons[j] << "," << 0.015625 << "\n";
+    for(auto i = 0; i < 64; i++) {
+        for(auto j = 0; j < 64; j++) {
+            outfile << codons[i] << "," << codons[j] << "," << Q[i * 64 + j]
+                    << std::endl;
         }
     }
 
     outfile.close();
-    CHECK(parse_matrix_csv("test-marg-matrix.csv", P, br_len) == 0);
+    Matrix P_test(parse_matrix_csv("test-marg-matrix.csv"));
+    for(auto i = 0; i < 64; i++) {
+        for(auto j = 0; j < 64; j++) {
+            CHECK(P(i, j) == doctest::Approx(P_test(i, j)));
+        }
+    }
     CHECK(std::filesystem::remove("test-marg-matrix.csv"));
 }

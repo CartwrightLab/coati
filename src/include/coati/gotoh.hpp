@@ -26,15 +26,15 @@
 #include "mutation_coati.hpp"
 
 int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
-                  Matrix64f& P);
+                  Matrix& P);
 int gotoh_noframeshifts(std::vector<std::string> sequences, alignment_t& aln,
-                        Matrix64f& P_m);
+                        Matrix& P_m);
 float transition(const std::string& codon, int position,
-                 unsigned char nucleotide, const Eigen::Tensor<float, 3>& p);
-int backtracking(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp, Eigen::MatrixXf Bq,
+                 unsigned char nucleotide, const Tensor& p);
+int backtracking(const Matrix& Bd, const Matrix& Bp, const Matrix& Bq,
                  std::string seqa, std::string seqb, alignment_t& aln);
-int backtracking_noframeshifts(Eigen::MatrixXf Bd, Eigen::MatrixXf Bp,
-                               Eigen::MatrixXf Bq, std::string seqa,
+int backtracking_noframeshifts(const Matrix& Bd, const Matrix& Bp,
+                               const Matrix& Bq, std::string seqa,
                                std::string seqb, alignment_t& aln);
 
 #endif

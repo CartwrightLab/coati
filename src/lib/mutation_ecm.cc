@@ -41,7 +41,6 @@ void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv) {
         if(nt1 == nt2) continue;
         ((nt1 % 2 == nt2 % 2) ? nts : ntv) += 1;
     }
-    return;
 }
 
 TEST_CASE("[mutation_coati.cc] nts_ntv") {
@@ -103,7 +102,11 @@ TEST_CASE("[mutation_coati.cc] k") {
 }
 
 /* Empirical Codon Model P matrix */
-void ecm_p(Matrix64f& P, float br_len) {
+Matrix ecm_p(float br_len) {
+    if(br_len <= 0) {
+        throw std::out_of_range("Branch length must be positive.");
+    }
+
     Matrix64f Q = Matrix64f::Zero();
 
     float d = 0.0;
@@ -112,12 +115,12 @@ void ecm_p(Matrix64f& P, float br_len) {
         float rowSum = 0.0;
         for(uint8_t j = 0; j < 64; j++) {
             // check if codons i or j are stop codons
-            if(i == j || nt4_table[i] == '*' || nt4_table[j] == '*') {
+            if(i == j || codon_table[i] == '*' || codon_table[j] == '*') {
                 continue;
             }
-            if(nt4_table[i] == nt4_table[j]) {
+            if(codon_table[i] == codon_table[j]) {
                 Q(i, j) = exchang[i][j] * ecm_pi[j] * k(i, j, 0);
-            } else {  // nt4_table[i] != nt4_table[j]{
+            } else {  // codon_table[i] != codon_table[j]{
                 Q(i, j) = exchang[i][j] * ecm_pi[j] * k(i, j, 0) * omega;
             }
             rowSum += Q(i, j);
@@ -131,13 +134,16 @@ void ecm_p(Matrix64f& P, float br_len) {
 
     // P matrix
     Q = Q * br_len;
-    P = Q.exp();
+    Q = Q.exp();
+
+    Matrix P(64, 64, Q);
+
+    return P;
 }
 
 /* Empirical Codon Model (Kosiol et al. 2007) FST */
-void ecm(VectorFstStdArc& mut_fst, float br_len) {
-    Matrix64f P;
-    ecm_p(P, br_len);
+VectorFstStdArc ecm(float br_len) {
+    Matrix P = ecm_p(br_len);
 
     // Add state 0 and make it the start state
     VectorFstStdArc ecm;
@@ -157,5 +163,5 @@ void ecm(VectorFstStdArc& mut_fst, float br_len) {
 
     // Set final state
     ecm.SetFinal(0, 0.0);
-    mut_fst = optimize(ecm);
+    return optimize(ecm);
 }

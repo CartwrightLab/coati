@@ -28,7 +28,7 @@
 
 void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
 float k(uint8_t c1, uint8_t c2, int model = 0);
-void ecm_p(Matrix64f& P, float br_len);
-void ecm(VectorFstStdArc& mut_fst, float br_len);
+Matrix ecm_p(float br_len);
+VectorFstStdArc ecm(float br_len);
 
 #endif

@@ -26,7 +26,7 @@
 #include <filesystem>
 
 /* Alignment using dynamic programming implementation of marginal COATi model */
-int mcoati(input_t& in_data, Matrix64f& P) {
+int mcoati(input_t& in_data, Matrix& P) {
     std::ofstream out_w;
     alignment_t aln;
     aln.f.seq_names = in_data.fasta_file.seq_names;
@@ -64,8 +64,7 @@ int mcoati(input_t& in_data, Matrix64f& P) {
 }
 
 TEST_CASE("[align.cc] mcoati") {
-    Matrix64f P;
-    mg94_p(P, 0.0133);
+    Matrix P(mg94_p(0.0133));
 
     SUBCASE("Alignment with frameshifts (default) - output fasta") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
@@ -188,18 +187,17 @@ int fst_alignment(input_t& in_data, std::vector<VectorFstStdArc>& fsts) {
     VectorFstStdArc mut_fst;
 
     if(in_data.mut_model.compare("coati") == 0) {
-        mg94(mut_fst, in_data.br_len);
+        mut_fst = mg94(in_data.br_len);
     } else if(in_data.mut_model.compare("dna") == 0) {
-        dna(mut_fst, in_data.br_len);
+        mut_fst = dna(in_data.br_len);
     } else if(in_data.mut_model.compare("ecm") == 0) {
-        ecm(mut_fst, in_data.br_len);
+        mut_fst = ecm(in_data.br_len);
     } else {
         throw std::invalid_argument("Mutation model unknown. Exiting!");
     }
 
     // get indel FST
-    VectorFstStdArc indel_fst;
-    indel(indel_fst, in_data.mut_model);
+    VectorFstStdArc indel_fst = indel(in_data.mut_model);
 
     // sort mutation and indel FSTs
     VectorFstStdArc mutation_sort, indel_sort;
@@ -373,6 +371,7 @@ TEST_CASE("[align.cc] fst_alignment") {
         std::string s;
         infile >> s;
         CHECK(std::filesystem::remove(input_data.weight_file));
+        std::cout << s.substr(s.length() - 7) << std::endl;
         CHECK(s.substr(s.length() - 7) == "9.31994");
     }
 
@@ -419,7 +418,7 @@ TEST_CASE("[align.cc] fst_alignment") {
 
 /* Initial msa by collapsing indels after pairwise aln with reference */
 int ref_indel_alignment(input_t& in_data) {
-    Matrix64f P;
+    Matrix P(64, 64);
     tree_t tree;
     std::string newick;
     alignment_t aln, aln_tmp;
@@ -480,9 +479,9 @@ int ref_indel_alignment(input_t& in_data) {
 
             // P matrix
             if(in_data.mut_model.compare("m-ecm") == 0) {
-                ecm_p(P, branch);
+                P = ecm_p(branch);
             } else {  // m-coati
-                mg94_p(P, branch);
+                P = mg94_p(branch);
             }
 
             aln_tmp.f.seq_data.clear();
@@ -630,7 +629,7 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
     }
 }
 
-float alignment_score(std::vector<std::string> alignment, Matrix64f& P) {
+float alignment_score(std::vector<std::string> alignment, Matrix& P) {
     if(alignment[0].length() != alignment[1].length()) {
         throw std::invalid_argument(
             "For alignment scoring both sequences must have equal length.");
@@ -646,16 +645,13 @@ float alignment_score(std::vector<std::string> alignment, Matrix64f& P) {
     float deletion_ext = 1.0 - (1.0 / 6.0);
 
     // P matrix for marginal Muse and Gaut codon model
-    Eigen::Tensor<float, 3> p(64, 3, 4);
-    mg94_marginal_p(p, P);
+    Tensor p = mg94_marginal_p(P);
 
     std::string seq1 = alignment[0];
     boost::erase_all(seq1, "-");
     int gap_n = 0;
 
-    Vector5f nuc_freqs;
-    // cppcheck-suppress constStatement
-    nuc_freqs << 0.308, 0.185, 0.199, 0.308, 0.25;
+    float nuc_freqs[5] = {0.308, 0.185, 0.199, 0.308, 0.25};
 
     for(int i = 0, aln_len = static_cast<int>(alignment[0].length());
         i < aln_len; i++) {
@@ -724,11 +720,12 @@ float alignment_score(std::vector<std::string> alignment, Matrix64f& P) {
 }
 
 TEST_CASE("[align.cc] alignment_score") {
-    Matrix64f P;
-    mg94_p(P, 0.0133);
+    Matrix P(mg94_p(0.0133));
 
     REQUIRE(alignment_score({"CTCTGGATAGTG", "CT----ATAGTG"}, P) ==
             doctest::Approx(9.29064));
+    REQUIRE(alignment_score({"CTCT--AT", "CTCTGGAT"}, P) ==
+            doctest::Approx(12.1493));
 
     REQUIRE_THROWS_AS(alignment_score({"CTC", "CT"}, P), std::invalid_argument);
 }
