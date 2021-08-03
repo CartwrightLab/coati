@@ -20,18 +20,6 @@ jobs:
             && sudo apt-get install -yq libboost-all-dev libperlio-gzip-perl \
             libeigen3-dev clang-format cppcheck clang-tidy libjson-perl
 
-      - name: Openfst
-        run: |
-            cd "/tmp" \
-            && wget -q http://openfst.org/twiki/pub/FST/FstDownload/openfst-1.8.1.tar.gz \
-            && tar -zxf openfst-1.8.1.tar.gz \
-            && rm openfst-1.8.1.tar.gz \
-            && cd "/tmp/openfst-1.8.1" \
-            && ./configure \
-            && make --jobs=4 \
-            && sudo make install \
-            && rm -rd /tmp/openfst-1.8.1
-
       - name: Configure CMake
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DDEVOPT_ENABLE_COVERAGE_REPORT=On
 
