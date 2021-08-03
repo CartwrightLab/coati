@@ -114,7 +114,7 @@ find_package(Boost 1.47.0 REQUIRED COMPONENTS program_options)
 # Find Eigen library
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 # Find openFST library
-find_package(FSTLIB REQUIRED)
+#find_package(FSTLIB REQUIRED)
 
 add_subdirectory(contrib)
 add_subdirectory(src)
