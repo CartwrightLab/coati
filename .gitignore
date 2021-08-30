@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# Build directory
+build/*
+!build/.gitkeep
+
+# Subprojects
+subprojects/*
+!/subprojects/*.wrap
+!/subprojects/doctest/*
+!/subprojects/fstlib/*

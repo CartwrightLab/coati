@@ -1,0 +1,1 @@
+option('DEVOPT_BENCHMARKING', type : 'feature', value : 'disabled', description : 'Enable benchmarking tools')

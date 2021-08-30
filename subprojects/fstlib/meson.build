@@ -1,7 +1,7 @@
 
 project('fstlib', 'cpp',
   version : '1.8.1',
-  default_options: ['cpp_std=c++17'])
+  default_options: ['cpp_std=c++17', 'warning_level=0'])
 
 fst_inc = include_directories('.')
 fstlib = static_library('fstlib',

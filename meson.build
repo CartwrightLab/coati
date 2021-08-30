@@ -53,10 +53,16 @@ doctest_dep = dependency('doctest',
 
 fstlib_proj = subproject('fstlib')
 fstlib_dep = fstlib_proj.get_variable('fstlib_dep')
-fstlib_dep = fstlib_dep.as_system('system') # TODO: this didn't fix the warnings
+fstlib_dep = fstlib_dep.as_system('system')
 
 minionrng_proj = subproject('minionrng')
 minionrng_dep = minionrng_proj.get_variable('minionrng_dep')
+
+if get_option('DEVOPT_BENCHMARKING').enabled()
+	google_benchmark_proj = subproject('google-benchmark')
+	google_benchmark_dep = google_benchmark_proj.get_variable('google_benchmark_dep')
+endif
+
 
 subdir('conf')
 subdir('src')
