@@ -442,7 +442,7 @@ int gotoh_noframeshifts(std::vector<std::string> sequences, alignment_t& aln,
 /* Return value from marginal MG94 model p matrix for a given transition */
 float transition(const std::string& codon, int position, unsigned char nuc,
                  const Tensor& p) {
-    position = position == 0 ? 2 : --position;
+    position = position == 0 ? 2 : position == 1 ? 0 : 1;
 
     if(nuc != 'N') {
         return p(cod_int(codon), position, nt4_table[nuc]);

@@ -71,11 +71,11 @@ struct fasta_t {
 };
 
 struct input_t {
-    std::string mut_model{""}, weight_file{""}, out_file{""}, rate{""},
-        tree{""}, ref{""};
+    fasta_t fasta_file;
+    std::string mut_model{""}, weight_file{""}, out_file{""}, tree{""}, ref{""},
+        rate{""};
     bool score{false};
     float br_len{0.0133};
-    fasta_t fasta_file;
 
     input_t() = default;
     input_t(const std::string& f, const std::vector<std::string>& n,
@@ -85,13 +85,13 @@ struct input_t {
             std::string ra = "")
         : fasta_file{fasta_t(f, n, d)},
           mut_model{std::move(model)},
-          score{sc},
-          br_len{br},
           weight_file{std::move(weight)},
           out_file{std::move(out)},
           tree{std::move(tr)},
           ref{std::move(re)},
-          rate{std::move(ra)} {}
+          rate{std::move(ra)},
+          score{sc},
+          br_len{br} {}
 };
 
 struct alignment_t {

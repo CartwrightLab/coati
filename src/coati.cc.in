@@ -28,9 +28,9 @@
 
 #include <coati/coati.hpp>
 
-#include "@CMAKE_CURRENT_SOURCE_DIR@/verb.hpp"
+#include "@MESON_CURRENT_SOURCE_DIR@/verb.hpp"
 
-const char libexec_dir[] = "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBEXECDIR@";
+const char libexec_dir[] = "@MESON_INSTALL_PREFIX@/@MESON_INSTALL_LIBEXECDIR@";
 
 int main(int argc, char * const argv[]) {
     COATI_VERB_RUNTIME_CHECK_VERSION_NUMBER_OR_RETURN();
