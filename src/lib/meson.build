@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-coati_sources = ['version.cc', 'mutation_coati.cc', 'utils.cc', 'align.cc', 'tree.cc', 'insertions.cc', 'mutation_ecm.cc', 'mutation_fst.cc', 'gotoh.cc']
-
 # libcoati library
 libcoati = static_library('libcoati',
   coati_sources,

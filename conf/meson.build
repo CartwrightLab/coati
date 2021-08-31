@@ -77,3 +77,18 @@ tests_conf.set('TEST_FUNCTIONS', tests_functions.stdout())
 
 # `configure_file` can't be run here yet, see:
 #  https://github.com/mesonbuild/meson/issues/30
+
+################################################################################
+# clang-tidy
+
+sources_path = []
+foreach cc : coati_sources
+  sources_path += meson.project_source_root() + '/src/lib/' + cc
+endforeach
+
+clangtidy = find_program('clang-tidy', required : false)
+if clangtidy.found()
+  run_target('clangtidy',
+    command : [clangtidy, '-p=' + meson.project_build_root(),
+    '--extra-arg=-std=c++17'] + sources_path)
+endif

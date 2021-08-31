@@ -45,10 +45,12 @@ doctest_dep = dependency('doctest',
 	version : '>=2.4.6',
 	required : true)
 
-google_benchmark_dep = dependency('google-benchmark',
-  fallback : ['google-benchmark', 'google_benchmark_dep'],
-	version : '>=1.5.2',
-	required : get_option('DEVOPT_BENCHMARKING'))
+if(get_option('DEVOPT_BENCHMARKING').enabled())
+	google_benchmark_dep = dependency('google-benchmark',
+	  fallback : ['google-benchmark', 'google_benchmark_dep'],
+		version : '>=1.5.2',
+		required : get_option('DEVOPT_BENCHMARKING'))
+endif
 
 fstlib_proj = subproject('fstlib')
 fstlib_dep = fstlib_proj.get_variable('fstlib_dep')
@@ -56,6 +58,9 @@ fstlib_dep = fstlib_dep.as_system('system')
 
 minionrng_proj = subproject('minionrng')
 minionrng_dep = minionrng_proj.get_variable('minionrng_dep')
+
+coati_sources = ['version.cc', 'mutation_coati.cc', 'utils.cc', 'align.cc',
+  'tree.cc', 'insertions.cc', 'mutation_ecm.cc', 'mutation_fst.cc', 'gotoh.cc']
 
 subdir('conf')
 subdir('src')
