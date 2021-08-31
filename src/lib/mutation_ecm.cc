@@ -26,7 +26,7 @@
 
 /* nonsynonymous-synonymous bias (\omega) */
 const float omega = 0.2;  // github.com/reedacartwright/toycoati
-const float kappa = 2.5;  // Kosiol et al. 2007, supplemental material
+// const float kappa = 2.5;  // Kosiol et al. 2007, supplemental material
 
 /* calculate number of transitions and transversions between codons c1 and c2*/
 void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv) {
@@ -69,7 +69,7 @@ TEST_CASE("[mutation_coati.cc] nts_ntv") {
 
 /* transition-transversion bias function, depending on # of ts and tv (Nts,Ntv)
  */
-float k(uint8_t c1, uint8_t c2, int model) {
+float k(uint8_t c1, uint8_t c2, int model, float kappa) {
     int nts = 0, ntv = 0;
     nts_ntv(c1, c2, nts, ntv);
     switch(model) {
@@ -87,18 +87,18 @@ float k(uint8_t c1, uint8_t c2, int model) {
 }
 
 TEST_CASE("[mutation_coati.cc] k") {
-    CHECK(k(0, 0, 0) == 1);                // AAA -> AAA, ECM+f+omega
-    CHECK(k(32, 0, 0) == 1);               // GAA -> CTC, ECM+f+omega
-    CHECK(k(47, 38) == 1);                 // GTT -> GCT, ECM+f+omega
-    CHECK(k(22, 19) == 1);                 // CCG -> CAT, ECM+f+omega
-    CHECK(k(0, 42, 1) == pow(kappa, 3));   // AAA -> GGG, ECM+F+omega+1k(ts)
-    CHECK(k(32, 29, 1) == 1);              // GAA -> CTC, ECM+F+omega+1k(ts)
-    CHECK(k(47, 38, 1) == kappa);          // GTT -> GCT, ECM+F+omega+1k(ts)
-    CHECK(k(21, 51, 1) == kappa * kappa);  // CCC -> TAT, ECM+F+omega+1k(ts)
-    CHECK(k(0, 0, 2) == 1);                // AAA -> AAA, ECM+F+omega+1k(tv)
-    CHECK(k(32, 29, 2) == pow(kappa, 3));  // GAA -> CTC, ECM+F+omega+1k(tv)
-    CHECK(k(47, 38, 2) == kappa);          // GTT -> GCT, ECM+F+omega+1k(tv)
-    CHECK(k(22, 19, 2) == kappa * kappa);  // CCG -> CAT, ECM+F+omega+1k(tv)
+    CHECK(k(0, 0, 0) == 1);         // AAA -> AAA, ECM+f+omega
+    CHECK(k(32, 0, 0) == 1);        // GAA -> CTC, ECM+f+omega
+    CHECK(k(47, 38) == 1);          // GTT -> GCT, ECM+f+omega
+    CHECK(k(22, 19) == 1);          // CCG -> CAT, ECM+f+omega
+    CHECK(k(0, 42, 1) == 15.625);   // AAA -> GGG, ECM+F+omega+1k(ts)
+    CHECK(k(32, 29, 1) == 1);       // GAA -> CTC, ECM+F+omega+1k(ts)
+    CHECK(k(47, 38, 1) == 2.5);     // GTT -> GCT, ECM+F+omega+1k(ts)
+    CHECK(k(21, 51, 1) == 6.25);    // CCC -> TAT, ECM+F+omega+1k(ts)
+    CHECK(k(0, 0, 2) == 1);         // AAA -> AAA, ECM+F+omega+1k(tv)
+    CHECK(k(32, 29, 2) == 15.625);  // GAA -> CTC, ECM+F+omega+1k(tv)
+    CHECK(k(47, 38, 2) == 2.5);     // GTT -> GCT, ECM+F+omega+1k(tv)
+    CHECK(k(22, 19, 2) == 6.25);    // CCG -> CAT, ECM+F+omega+1k(tv)
 }
 
 /* Empirical Codon Model P matrix */

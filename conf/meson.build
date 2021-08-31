@@ -50,3 +50,30 @@ endif
 
 # `configure_file` can't be run here yet, see:
 #  https://github.com/mesonbuild/meson/issues/30
+
+################################################################################
+# add tests to coati-doctest
+
+source_dir = meson.project_source_root() + '/'
+# discover includes
+tests_includes = run_command('bash',
+  source_dir + 'conf/discover_tests_include.sh',
+  source_dir + 'src/lib')
+
+# discover tests
+tests_functions = run_command('bash',
+  source_dir + 'conf/discover_tests.sh',
+  source_dir + 'src/lib', 'TEST_CASE')
+
+if tests_functions.stderr() != '' or tests_includes.stderr() != ''
+  warning('Discover tests failed!',
+    tests_functions.stderr(),
+    tests_includes.stderr())
+endif
+
+tests_conf = configuration_data()
+tests_conf.set('TEST_INCLUDES', tests_includes.stdout())
+tests_conf.set('TEST_FUNCTIONS', tests_functions.stdout())
+
+# `configure_file` can't be run here yet, see:
+#  https://github.com/mesonbuild/meson/issues/30

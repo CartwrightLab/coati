@@ -27,12 +27,6 @@ project('COATI', 'cpp',
 	meson_version : '>=0.56.0',
 	default_options: [ 'buildtype=debugoptimized', 'cpp_std=c++17' ])
 
-#
-#
-# pretest = executable('pretest', configure?,
-#   build_by_default : true,
-# 	build_always_stale : true)
-
 # Find Boost installation with library program_options
 # https://mesonbuild.com/Dependencies.html#boost
 boost_dep = dependency('boost',
@@ -51,6 +45,11 @@ doctest_dep = dependency('doctest',
 	version : '>=2.4.6',
 	required : true)
 
+google_benchmark_dep = dependency('google-benchmark',
+  fallback : ['google-benchmark', 'google_benchmark_dep'],
+	version : '>=1.5.2',
+	required : get_option('DEVOPT_BENCHMARKING'))
+
 fstlib_proj = subproject('fstlib')
 fstlib_dep = fstlib_proj.get_variable('fstlib_dep')
 fstlib_dep = fstlib_dep.as_system('system')
@@ -58,14 +57,5 @@ fstlib_dep = fstlib_dep.as_system('system')
 minionrng_proj = subproject('minionrng')
 minionrng_dep = minionrng_proj.get_variable('minionrng_dep')
 
-if get_option('DEVOPT_BENCHMARKING').enabled()
-	google_benchmark_proj = subproject('google-benchmark')
-	google_benchmark_dep = google_benchmark_proj.get_variable('google_benchmark_dep')
-endif
-
-
 subdir('conf')
 subdir('src')
-
-#subdir('tests')
-#subdir('doc')

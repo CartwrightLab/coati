@@ -27,7 +27,7 @@
 #include "mutation_fst.hpp"
 
 void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
-float k(uint8_t c1, uint8_t c2, int model = 0);
+float k(uint8_t c1, uint8_t c2, int model = 0, float kappa = 2.5);
 Matrix ecm_p(float br_len);
 VectorFstStdArc ecm(float br_len);
 

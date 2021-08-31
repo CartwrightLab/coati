@@ -28,12 +28,3 @@ libcoati = static_library('libcoati',
   dependencies : [doctest_dep, eigen_dep, boost_dep, fstlib_dep, minionrng_dep],
   install : true,
   cpp_args : '-DDOCTEST_CONFIG_DISABLE')
-
-# libcoati_doctest = library('libcoati-doctest',
-#   coati_sources,
-#   include_directories : [inc, conf_inc],
-#   link_with : libcoati,
-#   dependencies : [doctest_dep, eigen_dep, boost_dep, fstlib_dep, minionrng_dep])
-
-# clang_format_target('libcoati')
-# clang_tidy_target('libcoati')

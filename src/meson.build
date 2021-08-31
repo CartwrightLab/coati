@@ -36,9 +36,7 @@ coati_version = executable('coati-version',
   include_directories : [inc, conf_inc],
   link_with : libcoati)
 
-# TODO: clang format & clang tidy coati-version
-
-# TODO: add install command
+# TODO: clang format & clang tidy
 
 coati_alignpair = executable('coati-alignpair',
   'coati-alignpair.cc',
@@ -71,8 +69,15 @@ coati = executable('coati',
   dependencies : [doctest_dep, eigen_dep, boost_dep],
   install : true)
 
+configure_file(input : meson.current_source_dir() + '/coati-doctest.cc.in',
+  output : 'coati-doctest.cc',
+  configuration : tests_conf,
+  depfile : 'libcoati_dep')
+
 coati_doctest = executable('coati-doctest',
-  'coati-doctest.cc',
+  meson.project_build_root() + '/src/coati-doctest.cc',
   include_directories : inc,
   link_with : libcoati,
   dependencies : [doctest_dep, eigen_dep, boost_dep, fstlib_dep])
+
+test('libcoati', coati_doctest)
