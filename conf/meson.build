@@ -92,3 +92,14 @@ if clangtidy.found()
     command : [clangtidy, '-p=' + meson.project_build_root(),
     '--extra-arg=-std=c++17'] + sources_path)
 endif
+
+################################################################################
+# coverage check
+
+if(get_option('b_coverage')==true)
+  gcovr = find_program('gcovr', required : false)
+  lcov = find_program('lcov', required : false)
+  if not gcovr.found() and not lcov.found()
+    warning('Coverage flag used but gcovr and lcov not found.')
+  endif
+endif
