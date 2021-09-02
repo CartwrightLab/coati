@@ -39,7 +39,7 @@ int mcoati(input_t& in_data, Matrix& P) {
     }
 
     if(in_data.mut_model.compare("no_frameshifts") == 0) {
-        if(gotoh_noframeshifts(in_data.fasta_file.seq_data, aln, P) != 0) {
+        if(mg94_marginal(in_data.fasta_file.seq_data, aln, P, false) != 0) {
             return EXIT_FAILURE;
         }
     } else {
@@ -94,7 +94,7 @@ TEST_CASE("[align.cc] mcoati") {
         std::string s;
         infile >> s;
         CHECK(std::filesystem::remove(input_data.weight_file));
-        CHECK(s.substr(s.length() - 7) == "9.29064");
+        CHECK(s.substr(s.length() - 7) == "9.29164");
     }
 
     SUBCASE("Alignment with frameshifts (default) - output phylip") {
@@ -127,8 +127,38 @@ TEST_CASE("[align.cc] mcoati") {
         CHECK(std::filesystem::remove(input_data.out_file));
     }
 
+    SUBCASE("Alignment with frameshifts (default) 2 dels - output phylip") {
+        input_t input_data("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"},
+                           "m-coati", false, 0.0133, "score.log",
+                           "test-mcoati-phylip2.phy");
+        fasta_t result(input_data.out_file);
+
+        if(std::filesystem::exists(input_data.out_file)) {
+            std::filesystem::remove(input_data.out_file);
+        }
+
+        REQUIRE(mcoati(input_data, P) == 0);
+
+        std::ifstream infile(input_data.out_file);
+        std::string s1, s2;
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("12") == 0);
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("1") == 0);
+        CHECK(s2.compare("ACGTTAAGGGGT") == 0);
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("ACG--AA----T") == 0);
+
+        CHECK(std::filesystem::remove(input_data.out_file));
+    }
+
     SUBCASE("Alignment with no frameshifts") {
-        input_t input_data("", {"1", "2"}, {"TCCCTCAGAACA", "ACCTATCTCCTTCCC"},
+        input_t input_data("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"},
                            "no_frameshifts", false, 0.0133, "score.log",
                            "test-mcoati-no-frameshifts.fasta");
         fasta_t result(input_data.out_file);
@@ -145,8 +175,8 @@ TEST_CASE("[align.cc] mcoati") {
         CHECK(result.seq_names[0] == "1");
         CHECK(result.seq_names[1] == "2");
 
-        CHECK(result.seq_data[0] == "---------------TCCCTCAGAACA");
-        CHECK(result.seq_data[1] == "ACCTATCTCCTTCCC------------");
+        CHECK(result.seq_data[0] == "ACG---TTAAGGGGT");
+        CHECK(result.seq_data[1] == "ACGAAT---------");
     }
 
     SUBCASE("No frameshifts length not multiple of 3 - fail") {
@@ -575,7 +605,7 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
     std::ofstream outfile;
     outfile.open("tree-msa.newick");
     REQUIRE(outfile);
-    outfile << "((((A:1,B:1):1,C:1):1,D:1):1,E:1);";
+    outfile << "((((A:0.1,B:0.1):0.1,C:0.1):0.1,D:0.1):0.1,E:0.1);";
     outfile.close();
 
     SUBCASE("m-coati model") {
@@ -621,11 +651,11 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
         CHECK(result.seq_names[3] == "D");
         CHECK(result.seq_names[4] == "E");
 
-        CHECK(result.seq_data[0] == "TC--ATCG");
-        CHECK(result.seq_data[1] == "TC-AGTCG");
-        CHECK(result.seq_data[2] == "T---ATCG");
-        CHECK(result.seq_data[3] == "TCA-CTCG");
-        CHECK(result.seq_data[4] == "TC--ATC-");
+        CHECK(result.seq_data[0] == "TCA--TCG");
+        CHECK(result.seq_data[1] == "TCA-GTCG");
+        CHECK(result.seq_data[2] == "T-A--TCG");
+        CHECK(result.seq_data[3] == "TCAC-TCG");
+        CHECK(result.seq_data[4] == "TCA--TC-");
     }
 }
 

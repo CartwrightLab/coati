@@ -27,7 +27,13 @@
 /* Create sparse vector with positions in which there are (open) insertions */
 bool insertion_flags(const std::string& ref, const std::string& seq,
                      SparseVectorInt& insertions_vector) {
-    if(ref.length() != seq.length()) return false;
+    if(ref.length() != seq.length()) {
+        return false;  // return if length is diff
+    }
+
+    if(ref.find('-') == std::string::npos) {
+        return true;  // return if no insertions
+    }
 
     for(std::size_t i = 0; i < ref.length(); i++) {
         if(ref[i] == '-') {
