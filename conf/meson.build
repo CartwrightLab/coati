@@ -21,6 +21,12 @@
 ################################################################################
 # version
 
+# vcs_tag():
+# - allows to replace only one string at a time
+#   (https://github.com/mesonbuild/meson/issues/2600)
+# - still need to use something as below + `configure_file()` for major and
+#   minor version.
+
 version_list = meson.project_version().split('.')
 major = version_list[0].to_int()
 minor = version_list[1].to_int()

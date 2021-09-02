@@ -146,8 +146,7 @@ int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
             }
 
             // D[i,j] = highest weight between insertion, deletion, and
-            // match/mismatch
-            //	in this case, lowest (-logf(weight)) value
+            // match/mismatch. In this case, lowest (-logf(weight)) value
             if(d < P(i, j)) {
                 if(d < Q(i, j)) {
                     D(i, j) = d;

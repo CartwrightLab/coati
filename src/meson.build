@@ -36,8 +36,6 @@ coati_version = executable('coati-version',
   include_directories : [inc, conf_inc],
   link_with : libcoati)
 
-# TODO: clang format & clang tidy
-
 coati_alignpair = executable('coati-alignpair',
   'coati-alignpair.cc',
   include_directories : [inc, conf_inc],
