@@ -119,6 +119,8 @@ int main(int argc, char* argv[]) {
     } else if(in_data.mut_model.compare("m-ecm") == 0) {
         P = ecm_p(in_data.br_len);
         return mcoati(in_data, P);
+    } else if(in_data.mut_model.compare("user_marg_model") == 0) {
+        return mcoati(in_data, P);
     } else {
         return fst_alignment(in_data, fsts);
     }
