@@ -129,13 +129,23 @@ int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
             }
 
             // D[i,j] = highest weight between insertion, deletion, and
-            // match/mismatch
-            //	in this case, lowest (-logf(weight)) value
-            int path = 0;
-            auto score = d;
-            if(P(i, j) < score) {
-                score = P(i, j);
-                path = 1;
+            // match/mismatch. In this case, lowest (-logf(weight)) value
+            if(d < P(i, j)) {
+                if(d < Q(i, j)) {
+                    D(i, j) = d;
+                    Bd(i, j) = 0;
+                } else {
+                    D(i, j) = Q(i, j);
+                    Bd(i, j) = 2;
+                }
+            } else {
+                if(P(i, j) < Q(i, j)) {
+                    D(i, j) = P(i, j);
+                    Bd(i, j) = 1;
+                } else {
+                    D(i, j) = Q(i, j);
+                    Bd(i, j) = 2;
+                }
             }
             if(Q(i, j) < score) {
                 score = Q(i, j);
@@ -175,7 +185,7 @@ float transition(const std::string& codon, int position, unsigned char nuc,
         return 0;
     }
 
-    position = position == 0 ? 2 : --position;
+    position = position == 0 ? 2 : position == 1 ? 0 : 1;
 
     if(nuc != 'N') {
         return p(cod_int(codon), position, nt4_table[nuc]);

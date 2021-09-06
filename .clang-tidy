@@ -285,4 +285,3 @@ CheckOptions:
   - key:             cert-msc32-c.DisallowedSeedTypes
     value:           'time_t,std::time_t'
 ...
-

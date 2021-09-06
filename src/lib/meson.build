@@ -1,5 +1,5 @@
-/*
 # Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,7 +18,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-*/
 
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include <doctest/doctest.h>
+# libcoati library
+libcoati = static_library('libcoati',
+  coati_sources,
+  include_directories : [inc, conf_inc],
+  dependencies : [doctest_dep, eigen_dep, boost_dep, fstlib_dep, minionrng_dep],
+  install : true,
+  cpp_args : '-DDOCTEST_CONFIG_DISABLE')

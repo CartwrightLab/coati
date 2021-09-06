@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,15 +20,7 @@
 # SOFTWARE.
 */
 
-#ifndef MUTATION_ECM_HPP
-#define MUTATION_ECM_HPP
-
-#include "ecm.tcc"
-#include "mutation_fst.hpp"
-
-void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
-float k(uint8_t c1, uint8_t c2, int model = 0, float kappa = 2.5);
-Matrix ecm_p(float br_len);
-VectorFstStdArc ecm(float br_len);
-
-#endif
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <doctest/doctest.h>
+@TEST_INCLUDES@
+@TEST_FUNCTIONS@

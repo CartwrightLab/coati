@@ -576,7 +576,6 @@ TEST_CASE("[utils.cc] parse_matrix_csv") {
     std::ofstream outfile;
     Matrix P(mg94_p(0.0133));
 
-    float br_len{NAN};
     const std::vector<std::string> codons = {
         "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC",
         "AGG", "AGT", "ATA", "ATC", "ATG", "ATT", "CAA", "CAC", "CAG", "CAT",
