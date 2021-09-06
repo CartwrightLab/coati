@@ -25,7 +25,7 @@
 #include <coati/mutation_ecm.hpp>
 
 /* nonsynonymous-synonymous bias (\omega) */
-const float omega = 0.2;  // github.com/reedacartwright/toycoati
+// const float omega = 0.2;  // github.com/reedacartwright/toycoati
 // const float kappa = 2.5;  // Kosiol et al. 2007, supplemental material
 
 /* calculate number of transitions and transversions between codons c1 and c2*/
@@ -102,7 +102,7 @@ TEST_CASE("[mutation_coati.cc] k") {
 }
 
 /* Empirical Codon Model P matrix */
-Matrix ecm_p(float br_len) {
+Matrix ecm_p(float br_len, float omega) {
     if(br_len <= 0) {
         throw std::out_of_range("Branch length must be positive.");
     }
@@ -142,8 +142,8 @@ Matrix ecm_p(float br_len) {
 }
 
 /* Empirical Codon Model (Kosiol et al. 2007) FST */
-VectorFstStdArc ecm(float br_len) {
-    Matrix P = ecm_p(br_len);
+VectorFstStdArc ecm(float br_len, float omega) {
+    Matrix P = ecm_p(br_len, omega);
 
     // Add state 0 and make it the start state
     VectorFstStdArc ecm;

@@ -535,7 +535,10 @@ class ArcIterator {
   }
 
   const Arc &Value() const {
-    return data_.base ? data_.base->Value() : data_.arcs[i_];
+    if(data_.base) {
+        return data_.base->Value();
+    }
+    return data_.arcs[i_];
   }
 
   void Next() {

@@ -236,6 +236,104 @@ TEST_CASE("[utils.cc] read_fasta") {
     }
 }
 
+/* Read fasta formatted file with a pair of sequences */
+void read_fasta_pair(fasta_t& fasta_file, std::vector<VectorFstStdArc>& fsts,
+                     bool fst) {
+    if(fst) {
+        if(read_fasta(fasta_file, fsts) != 0) {
+            throw std::invalid_argument("Error reading " +
+                                        fasta_file.path.string() +
+                                        " file. Exiting!");
+        }
+        if(fasta_file.seq_names.size() != 2 ||
+           fasta_file.seq_names.size() != fsts.size()) {
+            throw std::invalid_argument(
+                "Exactly two sequences required. Exiting!");
+        }
+    } else {
+        if(read_fasta(fasta_file) != 0) {
+            throw std::invalid_argument("Error reading " +
+                                        fasta_file.path.string() +
+                                        " file. Exiting!");
+        }
+        if(fasta_file.seq_names.size() != 2) {
+            throw std::invalid_argument(
+                "Exactly two sequences required. Exiting!");
+        }
+    }
+}
+
+TEST_CASE("[utils.cc] read_fasta_pair") {
+    std::ofstream outfile;
+
+    SUBCASE("Read test-no-fst") {
+        std::vector<VectorFstStdArc> fsts;
+        outfile.open("test-no-fst.fasta");
+        REQUIRE(outfile);
+        outfile << "; comment line" << std::endl;
+        outfile << ">1" << std::endl << "CTCTGGATAGTC" << std::endl;
+        outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
+        outfile.close();
+
+        fasta_t fasta("test-no-fst.fasta");
+
+        read_fasta_pair(fasta, fsts, false);
+        CHECK(std::filesystem::remove(fasta.path));
+
+        CHECK(fasta.seq_names.size() == 2);
+    }
+
+    SUBCASE("Read test-fst") {
+        std::vector<VectorFstStdArc> fsts;
+        outfile.open("test-fst.fasta");
+        REQUIRE(outfile);
+        outfile << "; comment line" << std::endl;
+        outfile << ">1" << std::endl << "CTCTGGATAGTC" << std::endl;
+        outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
+        outfile.close();
+
+        fasta_t fasta("test-fst.fasta");
+
+        read_fasta_pair(fasta, fsts, true);
+        CHECK(std::filesystem::remove(fasta.path));
+
+        CHECK(fasta.seq_names.size() == 2);
+        CHECK(fasta.seq_names.size() == fsts.size());
+    }
+
+    SUBCASE("Error test-no-fst.fasta") {
+        std::vector<VectorFstStdArc> fsts;
+        outfile.open("test-no-fst.fasta");
+        REQUIRE(outfile);
+        outfile << "; comment line" << std::endl;
+        outfile << ">1" << std::endl << "CTCTGGATAGTC" << std::endl;
+        outfile.close();
+
+        fasta_t fasta("test-no-fst.fasta");
+        CHECK(std::filesystem::remove(fasta.path));
+
+        REQUIRE_THROWS_AS(read_fasta_pair(fasta, fsts, false),
+                          std::invalid_argument);
+    }
+
+    SUBCASE("Error test-fst.fasta") {
+        std::vector<VectorFstStdArc> fsts;
+        outfile.open("test-fst.fasta");
+        REQUIRE(outfile);
+        outfile << "; comment line" << std::endl;
+        outfile << ">1" << std::endl << "CTCTGGATAGTC" << std::endl;
+        outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
+        outfile << ">3" << std::endl << "CTATAGTC" << std::endl;
+        outfile.close();
+
+        fasta_t fasta("test-fst.fasta");
+        CHECK(std::filesystem::remove(fasta.path));
+
+        REQUIRE_THROWS_AS(read_fasta_pair(fasta, fsts, true),
+                          std::invalid_argument);
+    }
+}
+
 /* Write alignment in Fasta format */
 int write_fasta(fasta_t& fasta_file) {
     std::ofstream outfile;
@@ -574,7 +672,7 @@ Matrix parse_matrix_csv(const std::string& file) {
 
 TEST_CASE("[utils.cc] parse_matrix_csv") {
     std::ofstream outfile;
-    Matrix P(mg94_p(0.0133));
+    Matrix P(mg94_p(0.0133, 0.2));
 
     const std::vector<std::string> codons = {
         "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC",

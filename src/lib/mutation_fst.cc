@@ -25,8 +25,8 @@
 #include <coati/mutation_fst.hpp>
 
 /* Create Muse and Gaut codon model FST */
-VectorFstStdArc mg94(float br_len) {
-    Matrix P = mg94_p(br_len);
+VectorFstStdArc mg94(float br_len, float omega) {
+    Matrix P = mg94_p(br_len, omega);
 
     // Add state 0 and make it the start state
     VectorFstStdArc mg94;
@@ -55,8 +55,8 @@ VectorFstStdArc mg94(float br_len) {
 }
 
 TEST_CASE("[mutation_fst.cc] mg94") {
-    float branch_length = 0.0133;
-    VectorFstStdArc mut_fst(mg94(branch_length));
+    // float branch_length = 0.0133;
+    VectorFstStdArc mut_fst(mg94(0.0133, 0.2));
 
     CHECK(Verify(mut_fst));           // openfst built-in sanity check
     CHECK(mut_fst.NumArcs(0) == 16);  // 4x4 nuc to nuc arcs from start state
@@ -64,8 +64,8 @@ TEST_CASE("[mutation_fst.cc] mg94") {
 }
 
 /* Create dna marginal Muse and Gaut codon model FST*/
-VectorFstStdArc dna(float br_len) {
-    Matrix P = mg94_p(br_len);
+VectorFstStdArc dna(float br_len, float omega) {
+    Matrix P = mg94_p(br_len, omega);
 
     // Add state 0 and make it the start state
     VectorFstStdArc dna;
@@ -112,14 +112,15 @@ VectorFstStdArc dna(float br_len) {
 }
 
 TEST_CASE("[mutation_fst.cc] dna") {
-    float branch_length = 0.0133;
-    VectorFstStdArc dna_fst = dna(branch_length);
+    // float branch_length = 0.0133;
+    VectorFstStdArc dna_fst = dna(0.0133, 0.2);
 
     CHECK(Verify(dna_fst));           // openfst built-in sanity check
     CHECK(dna_fst.NumArcs(0) == 16);  // all 4x4 nuc transitions
     CHECK(dna_fst.NumStates() ==
           1);  // all transitions are indp, only 1 state needed
 
+    // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
     float dna_val[16]{
         0.0035908299, 7.56063986,    5.91386986,    7.92348003,
         7.04520988,   0.00627565011, 7.14309978,    5.38297987,
@@ -169,9 +170,10 @@ TEST_CASE("[mutation_fst.cc] nuc2pos") {
 }
 
 /* Create affine gap indel model FST*/
-VectorFstStdArc indel(const std::string& model) {
-    float deletion = 0.001, insertion = 0.001;
-    float deletion_ext = 1.0 - 1.0 / 6.0, insertion_ext = 1.0 - 1.0 / 6.0;
+VectorFstStdArc indel(const std::string& model, float gap_open,
+                      float gap_extend) {
+    float deletion = gap_open, insertion = gap_open;
+    float deletion_ext = gap_extend, insertion_ext = gap_extend;
     float nuc_freqs[2][4] = {{0.308, 0.185, 0.199, 0.308},
                              {0.2676350, 0.2357727, 0.2539630, 0.2426323}};
     int m = model.compare("ecm") == 0 ? 1 : 0;
@@ -226,7 +228,7 @@ VectorFstStdArc indel(const std::string& model) {
 
 TEST_CASE("[mutation_fst.cc] indel") {
     std::string model = "m-coati";
-    VectorFstStdArc indel_model(indel(model));
+    VectorFstStdArc indel_model(indel(model, 0.001, 1.f - 1.f / 6.f));
 
     CHECK(Verify(indel_model));  // openfst built-in sanity check
     CHECK(indel_model.NumStates() == 4);

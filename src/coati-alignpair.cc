@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
             po::value<std::string>(&in_data.mut_model)
                 ->default_value("m-coati"),
             "substitution model: coati, m-coati (default), dna, ecm, m-ecm")(
-            "weight,w", po::value<std::string>(&in_data.weight_file),
+            "weight,h", po::value<std::string>(&in_data.weight_file),
             "Write alignment score to file")(
             "output,o", po::value<std::string>(&in_data.out_file),
             "Alignment output file")(
@@ -51,7 +51,17 @@ int main(int argc, char* argv[]) {
             "Substitution rate matrix (CSV)")(
             "evo-time,t",
             po::value<float>(&in_data.br_len)->default_value(0.0133, "0.0133"),
-            "Evolutionary time or branch length");
+            "Evolutionary time or branch length")(
+            "no-frameshifts",
+            po::value<bool>(&in_data.frameshifts)->default_value(true),
+            "Don't allow frameshifts")(
+            "gap-open,g", po::value<float>(&in_data.gapo)->default_value(0.001),
+            "Gap opening score")(
+            "gap-extend,e",
+            po::value<float>(&in_data.gape)->default_value(1.f - (1.f / 6.f)),
+            "Gap extension score")(
+            "omega,w", po::value<float>(&in_data.omega)->default_value(0.2),
+            "Nonsynonymous-synonymous bias");
 
         po::positional_options_description pos_p;
         pos_p.add("fasta", -1);
@@ -74,6 +84,10 @@ int main(int argc, char* argv[]) {
             in_data.score = true;
         }
 
+        if(varm.count("no-frameshifts")) {
+            in_data.frameshifts = false;
+        }
+
         po::notify(varm);
 
     } catch(po::error& e) {
@@ -81,21 +95,10 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    // read input fasta file sequences as FSA (acceptors)
     std::vector<VectorFstStdArc> fsts;
-    Matrix P(64, 64);
 
-    if(read_fasta(in_data.fasta_file, fsts) != 0) {
-        throw std::invalid_argument("Error reading " +
-                                    in_data.fasta_file.path.string() +
-                                    " file. Exiting!");
-    } else if(in_data.fasta_file.seq_names.size() != 2 ||
-              in_data.fasta_file.seq_names.size() != fsts.size()) {
-        throw std::invalid_argument("Exactly two sequences required. Exiting!");
-    }
-
-    if(in_data.out_file.empty()) {  // if no output is specified save in current
-                                    // dir in PHYLIP format
+    // if no output is specified save in current dir in PHYLIP format
+    if(in_data.out_file.empty()) {
         in_data.out_file =
             std::filesystem::path(in_data.fasta_file.path).stem().string() +
             ".phy";
@@ -106,22 +109,12 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    if(!in_data.rate.empty()) {
-        in_data.mut_model = "user_marg_model";
-
-        Matrix P = parse_matrix_csv(in_data.rate);
-
-        return mcoati(in_data, P);
-    } else if((in_data.mut_model.compare("m-coati") == 0) ||
-              in_data.mut_model.compare("no_frameshifts") == 0) {
-        P = mg94_p(in_data.br_len);
-        return mcoati(in_data, P);
-    } else if(in_data.mut_model.compare("m-ecm") == 0) {
-        P = ecm_p(in_data.br_len);
-        return mcoati(in_data, P);
-    } else if(in_data.mut_model.compare("user_marg_model") == 0) {
-        return mcoati(in_data, P);
+    if(in_data.mut_model.compare("m-coati") == 0 ||
+       in_data.mut_model.compare("m-ecm") == 0) {
+        read_fasta_pair(in_data.fasta_file, fsts, false);
+        return mcoati(in_data);
     } else {
+        read_fasta_pair(in_data.fasta_file, fsts, true);
         return fst_alignment(in_data, fsts);
     }
 }

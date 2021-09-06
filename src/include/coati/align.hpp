@@ -33,10 +33,11 @@
 #include "tree.hpp"
 #include "utils.hpp"
 
-int mcoati(input_t& in_data, Matrix& P);
+int mcoati(input_t& in_data);
 int progressive_aln(input_t& in_data);
 int fst_alignment(input_t& in_data, std::vector<VectorFstStdArc>& fsts);
 int ref_indel_alignment(input_t& in_data);
-float alignment_score(std::vector<std::string> alignment_t, Matrix& P);
+float alignment_score(std::vector<std::string> alignment_t, Matrix& P,
+                      float gap_open, float gap_extend);
 
 #endif

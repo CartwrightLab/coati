@@ -25,10 +25,10 @@
 #include <coati/mutation_coati.hpp>
 
 /* nonsynonymous-synonymous bias (\omega) */
-const float omega = 0.2;  // github.com/reedacartwright/toycoati
+// const float omega = 0.2;  // github.com/reedacartwright/toycoati
 
 /* Muse & Gaut Model (1994) P matrix given branch length*/
-Matrix mg94_p(float br_len) {
+Matrix mg94_p(float br_len, float omega) {
     if(br_len <= 0) {
         throw std::out_of_range("Branch length must be positive.");
     }
@@ -103,8 +103,7 @@ Matrix mg94_p(float br_len) {
 }
 
 TEST_CASE("[mutation_coati.cc] mg94_p") {
-    float branch_length = 0.0133;
-    Matrix P(mg94_p(branch_length));
+    Matrix P(mg94_p(0.0133, 0.2));
 
     for(int i = 0; i < 64; i++) {
         for(int j = 0; j < 64; j++) {
@@ -155,8 +154,8 @@ Tensor mg94_marginal_p(Matrix& P) {
 }
 
 TEST_CASE("[mutation_coati.cc] mg94_marginal_p") {
-    float branch_length = 0.0133;
-    Matrix P = mg94_p(branch_length);
+    // float branch_length = 0.0133;
+    Matrix P = mg94_p(0.0133, 0.2);
     Tensor p = mg94_marginal_p(P);
 
     for(int cod = 0; cod < 64; cod++) {

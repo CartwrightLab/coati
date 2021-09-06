@@ -74,15 +74,16 @@ struct input_t {
     fasta_t fasta_file;
     std::string mut_model{""}, weight_file{""}, out_file{""}, tree{""}, ref{""},
         rate{""};
-    bool score{false};
-    float br_len{0.0133};
+    bool score{false}, frameshifts{false};
+    float br_len{0.0133}, gapo{0.001}, gape{1.f - 1.f / 6.f}, omega{0.2};
 
     input_t() = default;
     input_t(const std::string& f, const std::vector<std::string>& n,
             const std::vector<std::string>& d, std::string model = "",
-            bool sc = false, float br = 0.0133, std::string weight = "",
-            std::string out = "", std::string tr = "", std::string re = "",
-            std::string ra = "")
+            std::string weight = "", std::string out = "", std::string tr = "",
+            std::string re = "", std::string ra = "", bool sc = false,
+            bool frame = true, float br = 0.0133, float g = 0.001,
+            float e = 1.f - 1.f / 6.f, float w = 0.2)
         : fasta_file{fasta_t(f, n, d)},
           mut_model{std::move(model)},
           weight_file{std::move(weight)},
@@ -91,7 +92,11 @@ struct input_t {
           ref{std::move(re)},
           rate{std::move(ra)},
           score{sc},
-          br_len{br} {}
+          frameshifts{frame},
+          br_len{br},
+          gapo{g},
+          gape{e},
+          omega{w} {}
 };
 
 struct alignment_t {
@@ -124,5 +129,7 @@ bool acceptor(std::string content, VectorFstStdArc& accept);
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(std::string codon);
 Matrix parse_matrix_csv(const std::string& file);
+void read_fasta_pair(fasta_t& fasta_file, std::vector<VectorFstStdArc>& fsts,
+                     bool fst);
 
 #endif

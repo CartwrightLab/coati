@@ -26,24 +26,36 @@
 #include <filesystem>
 
 /* Alignment using dynamic programming implementation of marginal COATi model */
-int mcoati(input_t& in_data, Matrix& P) {
+int mcoati(input_t& in_data) {
+    Matrix P(64, 64);
+    std::vector<VectorFstStdArc> fsts;
     std::ofstream out_w;
     alignment_t aln;
     aln.f.seq_names = in_data.fasta_file.seq_names;
     aln.f.path = in_data.out_file;
 
     if(in_data.score) {
-        std::cout << alignment_score(in_data.fasta_file.seq_data, P)
+        std::cout << alignment_score(in_data.fasta_file.seq_data, P,
+                                     in_data.gapo, in_data.gape)
                   << std::endl;
         return EXIT_SUCCESS;
     }
 
-    if(in_data.mut_model.compare("no_frameshifts") == 0) {
-        if(mg94_marginal(in_data.fasta_file.seq_data, aln, P, false) != 0) {
+    if(!in_data.rate.empty()) {
+        in_data.mut_model = "user_marg_model";
+        P = parse_matrix_csv(in_data.rate);
+    } else if(in_data.mut_model.compare("m-coati") == 0) {
+        P = mg94_p(in_data.br_len, in_data.omega);
+    } else {  // m-ecm
+        P = ecm_p(in_data.br_len, in_data.omega);
+    }
+
+    if(in_data.frameshifts) {
+        if(mg94_marginal(in_data.fasta_file.seq_data, aln, P) != 0) {
             return EXIT_FAILURE;
         }
     } else {
-        if(mg94_marginal(in_data.fasta_file.seq_data, aln, P) != 0) {
+        if(mg94_marginal(in_data.fasta_file.seq_data, aln, P, false) != 0) {
             return EXIT_FAILURE;
         }
     }
@@ -64,12 +76,11 @@ int mcoati(input_t& in_data, Matrix& P) {
 }
 
 TEST_CASE("[align.cc] mcoati") {
-    Matrix P(mg94_p(0.0133));
+    Matrix P(mg94_p(0.0133, 0.2));
 
     SUBCASE("Alignment with frameshifts (default) - output fasta") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                           "m-coati", false, 0.0133, "score.log",
-                           "test-mcoati-fasta.fasta");
+                           "m-coati", "score.log", "test-mcoati-fasta.fasta");
         fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
@@ -79,7 +90,7 @@ TEST_CASE("[align.cc] mcoati") {
             std::filesystem::remove(input_data.weight_file);
         }
 
-        REQUIRE(mcoati(input_data, P) == 0);
+        REQUIRE(mcoati(input_data) == 0);
         REQUIRE(read_fasta(result) == 0);
 
         CHECK(std::filesystem::remove(input_data.out_file));
@@ -99,15 +110,14 @@ TEST_CASE("[align.cc] mcoati") {
 
     SUBCASE("Alignment with frameshifts (default) - output phylip") {
         input_t input_data("", {"1", "2"}, {"GCGACTGTT", "GCGATTGCTGTT"},
-                           "m-coati", false, 0.0133, "score.log",
-                           "test-mcoati-phylip.phy");
+                           "m-coati", "score.log", "test-mcoati-phylip.phy");
         fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
             std::filesystem::remove(input_data.out_file);
         }
 
-        REQUIRE(mcoati(input_data, P) == 0);
+        REQUIRE(mcoati(input_data) == 0);
 
         std::ifstream infile(input_data.out_file);
         std::string s1, s2;
@@ -129,15 +139,14 @@ TEST_CASE("[align.cc] mcoati") {
 
     SUBCASE("Alignment with frameshifts (default) 2 dels - output phylip") {
         input_t input_data("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"},
-                           "m-coati", false, 0.0133, "score.log",
-                           "test-mcoati-phylip2.phy");
+                           "m-coati", "score.log", "test-mcoati-phylip2.phy");
         fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
             std::filesystem::remove(input_data.out_file);
         }
 
-        REQUIRE(mcoati(input_data, P) == 0);
+        REQUIRE(mcoati(input_data) == 0);
 
         std::ifstream infile(input_data.out_file);
         std::string s1, s2;
@@ -158,16 +167,16 @@ TEST_CASE("[align.cc] mcoati") {
     }
 
     SUBCASE("Alignment with no frameshifts") {
-        input_t input_data("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"},
-                           "no_frameshifts", false, 0.0133, "score.log",
-                           "test-mcoati-no-frameshifts.fasta");
+        input_t input_data(
+            "", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"}, "m-coati", "score.log",
+            "test-mcoati-no-frameshifts.fasta", "", "", "", false, false);
         fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
             std::filesystem::remove(input_data.out_file);
         }
 
-        REQUIRE(mcoati(input_data, P) == 0);
+        REQUIRE(mcoati(input_data) == 0);
         REQUIRE(read_fasta(result) == 0);
 
         CHECK(std::filesystem::remove(input_data.out_file));
@@ -181,32 +190,32 @@ TEST_CASE("[align.cc] mcoati") {
 
     SUBCASE("No frameshifts length not multiple of 3 - fail") {
         input_t input_data("", {"1", "2"}, {"GCGATTGCTGT", "GCGACTGTT"},
-                           "no_frameshifts", false, 0.0133, "score.log",
+                           "no_frameshifts", "score.log",
                            "test-mcoati-no-frameshifts.fasta");
-        REQUIRE_THROWS_AS(mcoati(input_data, P), std::invalid_argument);
+        REQUIRE_THROWS_AS(mcoati(input_data), std::invalid_argument);
     }
 
     SUBCASE("Score alignment") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CT----ATAGTG"},
-                           "m-coati", true, 0.0133, "score.log",
-                           "test-mcoati-score.fasta");
-        REQUIRE(mcoati(input_data, P) == 0);
+                           "m-coati", "score.log", "test-mcoati-score.fasta",
+                           "", "", "", true);
+        REQUIRE(mcoati(input_data) == 0);
     }
 
     SUBCASE("Reference length not multiple of 3 - fail") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGT", "CT----ATAGTG"},
-                           "m-coati", true, 0.0133, "score.log",
-                           "test-mcoati-score.fasta");
-        REQUIRE_THROWS_AS(mcoati(input_data, P), std::invalid_argument);
+                           "m-coati", "score.log", "test-mcoati-score.fasta",
+                           "", "", "", true);
+        REQUIRE_THROWS_AS(mcoati(input_data), std::invalid_argument);
     }
 
     SUBCASE("Score alignment - fail") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                           "m-coati", true, 0.0133, "score.log",
-                           "test-mcoati-score.fasta");
+                           "m-coati", "score.log", "test-mcoati-score.fasta",
+                           "", "", "", true);
         fasta_t result(input_data.out_file);
 
-        REQUIRE_THROWS_AS(mcoati(input_data, P), std::invalid_argument);
+        REQUIRE_THROWS_AS(mcoati(input_data), std::invalid_argument);
     }
 }
 
@@ -217,17 +226,18 @@ int fst_alignment(input_t& in_data, std::vector<VectorFstStdArc>& fsts) {
     VectorFstStdArc mut_fst;
 
     if(in_data.mut_model.compare("coati") == 0) {
-        mut_fst = mg94(in_data.br_len);
+        mut_fst = mg94(in_data.br_len, in_data.omega);
     } else if(in_data.mut_model.compare("dna") == 0) {
-        mut_fst = dna(in_data.br_len);
+        mut_fst = dna(in_data.br_len, in_data.omega);
     } else if(in_data.mut_model.compare("ecm") == 0) {
-        mut_fst = ecm(in_data.br_len);
+        mut_fst = ecm(in_data.br_len, in_data.omega);
     } else {
         throw std::invalid_argument("Mutation model unknown. Exiting!");
     }
 
     // get indel FST
-    VectorFstStdArc indel_fst = indel(in_data.mut_model);
+    VectorFstStdArc indel_fst =
+        indel(in_data.mut_model, in_data.gapo, in_data.gape);
 
     // sort mutation and indel FSTs
     VectorFstStdArc mutation_sort, indel_sort;
@@ -310,8 +320,7 @@ TEST_CASE("[align.cc] fst_alignment") {
 
     SUBCASE("coati model, output fasta") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                           "coati", false, 0.0133, "score.log",
-                           "test-fst-alignment.fasta");
+                           "coati", "score.log", "test-fst-alignment.fasta");
         fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
@@ -341,8 +350,7 @@ TEST_CASE("[align.cc] fst_alignment") {
 
     SUBCASE("coati model, output phylip") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                           "coati", false, 0.0133, "score.log",
-                           "test-fst-phylip.phy");
+                           "coati", "score.log", "test-fst-phylip.phy");
         fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
@@ -375,8 +383,7 @@ TEST_CASE("[align.cc] fst_alignment") {
 
     SUBCASE("dna model") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"}, "dna",
-                           false, 0.0133, "score.log",
-                           "test-fst-alignment.fasta");
+                           "score.log", "test-fst-alignment.fasta");
         fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
@@ -407,8 +414,7 @@ TEST_CASE("[align.cc] fst_alignment") {
 
     SUBCASE("ecm model") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"}, "ecm",
-                           false, 0.0133, "score.log",
-                           "test-fst-alignment.fasta");
+                           "score.log", "test-fst-alignment.fasta");
         fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
@@ -438,8 +444,7 @@ TEST_CASE("[align.cc] fst_alignment") {
 
     SUBCASE("Unknown model") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                           "unknown", false, 0.0133, "score.log",
-                           "test-fst-alignment.fasta");
+                           "unknown", "score.log", "test-fst-alignment.fasta");
 
         REQUIRE_THROWS_AS(fst_alignment(input_data, fsts),
                           std::invalid_argument);
@@ -508,14 +513,17 @@ int ref_indel_alignment(input_t& in_data) {
             pair_seqs[1] = node_seq;
 
             // P matrix
-            if(in_data.mut_model.compare("m-ecm") == 0) {
-                P = ecm_p(branch);
+            if(!in_data.rate.empty()) {
+                in_data.mut_model = "user_marg_model";
+                P = parse_matrix_csv(in_data.rate);
+            } else if(in_data.mut_model.compare("m-ecm") == 0) {
+                P = ecm_p(branch, in_data.omega);
             } else {  // m-coati
-                P = mg94_p(branch);
+                P = mg94_p(branch, in_data.omega);
             }
 
             aln_tmp.f.seq_data.clear();
-            if(mg94_marginal(pair_seqs, aln_tmp, P) != 0) {
+            if(mg94_marginal(pair_seqs, aln_tmp, P, in_data.frameshifts) != 0) {
                 std::cout << "Error: aligning reference " << in_data.ref
                           << " and " << tree[node].label << std::endl;
             }
@@ -611,8 +619,8 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
     SUBCASE("m-coati model") {
         input_t input_data("", {"A", "B", "C", "D", "E"},
                            {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"},
-                           "m-coati", false, 0.0133, "score.log",
-                           "test-mcoati-msa.fasta", "tree-msa.newick", "A");
+                           "m-coati", "score.log", "test-mcoati-msa.fasta",
+                           "tree-msa.newick", "A");
         fasta_t result(input_data.out_file);
 
         REQUIRE(ref_indel_alignment(input_data) == 0);
@@ -636,8 +644,8 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
     SUBCASE("m-ecm model") {
         input_t input_data("", {"A", "B", "C", "D", "E"},
                            {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"},
-                           "m-ecm", false, 0.0133, "score.log",
-                           "test-mecm-msa.fasta", "tree-msa.newick", "A");
+                           "m-ecm", "score.log", "test-mecm-msa.fasta",
+                           "tree-msa.newick", "A");
         fasta_t result(input_data.out_file);
 
         REQUIRE(ref_indel_alignment(input_data) == 0);
@@ -659,7 +667,8 @@ TEST_CASE("[align.cc] ref_indel_alignment") {
     }
 }
 
-float alignment_score(std::vector<std::string> alignment, Matrix& P) {
+float alignment_score(std::vector<std::string> alignment, Matrix& P,
+                      float gap_open, float gap_extend) {
     if(alignment[0].length() != alignment[1].length()) {
         throw std::invalid_argument(
             "For alignment scoring both sequences must have equal length.");
@@ -669,10 +678,10 @@ float alignment_score(std::vector<std::string> alignment, Matrix& P) {
     float weight = 0.0;
     std::string codon;
 
-    float insertion = 0.001;
-    float deletion = 0.001;
-    float insertion_ext = 1.0 - (1.0 / 6.0);
-    float deletion_ext = 1.0 - (1.0 / 6.0);
+    float insertion = gap_open;
+    float deletion = gap_open;
+    float insertion_ext = gap_extend;
+    float deletion_ext = gap_extend;
 
     // P matrix for marginal Muse and Gaut codon model
     Tensor p = mg94_marginal_p(P);
@@ -750,12 +759,13 @@ float alignment_score(std::vector<std::string> alignment, Matrix& P) {
 }
 
 TEST_CASE("[align.cc] alignment_score") {
-    Matrix P(mg94_p(0.0133));
+    Matrix P(mg94_p(0.0133, 0.2));
 
-    REQUIRE(alignment_score({"CTCTGGATAGTG", "CT----ATAGTG"}, P) ==
-            doctest::Approx(9.29064));
-    REQUIRE(alignment_score({"CTCT--AT", "CTCTGGAT"}, P) ==
-            doctest::Approx(12.1493));
+    REQUIRE(alignment_score({"CTCTGGATAGTG", "CT----ATAGTG"}, P, 0.001,
+                            1.f - 1.f / 6.f) == doctest::Approx(9.29064));
+    REQUIRE(alignment_score({"CTCT--AT", "CTCTGGAT"}, P, 0.001,
+                            1.f - 1.f / 6.f) == doctest::Approx(12.1493));
 
-    REQUIRE_THROWS_AS(alignment_score({"CTC", "CT"}, P), std::invalid_argument);
+    REQUIRE_THROWS_AS(alignment_score({"CTC", "CT"}, P, 0.001, 1.f - 1.f / 6.f),
+                      std::invalid_argument);
 }

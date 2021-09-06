@@ -130,7 +130,7 @@ int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
 
             // D[i,j] = highest weight between insertion, deletion, and
             // match/mismatch. In this case, lowest (-logf(weight)) value
-            int path = 0;
+            float path = 0.f;
             auto score = d;
             if(P(i, j) < score) {
                 score = P(i, j);
@@ -148,7 +148,7 @@ int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
     // adjust terminal state
     D(m, n) -= no_insertion;
     P(m, n) -= no_insertion_ext;
-    int path = 0;
+    float path = 0.f;
     auto score = D(m, n);
     if(P(m, n) < score) {
         score = P(m, n);
@@ -188,7 +188,7 @@ float transition(const std::string& codon, int position, unsigned char nuc,
 
 TEST_CASE("[gotoh.cc] transition") {
     std::string codon{"AAA"};
-    Matrix P(mg94_p(0.0133));
+    Matrix P(mg94_p(0.0133, 0.2));
 
     CHECK(transition(codon, 1, 'N', mg94_marginal_p(P)) ==
           doctest::Approx(0.25));

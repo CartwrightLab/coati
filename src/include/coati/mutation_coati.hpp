@@ -32,7 +32,7 @@
 #include "mg94p.tcc"
 #include "utils.hpp"
 
-Matrix mg94_p(float br_len);
+Matrix mg94_p(float br_len, float omega);
 Tensor mg94_marginal_p(Matrix& P);
 
 #endif

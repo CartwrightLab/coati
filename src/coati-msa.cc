@@ -45,7 +45,17 @@ int main(int argc, char* argv[]) {
             "tree,p", po::value<std::string>(&in_data.tree)->required(),
             "newick phylogenetic tree")(
             "ref,r", po::value<std::string>(&in_data.ref)->required(),
-            "reference sequence");
+            "reference sequence")(
+            "frameshifts",
+            po::value<bool>(&in_data.frameshifts)->default_value(true),
+            "Don't allow frameshifts")(
+            "gap-open,g", po::value<float>(&in_data.gapo)->default_value(0.001),
+            "Gap opening score")(
+            "gap-extend,e",
+            po::value<float>(&in_data.gape)->default_value(1.f - (1.f / 6.f)),
+            "Gap extension score")(
+            "omega,w", po::value<float>(&in_data.omega)->default_value(0.2),
+            "Nonsynonymous-synonymous bias");
 
         po::positional_options_description pos_p;
         pos_p.add("fasta", 1);
@@ -65,6 +75,10 @@ int main(int argc, char* argv[]) {
             return EXIT_SUCCESS;
         }
 
+        if(varm.count("no_frameshifts")) {
+            in_data.frameshifts = false;
+        }
+
         po::notify(varm);
 
     } catch(po::error& e) {
@@ -82,8 +96,8 @@ int main(int argc, char* argv[]) {
             "At least three sequences required. Exiting!");
     }
 
-    if(in_data.out_file.empty()) {  // if no output is specified save in current
-                                    // dir in PHYLIP format
+    // if no output is specified save in current dir in PHYLIP format
+    if(in_data.out_file.empty()) {
         in_data.out_file =
             std::filesystem::path(in_data.fasta_file.path).stem().string() +
             ".phy";

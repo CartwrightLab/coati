@@ -25,9 +25,10 @@
 
 #include "mutation_coati.hpp"
 
-VectorFstStdArc mg94(float br_len);
+VectorFstStdArc mg94(float br_len, float omega);
 VectorFstStdArc nuc2pos();
-VectorFstStdArc dna(float br_len);
-VectorFstStdArc indel(const std::string& model);
+VectorFstStdArc dna(float br_len, float omega);
+VectorFstStdArc indel(const std::string& model, float gap_open,
+                      float gap_extend);
 
 #endif

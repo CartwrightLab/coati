@@ -342,6 +342,7 @@ bool find_node(tree_t& tree, const std::string& name, std::size_t& index) {
 
 TEST_CASE("[tree.cc] find_node") {
     tree_t tree;
+    // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
     std::size_t index{0};
     // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
 
