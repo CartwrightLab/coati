@@ -25,3 +25,5 @@ fstlib_dep = declare_dependency(
 )
 
 fstlib_dep = fstlib_dep.as_system('system')
+
+cli_dep = declare_dependency(include_directories : include_directories('CLI'))

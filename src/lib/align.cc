@@ -34,13 +34,6 @@ int mcoati(input_t& in_data) {
     aln.f.seq_names = in_data.fasta_file.seq_names;
     aln.f.path = in_data.out_file;
 
-    if(in_data.score) {
-        std::cout << alignment_score(in_data.fasta_file.seq_data, P,
-                                     in_data.gapo, in_data.gape)
-                  << std::endl;
-        return EXIT_SUCCESS;
-    }
-
     if(!in_data.rate.empty()) {
         in_data.mut_model = "user_marg_model";
         P = parse_matrix_csv(in_data.rate);
@@ -48,6 +41,13 @@ int mcoati(input_t& in_data) {
         P = mg94_p(in_data.br_len, in_data.omega);
     } else {  // m-ecm
         P = ecm_p(in_data.br_len, in_data.omega);
+    }
+
+    if(in_data.score) {
+        std::cout << alignment_score(in_data.fasta_file.seq_data, P,
+                                     in_data.gapo, in_data.gape)
+                  << std::endl;
+        return EXIT_SUCCESS;
     }
 
     if(in_data.frameshifts) {
@@ -69,7 +69,7 @@ int mcoati(input_t& in_data) {
     }
 
     // write alignment
-    if(aln.f.path.extension() == ".fasta") {
+    if(aln.f.path.extension() == ".fasta" || aln.f.path.extension() == ".fa") {
         return write_fasta(aln.f);
     }
     return write_phylip(aln.f);

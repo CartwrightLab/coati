@@ -708,3 +708,53 @@ TEST_CASE("parse_matrix_csv") {
     }
     CHECK(std::filesystem::remove("test-marg-matrix.csv"));
 }
+
+/* Setup command line options */
+void set_cli_options(CLI::App& app, input_t& in_data,
+                     const std::string& command) {
+    // Add new options/flags
+    app.add_option("fasta", in_data.fasta_file.path, "Fasta file path")
+        ->required()
+        ->check(CLI::ExistingFile);
+    if(command.compare("msa") == 0) {
+        app.add_option("tree", in_data.tree, "Newick phylogenetic tree")
+            ->required()
+            ->check(CLI::ExistingFile);
+        app.add_option("reference", in_data.ref, "Reference sequence")
+            ->required();
+    }
+    app.add_option("-m,--model", in_data.mut_model, "Substitution model");
+    if(command.compare("alignpair") == 0) {
+        app.add_option("-t,--time", in_data.br_len,
+                       "Evolutionary time/branch length")
+            ->check(CLI::PositiveNumber);
+        app.add_option("-l,--weight", in_data.weight_file,
+                       "Write alignment score to file");
+        app.add_flag("-s,--score", in_data.score, "Score alignment");
+    }
+    app.add_option("-o,--output", in_data.out_file, "Alignment output file");
+    app.add_option("-g,--gap-open", in_data.gapo, "Gap opening score")
+        ->check(CLI::PositiveNumber);
+    app.add_option("-e,--gap-extend", in_data.gape, "Gap extension score")
+        ->check(CLI::PositiveNumber);
+    app.add_option("-w,--omega", in_data.omega, "Nonsynonymous-synonymous bias")
+        ->check(CLI::PositiveNumber);
+    app.add_flag("!--no-frameshifts", in_data.frameshifts,
+                 "Do not allow frameshifts");
+
+    // if no output is specified save in current dir in PHYLIP format
+    if(in_data.out_file.empty()) {
+        in_data.out_file =
+            std::filesystem::path(in_data.fasta_file.path).stem().string() +
+            ".phy";
+    } else {
+        const std::string extension =
+            std::filesystem::path(in_data.out_file).extension();
+        const std::regex valid_ext("[.phy,.fasta.fa]");
+        if(!std::regex_match(extension, valid_ext)) {
+            throw std::invalid_argument(
+                "Output file format is invalid. Phyllip and fasta files "
+                "supported.");
+        }
+    }
+}

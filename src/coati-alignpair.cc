@@ -22,90 +22,19 @@
 
 #include <fst/fstlib.h>
 
-#include <boost/program_options.hpp>
+#include <CLI11.hpp>
 #include <coati/align.hpp>
-
-namespace po = boost::program_options;
+#include <coati/utils.hpp>
 
 int main(int argc, char* argv[]) {
     input_t in_data;
 
-    try {
-        po::options_description desc("Allowed options");
-        desc.add_options()("help,h", "Display this message")(
-            "fasta,f",
-            po::value<std::filesystem::path>(&in_data.fasta_file.path)
-                ->required(),
-            "fasta file path")(
-            "model,m",
-            po::value<std::string>(&in_data.mut_model)
-                ->default_value("m-coati"),
-            "substitution model: coati, m-coati (default), dna, ecm, m-ecm")(
-            "weight,h", po::value<std::string>(&in_data.weight_file),
-            "Write alignment score to file")(
-            "output,o", po::value<std::string>(&in_data.out_file),
-            "Alignment output file")(
-            "score,s",
-            "Calculate alignment score using m-coati or m-ecm models")(
-            "rate,r", po::value<std::string>(&in_data.rate),
-            "Substitution rate matrix (CSV)")(
-            "evo-time,t",
-            po::value<float>(&in_data.br_len)->default_value(0.0133, "0.0133"),
-            "Evolutionary time or branch length")("no-frameshifts",
-                                                  "Don't allow frameshifts")(
-            "gap-open,g", po::value<float>(&in_data.gapo)->default_value(0.001),
-            "Gap opening score")(
-            "gap-extend,e",
-            po::value<float>(&in_data.gape)->default_value(1.f - (1.f / 6.f)),
-            "Gap extension score")(
-            "omega,w", po::value<float>(&in_data.omega)->default_value(0.2),
-            "Nonsynonymous-synonymous bias");
-
-        po::positional_options_description pos_p;
-        pos_p.add("fasta", -1);
-        po::variables_map varm;
-        po::store(po::command_line_parser(argc, argv)
-                      .options(desc)
-                      .positional(pos_p)
-                      .run(),
-                  varm);
-
-        if(varm.count("help") || argc < 2) {
-            std::cout << "Usage:	coati alignpair file.fasta [options]"
-                      << std::endl
-                      << std::endl;
-            std::cout << desc << std::endl;
-            return EXIT_SUCCESS;
-        }
-
-        if(varm.count("score")) {
-            in_data.score = true;
-        }
-
-        if(varm.count("no-frameshifts")) {
-            in_data.frameshifts = false;
-        }
-
-        po::notify(varm);
-
-    } catch(po::error& e) {
-        std::cerr << e.what() << ". Exiting!" << std::endl;
-        return EXIT_FAILURE;
-    }
+    // Parse command line options
+    CLI::App alignpair;
+    set_cli_options(alignpair, in_data, "alignpair");
+    CLI11_PARSE(alignpair, argc, argv);
 
     std::vector<VectorFstStdArc> fsts;
-
-    // if no output is specified save in current dir in PHYLIP format
-    if(in_data.out_file.empty()) {
-        in_data.out_file =
-            std::filesystem::path(in_data.fasta_file.path).stem().string() +
-            ".phy";
-    } else if(std::filesystem::path(in_data.out_file).extension() != ".phy" &&
-              std::filesystem::path(in_data.out_file).extension() != ".fasta") {
-        std::cout << "Format for output file is not valid. Exiting!"
-                  << std::endl;
-        return EXIT_FAILURE;
-    }
 
     if(in_data.mut_model.compare("m-coati") == 0 ||
        in_data.mut_model.compare("m-ecm") == 0) {
@@ -115,4 +44,5 @@ int main(int argc, char* argv[]) {
         read_fasta_pair(in_data.fasta_file, fsts, true);
         return fst_alignment(in_data, fsts);
     }
+    return EXIT_FAILURE;
 }

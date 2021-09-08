@@ -25,11 +25,13 @@
 
 #include <fst/fstlib.h>
 
+#include <CLI11.hpp>
 #include <Eigen/Dense>
 #include <boost/algorithm/string.hpp>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <regex>
 #include <string>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
@@ -72,14 +74,14 @@ struct fasta_t {
 
 struct input_t {
     fasta_t fasta_file;
-    std::string mut_model{""}, weight_file{""}, out_file{""}, tree{""}, ref{""},
-        rate{""};
-    bool score{false}, frameshifts{false};
+    std::string mut_model{"m-coati"}, weight_file{""}, out_file{""}, tree{""},
+        ref{""}, rate{""};
+    bool score{false}, frameshifts{true};
     float br_len{0.0133}, gapo{0.001}, gape{1.f - 1.f / 6.f}, omega{0.2};
 
     input_t() = default;
     input_t(const std::string& f, const std::vector<std::string>& n,
-            const std::vector<std::string>& d, std::string model = "",
+            const std::vector<std::string>& d, std::string model = "m-coati",
             std::string weight = "", std::string out = "", std::string tr = "",
             std::string re = "", std::string ra = "", bool sc = false,
             bool frame = true, float br = 0.0133, float g = 0.001,
@@ -131,5 +133,6 @@ int cod_int(std::string codon);
 Matrix parse_matrix_csv(const std::string& file);
 void read_fasta_pair(fasta_t& fasta_file, std::vector<VectorFstStdArc>& fsts,
                      bool fst);
-
+void set_cli_options(CLI::App& app, input_t& in_data,
+                     const std::string& command);
 #endif
