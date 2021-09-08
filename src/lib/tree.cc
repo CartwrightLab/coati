@@ -138,7 +138,7 @@ int parse_newick(std::string content, tree_t& guide_tree) {
     return EXIT_SUCCESS;
 }
 
-TEST_CASE("[tree.cc] parse_newick") {
+TEST_CASE("parse_newick") {
     tree_t tree;
 
     REQUIRE(
@@ -274,7 +274,7 @@ int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list) {
     return EXIT_SUCCESS;
 }
 
-TEST_CASE("[tree.cc] aln_order") {
+TEST_CASE("aln_order") {
     tree_t tree;
     // cppcheck-suppress unusedVariable
     std::vector<std::pair<int, float>> order_list;
@@ -315,7 +315,7 @@ bool find_seq(const std::string& name, fasta_t& f, std::string& seq) {
     return !seq.empty();
 }
 
-TEST_CASE("[tree.cc] find_seq") {
+TEST_CASE("find_seq") {
     // cppcheck-suppress unusedVariable
     std::string sequence;
     fasta_t fasta("", {"A", "B", "C"}, {"ACGT", "CGTA", "GTAC"});
@@ -340,7 +340,7 @@ bool find_node(tree_t& tree, const std::string& name, std::size_t& index) {
     return it != end(tree);
 }
 
-TEST_CASE("[tree.cc] find_node") {
+TEST_CASE("find_node") {
     tree_t tree;
     // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
     std::size_t index{0};
@@ -399,7 +399,7 @@ bool reroot(tree_t& tree, const std::string& outgroup) {
     return true;
 }
 
-TEST_CASE("[tree.cc] reroot") {
+TEST_CASE("reroot") {
     tree_t tree;
 
     SUBCASE("One node change") {
@@ -479,7 +479,7 @@ float distance_ref(const tree_t& tree, std::size_t ref, std::size_t node) {
     return distance;
 }
 
-TEST_CASE("[tree.cc] distance_ref") {
+TEST_CASE("distance_ref") {
     tree_t tree;
     // tree:
     // ((raccoon:19.19959,bear:6.80041):0.84600, ((sea_lion:11.99700,

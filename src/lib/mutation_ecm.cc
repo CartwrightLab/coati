@@ -43,7 +43,7 @@ void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv) {
     }
 }
 
-TEST_CASE("[mutation_coati.cc] nts_ntv") {
+TEST_CASE("nts_ntv") {
     int nts = 0, ntv = 0;
 
     nts_ntv(0, 0, nts, ntv);  // AAA -> AAA
@@ -86,7 +86,7 @@ float k(uint8_t c1, uint8_t c2, int model, float kappa) {
     return 0;
 }
 
-TEST_CASE("[mutation_coati.cc] k") {
+TEST_CASE("k") {
     CHECK(k(0, 0, 0) == 1);         // AAA -> AAA, ECM+f+omega
     CHECK(k(32, 0, 0) == 1);        // GAA -> CTC, ECM+f+omega
     CHECK(k(47, 38) == 1);          // GTT -> GCT, ECM+f+omega

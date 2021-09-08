@@ -3,7 +3,7 @@
 Branch | Status
 ------ | ------
 CartwrightLab/master | [![github-actions](https://github.com/CartwrightLab/coati/actions/workflows/cmake.yml/badge.svg?branch=master)](https://github.com/CartwrightLab/coati/actions/workflows/cmake.yml) [![codecov](https://codecov.io/gh/CartwrightLab/coati/branch/master/graph/badge.svg)](https://codecov.io/gh/CartwrightLab/coati)
-jgarciamesa/coati | [![github-actions](https://github.com/jgarciamesa/coati/actions/workflows/cmake.yml/badge.svg?branch=main)](https://github.com/jgarciamesa/coati/actions/workflows/cmake.yml) [![codecov](https://codecov.io/gh/jgarciamesa/coati/branch/main/graph/badge.svg)](https://codecov.io/gh/jgarciamesa/coati)
+jgarciamesa/coati | [![github-actions](https://github.com/jgarciamesa/coati/actions/workflows/cmake.yml/badge.svg?branch=main)](https://github.com/jgarciamesa/coati/actions/workflows/meson.yml) [![codecov](https://codecov.io/gh/jgarciamesa/coati/branch/main/graph/badge.svg)](https://codecov.io/gh/jgarciamesa/coati)
 
 Codon-Aware Multiple Sequence Alignments
 
@@ -19,29 +19,23 @@ Source code for the most recent beta versions is available at <https://github.co
 ### Dependencies
 
 * Recent C++ compiler, supporting C++11 (e.g. gcc 4.8.1+ or clang 3.3+)
-* CMake 3.12+ when compiling <http://www.cmake.org/download/#latest>
+* Meson 0.56+
+* Ninja 1.8.2+
 * Boost 1.47+ <http://www.boost.org/>
-* Eigen 3.3+ <http://eigen.tuxfamily.org/>
-* OpenFST 1.8.0+ <http://openfst.org/twiki/bin/view/FST/FstDownload>
-
 
 ### Compiling
 ```
 tar -xvzf coati*.tar.gz
-cd coati*/build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j4
+meson setup builddir
+meson compile -C builddir -Dbuildtype=release
 ```
-
-#### Compiling Flags
-* `-DFSTLIB_ROOT` specify include directory for OpenFST library
 
 ### Global Install (requires root access)
 ```
-cd coati*/build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j4
-make install
+tar -xvzf coati*.tar.gz
+meson setup builddir
+meson compile -C builddir -Dbuildtype=release
+meson install -C builddir
 ```
 
 ## `alignpair`

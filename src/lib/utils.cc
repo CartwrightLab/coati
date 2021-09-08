@@ -128,7 +128,7 @@ int read_fasta(fasta_t& fasta_file, std::vector<VectorFstStdArc>& fsts) {
     return 0;
 }
 
-TEST_CASE("[utils.cc] read_fasta - fst") {
+TEST_CASE("read_fasta-fst") {
     // cppcheck-suppress unusedVariable
     std::vector<VectorFstStdArc> fsts;
     std::ofstream outfile;
@@ -207,7 +207,7 @@ int read_fasta(fasta_t& fasta_file) {
     return 0;
 }
 
-TEST_CASE("[utils.cc] read_fasta") {
+TEST_CASE("read_fasta") {
     std::ofstream outfile;
 
     SUBCASE("Read test-read-fasta.fasta") {
@@ -263,7 +263,7 @@ void read_fasta_pair(fasta_t& fasta_file, std::vector<VectorFstStdArc>& fsts,
     }
 }
 
-TEST_CASE("[utils.cc] read_fasta_pair") {
+TEST_CASE("read_fasta_pair") {
     std::ofstream outfile;
 
     SUBCASE("Read test-no-fst") {
@@ -351,7 +351,7 @@ int write_fasta(fasta_t& fasta_file) {
     return EXIT_SUCCESS;
 }
 
-TEST_CASE("[utils.cc] write_fasta") {
+TEST_CASE("write_fasta") {
     SUBCASE("Write fasta") {
         fasta_t fasta("test-write-fasta.fasta", {"1", "2"},
                       {"CTCTGGATAGTG", "CTATAGTG"});
@@ -410,7 +410,7 @@ int write_fasta(VectorFstStdArc& aln, fasta_t& fasta_file) {
     return EXIT_SUCCESS;
 }
 
-TEST_CASE("[utils.cc] write_fasta - fst") {
+TEST_CASE("write_fasta-fst") {
     fasta_t fasta("test-write-fasta.fasta", {"1", "2"});
 
     VectorFstStdArc fst_write;
@@ -468,7 +468,7 @@ int write_phylip(fasta_t& fasta_file) {
     return EXIT_SUCCESS;
 }
 
-TEST_CASE("[utils.cc] write_phylip") {
+TEST_CASE("write_phylip") {
     SUBCASE("Short sequences") {
         fasta_t fasta("test-write-phylip.phylip", {"1", "2"},
                       {"CTCTGGATAGTG", "CT----ATAGTG"});
@@ -559,7 +559,7 @@ int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file) {
     return write_phylip(fasta_file);
 }
 
-TEST_CASE("[utils.cc] write_phylip - fst") {
+TEST_CASE("write_phylip-fst") {
     fasta_t fasta("test-write-phylip.phylip", {"1", "2"});
 
     VectorFstStdArc fst_write;
@@ -670,7 +670,7 @@ Matrix parse_matrix_csv(const std::string& file) {
     return P;
 }
 
-TEST_CASE("[utils.cc] parse_matrix_csv") {
+TEST_CASE("parse_matrix_csv") {
     std::ofstream outfile;
     Matrix P(mg94_p(0.0133, 0.2));
 

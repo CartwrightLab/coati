@@ -54,7 +54,7 @@ VectorFstStdArc mg94(float br_len, float omega) {
     return optimize(mg94_rmep);
 }
 
-TEST_CASE("[mutation_fst.cc] mg94") {
+TEST_CASE("mg94") {
     // float branch_length = 0.0133;
     VectorFstStdArc mut_fst(mg94(0.0133, 0.2));
 
@@ -111,7 +111,7 @@ VectorFstStdArc dna(float br_len, float omega) {
     return optimize(dna);
 }
 
-TEST_CASE("[mutation_fst.cc] dna") {
+TEST_CASE("dna") {
     // float branch_length = 0.0133;
     VectorFstStdArc dna_fst = dna(0.0133, 0.2);
 
@@ -161,7 +161,7 @@ VectorFstStdArc nuc2pos() {
     return n2p;
 }
 
-TEST_CASE("[mutation_fst.cc] nuc2pos") {
+TEST_CASE("nuc2pos") {
     VectorFstStdArc n2p_fst(nuc2pos());
 
     CHECK(fst::Verify(n2p_fst));        // openfst built-in sanity check
@@ -226,7 +226,7 @@ VectorFstStdArc indel(const std::string& model, float gap_open,
     return optimize(indel_rmep);
 }
 
-TEST_CASE("[mutation_fst.cc] indel") {
+TEST_CASE("indel") {
     std::string model = "m-coati";
     VectorFstStdArc indel_model(indel(model, 0.001, 1.f - 1.f / 6.f));
 

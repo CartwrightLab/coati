@@ -186,7 +186,7 @@ float transition(const std::string& codon, int position, unsigned char nuc,
     return val / 4.0f;
 }
 
-TEST_CASE("[gotoh.cc] transition") {
+TEST_CASE("transition") {
     std::string codon{"AAA"};
     Matrix P(mg94_p(0.0133, 0.2));
 

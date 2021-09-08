@@ -28,6 +28,8 @@
 
 using Matrix64f = Eigen::Matrix<float, 64, 64>;
 
+// TODO: float_t = float
+
 class Matrix {
    public:
     Matrix(unsigned rows, unsigned cols, float value = 0.0f);
@@ -49,6 +51,7 @@ class Matrix {
 inline Matrix::Matrix(unsigned rows, unsigned cols, float value)
     : rows_(rows), cols_(cols) {
     data_.resize(rows_ * cols_);
+    // TODO: simplify
     for(unsigned i = 0; i < rows_; i++) {
         for(unsigned j = 0; j < cols_; j++) {
             data_[i * cols_ + j] = value;

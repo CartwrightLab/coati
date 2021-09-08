@@ -75,7 +75,7 @@ int mcoati(input_t& in_data) {
     return write_phylip(aln.f);
 }
 
-TEST_CASE("[align.cc] mcoati") {
+TEST_CASE("mcoati") {
     Matrix P(mg94_p(0.0133, 0.2));
 
     SUBCASE("Alignment with frameshifts (default) - output fasta") {
@@ -309,7 +309,7 @@ int fst_alignment(input_t& in_data, std::vector<VectorFstStdArc>& fsts) {
     return write_phylip(aln_path, out_fasta);
 }
 
-TEST_CASE("[align.cc] fst_alignment") {
+TEST_CASE("fst_alignment") {
     std::vector<VectorFstStdArc> fsts;
     VectorFstStdArc fsa0, fsa1;
 
@@ -609,7 +609,7 @@ int ref_indel_alignment(input_t& in_data) {
     return write_phylip(aln.f);
 }
 
-TEST_CASE("[align.cc] ref_indel_alignment") {
+TEST_CASE("ref_indel_alignment") {
     std::ofstream outfile;
     outfile.open("tree-msa.newick");
     REQUIRE(outfile);
@@ -758,7 +758,7 @@ float alignment_score(std::vector<std::string> alignment, Matrix& P,
     return (weight);
 }
 
-TEST_CASE("[align.cc] alignment_score") {
+TEST_CASE("alignment_score") {
     Matrix P(mg94_p(0.0133, 0.2));
 
     REQUIRE(alignment_score({"CTCTGGATAGTG", "CT----ATAGTG"}, P, 0.001,

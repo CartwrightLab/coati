@@ -51,10 +51,8 @@ int main(int argc, char* argv[]) {
             "Substitution rate matrix (CSV)")(
             "evo-time,t",
             po::value<float>(&in_data.br_len)->default_value(0.0133, "0.0133"),
-            "Evolutionary time or branch length")(
-            "no-frameshifts",
-            po::value<bool>(&in_data.frameshifts)->default_value(true),
-            "Don't allow frameshifts")(
+            "Evolutionary time or branch length")("no-frameshifts",
+                                                  "Don't allow frameshifts")(
             "gap-open,g", po::value<float>(&in_data.gapo)->default_value(0.001),
             "Gap opening score")(
             "gap-extend,e",

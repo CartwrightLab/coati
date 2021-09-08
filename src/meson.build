@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
+# Copyright (c) 2020-2021 Reed A. Cartwright <reed@cartwright.ht>
 # Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,63 +19,68 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-inc = include_directories('include')
+# Process version information
+semver = meson.project_version().split('.')
+version_src = configure_file(input : 'version.h.in.in',
+  output : 'version.h.in',
+  configuration : {
+    'version_major' : semver[0],
+    'version_minor' : semver[1],
+    'version_patch' : semver[2],
+    'version_int'   : (semver[0].to_int()*1000+ semver[1].to_int())*10000+ \
+                       semver[2].to_int(),
+    'version_vcs'   : '@VCS_TAG@'
 
-# version configure_file can't be run on a different dir (conf), see:
-# https://github.com/mesonbuild/meson/issues/30
-configure_file(input : 'version.h.in',
-  output : 'version.h',
-  configuration : version_conf)
+  })
 
-conf_inc = include_directories('.')
+version_file = vcs_tag(input : version_src, output : 'version.h')
+
+inc = include_directories(['.', 'include'])
+
+eigen_dep = dependency('eigen3',
+	fallback : ['eigen', 'eigen_dep'],
+	version : '>=3.3',
+	required : true
+)
+
+boost_dep = dependency('boost',
+	version : '>=1.47.0',
+	modules : ['program_options'],
+	required : true)
+
+if(get_option('DEVOPT_BENCHMARKING').enabled())
+	google_benchmark_dep = dependency('google-benchmark',
+	  fallback : ['google-benchmark', 'google_benchmark_dep'],
+		version : '>=1.5.2',
+		required : get_option('DEVOPT_BENCHMARKING'))
+endif
 
 subdir('lib')
 
-coati_version = executable('coati-version',
-  'coati-version.cc',
-  include_directories : [inc, conf_inc],
-  link_with : libcoati)
+progs=['alignpair', 'genseed', 'msa', 'version']
 
-coati_alignpair = executable('coati-alignpair',
-  'coati-alignpair.cc',
-  include_directories : [inc, conf_inc],
-  link_with : libcoati,
-  dependencies : [doctest_dep, eigen_dep, boost_dep, fstlib_dep],
-  install : true)
+foreach p : progs
+  exe = executable('coati-@0@'.format(p), ['coati-@0@.cc'.format(p), version_file],
+    link_with : [libcoati],
+    include_directories : inc,
+    dependencies : [boost_dep, eigen_dep, fstlib_dep, minionrng_dep],
+    cpp_args : ['-DDOCTEST_CONFIG_DISABLE'],
+    install : true,
+    install_dir : get_option('libexecdir')
+  )
+endforeach
 
-coati_msa = executable('coati-msa',
-  'coati-msa.cc',
-  include_directories : [inc, conf_inc],
-  link_with : libcoati,
-  dependencies : [doctest_dep, eigen_dep, boost_dep, fstlib_dep],
-  install : true)
+coati_src = configure_file(input : 'coati.cc.in',
+  output : 'coati.cpp',
+  configuration : {
+    'source_dir' : meson.current_source_dir(),
+    'prefix'     : get_option('prefix'),
+    'libexecdir' : get_option('libexecdir')
+  }
+)
 
-# coati main script
-coati_conf = configuration_data()
-coati_conf.set('MESON_CURRENT_SOURCE_DIR', meson.current_source_dir())
-coati_conf.set('MESON_INSTALL_PREFIX', get_option('prefix'))
-coati_conf.set('MESON_INSTALL_LIBEXECDIR', get_option('libexecdir'))
-
-configure_file(input : meson.current_source_dir() + '/coati.cc.in',
-  output : 'coati.cc',
-  configuration : coati_conf)
-
-coati = executable('coati',
-  meson.current_build_dir() + '/coati.cc',
-  include_directories : [inc, conf_inc],
-  link_with : libcoati,
-  dependencies : [doctest_dep, eigen_dep, boost_dep],
-  install : true)
-
-configure_file(input : meson.current_source_dir() + '/coati-doctest.cc.in',
-  output : 'coati-doctest.cc',
-  configuration : tests_conf,
-  depfile : 'libcoati_dep')
-
-coati_doctest = executable('coati-doctest',
-  meson.project_build_root() + '/src/coati-doctest.cc',
+executable('coati', [coati_src, version_file],
   include_directories : inc,
-  link_with : libcoati,
-  dependencies : [doctest_dep, eigen_dep, boost_dep, fstlib_dep])
-
-test('libcoati', coati_doctest)
+  link_with : [libcoati],
+  install : true
+)

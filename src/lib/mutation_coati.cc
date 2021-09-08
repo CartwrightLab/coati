@@ -102,7 +102,7 @@ Matrix mg94_p(float br_len, float omega) {
     return P;
 }
 
-TEST_CASE("[mutation_coati.cc] mg94_p") {
+TEST_CASE("mg94_p") {
     Matrix P(mg94_p(0.0133, 0.2));
 
     for(int i = 0; i < 64; i++) {
@@ -153,7 +153,7 @@ Tensor mg94_marginal_p(Matrix& P) {
     return p;
 }
 
-TEST_CASE("[mutation_coati.cc] mg94_marginal_p") {
+TEST_CASE("mg94_marginal_p") {
     // float branch_length = 0.0133;
     Matrix P = mg94_p(0.0133, 0.2);
     Tensor p = mg94_marginal_p(P);

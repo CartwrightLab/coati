@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
+# Copyright (c) 2021 Reed A. Cartwright <reed@cartwright.ht>
 # Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,45 +22,22 @@
 #  COdon-aware Alignment Transducer Project Configuration
 # Init Project
 project('COATI', 'cpp',
-	version : '0.1',
+	version : '0.1.9000',
 	license : 'MIT',
-	meson_version : '>=0.56.0',
+	meson_version : '>=0.58.0',
 	default_options: [ 'buildtype=debugoptimized', 'cpp_std=c++17' ])
 
-# Find Boost installation with library program_options
-# https://mesonbuild.com/Dependencies.html#boost
-boost_dep = dependency('boost',
-	version : '>=1.47.0',
-	modules : ['program_options'],
-	required : true)
-
-# Find Eigen library
-eigen_dep = dependency('eigen3',
-	fallback : ['eigen', 'eigen_dep'],
-	version : '>=3.3',
-	required : true)
-
-doctest_dep = dependency('doctest',
-	fallback : ['doctest', 'doctest_dep'],
-	version : '>=2.4.6',
-	required : true)
-
-if(get_option('DEVOPT_BENCHMARKING').enabled())
-	google_benchmark_dep = dependency('google-benchmark',
-	  fallback : ['google-benchmark', 'google_benchmark_dep'],
-		version : '>=1.5.2',
-		required : get_option('DEVOPT_BENCHMARKING'))
-endif
-
-fstlib_proj = subproject('fstlib')
-fstlib_dep = fstlib_proj.get_variable('fstlib_dep')
-fstlib_dep = fstlib_dep.as_system('system')
-
-minionrng_proj = subproject('minionrng')
-minionrng_dep = minionrng_proj.get_variable('minionrng_dep')
-
-coati_sources = ['version.cc', 'mutation_coati.cc', 'utils.cc', 'align.cc',
-  'tree.cc', 'insertions.cc', 'mutation_ecm.cc', 'mutation_fst.cc', 'gotoh.cc']
-
-subdir('conf')
+subdir('contrib')
 subdir('src')
+subdir('tests')
+
+# coati_sources = ['version.cc', 'mutation_coati.cc', 'utils.cc', 'align.cc',
+#   'tree.cc', 'insertions.cc', 'mutation_ecm.cc', 'mutation_fst.cc', 'gotoh.cc']
+
+configure_file(input : 'coati.sublime-project.in',
+  output : 'coati.sublime-project',
+	configuration : {
+	  'source_dir' : meson.project_source_root(),
+		'project_name' : meson.project_name()
+	}
+)

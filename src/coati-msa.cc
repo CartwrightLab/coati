@@ -45,10 +45,7 @@ int main(int argc, char* argv[]) {
             "tree,p", po::value<std::string>(&in_data.tree)->required(),
             "newick phylogenetic tree")(
             "ref,r", po::value<std::string>(&in_data.ref)->required(),
-            "reference sequence")(
-            "frameshifts",
-            po::value<bool>(&in_data.frameshifts)->default_value(true),
-            "Don't allow frameshifts")(
+            "reference sequence")("no-frameshifts", "Don't allow frameshifts")(
             "gap-open,g", po::value<float>(&in_data.gapo)->default_value(0.001),
             "Gap opening score")(
             "gap-extend,e",
@@ -75,7 +72,7 @@ int main(int argc, char* argv[]) {
             return EXIT_SUCCESS;
         }
 
-        if(varm.count("no_frameshifts")) {
+        if(varm.count("no-frameshifts")) {
             in_data.frameshifts = false;
         }
 

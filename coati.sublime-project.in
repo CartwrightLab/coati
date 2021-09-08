@@ -2,7 +2,7 @@
 	"folders":
 	[
 		{
-			"path": "@CMAKE_SOURCE_DIR@",
+			"path": "@source_dir@",
 			"folder_exclude_patterns": ["build"]
 		}
 	],
@@ -15,7 +15,11 @@
             {"file": "CMakeLists.txt"}
         ],
         "ecc_header_to_source_mapping": [
-            "./", "../", "../../", "../src/", "../lib/", "../../lib/"
+            "./{stamp}.cpp",
+            "@source_dir@/src/lib/{stamp}.cpp",
+            "@source_dir@/src/{stamp}.cpp",
+            "@source_dir@/src/lib/",
+            "@source_dir@/src/"
         ]
 	},
     "SublimeLinter": {
@@ -36,26 +40,26 @@
 	"build_systems":
 	[
 		{
-			"name": "@PROJECT_NAME@ - all",
-			"cmd": ["@CMAKE_COMMAND@", "--build", "${project_path}", "--target", "all"],
+			"name": "@project_name@ - all",
+			"cmd": ["meson", "compile", "-C", "${project_path}", "all"],
 			"working_dir": "${project_path}",
 			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$"
 		},
 		{
-			"name": "@PROJECT_NAME@ - test",
-			"cmd": ["@CMAKE_COMMAND@", "--build", "${project_path}", "--target", "test"],
+			"name": "@project_name@ - test",
+			"cmd": ["meson", "compile", "-C", "${project_path}", "test"],
 			"working_dir": "${project_path}",
 			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$"
 		},
         {
-            "name": "@PROJECT_NAME@ - clean",
-            "cmd": ["@CMAKE_COMMAND@", "--build", "${project_path}", "--target", "clean"],
+            "name": "@project_name@ - clean",
+            "cmd": ["meson", "compile", "-C", "${project_path}", "clean"],
             "working_dir": "${project_path}",
             "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$"
         },
         {
-            "name": "@PROJECT_NAME@ - check_all",
-            "cmd": ["@CMAKE_COMMAND@", "--build", "${project_path}", "--target", "check_all"],
+            "name": "@project_name@ - check_all",
+            "cmd": ["meson", "compile", "-C", "${project_path}", "check_all"],
             "working_dir": "${project_path}",
             "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$"
         },

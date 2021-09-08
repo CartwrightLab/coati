@@ -45,7 +45,7 @@ bool insertion_flags(const std::string& ref, const std::string& seq,
     return true;
 }
 
-TEST_CASE("[insertions.cc] insertion_flags") {
+TEST_CASE("insertion_flags") {
     SparseVectorInt insertions(7);
 
     SUBCASE("Different length - fail") {
@@ -153,7 +153,7 @@ bool merge_indels(std::vector<insertion_data_t>& ins_data,
     return true;
 }
 
-TEST_CASE("[insertions.cc] merge_indels") {
+TEST_CASE("merge_indels") {
     SUBCASE("Two sequences, two insertion vectors, two merges") {
         SparseVectorInt insA(14);  // size (upperbound) should be 2*length
         SparseVectorInt insB(14);
@@ -312,7 +312,7 @@ void add_gap(std::vector<insertion_data_t>& ins_data,
     }
 }
 
-TEST_CASE("[insertions.cc] add_gap") {
+TEST_CASE("add_gap") {
     SUBCASE("Three sequences with three insertion vectors") {
         SparseVectorInt insA(14);  // size (upperbound) should be 2*length
         SparseVectorInt insB(14);

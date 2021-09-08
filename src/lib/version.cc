@@ -29,20 +29,21 @@ static_assert(COATI_VERSION_MAJOR >= 0 && COATI_VERSION_MAJOR < 1000,  // NOLINT
               "COATI major version must be less than 1000.");
 static_assert(COATI_VERSION_MINOR >= 0 && COATI_VERSION_MINOR < 1000,  // NOLINT
               "COATI minor version must be less than 1000.");
-static_assert(COATI_VERSION_PATCH >= 0 && COATI_VERSION_PATCH < 1000,  // NOLINT
+static_assert(COATI_VERSION_PATCH >= 0 &&
+                  COATI_VERSION_PATCH < 10000,  // NOLINT
               "COATI patch version must be less than 1000.");
 
 bool coati::version_number_check_equal(int version_int) {
     return version_int == COATI_VERSION_INTEGER;
 }
 
-TEST_CASE("[libcoati] version_number_check_equal") {
+TEST_CASE("version_number_check_equal") {
     CHECK(coati::version_number_check_equal(COATI_VERSION_INTEGER) == true);
     CHECK(coati::version_number_check_equal(-1) == false);
 }
 
 int coati::version_integer() { return COATI_VERSION_INTEGER; }
 
-TEST_CASE("[libcoati] version_integer") {
+TEST_CASE("version_integer") {
     CHECK(coati::version_integer() == COATI_VERSION_INTEGER);
 }

@@ -28,9 +28,9 @@
 
 #include <coati/coati.hpp>
 
-#include "@MESON_CURRENT_SOURCE_DIR@/verb.hpp"
+#include "@source_dir@/verb.hpp"
 
-const char libexec_dir[] = "@MESON_INSTALL_PREFIX@/@MESON_INSTALL_LIBEXECDIR@";
+const char libexec_dir[] = "@prefix@/@libexecdir@";
 
 int main(int argc, char * const argv[]) {
     COATI_VERB_RUNTIME_CHECK_VERSION_NUMBER_OR_RETURN();

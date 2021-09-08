@@ -19,10 +19,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# libcoati library
-libcoati = static_library('libcoati',
-  coati_sources,
-  include_directories : [inc, conf_inc],
-  dependencies : [doctest_dep, eigen_dep, boost_dep, fstlib_dep, minionrng_dep],
-  install : true,
-  cpp_args : '-DDOCTEST_CONFIG_DISABLE')
+libcoati_sources = files([
+  'align.cc',
+  'gotoh.cc',
+  'insertions.cc',
+  'mutation_coati.cc',
+  'mutation_ecm.cc',
+  'mutation_fst.cc',
+  'tree.cc',
+  'utils.cc',
+  'version.cc'
+])
+
+libcoati_deps = [boost_dep, doctest_dep, eigen_dep, fstlib_dep]
+
+libcoati = static_library('libcoati', [libcoati_sources, version_file],
+  include_directories : inc,
+  dependencies : libcoati_deps,
+  cpp_args : ['-DDOCTEST_CONFIG_DISABLE']
+)

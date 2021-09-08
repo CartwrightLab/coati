@@ -20,15 +20,5 @@
 # SOFTWARE.
 */
 
-#include <coati/coati.hpp>
-#include <cstdlib>
-#include <iostream>
-
-#include "verb.hpp"
-
-int main(int /*argc*/, char* /*argv*/[]) {
-    COATI_VERB_RUNTIME_CHECK_VERSION_NUMBER_OR_RETURN();
-
-    std::cout << "COATI v" COATI_VERSION_STRING << std::endl;
-    return EXIT_SUCCESS;
-}
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <doctest/doctest.h>

@@ -1,0 +1,10 @@
+#ifndef COATI_VERSION_H_FILE
+#define COATI_VERSION_H_FILE
+
+#define COATI_VERSION_STRING   "@version_vcs@"
+#define COATI_VERSION_INTEGER  @version_int@
+#define COATI_VERSION_MAJOR    @version_major@
+#define COATI_VERSION_MINOR    @version_minor@
+#define COATI_VERSION_PATCH    @version_patch@
+
+#endif // COATI_VERSION_H_FILE
