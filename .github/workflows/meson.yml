@@ -29,7 +29,7 @@ jobs:
       with:
         action: test
         directory: builddir
-        setup-options: -Db_coverage
+        setup-options: -Db_coverage=true
         options: --verbose
         meson-version: 0.59.1
         ninja-version: 1.10.2
@@ -37,7 +37,7 @@ jobs:
       with:
         action: coverage
         directory: builddir
-        setup-options: -Db_coverage
+        setup-options: -Db_coverage=true
         options: --verbose
         meson-version: 0.59.1
         ninja-version: 1.10.2

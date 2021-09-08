@@ -19,7 +19,7 @@ Source code for the most recent beta versions is available at <https://github.co
 ### Dependencies
 
 * Recent C++ compiler, supporting C++11 (e.g. gcc 4.8.1+ or clang 3.3+)
-* Meson 0.56+
+* Meson 0.59+
 * Ninja 1.8.2+
 * Boost 1.47+ <http://www.boost.org/>
 

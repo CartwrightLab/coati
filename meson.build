@@ -31,9 +31,6 @@ subdir('contrib')
 subdir('src')
 subdir('tests')
 
-# coati_sources = ['version.cc', 'mutation_coati.cc', 'utils.cc', 'align.cc',
-#   'tree.cc', 'insertions.cc', 'mutation_ecm.cc', 'mutation_fst.cc', 'gotoh.cc']
-
 configure_file(input : 'coati.sublime-project.in',
   output : 'coati.sublime-project',
 	configuration : {
