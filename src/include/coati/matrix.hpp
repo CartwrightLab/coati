@@ -28,149 +28,130 @@
 
 using Matrix64f = Eigen::Matrix<float, 64, 64>;
 
-// TODO: float_t = float
+namespace coati {
 
+using float_t = float;
+
+template <class T>
 class Matrix {
    public:
-    Matrix(unsigned rows, unsigned cols, float value = 0.0f);
-    Matrix(unsigned rows, unsigned cols, Matrix64f& eigen_m);
-    Matrix(const Matrix& mat);                 // copy constructor
-    Matrix(Matrix&& mat) noexcept;             // move constructor
-    ~Matrix() = default;                       // destructor
-    Matrix& operator=(const Matrix& mat);      // assignment operator
-    Matrix& operator=(Matrix&& mat) noexcept;  // move assignment operator
-    float operator()(unsigned row, unsigned col) const;
-    float& operator()(unsigned row, unsigned col);
-    bool operator==(const Matrix& mat) const;
-
-   private:
-    unsigned rows_, cols_;
-    std::vector<float> data_;
-};
-
-inline Matrix::Matrix(unsigned rows, unsigned cols, float value)
-    : rows_(rows), cols_(cols) {
-    data_.resize(rows_ * cols_);
-    // TODO: simplify
-    for(unsigned i = 0; i < rows_; i++) {
-        for(unsigned j = 0; j < cols_; j++) {
-            data_[i * cols_ + j] = value;
+    Matrix(std::size_t rows, std::size_t cols, T value = 0.0f)
+        : rows_(rows), cols_(cols) {
+        data_.resize(rows_ * cols_);
+        data_.assign(data_.size(), value);
+    }
+    Matrix(std::size_t rows, std::size_t cols, Matrix64f& eigen_m)
+        : rows_(rows), cols_(cols) {
+        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m(
+            eigen_m);
+        data_.resize(rows_ * cols_);
+        for(std::size_t i = 0; i < rows_ * cols_; i++) {
+            data_[i] = m(i);
         }
     }
-}
-
-inline Matrix::Matrix(unsigned rows, unsigned cols, Matrix64f& eigen_m)
-    : rows_(rows), cols_(cols) {
-    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m(
-        eigen_m);
-    data_.resize(rows_ * cols_);
-    for(unsigned i = 0; i < rows_ * cols_; i++) {
-        data_[i] = m(i);
+    // copy constructor
+    Matrix(const Matrix& mat) : rows_(mat.rows_), cols_(mat.cols_) {
+        memcpy(&data_[0], &mat.data_[0], rows_ * cols_ * sizeof(T));
     }
-}
-
-inline Matrix::Matrix(const Matrix& mat) : rows_(mat.rows_), cols_(mat.cols_) {
-    memcpy(&data_[0], &mat.data_[0], rows_ * cols_ * sizeof(float));
-}
-
-inline Matrix::Matrix(Matrix&& mat) noexcept
-    : rows_(mat.rows_), cols_(mat.cols_), data_(std::move(mat.data_)){};
-
-inline Matrix& Matrix::operator=(const Matrix& mat) {
-    if(&mat != this) {
-        memcpy(&data_[0], &mat.data_[0], rows_ * cols_ * sizeof(float));
+    // move constructor
+    Matrix(Matrix&& mat) noexcept
+        : rows_(mat.rows_), cols_(mat.cols_), data_(std::move(mat.data_)){};
+    // destructor
+    ~Matrix() = default;
+    // assignment operator
+    Matrix& operator=(const Matrix& mat) {
+        if(&mat != this) {
+            memcpy(&data_[0], &mat.data_[0], rows_ * cols_ * sizeof(T));
+        }
+        return *this;
     }
-    return *this;
-}
-
-inline Matrix& Matrix::operator=(Matrix&& mat) noexcept {
-    rows_ = mat.rows_;
-    cols_ = mat.cols_;
-    data_ = std::move(mat.data_);
-    return *this;
-};
-
-inline float Matrix::operator()(unsigned row, unsigned col) const {
-    return data_[row * cols_ + col];
-}
-
-inline float& Matrix::operator()(unsigned row, unsigned col) {
-    return data_[row * cols_ + col];
-}
-
-inline bool Matrix::operator==(const Matrix& mat) const {
-    if((rows_ != mat.rows_) || (cols_ != mat.cols_)) {
-        return false;
+    // move assignment operator
+    Matrix& operator=(Matrix&& mat) noexcept {
+        rows_ = mat.rows_;
+        cols_ = mat.cols_;
+        data_ = std::move(mat.data_);
+        return *this;
     }
-
-    for(unsigned i = 0; i < rows_ * cols_; i++) {
-        if(data_[i] != mat.data_[i]) {
+    T operator()(std::size_t row, std::size_t col) const {
+        return data_[row * cols_ + col];
+    }
+    T& operator()(std::size_t row, std::size_t col) {
+        return data_[row * cols_ + col];
+    }
+    bool operator==(const Matrix& mat) const {
+        if((rows_ != mat.rows_) || (cols_ != mat.cols_)) {
             return false;
         }
+
+        for(std::size_t i = 0; i < rows_ * cols_; i++) {
+            if(data_[i] != mat.data_[i]) {
+                return false;
+            }
+        }
+        return true;
     }
-    return true;
-}
+
+   private:
+    std::size_t rows_, cols_;
+    std::vector<T> data_;
+};  // class matrix
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// template <class T>
+template <class T>
 class Tensor {
    public:
-    Tensor(unsigned dims, unsigned rows, unsigned cols, float value = 0.0f);
-    Tensor(const Tensor& tens);                 // copy constructor
-    Tensor(Tensor&& tens) noexcept;             // move constructor
-    ~Tensor() = default;                        // destructor
-    Tensor& operator=(const Tensor& tens);      // assignment operator
-    Tensor& operator=(Tensor&& tens) noexcept;  // move assignment operator
-    float operator()(unsigned dims, unsigned rows, unsigned cols) const;
-    float& operator()(unsigned dims, unsigned rows, unsigned cols);
+    Tensor(std::size_t dims, std::size_t rows, std::size_t cols, T value = 0.0f)
+        : dims_(dims), rows_(rows), cols_(cols) {
+        data_.resize(dims_ * rows_ * cols_);
+        data_.assign(data_.size(), value);
+    }
+    // copy constructor
+    Tensor(const Tensor& tens)
+        : dims_(tens.dims_), rows_(tens.rows_), cols_(tens.cols_) {
+        memcpy(&data_[0], &tens.data_[0], dims_ * rows_ * cols_ * sizeof(T));
+    }
+    // move constructor
+    Tensor(Tensor&& tens) noexcept
+        : dims_(tens.dims_),
+          rows_(tens.rows_),
+          cols_(tens.cols_),
+          data_(std::move(tens.data_)) {}
+    // destructor
+    ~Tensor() = default;
+    // assignment operator
+    Tensor& operator=(const Tensor& tens) {
+        if(&tens != this) {
+            memcpy(&data_[0], &tens.data_[0],
+                   dims_ * rows_ * cols_ * sizeof(T));
+        }
+        return *this;
+    }
+    // move assignment operator
+    Tensor& operator=(Tensor&& tens) noexcept {
+        dims_ = tens.dims_;
+        rows_ = tens.rows_;
+        cols_ = tens.cols_;
+        data_ = std::move(tens.data_);
+        return *this;
+    }
+    T operator()(std::size_t dims, std::size_t row, std::size_t col) const {
+        return data_[dims * rows_ * cols_ + row * cols_ + col];
+    }
+    T& operator()(std::size_t dims, std::size_t row, std::size_t col) {
+        return data_[dims * rows_ * cols_ + row * cols_ + col];
+    }
     bool operator==(const Tensor& tens) const;
 
    private:
-    unsigned dims_, rows_, cols_;
-    std::vector<float> data_;
-};
+    std::size_t dims_, rows_, cols_;
+    std::vector<T> data_;
+};  // class Tensor
 
-inline Tensor::Tensor(unsigned dims, unsigned rows, unsigned cols, float value)
-    : dims_(dims), rows_(rows), cols_(cols) {
-    data_.resize(dims_ * rows_ * cols_);
-    for(unsigned i = 0; i < dims_ * rows_ * cols_; i++) {
-        data_[i] = value;
-    }
-}
+using Matrixf = Matrix<float_t>;
+using Matrixi = Matrix<int>;
+using Tensorf = Tensor<float_t>;
 
-inline Tensor::Tensor(const Tensor& tens)
-    : dims_(tens.dims_), rows_(tens.rows_), cols_(tens.cols_) {
-    memcpy(&data_[0], &tens.data_[0], dims_ * rows_ * cols_ * sizeof(float));
-}
-
-inline Tensor::Tensor(Tensor&& tens) noexcept
-    : dims_(tens.dims_),
-      rows_(tens.rows_),
-      cols_(tens.cols_),
-      data_(std::move(tens.data_)) {}
-
-inline Tensor& Tensor::operator=(const Tensor& tens) {
-    if(&tens != this) {
-        memcpy(&data_[0], &tens.data_[0],
-               dims_ * rows_ * cols_ * sizeof(float));
-    }
-    return *this;
-}
-
-inline Tensor& Tensor::operator=(Tensor&& tens) noexcept {
-    dims_ = tens.dims_;
-    rows_ = tens.rows_;
-    cols_ = tens.cols_;
-    data_ = std::move(tens.data_);
-    return *this;
-}
-
-inline float& Tensor::operator()(unsigned dim, unsigned row, unsigned col) {
-    return data_[dim * rows_ * cols_ + row * cols_ + col];
-}
-
-inline float Tensor::operator()(unsigned dim, unsigned row,
-                                unsigned col) const {
-    return data_[dim * rows_ * cols_ + row * cols_ + col];
-}
+}  // namespace coati
 #endif

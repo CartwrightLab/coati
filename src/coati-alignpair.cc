@@ -34,6 +34,22 @@ int main(int argc, char* argv[]) {
     set_cli_options(alignpair, in_data, "alignpair");
     CLI11_PARSE(alignpair, argc, argv);
 
+    // if no output is specified save in current dir in PHYLIP format
+    if(in_data.out_file.empty()) {
+        in_data.out_file =
+            std::filesystem::path(in_data.fasta_file.path).stem().string() +
+            ".phy";
+    } else {  // check format is valid (phylip/fasta)
+        const std::string extension =
+            std::filesystem::path(in_data.out_file).extension();
+        const std::regex valid_ext("^.phy$|^.fasta$|^.fa$");
+        if(!std::regex_match(extension, valid_ext)) {
+            throw std::invalid_argument(
+                "Output file format is invalid. Phylip and fasta files "
+                "supported.");
+        }
+    }
+
     std::vector<VectorFstStdArc> fsts;
 
     if(in_data.mut_model.compare("m-coati") == 0 ||

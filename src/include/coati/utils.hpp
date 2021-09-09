@@ -56,13 +56,19 @@ const uint8_t nt4_table[256] = {
     4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
 
 /* Table for looking up a codon ECM group */
-const uint8_t codon_table[64] = {
+const uint8_t amino_group_table[64] = {
     75, 78, 75, 78, 84, 84, 84, 84, 82, 83, 82, 83, 73, 73, 77, 73,
     81, 72, 81, 72, 80, 80, 80, 80, 82, 82, 82, 82, 76, 76, 76, 76,
     69, 68, 69, 68, 65, 65, 65, 65, 71, 71, 71, 71, 86, 86, 86, 86,
     42, 89, 42, 89, 83, 83, 83, 83, 42, 67, 87, 67, 76, 70, 76, 70};
 
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
+
+/* Positional codon table AAA=0,AAC=1,AAG=2,AAT=3,...,TTT=63 */
+const unsigned char codon_table[64] =
+    {
+
+}
 
 struct fasta_t {
     std::filesystem::path path;
@@ -130,7 +136,7 @@ int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file);
 bool acceptor(std::string content, VectorFstStdArc& accept);
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(std::string codon);
-Matrix parse_matrix_csv(const std::string& file);
+coati::Matrix<coati::float_t> parse_matrix_csv(const std::string& file);
 void read_fasta_pair(fasta_t& fasta_file, std::vector<VectorFstStdArc>& fsts,
                      bool fst);
 void set_cli_options(CLI::App& app, input_t& in_data,

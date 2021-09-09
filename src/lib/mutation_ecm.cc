@@ -102,7 +102,7 @@ TEST_CASE("k") {
 }
 
 /* Empirical Codon Model P matrix */
-Matrix ecm_p(float br_len, float omega) {
+coati::Matrixf ecm_p(float br_len, float omega) {
     if(br_len <= 0) {
         throw std::out_of_range("Branch length must be positive.");
     }
@@ -115,12 +115,12 @@ Matrix ecm_p(float br_len, float omega) {
         float rowSum = 0.0;
         for(uint8_t j = 0; j < 64; j++) {
             // check if codons i or j are stop codons
-            if(i == j || codon_table[i] == '*' || codon_table[j] == '*') {
+            if(i == j || amino_group_table[i] == '*' || amino_group_table[j] == '*') {
                 continue;
             }
-            if(codon_table[i] == codon_table[j]) {
+            if(amino_group_table[i] == amino_group_table[j]) {
                 Q(i, j) = exchang[i][j] * ecm_pi[j] * k(i, j, 0);
-            } else {  // codon_table[i] != codon_table[j]{
+            } else {  // amino_group_table[i] != amino_group_table[j]{
                 Q(i, j) = exchang[i][j] * ecm_pi[j] * k(i, j, 0) * omega;
             }
             rowSum += Q(i, j);
@@ -136,14 +136,14 @@ Matrix ecm_p(float br_len, float omega) {
     Q = Q * br_len;
     Q = Q.exp();
 
-    Matrix P(64, 64, Q);
+    coati::Matrixf P(64, 64, Q);
 
     return P;
 }
 
 /* Empirical Codon Model (Kosiol et al. 2007) FST */
 VectorFstStdArc ecm(float br_len, float omega) {
-    Matrix P = ecm_p(br_len, omega);
+    coati::Matrixf P = ecm_p(br_len, omega);
 
     // Add state 0 and make it the start state
     VectorFstStdArc ecm;

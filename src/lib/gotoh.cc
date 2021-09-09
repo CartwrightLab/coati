@@ -26,9 +26,9 @@
 
 /* Dynamic Programming implementation of Marginal MG94 model*/
 int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
-                  Matrix& P_m, bool frameshifts) {
+                  coati::Matrixf& P_m, bool frameshifts) {
     // P matrix for marginal Muse and Gaut codon model
-    Tensor p = mg94_marginal_p(P_m);
+    coati::Tensorf p = mg94_marginal_p(P_m);
 
     std::string seq_a = sequences[0];
     std::string seq_b = sequences[1];
@@ -43,15 +43,15 @@ int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
     }
 
     // DP matrices for match/mismatch (D), insertion (P), and deletion (Q)
-    Matrix D(m + 1, n + 1, std::numeric_limits<float>::max());
-    Matrix P(m + 1, n + 1, std::numeric_limits<float>::max());
-    Matrix Q(m + 1, n + 1, std::numeric_limits<float>::max());
+    coati::Matrixf D(m + 1, n + 1, std::numeric_limits<float>::max());
+    coati::Matrixf P(m + 1, n + 1, std::numeric_limits<float>::max());
+    coati::Matrixf Q(m + 1, n + 1, std::numeric_limits<float>::max());
 
     // backtracking info matrices for match/mismatch (Bd), insert (Bp), and
     // deletion (Bq)
-    Matrix Bd(m + 1, n + 1, -1.0f);
-    Matrix Bp(m + 1, n + 1, -1.0f);
-    Matrix Bq(m + 1, n + 1, -1.0f);
+    coati::Matrixi Bd(m + 1, n + 1, -1);
+    coati::Matrixi Bp(m + 1, n + 1, -1);
+    coati::Matrixi Bq(m + 1, n + 1, -1);
 
     float insertion = logf(0.001);
     float deletion = logf(0.001);
@@ -169,7 +169,7 @@ int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
 
 /* Return value from marginal MG94 model p matrix for a given transition */
 float transition(const std::string& codon, int position, unsigned char nuc,
-                 const Tensor& p, int position2, bool frameshifts) {
+                 const coati::Tensorf& p, int position2, bool frameshifts) {
     if(!frameshifts && (position != position2)) {
         return 0;
     }
@@ -188,15 +188,16 @@ float transition(const std::string& codon, int position, unsigned char nuc,
 
 TEST_CASE("transition") {
     std::string codon{"AAA"};
-    Matrix P(mg94_p(0.0133, 0.2));
+    coati::Matrixf P(mg94_p(0.0133, 0.2));
 
     CHECK(transition(codon, 1, 'N', mg94_marginal_p(P)) ==
           doctest::Approx(0.25));
 }
 
 /* Recover alignment given backtracking matrices for DP alignment */
-int backtracking(const Matrix& Bd, const Matrix& Bp, const Matrix& Bq,
-                 std::string seqa, std::string seqb, alignment_t& aln) {
+int backtracking(const coati::Matrixi& Bd, const coati::Matrixi& Bp,
+                 const coati::Matrixi& Bq, std::string seqa, std::string seqb,
+                 alignment_t& aln) {
     int i = static_cast<int>(seqa.length());
     int j = static_cast<int>(seqb.length());
 

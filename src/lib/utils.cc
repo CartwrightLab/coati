@@ -630,7 +630,7 @@ int cod_int(std::string codon) {
 }
 
 /* Read substitution rate matrix from a CSV file */
-Matrix parse_matrix_csv(const std::string& file) {
+coati::Matrix<coati::float_t> parse_matrix_csv(const std::string& file) {
     float br_len{NAN};
     Matrix64f Q;
     std::ifstream input(file);
@@ -665,14 +665,14 @@ Matrix parse_matrix_csv(const std::string& file) {
     Q = Q * br_len;
     Q = Q.exp();
 
-    Matrix P(64, 64, Q);
+    coati::Matrix<coati::float_t> P(64, 64, Q);
 
     return P;
 }
 
 TEST_CASE("parse_matrix_csv") {
     std::ofstream outfile;
-    Matrix P(mg94_p(0.0133, 0.2));
+    coati::Matrix<coati::float_t> P(mg94_p(0.0133, 0.2));
 
     const std::vector<std::string> codons = {
         "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC",
@@ -700,7 +700,8 @@ TEST_CASE("parse_matrix_csv") {
     }
 
     outfile.close();
-    Matrix P_test(parse_matrix_csv("test-marg-matrix.csv"));
+    coati::Matrix<coati::float_t> P_test(
+        parse_matrix_csv("test-marg-matrix.csv"));
     for(auto i = 0; i < 64; i++) {
         for(auto j = 0; j < 64; j++) {
             CHECK(P(i, j) == doctest::Approx(P_test(i, j)));
@@ -741,20 +742,4 @@ void set_cli_options(CLI::App& app, input_t& in_data,
         ->check(CLI::PositiveNumber);
     app.add_flag("!--no-frameshifts", in_data.frameshifts,
                  "Do not allow frameshifts");
-
-    // if no output is specified save in current dir in PHYLIP format
-    if(in_data.out_file.empty()) {
-        in_data.out_file =
-            std::filesystem::path(in_data.fasta_file.path).stem().string() +
-            ".phy";
-    } else {
-        const std::string extension =
-            std::filesystem::path(in_data.out_file).extension();
-        const std::regex valid_ext("[.phy,.fasta.fa]");
-        if(!std::regex_match(extension, valid_ext)) {
-            throw std::invalid_argument(
-                "Output file format is invalid. Phyllip and fasta files "
-                "supported.");
-        }
-    }
 }

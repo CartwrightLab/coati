@@ -47,4 +47,4 @@ jobs:
       with:
         files: builddir/meson-logs/coverage.info
     - run: ninja clang-format-check -C builddir/
-    - run: ninja clangtidy -C builddir/
+    - run: ninja clang-tidy -C builddir/

@@ -32,7 +32,7 @@
 #include "mg94p.tcc"
 #include "utils.hpp"
 
-Matrix mg94_p(float br_len, float omega);
-Tensor mg94_marginal_p(Matrix& P);
+coati::Matrixf mg94_p(float br_len, float omega);
+coati::Tensorf mg94_marginal_p(coati::Matrix<coati::float_t>& P);
 
 #endif

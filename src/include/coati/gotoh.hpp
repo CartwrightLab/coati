@@ -26,10 +26,12 @@
 #include "mutation_coati.hpp"
 
 int mg94_marginal(std::vector<std::string> sequences, alignment_t& aln,
-                  Matrix& P, bool frameshifts = true);
+                  coati::Matrixf& P, bool frameshifts = true);
 float transition(const std::string& codon, int position, unsigned char nuc,
-                 const Tensor& p, int position2 = -1, bool frameshifts = true);
-int backtracking(const Matrix& Bd, const Matrix& Bp, const Matrix& Bq,
-                 std::string seqa, std::string seqb, alignment_t& aln);
+                 const coati::Tensorf& p, int position2 = -1,
+                 bool frameshifts = true);
+int backtracking(const coati::Matrixi& Bd, const coati::Matrixi& Bp,
+                 const coati::Matrixi& Bq, std::string seqa, std::string seqb,
+                 alignment_t& aln);
 
 #endif

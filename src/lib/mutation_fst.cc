@@ -26,7 +26,7 @@
 
 /* Create Muse and Gaut codon model FST */
 VectorFstStdArc mg94(float br_len, float omega) {
-    Matrix P = mg94_p(br_len, omega);
+    coati::Matrixf P = mg94_p(br_len, omega);
 
     // Add state 0 and make it the start state
     VectorFstStdArc mg94;
@@ -65,14 +65,14 @@ TEST_CASE("mg94") {
 
 /* Create dna marginal Muse and Gaut codon model FST*/
 VectorFstStdArc dna(float br_len, float omega) {
-    Matrix P = mg94_p(br_len, omega);
+    coati::Matrixf P = mg94_p(br_len, omega);
 
     // Add state 0 and make it the start state
     VectorFstStdArc dna;
     dna.AddState();
     dna.SetStart(0);
 
-    Matrix dna_p(4, 4);
+    coati::Matrixf dna_p(4, 4);
 
     for(uint8_t cod = 0; cod < 64; cod++) {     // for each codon
         for(int pos = 0; pos < 3; pos++) {      // for each position in a codon

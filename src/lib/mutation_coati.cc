@@ -28,7 +28,7 @@
 // const float omega = 0.2;  // github.com/reedacartwright/toycoati
 
 /* Muse & Gaut Model (1994) P matrix given branch length*/
-Matrix mg94_p(float br_len, float omega) {
+coati::Matrixf mg94_p(float br_len, float omega) {
     if(br_len <= 0) {
         throw std::out_of_range("Branch length must be positive.");
     }
@@ -69,7 +69,8 @@ Matrix mg94_p(float br_len, float omega) {
             } else if(cod_distance(i, j) > 1) {
                 Q(i, j) = 0;
             } else {
-                w = ((codon_table[i] == codon_table[j]) ? 1 : omega);
+                w = ((amino_group_table[i] == amino_group_table[j]) ? 1
+                                                                    : omega);
 
                 // split into cases to avoid use of pow (speed-up)
                 if((i & first_cod_mask) != (j & first_cod_mask)) {
@@ -97,13 +98,13 @@ Matrix mg94_p(float br_len, float omega) {
     Q = Q * br_len;
     Q = Q.exp();
 
-    Matrix P(64, 64, Q);
+    coati::Matrixf P(64, 64, Q);
 
     return P;
 }
 
 TEST_CASE("mg94_p") {
-    Matrix P(mg94_p(0.0133, 0.2));
+    coati::Matrixf P(mg94_p(0.0133, 0.2));
 
     for(int i = 0; i < 64; i++) {
         for(int j = 0; j < 64; j++) {
@@ -113,9 +114,9 @@ TEST_CASE("mg94_p") {
 }
 
 /* Create marginal Muse and Gaut codon model P matrix*/
-Tensor mg94_marginal_p(Matrix& P) {
+coati::Tensorf mg94_marginal_p(coati::Matrixf& P) {
     float marg{NAN};
-    Tensor p(64, 3, 4);
+    coati::Tensorf p(64, 3, 4);
 
     for(int cod = 0; cod < 64; cod++) {
         for(int pos = 0; pos < 3; pos++) {
@@ -155,8 +156,8 @@ Tensor mg94_marginal_p(Matrix& P) {
 
 TEST_CASE("mg94_marginal_p") {
     // float branch_length = 0.0133;
-    Matrix P = mg94_p(0.0133, 0.2);
-    Tensor p = mg94_marginal_p(P);
+    coati::Matrixf P = mg94_p(0.0133, 0.2);
+    coati::Tensorf p = mg94_marginal_p(P);
 
     for(int cod = 0; cod < 64; cod++) {
         for(int pos = 0; pos < 3; pos++) {

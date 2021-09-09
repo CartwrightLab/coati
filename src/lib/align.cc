@@ -27,7 +27,7 @@
 
 /* Alignment using dynamic programming implementation of marginal COATi model */
 int mcoati(input_t& in_data) {
-    Matrix P(64, 64);
+    coati::Matrixf P(64, 64);
     std::vector<VectorFstStdArc> fsts;
     std::ofstream out_w;
     alignment_t aln;
@@ -76,7 +76,7 @@ int mcoati(input_t& in_data) {
 }
 
 TEST_CASE("mcoati") {
-    Matrix P(mg94_p(0.0133, 0.2));
+    coati::Matrixf P(mg94_p(0.0133, 0.2));
 
     SUBCASE("Alignment with frameshifts (default) - output fasta") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
@@ -453,7 +453,7 @@ TEST_CASE("fst_alignment") {
 
 /* Initial msa by collapsing indels after pairwise aln with reference */
 int ref_indel_alignment(input_t& in_data) {
-    Matrix P(64, 64);
+    coati::Matrixf P(64, 64);
     tree_t tree;
     std::string newick;
     alignment_t aln, aln_tmp;
@@ -667,7 +667,7 @@ TEST_CASE("ref_indel_alignment") {
     }
 }
 
-float alignment_score(std::vector<std::string> alignment, Matrix& P,
+float alignment_score(std::vector<std::string> alignment, coati::Matrixf& P,
                       float gap_open, float gap_extend) {
     if(alignment[0].length() != alignment[1].length()) {
         throw std::invalid_argument(
@@ -684,7 +684,7 @@ float alignment_score(std::vector<std::string> alignment, Matrix& P,
     float deletion_ext = gap_extend;
 
     // P matrix for marginal Muse and Gaut codon model
-    Tensor p = mg94_marginal_p(P);
+    coati::Tensorf p = mg94_marginal_p(P);
 
     std::string seq1 = alignment[0];
     boost::erase_all(seq1, "-");
@@ -759,7 +759,7 @@ float alignment_score(std::vector<std::string> alignment, Matrix& P,
 }
 
 TEST_CASE("alignment_score") {
-    Matrix P(mg94_p(0.0133, 0.2));
+    coati::Matrixf P(mg94_p(0.0133, 0.2));
 
     REQUIRE(alignment_score({"CTCTGGATAGTG", "CT----ATAGTG"}, P, 0.001,
                             1.f - 1.f / 6.f) == doctest::Approx(9.29064));
