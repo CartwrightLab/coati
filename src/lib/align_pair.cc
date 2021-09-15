@@ -37,140 +37,127 @@ void align_pair(align_pair_work_t &work, const seq_view_t &a,
     const float_t lowest = std::numeric_limits<float_t>::lowest();
 
     // create matrices
-    size_t len_a = a.length() + 1;           // length of ancestor
-    size_t len_b = b.length() + 1;           // length of descendant
-    work.mch.resize(len_a, len_b, lowest);   // match matrix
-    work.del.resize(len_a, len_b, lowest);   // deletion matrix
-    work.ins.resize(len_a, len_b, lowest);   // insertion matrix
-    work.path_mch.resize(len_a, len_b, -1);  // path match matrix
-    work.path_del.resize(len_a, len_b, -1);  // path deletion matrix
-    work.path_ins.resize(len_a, len_b, -1);  // path insertion matrix
+    size_t len_a = a.length() + 1;              // length of ancestor
+    size_t len_b = b.length() + 1;              // length of descendant
+    work.mch.resize(len_a, len_b, lowest);      // match matrix
+    work.del.resize(len_a, len_b, lowest);      // deletion matrix
+    work.ins.resize(len_a, len_b, lowest);      // insertion matrix
+    work.mch_mch.resize(len_a, len_b, lowest);  // match to match matrix
+    work.mch_del.resize(len_a, len_b, lowest);  // match to del matrix
+    work.mch_ins.resize(len_a, len_b, lowest);  // match to ins matrix
+    work.del_mch.resize(len_a, len_b, lowest);  // del to match matrix
+    work.del_del.resize(len_a, len_b, lowest);  // del to del matrix
+    work.ins_mch.resize(len_a, len_b, lowest);  // ins to match matrix
+    work.ins_ins.resize(len_a, len_b, lowest);  // ins to ins matrix
+    work.ins_del.resize(len_a, len_b, lowest);  // ins to del matrix
 
     // initialize the margins of the matrices
     work.mch(0, 0) = 0.0;
-    work.path_mch(0, 0) = 0;
 
     for(size_t i = 1; i < len_a; ++i) {
-        work.mch(i, 0) = no_gap + gap_open + gap_extend * (i - 1);
-        work.del(i, 0) = no_gap + gap_open + gap_extend * (i - 1);
-        work.path_mch(i, 0) = 1;  // del
-        work.path_del(i, 0) = 2;  // gap extension
+        work.del(i, 0) = work.del_del(i, 0) =
+            no_gap + gap_open + gap_extend * (i - 1);
     }
-    for(size_t j = 2; j < len_b; ++j) {
-        work.mch(0, j) = gap_open + gap_extend * (j - 1);
-        work.ins(0, j) = gap_open + gap_extend * (j - 1);
-        work.path_mch(0, j) = 2;  // ins
-        work.path_ins(0, j) = 2;  // gap extension
+    for(size_t j = 1; j < len_b; ++j) {
+        work.ins(0, j) = work.ins_ins(0, j) = gap_open + gap_extend * (j - 1);
     }
-
-    work.path_del(1, 0) = 1;
-    work.path_ins(0, 1) = 1;
 
     // fill the body of the matrices
     for(size_t i = 1; i < len_a; ++i) {
         for(size_t j = 1; j < len_b; ++j) {
-            // matches can follow matches, ins, or del
-            switch(work.path_mch(i - 1, j - 1)) {
-            case 0:
-                work.mch(i, j) = 2 * no_gap + work.mch(i - 1, j - 1) +
-                                 match(a[i - 1], b[j - 1]);
-                break;
-            case 1:
-                work.mch(i, j) = gap_stop + work.mch(i - 1, j - 1) +
-                                 match(a[i - 1], b[j - 1]);
-                break;
-            case 2:
-                work.mch(i, j) = gap_stop + no_gap + work.mch(i - 1, j - 1) +
-                                 match(a[i - 1], b[j - 1]);
-                break;
-            }
+            //  from match, ins, or del to match
+            auto mch = match(a[i - 1], b[j - 1]);
+            work.mch_mch(i, j) = work.mch(i - 1, j - 1) + 2 * no_gap + mch;
+            work.del_mch(i, j) = work.del(i - 1, j - 1) + gap_stop + mch;
+            work.ins_mch(i, j) =
+                work.ins(i - 1, j - 1) + gap_stop + no_gap + mch;
 
-            // deletions can follow matches, ins, or del
-            auto del_del = work.del(i - 1, j) + gap_extend;
-            auto del_mch = work.mch(i - 1, j) + no_gap + gap_open;
-            auto del_ins = work.ins(i - 1, j) + gap_stop + gap_open;
+            // from match or del to del
+            work.mch_del(i, j) = work.mch(i - 1, j) + no_gap + gap_open;
+            work.del_del(i, j) = work.del(i - 1, j) + gap_extend;
+            work.ins_del(i, j) = work.ins(i - 1, j) + gap_stop + gap_open;
 
-            // insertions can follow matches or ins.
-            auto ins_mch = work.mch(i, j - 1) + gap_open;
-            auto ins_ins = work.ins(i, j - 1) + gap_extend;
+            // from match, del, or ins to ins
+            work.mch_ins(i, j) = work.mch(i, j - 1) + gap_open;
+            work.ins_ins(i, j) = work.ins(i, j - 1) + gap_extend;
 
             // save score
-            work.del(i, j) = maximum(del_mch, del_del, del_ins);
-            work.ins(i, j) = maximum(ins_mch, ins_ins);
-
-            // save ins & del path: (1) gap open, (2) gap extend
-            work.path_del(i, j) =
-                ((del_del > del_mch) && (del_del > del_ins)) ? 2 : 1;
-            work.path_ins(i, j) = (ins_mch > ins_ins) ? 1 : 2;
-
-            // save mch path: (0) match, (1) deletion, (2) insertion
-            int path = 0;
-            auto score = work.mch(i, j);
-            if(work.del(i, j) > score) {
-                score = work.del(i, j);
-                path = 1;
-            }
-            if(work.ins(i, j) > score) {
-                score = work.ins(i, j);
-                path = 2;
-            }
-            work.mch(i, j) = score;
-            work.path_mch(i, j) = path;
+            work.mch(i, j) = maximum(work.mch_mch(i, j), work.del_mch(i, j),
+                                     work.ins_mch(i, j));
+            work.del(i, j) = maximum(work.mch_del(i, j), work.del_del(i, j),
+                                     work.ins_del(i, j));
+            work.ins(i, j) = maximum(work.mch_ins(i, j), work.ins_ins(i, j));
         }
     }
     {
         // adjust the terminal state
         work.mch(len_a - 1, len_b - 1) += no_gap;
         work.ins(len_a - 1, len_b - 1) += gap_stop;
-        int path = 0;
-        auto score = work.mch(len_a - 1, len_b - 1);
-        if(work.del(len_a - 1, len_b - 1) > score) {
-            score = work.del(len_a - 1, len_b - 1);
-            path = 1;
-        }
-        if(work.ins(len_a - 1, len_b - 1) > score) {
-            score = work.ins(len_a - 1, len_b - 1);
-            path = 2;
-        }
-        work.path_mch(len_a - 1, len_b - 1) = path;
-        work.mch(len_a - 1, len_b - 1) = score;
-        work.path_mch(0, 0) = -1;
     }
 }
 
 void traceback(const align_pair_work_t &work, const std::string &a,
                const std::string &b, alignment_t &aln) {
     // sequence_pair_t ret(2);
-    size_t i = work.path_mch.rows() - 1;
-    size_t j = work.path_mch.cols() - 1;
-
-    aln.weight = work.mch(i, j);
+    size_t i = work.mch_mch.rows() - 1;
+    size_t j = work.mch_mch.cols() - 1;
 
     aln.f.seq_data.resize(2);
     aln.f.seq_data[0].reserve(i + j);
     aln.f.seq_data[1].reserve(i + j);
 
-    for(int m = work.path_mch(i, j); m != -1; m = work.path_mch(i, j)) {
+    aln.weight = work.mch(i, j);
+    int m = 0;
+    float_t score;
+    if(work.del(i, j) > aln.weight) {
+        aln.weight = work.del(i, j);
+        m = 1;
+    }
+    if(work.ins(i, j) > aln.weight) {
+        aln.weight = work.ins(i, j);
+        m = 2;
+    }
+
+    while((j > 0) || (i > 0)) {
         switch(m) {
         case 0:  // match
             aln.f.seq_data[0].push_back(a[i - 1]);
             aln.f.seq_data[1].push_back(b[j - 1]);
+            score = work.mch_mch(i, j);
+            m = 0;
+            if(work.del_mch(i, j) > score) {
+                score = work.del_mch(i, j);
+                m = 1;
+            }
+            if(work.ins_mch(i, j) > score) {
+                m = 2;
+            }
             i--;
             j--;
             break;
         case 1:  // deletion
-            do {
-                aln.f.seq_data[0].push_back(a[i - 1]);
-                aln.f.seq_data[1].push_back('-');
-                i--;
-            } while(work.path_del(i + 1, j) == 2);
+            aln.f.seq_data[0].push_back(a[i - 1]);
+            aln.f.seq_data[1].push_back('-');
+            score = work.mch_del(i, j);
+            m = 0;
+            if(work.del_del(i, j) > score) {
+                score = work.del_del(i, j);
+                m = 1;
+            }
+            if(work.ins_del(i, j) > score) {
+                m = 2;
+            }
+            i--;
             break;
         case 2:  // insertion
-            do {
-                aln.f.seq_data[0].push_back('-');
-                aln.f.seq_data[1].push_back(b[j - 1]);
-                j--;
-            } while(work.path_ins(i, j + 1) == 2);
+            aln.f.seq_data[0].push_back('-');
+            aln.f.seq_data[1].push_back(b[j - 1]);
+            score = work.mch_ins(i, j);
+            m = 0;
+            if(work.ins_ins(i, j) > score) {
+                m = 2;
+            }
+            j--;
             break;
         }
     }

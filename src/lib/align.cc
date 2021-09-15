@@ -46,14 +46,14 @@ int mcoati(input_t& in_data) {
         p_marg = marginal_p(P, in_data.pi);
     }
 
-    if((in_data.fasta_file.seq_data[0].length() % 3) != 0) {
-        throw std::invalid_argument(
-            "Length of reference sequence must be multiple of 3.");
-    }
-
     if(in_data.score) {
         std::cout << alignment_score(in_data, p_marg) << std::endl;
         return EXIT_SUCCESS;
+    }
+
+    if((in_data.fasta_file.seq_data[0].length() % 3) != 0) {
+        throw std::invalid_argument(
+            "Length of reference sequence must be multiple of 3.");
     }
 
     auto anc = in_data.fasta_file.seq_data[0];
@@ -80,8 +80,6 @@ int mcoati(input_t& in_data) {
 }
 
 TEST_CASE("mcoati") {
-    coati::Matrixf P(mg94_p(0.0133, 0.2));
-
     SUBCASE("Alignment with frameshifts (default) - output fasta") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
                            "m-coati", "score.log", "test-mcoati-fasta.fasta");
@@ -205,13 +203,6 @@ TEST_CASE("mcoati") {
                            "m-coati", "", "test-mcoati-score.fasta", "", "", "",
                            true);
         REQUIRE(mcoati(input_data) == 0);
-    }
-
-    SUBCASE("Reference length not multiple of 3 - fail") {
-        input_t input_data("", {"1", "2"}, {"CTCTGGATAGT", "CT----ATAGTG"},
-                           "m-coati", "", "test-mcoati-score.fasta", "", "", "",
-                           true);
-        REQUIRE_THROWS_AS(mcoati(input_data), std::invalid_argument);
     }
 
     SUBCASE("Score alignment - fail") {
@@ -705,7 +696,7 @@ float alignment_score(input_t& in_data, coati::Matrixf& p_marg) {
         case 0:
             if(aln[0][i] == '-') {
                 // insertion;
-                weight += gap_open + pi[seq_pair[1][i]];
+                weight += gap_open;
                 state = 2;
                 ngap++;
             } else if(aln[1][i] == '-') {
@@ -735,7 +726,7 @@ float alignment_score(input_t& in_data, coati::Matrixf& p_marg) {
         case 2:
             if(aln[0][i] == '-') {
                 // insertion_ext
-                weight += gap_extend + pi[seq_pair[1][i]];
+                weight += gap_extend;
                 ngap++;
             } else if(aln[1][i] == '-') {
                 // deletion
@@ -768,7 +759,7 @@ TEST_CASE("alignment_score") {
     REQUIRE(alignment_score(in_data, p_marg) == doctest::Approx(1.51294f));
 
     in_data.fasta_file.seq_data = {"CTCT--AT", "CTCTGGAT"};
-    REQUIRE(alignment_score(in_data, p_marg) == doctest::Approx(-4.06484f));
+    REQUIRE(alignment_score(in_data, p_marg) == doctest::Approx(-0.835939f));
 
     in_data.fasta_file.seq_data = {"CTC", "CT"};
     REQUIRE_THROWS_AS(alignment_score(in_data, p_marg), std::invalid_argument);
