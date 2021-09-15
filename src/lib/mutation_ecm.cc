@@ -115,7 +115,8 @@ coati::Matrixf ecm_p(float br_len, float omega) {
         float rowSum = 0.0;
         for(uint8_t j = 0; j < 64; j++) {
             // check if codons i or j are stop codons
-            if(i == j || amino_group_table[i] == '*' || amino_group_table[j] == '*') {
+            if(i == j || amino_group_table[i] == '*' ||
+               amino_group_table[j] == '*') {
                 continue;
             }
             if(amino_group_table[i] == amino_group_table[j]) {

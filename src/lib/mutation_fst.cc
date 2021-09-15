@@ -171,12 +171,10 @@ TEST_CASE("nuc2pos") {
 
 /* Create affine gap indel model FST*/
 VectorFstStdArc indel(const std::string& model, float gap_open,
-                      float gap_extend) {
+                      float gap_extend, std::vector<float> pi) {
     float deletion = gap_open, insertion = gap_open;
     float deletion_ext = gap_extend, insertion_ext = gap_extend;
-    float nuc_freqs[2][4] = {{0.308, 0.185, 0.199, 0.308},
-                             {0.2676350, 0.2357727, 0.2539630, 0.2426323}};
-    int m = model.compare("ecm") == 0 ? 1 : 0;
+    float nuc_freqs[4] = {pi[0], pi[1], pi[2], pi[3]};
 
     VectorFstStdArc indel_fst;
 
@@ -189,7 +187,7 @@ VectorFstStdArc indel(const std::string& model, float gap_open,
     add_arc(indel_fst, 0, 3, 0, 0, 1.0f - insertion);
 
     for(int i = 0; i < 4; i++) {
-        add_arc(indel_fst, 1, 2, 0, i + 1, nuc_freqs[m][i]);
+        add_arc(indel_fst, 1, 2, 0, i + 1, nuc_freqs[i]);
     }
 
     add_arc(indel_fst, 1, 2, 0, 5);  // 5 as ilabel/olabel is N
@@ -228,7 +226,8 @@ VectorFstStdArc indel(const std::string& model, float gap_open,
 
 TEST_CASE("indel") {
     std::string model = "m-coati";
-    VectorFstStdArc indel_model(indel(model, 0.001, 1.f - 1.f / 6.f));
+    std::vector<float> pi = {0.308f, 0.185f, 0.199f, 0.308f};
+    VectorFstStdArc indel_model(indel(model, 0.001, 1.f - 1.f / 6.f, pi));
 
     CHECK(Verify(indel_model));  // openfst built-in sanity check
     CHECK(indel_model.NumStates() == 4);

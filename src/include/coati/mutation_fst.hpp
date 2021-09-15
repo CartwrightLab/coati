@@ -29,6 +29,6 @@ VectorFstStdArc mg94(float br_len, float omega);
 VectorFstStdArc nuc2pos();
 VectorFstStdArc dna(float br_len, float omega);
 VectorFstStdArc indel(const std::string& model, float gap_open,
-                      float gap_extend);
+                      float gap_extend, std::vector<float> pi);
 
 #endif

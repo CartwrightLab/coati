@@ -35,7 +35,8 @@ using float_t = float;
 template <class T>
 class Matrix {
    public:
-    Matrix(std::size_t rows, std::size_t cols, T value = 0.0f)
+    Matrix() = default;
+    Matrix(std::size_t rows, std::size_t cols, T value = static_cast<T>(0))
         : rows_(rows), cols_(cols) {
         data_.resize(rows_ * cols_);
         data_.assign(data_.size(), value);
@@ -90,6 +91,19 @@ class Matrix {
         }
         return true;
     }
+
+    void resize(std::size_t rows, std::size_t cols,
+                T value = static_cast<T>(0)) {
+        rows_ = rows;
+        cols_ = cols;
+        data_.resize(rows * cols);
+        data_.assign(data_.size(), value);
+    }
+
+    std::size_t rows() { return rows_; }
+    std::size_t cols() { return cols_; }
+    std::size_t rows() const { return rows_; }
+    std::size_t cols() const { return cols_; }
 
    private:
     std::size_t rows_, cols_;

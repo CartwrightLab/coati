@@ -2,12 +2,11 @@ mcoati
 fst_alignment
 ref_indel_alignment
 alignment_score
-transition
 insertion_flags
 merge_indels
 add_gap
 mg94_p
-mg94_marginal_p
+marginal_p
 nts_ntv
 k
 mg94
@@ -28,5 +27,6 @@ write_fasta-fst
 write_phylip
 write_phylip-fst
 parse_matrix_csv
+marginal_seq_encoding
 version_number_check_equal
 version_integer

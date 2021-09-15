@@ -21,7 +21,7 @@
 
 libcoati_sources = files([
   'align.cc',
-  'gotoh.cc',
+  'align_pair.cc',
   'insertions.cc',
   'mutation_coati.cc',
   'mutation_ecm.cc',

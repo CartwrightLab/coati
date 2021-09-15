@@ -621,7 +621,7 @@ int cod_distance(uint8_t cod1, uint8_t cod2) {
 }
 
 /* Cast codon to position in codon list AAA->0, AAAC->1 ... TTT->63 */
-int cod_int(std::string codon) {
+int cod_int(const std::string& codon) {
     unsigned char pos0 = codon[0];
     unsigned char pos1 = codon[1];
     unsigned char pos2 = codon[2];
@@ -740,6 +740,62 @@ void set_cli_options(CLI::App& app, input_t& in_data,
         ->check(CLI::PositiveNumber);
     app.add_option("-w,--omega", in_data.omega, "Nonsynonymous-synonymous bias")
         ->check(CLI::PositiveNumber);
-    app.add_flag("!--no-frameshifts", in_data.frameshifts,
-                 "Do not allow frameshifts");
+    app.add_option("-p,--pi", in_data.pi, "Nucleotide frequencies (A C G T)")
+        ->expected(4);
+    // app.add_flag("!--no-frameshifts", in_data.frameshifts,
+    //              "Do not allow frameshifts");
+}
+
+/* Encode ( as vector<unsigned char>) ancestor (ref) sequence as codon & phase,
+ *      descendant as nucs */
+sequence_pair_t marginal_seq_encoding(const std::string& anc,
+                                      const std::string& des) {
+    sequence_pair_t ret(2);
+    ret[0].reserve(anc.length());
+    ret[1].reserve(des.length());
+
+    // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... , TTT3->191
+    for(auto it = anc.cbegin(); it != anc.cend(); it++) {
+        auto c0 = static_cast<unsigned char>(
+                      nt4_table[static_cast<unsigned char>(*it)])
+                  << 4;
+        it++;
+        auto c1 = static_cast<unsigned char>(
+                      nt4_table[static_cast<unsigned char>(*it)])
+                  << 2;
+        it++;
+        auto c2 = static_cast<unsigned char>(
+            nt4_table[static_cast<unsigned char>(*it)]);
+        auto cod = (c0 | c1 | c2) * 3;
+        ret[0].push_back(cod);
+        ret[0].push_back(cod + 1);
+        ret[0].push_back(cod + 2);
+    }
+
+    //  using nt4_table that converts A->0, C->1, G->2, T->3
+    for(auto it = des.cbegin(); it != des.cend(); it++) {
+        ret[1].push_back(nt4_table[static_cast<unsigned char>(*it)]);
+    }
+
+    return ret;
+}
+
+TEST_CASE("marginal_seq_encoding") {
+    std::string anc = "AAAGGGTTT", des = "ACGT-";
+    auto result = marginal_seq_encoding(anc, des);
+
+    CHECK(result[0][0] == static_cast<unsigned char>(0));
+    CHECK(result[0][1] == static_cast<unsigned char>(1));
+    CHECK(result[0][2] == static_cast<unsigned char>(2));
+    CHECK(result[0][3] == static_cast<unsigned char>(126));
+    CHECK(result[0][4] == static_cast<unsigned char>(127));
+    CHECK(result[0][5] == static_cast<unsigned char>(128));
+    CHECK(result[0][6] == static_cast<unsigned char>(189));
+    CHECK(result[0][7] == static_cast<unsigned char>(190));
+    CHECK(result[0][8] == static_cast<unsigned char>(191));
+    CHECK(result[1][0] == static_cast<unsigned char>(0));
+    CHECK(result[1][1] == static_cast<unsigned char>(1));
+    CHECK(result[1][2] == static_cast<unsigned char>(2));
+    CHECK(result[1][3] == static_cast<unsigned char>(3));
+    CHECK(result[1][4] == static_cast<unsigned char>(4));
 }

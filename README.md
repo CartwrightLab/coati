@@ -42,19 +42,24 @@ meson install -C builddir
 
 Pairwise alignment of two nucleotide sequences. Example input files can be found in `fasta` directory.
 ```
-Usage:	coati alignpair file.fasta [options]
+Usage: coati alignpair [OPTIONS] fasta
 
-Allowed options:
-  -h [ --help ]                   Display this message
-  -f [ --fasta ] arg              fasta file path
-  -m [ --model ] arg (=m-coati)   substitution model: coati, m-coati (default),
-                                  dna, ecm, m-ecm
-  -w [ --weight ] arg             Write alignment score to file
-  -o [ --output ] arg             Alignment output file
-  -s [ --score ]                  Calculate alignment score using m-coati or
-                                  m-ecm models
-  -r [ --rate ] arg               Substitution rate matrix (CSV)
-  -t [ --evo-time ] arg (=0.0133) Evolutionary time or branch length
+Positionals:
+  fasta TEXT:FILE REQUIRED    Fasta file path
+
+Options:
+  -h,--help                   Print this help message and exit
+  -m,--model TEXT             Substitution model
+  -t,--time FLOAT:POSITIVE    Evolutionary time/branch length
+  -l,--weight TEXT            Write alignment score to file
+  -s,--score                  Score alignment
+  -o,--output TEXT            Alignment output file
+  -g,--gap-open FLOAT:POSITIVE
+                              Gap opening score
+  -e,--gap-extend FLOAT:POSITIVE
+                              Gap extension score
+  -w,--omega FLOAT:POSITIVE   Nonsynonymous-synonymous bias
+  -p,--pi FLOAT x 4           Nucleotide frequencies (A C G T)
 ```
 
 ### Sample runs:
@@ -67,5 +72,8 @@ coati alignpair fasta/example-001.fasta
 coati alignpair fasta/example-002.fasta -m m-ecm -o example-002.fasta
 
 # Align file example-003.fasta with ecm model, PHY output, and save alignment weight to w.out
-coati alignpair fasta/example-003.fasta -m ecm -w w.out
+coati alignpair fasta/example-003.fasta -m ecm -l w.out
+
+# Align file example-003.fasta with m-coati model, specifying a branch length of 0.0133 and nucleotide frequencies A:0.3, C:0.2, C:0.2, T:0.3
+coati alignpair fasta/example-003.fasta -t 0.0133 -p 0.3 0.2 0.2 0.3
 ```

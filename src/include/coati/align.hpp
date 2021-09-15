@@ -27,7 +27,7 @@
 
 #include <vector>
 
-#include "gotoh.hpp"
+#include "align_pair.hpp"
 #include "insertions.hpp"
 #include "mutation_ecm.hpp"
 #include "tree.hpp"
@@ -37,7 +37,6 @@ int mcoati(input_t& in_data);
 int progressive_aln(input_t& in_data);
 int fst_alignment(input_t& in_data, std::vector<VectorFstStdArc>& fsts);
 int ref_indel_alignment(input_t& in_data);
-float alignment_score(std::vector<std::string> alignment_t, coati::Matrixf& P,
-                      float gap_open, float gap_extend);
+float alignment_score(input_t& in_data, coati::Matrixf& P);
 
 #endif

@@ -33,6 +33,6 @@
 #include "utils.hpp"
 
 coati::Matrixf mg94_p(float br_len, float omega);
-coati::Tensorf mg94_marginal_p(coati::Matrix<coati::float_t>& P);
-
+coati::Matrixf marginal_p(const coati::Matrixf& P,
+                          std::vector<coati::float_t>& pi);
 #endif

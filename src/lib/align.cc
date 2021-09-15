@@ -27,7 +27,7 @@
 
 /* Alignment using dynamic programming implementation of marginal COATi model */
 int mcoati(input_t& in_data) {
-    coati::Matrixf P(64, 64);
+    coati::Matrixf P(64, 64), p_marg;
     std::vector<VectorFstStdArc> fsts;
     std::ofstream out_w;
     alignment_t aln;
@@ -37,28 +37,32 @@ int mcoati(input_t& in_data) {
     if(!in_data.rate.empty()) {
         in_data.mut_model = "user_marg_model";
         P = parse_matrix_csv(in_data.rate);
+        p_marg = marginal_p(P, in_data.pi);
     } else if(in_data.mut_model.compare("m-coati") == 0) {
         P = mg94_p(in_data.br_len, in_data.omega);
+        p_marg = marginal_p(P, in_data.pi);
     } else {  // m-ecm
         P = ecm_p(in_data.br_len, in_data.omega);
+        p_marg = marginal_p(P, in_data.pi);
+    }
+
+    if((in_data.fasta_file.seq_data[0].length() % 3) != 0) {
+        throw std::invalid_argument(
+            "Length of reference sequence must be multiple of 3.");
     }
 
     if(in_data.score) {
-        std::cout << alignment_score(in_data.fasta_file.seq_data, P,
-                                     in_data.gapo, in_data.gape)
-                  << std::endl;
+        std::cout << alignment_score(in_data, p_marg) << std::endl;
         return EXIT_SUCCESS;
     }
 
-    if(in_data.frameshifts) {
-        if(mg94_marginal(in_data.fasta_file.seq_data, aln, P) != 0) {
-            return EXIT_FAILURE;
-        }
-    } else {
-        if(mg94_marginal(in_data.fasta_file.seq_data, aln, P, false) != 0) {
-            return EXIT_FAILURE;
-        }
-    }
+    auto anc = in_data.fasta_file.seq_data[0];
+    auto des = in_data.fasta_file.seq_data[1];
+    coati::align_pair_work_t work;
+    sequence_pair_t seq_pair = marginal_seq_encoding(anc, des);
+    coati::align_pair(work, seq_pair[0], seq_pair[1], p_marg, in_data.gapo,
+                      in_data.gape, in_data.pi);
+    coati::traceback(work, anc, des, aln);
 
     if(!in_data.weight_file.empty()) {
         // append weight and fasta file name to file
@@ -105,12 +109,12 @@ TEST_CASE("mcoati") {
         std::string s;
         infile >> s;
         CHECK(std::filesystem::remove(input_data.weight_file));
-        CHECK(s.substr(s.length() - 7) == "9.29164");
+        CHECK(s.substr(s.length() - 7) == "1.51294");
     }
 
     SUBCASE("Alignment with frameshifts (default) - output phylip") {
         input_t input_data("", {"1", "2"}, {"GCGACTGTT", "GCGATTGCTGTT"},
-                           "m-coati", "score.log", "test-mcoati-phylip.phy");
+                           "m-coati", "", "test-mcoati-phylip.phy");
         fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
@@ -139,7 +143,7 @@ TEST_CASE("mcoati") {
 
     SUBCASE("Alignment with frameshifts (default) 2 dels - output phylip") {
         input_t input_data("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"},
-                           "m-coati", "score.log", "test-mcoati-phylip2.phy");
+                           "m-coati", "", "test-mcoati-phylip2.phy");
         fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
@@ -166,53 +170,54 @@ TEST_CASE("mcoati") {
         CHECK(std::filesystem::remove(input_data.out_file));
     }
 
-    SUBCASE("Alignment with no frameshifts") {
-        input_t input_data(
-            "", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"}, "m-coati", "score.log",
-            "test-mcoati-no-frameshifts.fasta", "", "", "", false, false);
-        fasta_t result(input_data.out_file);
-
-        if(std::filesystem::exists(input_data.out_file)) {
-            std::filesystem::remove(input_data.out_file);
-        }
-
-        REQUIRE(mcoati(input_data) == 0);
-        REQUIRE(read_fasta(result) == 0);
-
-        CHECK(std::filesystem::remove(input_data.out_file));
-
-        CHECK(result.seq_names[0] == "1");
-        CHECK(result.seq_names[1] == "2");
-
-        CHECK(result.seq_data[0] == "ACG---TTAAGGGGT");
-        CHECK(result.seq_data[1] == "ACGAAT---------");
-    }
-
-    SUBCASE("No frameshifts length not multiple of 3 - fail") {
-        input_t input_data("", {"1", "2"}, {"GCGATTGCTGT", "GCGACTGTT"},
-                           "no_frameshifts", "score.log",
-                           "test-mcoati-no-frameshifts.fasta");
-        REQUIRE_THROWS_AS(mcoati(input_data), std::invalid_argument);
-    }
+    // SUBCASE("Alignment with no frameshifts") {
+    //     input_t input_data(
+    //         "", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"}, "m-coati",
+    //         "score.log", "test-mcoati-no-frameshifts.fasta", "", "", "",
+    //         false, false);
+    //     fasta_t result(input_data.out_file);
+    //
+    //     if(std::filesystem::exists(input_data.out_file)) {
+    //         std::filesystem::remove(input_data.out_file);
+    //     }
+    //
+    //     REQUIRE(mcoati(input_data) == 0);
+    //     REQUIRE(read_fasta(result) == 0);
+    //
+    //     CHECK(std::filesystem::remove(input_data.out_file));
+    //
+    //     CHECK(result.seq_names[0] == "1");
+    //     CHECK(result.seq_names[1] == "2");
+    //
+    //     CHECK(result.seq_data[0] == "ACG---TTAAGGGGT");
+    //     CHECK(result.seq_data[1] == "ACGAAT---------");
+    // }
+    //
+    // SUBCASE("No frameshifts length not multiple of 3 - fail") {
+    //     input_t input_data("", {"1", "2"}, {"GCGATTGCTGT", "GCGACTGTT"},
+    //                        "no_frameshifts", "score.log",
+    //                        "test-mcoati-no-frameshifts.fasta");
+    //     REQUIRE_THROWS_AS(mcoati(input_data), std::invalid_argument);
+    // }
 
     SUBCASE("Score alignment") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CT----ATAGTG"},
-                           "m-coati", "score.log", "test-mcoati-score.fasta",
-                           "", "", "", true);
+                           "m-coati", "", "test-mcoati-score.fasta", "", "", "",
+                           true);
         REQUIRE(mcoati(input_data) == 0);
     }
 
     SUBCASE("Reference length not multiple of 3 - fail") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGT", "CT----ATAGTG"},
-                           "m-coati", "score.log", "test-mcoati-score.fasta",
-                           "", "", "", true);
+                           "m-coati", "", "test-mcoati-score.fasta", "", "", "",
+                           true);
         REQUIRE_THROWS_AS(mcoati(input_data), std::invalid_argument);
     }
 
     SUBCASE("Score alignment - fail") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                           "m-coati", "score.log", "test-mcoati-score.fasta",
-                           "", "", "", true);
+                           "m-coati", "", "test-mcoati-score.fasta", "", "", "",
+                           true);
         fasta_t result(input_data.out_file);
 
         REQUIRE_THROWS_AS(mcoati(input_data), std::invalid_argument);
@@ -231,13 +236,14 @@ int fst_alignment(input_t& in_data, std::vector<VectorFstStdArc>& fsts) {
         mut_fst = dna(in_data.br_len, in_data.omega);
     } else if(in_data.mut_model.compare("ecm") == 0) {
         mut_fst = ecm(in_data.br_len, in_data.omega);
+        in_data.pi = {0.2676350, 0.2357727, 0.2539630, 0.2426323};
     } else {
         throw std::invalid_argument("Mutation model unknown. Exiting!");
     }
 
     // get indel FST
     VectorFstStdArc indel_fst =
-        indel(in_data.mut_model, in_data.gapo, in_data.gape);
+        indel(in_data.mut_model, in_data.gapo, in_data.gape, in_data.pi);
 
     // sort mutation and indel FSTs
     VectorFstStdArc mutation_sort, indel_sort;
@@ -350,7 +356,7 @@ TEST_CASE("fst_alignment") {
 
     SUBCASE("coati model, output phylip") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                           "coati", "score.log", "test-fst-phylip.phy");
+                           "coati", "", "test-fst-phylip.phy");
         fasta_t result(input_data.out_file);
 
         if(std::filesystem::exists(input_data.out_file)) {
@@ -378,7 +384,6 @@ TEST_CASE("fst_alignment") {
         CHECK(s2.compare("CT----ATAGTG") == 0);
 
         CHECK(std::filesystem::remove(input_data.out_file));
-        CHECK(std::filesystem::remove(input_data.weight_file));
     }
 
     SUBCASE("dna model") {
@@ -444,7 +449,7 @@ TEST_CASE("fst_alignment") {
 
     SUBCASE("Unknown model") {
         input_t input_data("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                           "unknown", "score.log", "test-fst-alignment.fasta");
+                           "unknown", "", "test-fst-alignment.fasta");
 
         REQUIRE_THROWS_AS(fst_alignment(input_data, fsts),
                           std::invalid_argument);
@@ -453,7 +458,7 @@ TEST_CASE("fst_alignment") {
 
 /* Initial msa by collapsing indels after pairwise aln with reference */
 int ref_indel_alignment(input_t& in_data) {
-    coati::Matrixf P(64, 64);
+    coati::Matrixf P(64, 64), p_marg;
     tree_t tree;
     std::string newick;
     alignment_t aln, aln_tmp;
@@ -516,17 +521,23 @@ int ref_indel_alignment(input_t& in_data) {
             if(!in_data.rate.empty()) {
                 in_data.mut_model = "user_marg_model";
                 P = parse_matrix_csv(in_data.rate);
+                p_marg = marginal_p(P, in_data.pi);
             } else if(in_data.mut_model.compare("m-ecm") == 0) {
                 P = ecm_p(branch, in_data.omega);
+                p_marg = marginal_p(P, in_data.pi);
             } else {  // m-coati
                 P = mg94_p(branch, in_data.omega);
+                p_marg = marginal_p(P, in_data.pi);
             }
 
             aln_tmp.f.seq_data.clear();
-            if(mg94_marginal(pair_seqs, aln_tmp, P, in_data.frameshifts) != 0) {
-                std::cout << "Error: aligning reference " << in_data.ref
-                          << " and " << tree[node].label << std::endl;
-            }
+            auto anc = pair_seqs[0];
+            auto des = pair_seqs[1];
+            coati::align_pair_work_t work;
+            sequence_pair_t seq_pair = marginal_seq_encoding(anc, des);
+            coati::align_pair(work, seq_pair[0], seq_pair[1], p_marg,
+                              in_data.gapo, in_data.gape, in_data.pi);
+            coati::traceback(work, anc, des, aln_tmp);
 
             SparseVectorInt ins_vector(
                 static_cast<Eigen::Index>(aln_tmp.f.seq_data[1].length()));
@@ -619,7 +630,7 @@ TEST_CASE("ref_indel_alignment") {
     SUBCASE("m-coati model") {
         input_t input_data("", {"A", "B", "C", "D", "E"},
                            {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"},
-                           "m-coati", "score.log", "test-mcoati-msa.fasta",
+                           "m-coati", "", "test-mcoati-msa.fasta",
                            "tree-msa.newick", "A");
         fasta_t result(input_data.out_file);
 
@@ -644,7 +655,7 @@ TEST_CASE("ref_indel_alignment") {
     SUBCASE("m-ecm model") {
         input_t input_data("", {"A", "B", "C", "D", "E"},
                            {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"},
-                           "m-ecm", "score.log", "test-mecm-msa.fasta",
+                           "m-ecm", "", "test-mecm-msa.fasta",
                            "tree-msa.newick", "A");
         fasta_t result(input_data.out_file);
 
@@ -667,105 +678,98 @@ TEST_CASE("ref_indel_alignment") {
     }
 }
 
-float alignment_score(std::vector<std::string> alignment, coati::Matrixf& P,
-                      float gap_open, float gap_extend) {
-    if(alignment[0].length() != alignment[1].length()) {
+float alignment_score(input_t& in_data, coati::Matrixf& p_marg) {
+    std::vector<std::string> aln = in_data.fasta_file.seq_data;
+    if(aln[0].length() != aln[1].length()) {
         throw std::invalid_argument(
             "For alignment scoring both sequences must have equal length.");
     }
+    std::string anc{aln[0]};
+    boost::erase_all(anc, "-");
+    sequence_pair_t seq_pair = marginal_seq_encoding(anc, aln[1]);
 
-    int state = 0;
-    float weight = 0.0;
-    std::string codon;
-
-    float insertion = gap_open;
-    float deletion = gap_open;
-    float insertion_ext = gap_extend;
-    float deletion_ext = gap_extend;
-
-    // P matrix for marginal Muse and Gaut codon model
-    coati::Tensorf p = mg94_marginal_p(P);
-
-    std::string seq1 = alignment[0];
-    boost::erase_all(seq1, "-");
-    int gap_n = 0;
-
-    float nuc_freqs[5] = {0.308, 0.185, 0.199, 0.308, 0.25};
-
-    for(int i = 0, aln_len = static_cast<int>(alignment[0].length());
-        i < aln_len; i++) {
-        codon = seq1.substr(((i - gap_n) / 3) * 3, 3);  // current codon
-        switch(state) {
-        case 0:
-            if(alignment[0][i] == '-') {
-                // insertion;
-                unsigned char pos = alignment[1][i];
-                weight = weight - logf(insertion) -
-                         logf(nuc_freqs[nt4_table[pos]]) -
-                         logf(1.0f - insertion_ext);
-                state = 1;
-                gap_n++;
-            } else if(alignment[1][i] == '-') {
-                // deletion;
-                weight = weight - logf(1.0f - insertion) - logf(deletion) -
-                         logf(1.0f - deletion_ext);
-                state = 2;
-            } else {
-                // match/mismatch;
-                weight = weight - logf(1.0f - insertion) -
-                         logf(1.0f - deletion) -
-                         logf(transition(codon, (i + 1 - gap_n) % 3,
-                                         alignment[1][i], p));
-            }
-            break;
-
-        case 1:
-            if(alignment[0][i] == '-') {
-                // insertion_ext
-                unsigned char pos = alignment[1][i];
-                weight = weight - logf(insertion_ext) -
-                         logf(nuc_freqs[nt4_table[pos]]);
-                gap_n++;
-            } else if(alignment[1][i] == '-') {
-                // deletion
-                weight = weight - logf(deletion) - logf(1.0f - deletion_ext);
-                state = 2;
-            } else {
-                // match/mismatch
-                weight = weight - logf(1.0f - deletion) -
-                         logf(transition(codon, (i + 1 - gap_n) % 3,
-                                         alignment[1][i], p));
-                state = 0;
-            }
-            break;
-
-        case 2:
-            if(alignment[0][i] == '-') {
-                throw std::runtime_error(
-                    "Insertion after deletion is not modeled.");
-            } else if(alignment[1][i] == '-') {
-                // deletion_ext
-                weight = weight - logf(deletion_ext);
-            } else {
-                // match/mismatch
-                weight = weight - logf(transition(codon, (i + 1 - gap_n) % 3,
-                                                  alignment[1][i], p));
-                state = 0;
-            }
-        }
+    // calculate log(1-g) log(1-e) log(g) log(e) log(pi)
+    float_t no_gap = std::log1pf(-in_data.gapo);
+    float_t gap_stop = std::log1pf(-in_data.gape);
+    float_t gap_open = ::logf(in_data.gapo);
+    float_t gap_extend = ::logf(in_data.gape);
+    std::vector<coati::float_t> pi{in_data.pi};
+    for(size_t i = 0; i < pi.size(); i++) {
+        pi[i] = ::logf(pi[i]);
     }
 
-    return (weight);
+    float weight{0.f};
+    int state{0}, ngap{0};
+    for(size_t i = 0; i < aln[0].length(); i++) {
+        switch(state) {
+        case 0:
+            if(aln[0][i] == '-') {
+                // insertion;
+                weight += gap_open + pi[seq_pair[1][i]];
+                state = 2;
+                ngap++;
+            } else if(aln[1][i] == '-') {
+                // deletion;
+                weight += no_gap + gap_open;
+                state = 1;
+            } else {
+                // match/mismatch;
+                weight +=
+                    2 * no_gap + p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
+            }
+            break;
+        case 1:
+            if(aln[0][i] == '-') {
+                throw std::runtime_error(
+                    "Insertion after deletion is not modeled.");
+            } else if(aln[1][i] == '-') {
+                // deletion_ext
+                weight += gap_extend;
+            } else {
+                // match/mismatch
+                weight +=
+                    gap_stop + p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
+                state = 0;
+            }
+            break;
+        case 2:
+            if(aln[0][i] == '-') {
+                // insertion_ext
+                weight += gap_extend + pi[seq_pair[1][i]];
+                ngap++;
+            } else if(aln[1][i] == '-') {
+                // deletion
+                weight += gap_stop + gap_open;
+                state = 1;
+            } else {
+                // match/mismatch
+                weight += gap_stop + no_gap +
+                          p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
+                state = 0;
+            }
+            break;
+        }
+    }
+    // terminal state weight
+    if(state == 0) {
+        weight += no_gap;
+    } else if(state == 2) {
+        weight += gap_stop;
+    }
+    return weight;
 }
 
 TEST_CASE("alignment_score") {
+    input_t in_data;
     coati::Matrixf P(mg94_p(0.0133, 0.2));
+    coati::Matrixf p_marg = marginal_p(P, in_data.pi);
 
-    REQUIRE(alignment_score({"CTCTGGATAGTG", "CT----ATAGTG"}, P, 0.001,
-                            1.f - 1.f / 6.f) == doctest::Approx(9.29064));
-    REQUIRE(alignment_score({"CTCT--AT", "CTCTGGAT"}, P, 0.001,
-                            1.f - 1.f / 6.f) == doctest::Approx(12.1493));
+    in_data.fasta_file.seq_data = {"CTCTGGATAGTG", "CT----ATAGTG"};
+    REQUIRE(alignment_score(in_data, p_marg) == doctest::Approx(1.51294f));
 
-    REQUIRE_THROWS_AS(alignment_score({"CTC", "CT"}, P, 0.001, 1.f - 1.f / 6.f),
-                      std::invalid_argument);
+    in_data.fasta_file.seq_data = {"CTCT--AT", "CTCTGGAT"};
+    REQUIRE(alignment_score(in_data, p_marg) == doctest::Approx(-4.06484f));
+
+    in_data.fasta_file.seq_data = {"CTC", "CT"};
+    REQUIRE_THROWS_AS(alignment_score(in_data, p_marg), std::invalid_argument);
 }

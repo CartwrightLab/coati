@@ -113,10 +113,12 @@ TEST_CASE("mg94_p") {
     }
 }
 
-/* Create marginal Muse and Gaut codon model P matrix*/
-coati::Tensorf mg94_marginal_p(coati::Matrixf& P) {
+/* Create marginal P matrix*/
+coati::Matrixf marginal_p(const coati::Matrixf& P,
+                          std::vector<coati::float_t>& pi) {
     float marg{NAN};
-    coati::Tensorf p(64, 3, 4);
+
+    coati::Matrixf p(192, 4);
 
     for(int cod = 0; cod < 64; cod++) {
         for(int pos = 0; pos < 3; pos++) {
@@ -126,27 +128,21 @@ coati::Tensorf mg94_marginal_p(coati::Matrixf& P) {
                                // up (reduce use of pow())
                 case 0:
                     for(uint8_t i = 0; i < 64; i++) {
-                        marg += (((i & static_cast<uint8_t>(48)) >> 4) == nuc
-                                     ? P(cod, i)
-                                     : 0.0f);
+                        marg += (((i & 48) >> 4) == nuc ? P(cod, i) : 0.0f);
                     }
                     break;
                 case 1:
                     for(uint8_t i = 0; i < 64; i++) {
-                        marg += (((i & static_cast<uint8_t>(12)) >> 2) == nuc
-                                     ? P(cod, i)
-                                     : 0.0f);
+                        marg += (((i & 12) >> 2) == nuc ? P(cod, i) : 0.0f);
                     }
                     break;
                 case 2:
                     for(uint8_t i = 0; i < 64; i++) {
-                        marg +=
-                            ((i & static_cast<uint8_t>(3)) == nuc ? P(cod, i)
-                                                                  : 0.0f);
+                        marg += ((i & 3) == nuc ? P(cod, i) : 0.0f);
                     }
                     break;
                 }
-                p(cod, pos, nuc) = marg;
+                p(cod * 3 + pos, nuc) = ::logf(marg / pi[nuc]);
             }
         }
     }
@@ -154,20 +150,18 @@ coati::Tensorf mg94_marginal_p(coati::Matrixf& P) {
     return p;
 }
 
-TEST_CASE("mg94_marginal_p") {
-    // float branch_length = 0.0133;
+TEST_CASE("marginal_p") {
+    std::vector<coati::float_t> pi{0.308, 0.185, 0.199, 0.308};
     coati::Matrixf P = mg94_p(0.0133, 0.2);
-    coati::Tensorf p = mg94_marginal_p(P);
+    coati::Matrixf p_marg = marginal_p(P, pi);
 
     for(int cod = 0; cod < 64; cod++) {
         for(int pos = 0; pos < 3; pos++) {
-            float val = 0;
+            float val = 0.f;
             for(int nuc = 0; nuc < 4; nuc++) {
-                val += p(cod, pos, nuc);
-                CHECK(!(p(cod, pos, nuc) < 0));
+                val += ::exp(p_marg(cod * 3 + pos, nuc)) * pi[nuc];
             }
-            CHECK(val ==
-                  doctest::Approx(1));  // sum per each pos (all nuc) is 1
+            CHECK(val == doctest::Approx(1));  // sum per pos (all nuc) is 1
         }
     }
 }
