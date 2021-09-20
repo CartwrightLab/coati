@@ -56,9 +56,7 @@ int main(int argc, char* argv[]) {
        in_data.mut_model.compare("m-ecm") == 0) {
         read_fasta_pair(in_data.fasta_file, fsts, false);
         return mcoati(in_data);
-    } else {
-        read_fasta_pair(in_data.fasta_file, fsts, true);
-        return fst_alignment(in_data, fsts);
     }
-    return EXIT_FAILURE;
+    read_fasta_pair(in_data.fasta_file, fsts, true);
+    return fst_alignment(in_data, fsts);
 }

@@ -26,15 +26,15 @@ Source code for the most recent beta versions is available at <https://github.co
 ### Compiling
 ```
 tar -xvzf coati*.tar.gz
-meson setup builddir
-meson compile -C builddir -Dbuildtype=release
+meson setup builddir --buildtype=release
+meson compile -C builddir
 ```
 
 ### Global Install (requires root access)
 ```
 tar -xvzf coati*.tar.gz
-meson setup builddir
-meson compile -C builddir -Dbuildtype=release
+meson setup builddir --buildtype=release
+meson compile -C builddir
 meson install -C builddir
 ```
 

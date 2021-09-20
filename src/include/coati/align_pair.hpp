@@ -48,7 +48,6 @@ struct align_pair_work_t {
     Matrixf ins_del;  // ins to del state
     Matrixf ins_ins;  // ins to ins state
 
-    // align_pair_work_t() = default;
     void resize(size_t len_a, size_t len_b, float_t val) {
         mch.resize(len_a, len_b, val);      // match matrix
         del.resize(len_a, len_b, val);      // deletion matrix

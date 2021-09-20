@@ -51,11 +51,12 @@ int mcoati(input_t& in_data) {
         return EXIT_SUCCESS;
     }
 
-    if((in_data.fasta_file.seq_data[0].length() % 3) != 0) {
+    size_t len_a = in_data.fasta_file.seq_data[0].length();
+    if((len_a % 3 != 0) && (len_a % in_data.g_len != 0)) {
         throw std::invalid_argument(
             "Length of reference sequence must be multiple of 3.");
     }
-    if((in_data.fasta_file.seq_data[1].length() % in_data.g_len) != 0) {
+    if(in_data.fasta_file.seq_data[1].length() % in_data.g_len != 0) {
         throw std::invalid_argument(
             "Length of descendant sequence must be multiple of " +
             std::to_string(in_data.g_len) + ".");

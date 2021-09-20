@@ -53,7 +53,8 @@ int main(int argc, char* argv[]) {
         throw std::invalid_argument("Error reading " +
                                     in_data.fasta_file.path.string() +
                                     " file. Exiting!");
-    } else if(in_data.fasta_file.seq_names.size() < 3) {
+    }
+    if(in_data.fasta_file.seq_names.size() < 3) {
         throw std::invalid_argument(
             "At least three sequences required. Exiting!");
     }
