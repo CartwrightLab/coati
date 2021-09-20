@@ -25,8 +25,9 @@
 #include <coati/mutation_fst.hpp>
 
 /* Create Muse and Gaut codon model FST */
-VectorFstStdArc mg94(float br_len, float omega) {
-    coati::Matrixf P = mg94_p(br_len, omega);
+VectorFstStdArc mg94(float br_len, float omega,
+                     const std::vector<coati::float_t>& pi) {
+    coati::Matrixf P = mg94_p(br_len, omega, pi);
 
     // Add state 0 and make it the start state
     VectorFstStdArc mg94;
@@ -56,7 +57,7 @@ VectorFstStdArc mg94(float br_len, float omega) {
 
 TEST_CASE("mg94") {
     // float branch_length = 0.0133;
-    VectorFstStdArc mut_fst(mg94(0.0133, 0.2));
+    VectorFstStdArc mut_fst(mg94(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
     CHECK(Verify(mut_fst));           // openfst built-in sanity check
     CHECK(mut_fst.NumArcs(0) == 16);  // 4x4 nuc to nuc arcs from start state
@@ -64,8 +65,9 @@ TEST_CASE("mg94") {
 }
 
 /* Create dna marginal Muse and Gaut codon model FST*/
-VectorFstStdArc dna(float br_len, float omega) {
-    coati::Matrixf P = mg94_p(br_len, omega);
+VectorFstStdArc dna(float br_len, float omega,
+                    const std::vector<coati::float_t>& pi) {
+    coati::Matrixf P = mg94_p(br_len, omega, pi);
 
     // Add state 0 and make it the start state
     VectorFstStdArc dna;
@@ -113,7 +115,7 @@ VectorFstStdArc dna(float br_len, float omega) {
 
 TEST_CASE("dna") {
     // float branch_length = 0.0133;
-    VectorFstStdArc dna_fst = dna(0.0133, 0.2);
+    VectorFstStdArc dna_fst = dna(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308});
 
     CHECK(Verify(dna_fst));           // openfst built-in sanity check
     CHECK(dna_fst.NumArcs(0) == 16);  // all 4x4 nuc transitions
@@ -170,8 +172,8 @@ TEST_CASE("nuc2pos") {
 }
 
 /* Create affine gap indel model FST*/
-VectorFstStdArc indel(const std::string& model, float gap_open,
-                      float gap_extend, std::vector<float> pi) {
+VectorFstStdArc indel(float gap_open, float gap_extend,
+                      const std::vector<float>& pi) {
     float deletion = gap_open, insertion = gap_open;
     float deletion_ext = gap_extend, insertion_ext = gap_extend;
     float nuc_freqs[4] = {pi[0], pi[1], pi[2], pi[3]};
@@ -226,8 +228,8 @@ VectorFstStdArc indel(const std::string& model, float gap_open,
 
 TEST_CASE("indel") {
     std::string model = "m-coati";
-    std::vector<float> pi = {0.308f, 0.185f, 0.199f, 0.308f};
-    VectorFstStdArc indel_model(indel(model, 0.001, 1.f - 1.f / 6.f, pi));
+    VectorFstStdArc indel_model(
+        indel(0.001, 1.f - 1.f / 6.f, {0.308, 0.185, 0.199, 0.308}));
 
     CHECK(Verify(indel_model));  // openfst built-in sanity check
     CHECK(indel_model.NumStates() == 4);

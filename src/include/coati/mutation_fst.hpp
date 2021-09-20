@@ -25,10 +25,12 @@
 
 #include "mutation_coati.hpp"
 
-VectorFstStdArc mg94(float br_len, float omega);
+VectorFstStdArc mg94(float br_len, float omega,
+                     const std::vector<coati::float_t>& pi);
 VectorFstStdArc nuc2pos();
-VectorFstStdArc dna(float br_len, float omega);
-VectorFstStdArc indel(const std::string& model, float gap_open,
-                      float gap_extend, std::vector<float> pi);
+VectorFstStdArc dna(float br_len, float omega,
+                    const std::vector<coati::float_t>& pi);
+VectorFstStdArc indel(float gap_open, float gap_extend,
+                      const std::vector<float>& pi);
 
 #endif

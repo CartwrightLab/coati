@@ -3,7 +3,7 @@
 Branch | Status
 ------ | ------
 CartwrightLab/master | [![github-actions](https://github.com/CartwrightLab/coati/actions/workflows/cmake.yml/badge.svg?branch=master)](https://github.com/CartwrightLab/coati/actions/workflows/cmake.yml) [![codecov](https://codecov.io/gh/CartwrightLab/coati/branch/master/graph/badge.svg)](https://codecov.io/gh/CartwrightLab/coati)
-jgarciamesa/coati | [![github-actions](https://github.com/jgarciamesa/coati/actions/workflows/cmake.yml/badge.svg?branch=main)](https://github.com/jgarciamesa/coati/actions/workflows/meson.yml) [![codecov](https://codecov.io/gh/jgarciamesa/coati/branch/main/graph/badge.svg)](https://codecov.io/gh/jgarciamesa/coati)
+jgarciamesa/coati | [![github-actions](https://github.com/jgarciamesa/coati/actions/workflows/meson.yml/badge.svg?branch=main)](https://github.com/jgarciamesa/coati/actions/workflows/meson.yml) [![codecov](https://codecov.io/gh/jgarciamesa/coati/branch/main/graph/badge.svg)](https://codecov.io/gh/jgarciamesa/coati)
 
 Codon-Aware Multiple Sequence Alignments
 
@@ -60,6 +60,7 @@ Options:
                               Gap extension score
   -w,--omega FLOAT:POSITIVE   Nonsynonymous-synonymous bias
   -p,--pi FLOAT x 4           Nucleotide frequencies (A C G T)
+  -n,--gap-len UINT           Set gap unit size
 ```
 
 ### Sample runs:

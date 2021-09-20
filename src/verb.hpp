@@ -26,8 +26,7 @@
 #include <coati/coati.hpp>
 #include <iostream>
 
-namespace coati {
-namespace verb {
+namespace coati::verb {
 
 inline int check_version_number() {
     if(coati::version_number_check_equal(COATI_VERSION_INTEGER) == false) {
@@ -48,7 +47,6 @@ inline int check_version_number() {
         }                                                   \
     } while(false)
 
-}  // namespace verb
-}  // namespace coati
+}  // namespace coati::verb
 
 #endif

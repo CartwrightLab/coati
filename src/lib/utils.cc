@@ -672,7 +672,8 @@ coati::Matrix<coati::float_t> parse_matrix_csv(const std::string& file) {
 
 TEST_CASE("parse_matrix_csv") {
     std::ofstream outfile;
-    coati::Matrix<coati::float_t> P(mg94_p(0.0133, 0.2));
+    coati::Matrix<coati::float_t> P(
+        mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
     const std::vector<std::string> codons = {
         "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC",
@@ -742,8 +743,7 @@ void set_cli_options(CLI::App& app, input_t& in_data,
         ->check(CLI::PositiveNumber);
     app.add_option("-p,--pi", in_data.pi, "Nucleotide frequencies (A C G T)")
         ->expected(4);
-    // app.add_flag("!--no-frameshifts", in_data.frameshifts,
-    //              "Do not allow frameshifts");
+    app.add_option("-n,--gap-len", in_data.g_len, "Set gap unit size");
 }
 
 /* Encode ( as vector<unsigned char>) ancestor (ref) sequence as codon & phase,
@@ -773,8 +773,8 @@ sequence_pair_t marginal_seq_encoding(const std::string& anc,
     }
 
     //  using nt4_table that converts A->0, C->1, G->2, T->3
-    for(auto it = des.cbegin(); it != des.cend(); it++) {
-        ret[1].push_back(nt4_table[static_cast<unsigned char>(*it)]);
+    for(auto nuc : des) {
+        ret[1].push_back(nt4_table[static_cast<unsigned char>(nuc)]);
     }
 
     return ret;

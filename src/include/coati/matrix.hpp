@@ -102,11 +102,11 @@ class Matrix {
 
     std::size_t rows() { return rows_; }
     std::size_t cols() { return cols_; }
-    std::size_t rows() const { return rows_; }
-    std::size_t cols() const { return cols_; }
+    [[nodiscard]] std::size_t rows() const { return rows_; }
+    [[nodiscard]] std::size_t cols() const { return cols_; }
 
    private:
-    std::size_t rows_, cols_;
+    std::size_t rows_{0}, cols_{0};
     std::vector<T> data_;
 };  // class matrix
 

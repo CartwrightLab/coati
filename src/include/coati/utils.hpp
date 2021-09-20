@@ -78,7 +78,8 @@ struct input_t {
     fasta_t fasta_file;
     std::string mut_model{"m-coati"}, weight_file{""}, out_file{""}, tree{""},
         ref{""}, rate{""};
-    bool score{false}, frameshifts{true};
+    bool score{false};
+    size_t g_len{1};
     float br_len{0.0133}, gapo{0.001}, gape{1.f - 1.f / 6.f}, omega{0.2};
     std::vector<float> pi{0.308, 0.185, 0.199, 0.308};
 
@@ -87,7 +88,7 @@ struct input_t {
             const std::vector<std::string>& d, std::string model = "m-coati",
             std::string weight = "", std::string out = "", std::string tr = "",
             std::string re = "", std::string ra = "", bool sc = false,
-            bool frame = true, float br = 0.0133, float g = 0.001,
+            size_t gl = 1, float br = 0.0133, float g = 0.001,
             float e = 1.f - 1.f / 6.f, float w = 0.2,
             std::vector<float> p = {0.308, 0.185, 0.199, 0.308})
         : fasta_file{fasta_t(f, n, d)},
@@ -98,12 +99,12 @@ struct input_t {
           ref{std::move(re)},
           rate{std::move(ra)},
           score{sc},
-          frameshifts{frame},
+          g_len{gl},
           br_len{br},
           gapo{g},
           gape{e},
           omega{w},
-          pi{p} {}
+          pi{std::move(p)} {}
 };
 
 struct alignment_t {

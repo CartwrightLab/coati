@@ -28,13 +28,13 @@
 // const float omega = 0.2;  // github.com/reedacartwright/toycoati
 
 /* Muse & Gaut Model (1994) P matrix given branch length*/
-coati::Matrixf mg94_p(float br_len, float omega) {
+coati::Matrixf mg94_p(float br_len, float omega,
+                      const std::vector<coati::float_t>& nuc_freqs) {
     if(br_len <= 0) {
         throw std::out_of_range("Branch length must be positive.");
     }
 
     // Yang (1994) estimating the pattern of nucleotide substitution
-    float nuc_freqs[4] = {0.308, 0.185, 0.199, 0.308};
     float nuc_q[4][4] = {{-0.818, 0.132, 0.586, 0.1},
                          {0.221, -1.349, 0.231, 0.897},
                          {0.909, 0.215, -1.322, 0.198},
@@ -104,7 +104,7 @@ coati::Matrixf mg94_p(float br_len, float omega) {
 }
 
 TEST_CASE("mg94_p") {
-    coati::Matrixf P(mg94_p(0.0133, 0.2));
+    coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
     for(int i = 0; i < 64; i++) {
         for(int j = 0; j < 64; j++) {
@@ -115,7 +115,7 @@ TEST_CASE("mg94_p") {
 
 /* Create marginal P matrix*/
 coati::Matrixf marginal_p(const coati::Matrixf& P,
-                          std::vector<coati::float_t>& pi) {
+                          const std::vector<coati::float_t>& pi) {
     float marg{NAN};
 
     coati::Matrixf p(192, 4);
@@ -152,14 +152,14 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
 
 TEST_CASE("marginal_p") {
     std::vector<coati::float_t> pi{0.308, 0.185, 0.199, 0.308};
-    coati::Matrixf P = mg94_p(0.0133, 0.2);
+    coati::Matrixf P = mg94_p(0.0133, 0.2, pi);
     coati::Matrixf p_marg = marginal_p(P, pi);
 
     for(int cod = 0; cod < 64; cod++) {
         for(int pos = 0; pos < 3; pos++) {
             float val = 0.f;
             for(int nuc = 0; nuc < 4; nuc++) {
-                val += ::exp(p_marg(cod * 3 + pos, nuc)) * pi[nuc];
+                val += ::expf(p_marg(cod * 3 + pos, nuc)) * pi[nuc];
             }
             CHECK(val == doctest::Approx(1));  // sum per pos (all nuc) is 1
         }
