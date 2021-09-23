@@ -1,1 +1,1 @@
-option('DEVOPT_BENCHMARKING', type : 'feature', value : 'auto', description : 'Enable benchmarking tools')
+option('dev_benchmark', type : 'feature', value : 'auto', description : 'Enable benchmarking tools')

@@ -23,13 +23,14 @@ namespace coati {
 // gap_open = log(g)
 // gap_extend = log(e)
 void align_pair(align_pair_work_t &work, const seq_view_t &a,
-                const seq_view_t &b, const Matrixf &match, input_t &in_data) {
+                const seq_view_t &b, const Matrixf &match,
+                utils::args_t &in_data) {
     // calculate log(1-g) log(1-e) log(g) log(e)
-    float_t no_gap = std::log1pf(-in_data.gapo);
-    float_t gap_stop = std::log1pf(-in_data.gape);
-    float_t gap_open = ::logf(in_data.gapo);
-    float_t gap_extend = ::logf(in_data.gape);
-    size_t look_back = in_data.g_len;
+    float_t no_gap = std::log1pf(-in_data.gap.open);
+    float_t gap_stop = std::log1pf(-in_data.gap.extend);
+    float_t gap_open = ::logf(in_data.gap.open);
+    float_t gap_extend = ::logf(in_data.gap.extend);
+    size_t look_back = in_data.gap.len;
     size_t start = look_back - 1;
 
     const float_t lowest = std::numeric_limits<float_t>::lowest();
@@ -99,9 +100,9 @@ void traceback(const align_pair_work_t &work, const std::string &a,
     size_t i = static_cast<int>(work.mch_mch.rows() - 1);
     size_t j = static_cast<int>(work.mch_mch.cols() - 1);
 
-    aln.f.seq_data.resize(2);
-    aln.f.seq_data[0].reserve(i + j);
-    aln.f.seq_data[1].reserve(i + j);
+    aln.fasta.seqs.resize(2);
+    aln.fasta.seqs[0].reserve(i + j);
+    aln.fasta.seqs[1].reserve(i + j);
 
     aln.weight = maximum(work.mch(i, j), work.del(i, j), work.ins(i, j));
     int m = max_index(work.mch(i, j), work.del(i, j), work.ins(i, j));
@@ -109,8 +110,8 @@ void traceback(const align_pair_work_t &work, const std::string &a,
     while((j > (look_back - 1)) || (i > (look_back - 1))) {
         switch(m) {
         case 0:  // match
-            aln.f.seq_data[0].push_back(a[i - look_back]);
-            aln.f.seq_data[1].push_back(b[j - look_back]);
+            aln.fasta.seqs[0].push_back(a[i - look_back]);
+            aln.fasta.seqs[1].push_back(b[j - look_back]);
             m = max_index(work.mch_mch(i, j), work.del_mch(i, j),
                           work.ins_mch(i, j));
             i--;
@@ -118,8 +119,8 @@ void traceback(const align_pair_work_t &work, const std::string &a,
             break;
         case 1:  // deletion
             for(size_t k = i; k > (i - look_back); k--) {
-                aln.f.seq_data[0].push_back(a[k - look_back]);
-                aln.f.seq_data[1].push_back('-');
+                aln.fasta.seqs[0].push_back(a[k - look_back]);
+                aln.fasta.seqs[1].push_back('-');
             }
             m = max_index(work.mch_del(i, j), work.del_del(i, j),
                           work.ins_del(i, j));
@@ -127,8 +128,8 @@ void traceback(const align_pair_work_t &work, const std::string &a,
             break;
         case 2:  // insertion
             for(size_t k = j; k > (j - look_back); k--) {
-                aln.f.seq_data[0].push_back('-');
-                aln.f.seq_data[1].push_back(b[k - look_back]);
+                aln.fasta.seqs[0].push_back('-');
+                aln.fasta.seqs[1].push_back(b[k - look_back]);
             }
             m = work.mch_ins(i, j) > work.ins_ins(i, j) ? 0 : 2;
             j -= look_back;
@@ -136,8 +137,8 @@ void traceback(const align_pair_work_t &work, const std::string &a,
         }
     }
 
-    std::reverse(aln.f.seq_data[0].begin(), aln.f.seq_data[0].end());
-    std::reverse(aln.f.seq_data[1].begin(), aln.f.seq_data[1].end());
+    std::reverse(aln.fasta.seqs[0].begin(), aln.fasta.seqs[0].end());
+    std::reverse(aln.fasta.seqs[1].begin(), aln.fasta.seqs[1].end());
 }
 
 }  // namespace coati

@@ -238,3 +238,70 @@ TEST_CASE("indel") {
     CHECK(indel_model.NumArcs(2) == 12);
     CHECK(indel_model.NumArcs(3) == 1);
 }
+
+/* Add arc to FST */
+void add_arc(VectorFstStdArc& n2p, int src, int dest, int ilabel, int olabel,
+             float weight) {
+    if(weight == 1.0) {
+        weight = 0.0;
+    } else if(weight == 0.0) {
+        weight = static_cast<float>(INT_MAX);
+    } else {
+        weight = -logf(weight);
+    }
+
+    if(n2p.NumStates() <= dest) {
+        n2p.AddState();
+        n2p.AddArc(src, fst::StdArc(ilabel, olabel, weight, dest));
+    } else {
+        n2p.AddArc(src, fst::StdArc(ilabel, olabel, weight, dest));
+    }
+}
+
+/* Create FSAs (acceptors) from a fasta file*/
+bool acceptor(std::string content, VectorFstStdArc& accept) {
+    std::map<char, int> syms = {{'-', 0}, {'A', 1}, {'C', 2}, {'G', 3},
+                                {'T', 4}, {'U', 4}, {'N', 5}};
+
+    // Add initial state
+    accept.AddState();
+    accept.SetStart(0);
+
+    for(int i = 0, content_len = static_cast<int>(content.length());
+        i < content_len; i++) {
+        add_arc(accept, i, i + 1, syms.at(content[i]), syms.at(content[i]));
+    }
+
+    // Add final state and run an FST sanity check (Verify)
+    accept.SetFinal(accept.NumStates() - 1, 0.0);
+    return Verify(accept);
+}
+
+/* Optimize FST: remove epsilons, determinize, and minimize */
+VectorFstStdArc optimize(VectorFstStdArc fst_raw) {
+    using fst::StdArc;
+    // encode FST
+    fst::SymbolTable syms;
+    fill_symbol_table(syms);
+
+    fst::EncodeMapper<StdArc> encoder(fst::kEncodeLabels, fst::ENCODE);
+    encoder.SetInputSymbols(&syms);
+    encoder.SetOutputSymbols(&syms);
+    fst::Encode(&fst_raw, &encoder);
+
+    // reduce to more efficient form
+    // 1. epsilon removal
+    fst::RmEpsilon(&fst_raw);
+
+    // 2. determinize
+    VectorFstStdArc fst_det;
+    fst::Determinize(fst_raw, &fst_det);
+
+    // 3. minimize
+    fst::Minimize(&fst_det);
+
+    // decode
+    fst::Decode(&fst_det, encoder);
+
+    return fst_det;
+}

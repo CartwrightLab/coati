@@ -24,10 +24,11 @@
 
 #include <CLI11.hpp>
 #include <coati/align.hpp>
+#include <coati/fasta.hpp>
 #include <coati/utils.hpp>
 
 int main(int argc, char* argv[]) {
-    input_t in_data;
+    coati::utils::args_t in_data;
 
     // Parse command line options
     CLI::App alignpair;
@@ -35,13 +36,11 @@ int main(int argc, char* argv[]) {
     CLI11_PARSE(alignpair, argc, argv);
 
     // if no output is specified save in current dir in PHYLIP format
-    if(in_data.out_file.empty()) {
-        in_data.out_file =
-            std::filesystem::path(in_data.fasta_file.path).stem().string() +
-            ".phy";
+    if(in_data.output.empty()) {
+        in_data.output = in_data.fasta.path.stem();
+        in_data.output += std::filesystem::path(".phy");
     } else {  // check format is valid (phylip/fasta)
-        const std::string extension =
-            std::filesystem::path(in_data.out_file).extension();
+        const std::string extension = in_data.output.extension();
         const std::regex valid_ext("^.phy$|^.fasta$|^.fa$");
         if(!std::regex_match(extension, valid_ext)) {
             throw std::invalid_argument(
@@ -52,11 +51,13 @@ int main(int argc, char* argv[]) {
 
     std::vector<VectorFstStdArc> fsts;
 
-    if(in_data.mut_model.compare("m-coati") == 0 ||
-       in_data.mut_model.compare("m-ecm") == 0) {
-        read_fasta_pair(in_data.fasta_file, fsts, false);
+    if(in_data.model.compare("m-coati") == 0 ||
+       in_data.model.compare("m-ecm") == 0) {
+        in_data.fasta =
+            coati::read_fasta_pair(in_data.fasta.path.string(), fsts, false);
         return mcoati(in_data);
     }
-    read_fasta_pair(in_data.fasta_file, fsts, true);
+    in_data.fasta =
+        coati::read_fasta_pair(in_data.fasta.path.string(), fsts, true);
     return fst_alignment(in_data, fsts);
 }

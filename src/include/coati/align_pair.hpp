@@ -81,7 +81,8 @@ inline int max_index(float_t x, float_t y, float_t z) {
 }
 
 void align_pair(align_pair_work_t &work, const seq_view_t &a,
-                const seq_view_t &b, const Matrixf &match, input_t &in_data);
+                const seq_view_t &b, const Matrixf &match,
+                utils::args_t &in_data);
 void traceback(const align_pair_work_t &work, const std::string &a,
                const std::string &b, alignment_t &aln, size_t look_back);
 

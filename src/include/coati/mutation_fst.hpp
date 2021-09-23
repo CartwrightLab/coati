@@ -23,7 +23,15 @@
 #ifndef MUTATION_FST_HPP
 #define MUTATION_FST_HPP
 
-#include "mutation_coati.hpp"
+#include <fst/fstlib.h>
+
+#include <string>
+
+#include "fasta.hpp"
+#include "matrix.hpp"
+#include "utils.hpp"
+
+using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 VectorFstStdArc mg94(float br_len, float omega,
                      const std::vector<coati::float_t>& pi);
@@ -32,5 +40,9 @@ VectorFstStdArc dna(float br_len, float omega,
                     const std::vector<coati::float_t>& pi);
 VectorFstStdArc indel(float gap_open, float gap_extend,
                       const std::vector<float>& pi);
+void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel = 0,
+             int olabel = 0, float weight = 1.0);
+bool acceptor(std::string content, VectorFstStdArc& accept);
+VectorFstStdArc optimize(VectorFstStdArc fst_raw);
 
 #endif

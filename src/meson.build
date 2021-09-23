@@ -48,13 +48,6 @@ boost_dep = dependency('boost',
 	modules : ['program_options'],
 	required : true)
 
-if(get_option('DEVOPT_BENCHMARKING').enabled())
-	google_benchmark_dep = dependency('google-benchmark',
-	  fallback : ['google-benchmark', 'google_benchmark_dep'],
-		version : '>=1.5.2',
-		required : get_option('DEVOPT_BENCHMARKING'))
-endif
-
 subdir('lib')
 
 progs=['alignpair', 'genseed', 'msa', 'version']

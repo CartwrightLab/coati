@@ -33,10 +33,10 @@
 #include "tree.hpp"
 #include "utils.hpp"
 
-int mcoati(input_t& in_data);
-int progressive_aln(input_t& in_data);
-int fst_alignment(input_t& in_data, std::vector<VectorFstStdArc>& fsts);
-int ref_indel_alignment(input_t& in_data);
-float alignment_score(input_t& in_data, coati::Matrixf& P);
+bool mcoati(coati::utils::args_t& in_data);
+bool fst_alignment(coati::utils::args_t& in_data,
+                   std::vector<VectorFstStdArc>& fsts);
+bool ref_indel_alignment(coati::utils::args_t& in_data);
+float alignment_score(coati::utils::args_t& in_data, coati::Matrixf& P);
 
 #endif

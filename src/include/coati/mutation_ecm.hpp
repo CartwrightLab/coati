@@ -24,6 +24,7 @@
 #define MUTATION_ECM_HPP
 
 #include "ecm.tcc"
+#include "matrix.hpp"
 #include "mutation_fst.hpp"
 
 void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);

@@ -37,6 +37,7 @@
 #include <vector>
 
 #include "dna_syms.hpp"
+#include "fasta.hpp"
 #include "matrix.hpp"
 #include "mg94q.tcc"
 #include "mutation_coati.hpp"
@@ -66,80 +67,76 @@ using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 using sequence_pair_t = std::vector<std::basic_string<unsigned char>>;
 
-struct fasta_t {
-    std::filesystem::path path;
-    std::vector<std::string> seq_names, seq_data;
-    explicit fasta_t(std::string f = "", std::vector<std::string> n = {},
-                     std::vector<std::string> d = {})
-        : path{std::move(f)}, seq_names{std::move(n)}, seq_data{std::move(d)} {}
+namespace coati::utils {
+struct gap_t {
+    std::size_t len{1};
+    float_t open{0.001};
+    float_t extend{1.f - 1.f / 6.f};
+
+    gap_t() = default;
+    gap_t(std::size_t l, float_t o = 0.001, float_t e = 1.f - 1.f / 6.f)
+        : len{l}, open{o}, extend{e} {}
 };
 
-struct input_t {
-    fasta_t fasta_file;
-    std::string mut_model{"m-coati"}, weight_file{""}, out_file{""}, tree{""},
-        ref{""}, rate{""};
+struct args_t {
+    coati::fasta_t fasta;
+    std::string model{"m-coati"}, weight_file{""};
+    std::filesystem::path output;
     bool score{false};
-    size_t g_len{1};
-    float br_len{0.0133}, gapo{0.001}, gape{1.f - 1.f / 6.f}, omega{0.2};
-    std::vector<float> pi{0.308, 0.185, 0.199, 0.308};
+    std::string tree{""}, ref{""}, rate{""};
+    gap_t gap;
+    float_t br_len{0.0133};
+    float_t omega{0.2};
+    std::vector<float_t> pi{0.308, 0.185, 0.199, 0.308};
 
-    input_t() = default;
-    input_t(const std::string& f, const std::vector<std::string>& n,
-            const std::vector<std::string>& d, std::string model = "m-coati",
-            std::string weight = "", std::string out = "", std::string tr = "",
-            std::string re = "", std::string ra = "", bool sc = false,
-            size_t gl = 1, float br = 0.0133, float g = 0.001,
-            float e = 1.f - 1.f / 6.f, float w = 0.2,
-            std::vector<float> p = {0.308, 0.185, 0.199, 0.308})
-        : fasta_file{fasta_t(f, n, d)},
-          mut_model{std::move(model)},
+    args_t() = default;
+    args_t(const std::string& f, const std::vector<std::string>& n,
+           const std::vector<std::string>& s, std::string m = "m-coati",
+           std::string weight = "", std::filesystem::path out = "",
+           bool sc = false, std::string tr = "", std::string re = "",
+           std::string ra = "", size_t gl = 1, float_t go = 0.001,
+           float_t ge = 1.f - 1.f / 6.f, float_t br = 0.0133, float_t w = 0.2f,
+           std::vector<float> p = {0.308, 0.185, 0.199, 0.308})
+        : fasta{coati::fasta_t(f, n, s)},
+          model{std::move(m)},
           weight_file{std::move(weight)},
-          out_file{std::move(out)},
+          output{std::move(out)},
+          score{sc},
           tree{std::move(tr)},
           ref{std::move(re)},
           rate{std::move(ra)},
-          score{sc},
-          g_len{gl},
+          gap{gap_t(gl, go, ge)},
           br_len{br},
-          gapo{g},
-          gape{e},
           omega{w},
           pi{std::move(p)} {}
 };
+}  // namespace coati::utils
 
 struct alignment_t {
-    fasta_t f;
-    float weight{0.0};
-    std::string weight_file{""}, model{""};
+    coati::fasta_t fasta;
+    float_t weight{0.0};
+    std::filesystem::path weight_file;
+    std::string model{""};
 
     alignment_t() = default;
     // NOLINTNEXTLINE(misc-unused-parameters)
-    alignment_t(const std::string& f_file, const std::vector<std::string>& n,
+    alignment_t(const std::filesystem::path& f,
+                const std::vector<std::string>& n,
                 // NOLINTNEXTLINE(misc-unused-parameters)
-                const std::vector<std::string>& d, float w, std::string w_f,
-                std::string m)
-        : f{fasta_t(f_file, n, d)},
+                const std::vector<std::string>& s, float_t w,
+                std::filesystem::path w_f, std::string m)
+        : fasta{coati::fasta_t(f, n, s)},
           weight{w},
           weight_file{std::move(w_f)},
           model{std::move(m)} {}
 };
 
-int read_fasta(fasta_t& fasta_file, std::vector<VectorFstStdArc>& fsts);
-int read_fasta(fasta_t& fasta_file);
-void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel = 0,
-             int olabel = 0, float weight = 1.0);
-VectorFstStdArc optimize(VectorFstStdArc fst_raw);
-int write_fasta(fasta_t& fasta_file);
-int write_fasta(VectorFstStdArc& aln, fasta_t& fasta_file);
-int write_phylip(fasta_t& fasta_file);
-int write_phylip(VectorFstStdArc& aln, fasta_t& fasta_file);
-bool acceptor(std::string content, VectorFstStdArc& accept);
+bool write_phylip(coati::fasta_t& fasta);
+bool write_phylip(VectorFstStdArc& aln, coati::fasta_t& fasta);
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(const std::string& codon);
 coati::Matrix<coati::float_t> parse_matrix_csv(const std::string& file);
-void read_fasta_pair(fasta_t& fasta_file, std::vector<VectorFstStdArc>& fsts,
-                     bool fst);
-void set_cli_options(CLI::App& app, input_t& in_data,
+void set_cli_options(CLI::App& app, coati::utils::args_t& in_data,
                      const std::string& command);
 sequence_pair_t marginal_seq_encoding(const std::string& anc,
                                       const std::string& des);
