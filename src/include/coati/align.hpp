@@ -28,15 +28,12 @@
 #include <vector>
 
 #include "align_pair.hpp"
-#include "insertions.hpp"
 #include "mutation_ecm.hpp"
 #include "phylip.hpp"
-#include "tree.hpp"
 #include "utils.hpp"
 
 bool mcoati(coati::utils::args_t& args, coati::utils::alignment_t& aln);
 bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln);
-bool ref_indel_alignment(coati::utils::args_t& args);
 float alignment_score(coati::utils::args_t& args, coati::Matrixf& P);
 
 #endif

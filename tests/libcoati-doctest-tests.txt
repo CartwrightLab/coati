@@ -1,7 +1,7 @@
 mcoati
 fst_alignment
-ref_indel_alignment
 alignment_score
+ref_indel_alignment
 read_fasta-fst
 read_fasta
 write_fasta

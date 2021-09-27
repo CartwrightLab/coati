@@ -21,7 +21,7 @@
 */
 
 #include <CLI11.hpp>
-#include <coati/align.hpp>
+#include <coati/align_msa.hpp>
 #include <coati/fasta.hpp>
 #include <regex>
 
@@ -56,5 +56,5 @@ int main(int argc, char* argv[]) {
             "At least three sequences required. Exiting!");
     }
 
-    return ref_indel_alignment(args);
+    return coati::ref_indel_alignment(args);
 }

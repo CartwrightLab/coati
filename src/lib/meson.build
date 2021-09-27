@@ -21,6 +21,7 @@
 
 libcoati_sources = files([
   'align.cc',
+  'align_msa.cc',
   'align_pair.cc',
   'fasta.cc',
   'insertions.cc',
