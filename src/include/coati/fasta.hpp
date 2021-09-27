@@ -37,8 +37,8 @@ struct fasta_t {
     std::vector<std::string> names, seqs;
 
     fasta_t() = default;
-    fasta_t(std::filesystem::path p, std::vector<std::string> n = {},
-            std::vector<std::string> s = {})
+    explicit fasta_t(std::filesystem::path p, std::vector<std::string> n = {},
+                     std::vector<std::string> s = {})
         : path{std::move(p)}, names{std::move(n)}, seqs{std::move(s)} {}
     size_t size() {
         if(names.size() != seqs.size()) {
@@ -47,7 +47,7 @@ struct fasta_t {
         }
         return names.size();
     }
-    size_t size() const {
+    [[nodiscard]] size_t size() const {
         if(names.size() != seqs.size()) {
             throw std::invalid_argument(
                 "Different number of sequences and names in fasta file.");

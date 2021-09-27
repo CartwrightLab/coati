@@ -76,7 +76,8 @@ struct gap_t {
     float_t extend{1.f - 1.f / 6.f};
 
     gap_t() = default;
-    gap_t(std::size_t l, float_t o = 0.001, float_t e = 1.f - 1.f / 6.f)
+    explicit gap_t(std::size_t l, float_t o = 0.001,
+                   float_t e = 1.f - 1.f / 6.f)
         : len{l}, open{o}, extend{e} {}
 };
 
@@ -136,8 +137,8 @@ struct alignment_t {
           weight{w},
           weight_file{std::move(w_f)},
           model{std::move(m)},
-          subst_matrix{p},
-          subst_fst{fst},
+          subst_matrix{std::move(p)},
+          subst_fst{std::move(fst)},
           seqs{std::move(ss)} {}
 
     bool is_marginal() {
