@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,10 +20,8 @@
 # SOFTWARE.
 */
 
-#ifndef ALIGN_HPP
-#define ALIGN_HPP
-
-#include <fst/fstlib.h>
+#ifndef ALIGN_MARGINAL_HPP
+#define ALIGN_MARGINAL_HPP
 
 #include <vector>
 
@@ -32,8 +30,8 @@
 #include "phylip.hpp"
 #include "utils.hpp"
 
-bool mcoati(coati::utils::args_t& args, coati::utils::alignment_t& aln);
-bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln);
+namespace coati {
+bool marg_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln);
 float alignment_score(coati::utils::args_t& args, coati::Matrixf& P);
-
+}  // namespace coati
 #endif

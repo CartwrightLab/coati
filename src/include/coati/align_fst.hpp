@@ -1,5 +1,5 @@
-# Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+/*
+# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,27 +18,20 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+*/
 
-libcoati_sources = files([
-  'align_fst.cc',
-  'align_marginal.cc',
-  'align_msa.cc',
-  'align_pair.cc',
-  'fasta.cc',
-  'insertions.cc',
-  'mutation_coati.cc',
-  'mutation_ecm.cc',
-  'mutation_fst.cc',
-  'phylip.cc',
-  'tree.cc',
-  'utils.cc',
-  'version.cc'
-])
+#ifndef ALIGN_HPP
+#define ALIGN_HPP
 
-libcoati_deps = [cli_dep, boost_dep, doctest_dep, eigen_dep, fstlib_dep]
+#include <fst/fstlib.h>
 
-libcoati = static_library('libcoati', [libcoati_sources, version_file],
-  include_directories : inc,
-  dependencies : libcoati_deps,
-  cpp_args : ['-DDOCTEST_CONFIG_DISABLE']
-)
+#include <vector>
+
+#include "mutation_ecm.hpp"
+#include "phylip.hpp"
+#include "utils.hpp"
+
+namespace coati {
+bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln);
+}  // namespace coati
+#endif

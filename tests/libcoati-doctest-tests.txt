@@ -1,5 +1,5 @@
-mcoati
 fst_alignment
+marg_alignment
 alignment_score
 ref_indel_alignment
 read_fasta-fst

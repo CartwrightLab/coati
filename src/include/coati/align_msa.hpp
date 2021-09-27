@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
+/*
 # Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,27 +18,18 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+*/
 
-libcoati_sources = files([
-  'align_fst.cc',
-  'align_marginal.cc',
-  'align_msa.cc',
-  'align_pair.cc',
-  'fasta.cc',
-  'insertions.cc',
-  'mutation_coati.cc',
-  'mutation_ecm.cc',
-  'mutation_fst.cc',
-  'phylip.cc',
-  'tree.cc',
-  'utils.cc',
-  'version.cc'
-])
+#ifndef ALIGN_MSA_HPP
+#define ALIGN_MSA_HPP
 
-libcoati_deps = [cli_dep, boost_dep, doctest_dep, eigen_dep, fstlib_dep]
+#include "align_pair.hpp"
+#include "insertions.hpp"
+#include "phylip.hpp"
+#include "tree.hpp"
+#include "utils.hpp"
 
-libcoati = static_library('libcoati', [libcoati_sources, version_file],
-  include_directories : inc,
-  dependencies : libcoati_deps,
-  cpp_args : ['-DDOCTEST_CONFIG_DISABLE']
-)
+namespace coati {
+bool ref_indel_alignment(coati::utils::args_t& args);
+}  // namespace coati
+#endif

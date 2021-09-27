@@ -23,7 +23,8 @@
 #include <fst/fstlib.h>
 
 #include <CLI11.hpp>
-#include <coati/align.hpp>
+#include <coati/align_fst.hpp>
+#include <coati/align_marginal.hpp>
 #include <coati/fasta.hpp>
 #include <coati/utils.hpp>
 
@@ -61,7 +62,7 @@ int main(int argc, char* argv[]) {
         if(args.fasta.size() != 2) {
             throw std::invalid_argument("Exactly two sequences required.");
         }
-        return mcoati(args, aln);
+        return coati::marg_alignment(args, aln);
     }
     // subst models aligned by FST composition
     args.fasta = coati::read_fasta(args.fasta.path.string(), aln.seqs);
@@ -69,5 +70,5 @@ int main(int argc, char* argv[]) {
     if(args.fasta.size() != 2 || args.fasta.size() != aln.seqs.size()) {
         throw std::invalid_argument("Exactly two sequences required.");
     }
-    return fst_alignment(args, aln);
+    return coati::fst_alignment(args, aln);
 }
