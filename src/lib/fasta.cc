@@ -25,6 +25,7 @@
 #include <coati/fasta.hpp>
 
 namespace coati {
+
 /* Read fasta format file */
 fasta_t read_fasta(const std::string& f_path,
                    std::vector<VectorFstStdArc>& fsts) {
@@ -181,95 +182,8 @@ TEST_CASE("read_fasta") {
     }
 }
 
-/* Read fasta formatted file with a pair of sequences */
-fasta_t read_fasta_pair(const std::string& f_path,
-                        std::vector<VectorFstStdArc>& fsts, bool fst) {
-    fasta_t fasta;
-    if(fst) {
-        fasta = read_fasta(f_path, fsts);
-        if(fasta.size() != 2 || fasta.size() != fsts.size()) {
-            throw std::invalid_argument(
-                "Exactly two sequences required. Exiting!");
-        }
-    } else {
-        fasta = read_fasta(f_path);
-        if(fasta.size() != 2) {
-            throw std::invalid_argument(
-                "Exactly two sequences required. Exiting!");
-        }
-    }
-    return fasta;
-}
-
-TEST_CASE("read_fasta_pair") {
-    std::ofstream outfile;
-
-    SUBCASE("Read test-no-fst") {
-        std::vector<VectorFstStdArc> fsts;
-        std::string filename{"test-no-fst.fasta"};
-        outfile.open(filename);
-        REQUIRE(outfile);
-        outfile << "; comment line" << std::endl;
-        outfile << ">1" << std::endl << "CTCTGGATAGTC" << std::endl;
-        outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
-        outfile.close();
-
-        fasta_t fasta = read_fasta_pair(filename, fsts, false);
-        CHECK(std::filesystem::remove(fasta.path));
-
-        CHECK(fasta.size() == 2);
-    }
-
-    SUBCASE("Read test-fst") {
-        std::vector<VectorFstStdArc> fsts;
-        std::string filename{"test-fst.fasta"};
-        outfile.open(filename);
-        REQUIRE(outfile);
-        outfile << "; comment line" << std::endl;
-        outfile << ">1" << std::endl << "CTCTGGATAGTC" << std::endl;
-        outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
-        outfile.close();
-
-        fasta_t fasta = read_fasta_pair(filename, fsts, true);
-        CHECK(std::filesystem::remove(fasta.path));
-
-        CHECK(fasta.size() == 2);
-        CHECK(fasta.size() == fsts.size());
-    }
-
-    SUBCASE("Error test-1seq.fasta") {
-        std::vector<VectorFstStdArc> fsts;
-        std::string filename{"test-1seq.fasta"};
-        outfile.open(filename);
-        REQUIRE(outfile);
-        outfile << "; comment line" << std::endl;
-        outfile << ">1" << std::endl << "CTCTGGATAGTC" << std::endl;
-        outfile.close();
-
-        REQUIRE_THROWS_AS(read_fasta_pair(filename, fsts, false),
-                          std::invalid_argument);
-        CHECK(std::filesystem::remove(filename));
-    }
-
-    SUBCASE("Error test-3seqs-fst.fasta") {
-        std::vector<VectorFstStdArc> fsts;
-        std::string filename{"test-2seqs-fst.fasta"};
-        outfile.open(filename);
-        REQUIRE(outfile);
-        outfile << "; comment line" << std::endl;
-        outfile << ">1" << std::endl << "CTCTGGATAGTC" << std::endl;
-        outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
-        outfile << ">3" << std::endl << "CTATAGTC" << std::endl;
-        outfile.close();
-
-        REQUIRE_THROWS_AS(read_fasta_pair(filename, fsts, true),
-                          std::invalid_argument);
-        CHECK(std::filesystem::remove(filename));
-    }
-}
-
 /* Write alignment in Fasta format */
-bool write_fasta(fasta_t& fasta) {
+bool write_fasta(const fasta_t& fasta) {
     std::ofstream outfile;
     outfile.open(fasta.path);
     if(!outfile) {
@@ -313,7 +227,7 @@ TEST_CASE("write_fasta") {
 }
 
 /* Write shortest path (alignment) in Fasta format */
-bool write_fasta(VectorFstStdArc& aln, fasta_t& fasta) {
+bool write_fasta(const VectorFstStdArc& aln, fasta_t& fasta) {
     fst::SymbolTable symbols;
     fill_symbol_table(symbols);
 

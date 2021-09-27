@@ -47,15 +47,20 @@ struct fasta_t {
         }
         return names.size();
     }
+    size_t size() const {
+        if(names.size() != seqs.size()) {
+            throw std::invalid_argument(
+                "Different number of sequences and names in fasta file.");
+        }
+        return names.size();
+    }
 };
 
 fasta_t read_fasta(const std::string& f_path,
                    std::vector<VectorFstStdArc>& fsts);
 fasta_t read_fasta(const std::string& f_path);
-fasta_t read_fasta_pair(const std::string& f_path,
-                        std::vector<VectorFstStdArc>& fsts, bool fst);
-bool write_fasta(VectorFstStdArc& aln, fasta_t& fasta);
-bool write_fasta(fasta_t& fasta);
+bool write_fasta(const VectorFstStdArc& aln, fasta_t& fasta);
+bool write_fasta(const fasta_t& fasta);
 
 }  // namespace coati
 

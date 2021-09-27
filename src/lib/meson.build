@@ -27,6 +27,7 @@ libcoati_sources = files([
   'mutation_coati.cc',
   'mutation_ecm.cc',
   'mutation_fst.cc',
+  'phylip.cc',
   'tree.cc',
   'utils.cc',
   'version.cc'

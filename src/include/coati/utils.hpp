@@ -41,6 +41,8 @@
 #include "matrix.hpp"
 #include "mg94q.tcc"
 #include "mutation_coati.hpp"
+#include "mutation_ecm.hpp"
+#include "mutation_fst.hpp"
 
 /* Table for converting a nucleotide character to 2-bit encoding */
 const uint8_t nt4_table[256] = {
@@ -110,13 +112,17 @@ struct args_t {
           omega{w},
           pi{std::move(p)} {}
 };
-}  // namespace coati::utils
+
+coati::Matrix<coati::float_t> parse_matrix_csv(const std::string& file);
 
 struct alignment_t {
     coati::fasta_t fasta;
     float_t weight{0.0};
     std::filesystem::path weight_file;
     std::string model{""};
+    Matrixf subst_matrix;
+    VectorFstStdArc subst_fst;
+    std::vector<VectorFstStdArc> seqs = {};
 
     alignment_t() = default;
     // NOLINTNEXTLINE(misc-unused-parameters)
@@ -124,20 +130,27 @@ struct alignment_t {
                 const std::vector<std::string>& n,
                 // NOLINTNEXTLINE(misc-unused-parameters)
                 const std::vector<std::string>& s, float_t w,
-                std::filesystem::path w_f, std::string m)
+                std::filesystem::path w_f, std::string m, Matrixf p,
+                VectorFstStdArc fst, std::vector<VectorFstStdArc> ss)
         : fasta{coati::fasta_t(f, n, s)},
           weight{w},
           weight_file{std::move(w_f)},
-          model{std::move(m)} {}
+          model{std::move(m)},
+          subst_matrix{p},
+          subst_fst{fst},
+          seqs{std::move(ss)} {}
+
+    bool is_marginal() {
+        return !((subst_matrix.rows() > 0) && (subst_matrix.cols() > 0));
+    }
 };
 
-bool write_phylip(coati::fasta_t& fasta);
-bool write_phylip(VectorFstStdArc& aln, coati::fasta_t& fasta);
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(const std::string& codon);
-coati::Matrix<coati::float_t> parse_matrix_csv(const std::string& file);
-void set_cli_options(CLI::App& app, coati::utils::args_t& in_data,
+void set_cli_options(CLI::App& app, coati::utils::args_t& args,
                      const std::string& command);
 sequence_pair_t marginal_seq_encoding(const std::string& anc,
                                       const std::string& des);
+void set_subst(args_t& args, alignment_t& aln);
+}  // namespace coati::utils
 #endif

@@ -25,156 +25,7 @@
 #include <climits>
 #include <coati/utils.hpp>
 
-constexpr size_t PRINT_SIZE = 100;
-
-/* Write alignment in PHYLIP format */
-bool write_phylip(coati::fasta_t& fasta) {
-    std::ofstream outfile;
-    outfile.open(fasta.path);
-    if(!outfile) {
-        throw std::invalid_argument("Opening output file failed.");
-    }
-
-    // write aligned sequences to file
-    outfile << fasta.size() << " " << fasta.seqs[0].length() << std::endl;
-    size_t i = PRINT_SIZE - 4 -
-               std::max(fasta.names[0].length(), fasta.names[1].length());
-    for(size_t j = 0; j < fasta.size(); j++) {
-        outfile << fasta.names[j] << "\t" << fasta.seqs[j].substr(0, i)
-                << std::endl;
-    }
-    outfile << std::endl;
-
-    for(; i < fasta.seqs[0].length(); i += PRINT_SIZE) {
-        for(size_t j = 0; j < fasta.size(); j++) {
-            outfile << fasta.seqs[j].substr(i, PRINT_SIZE) << std::endl;
-        }
-        outfile << std::endl;
-    }
-
-    return true;
-}
-
-TEST_CASE("write_phylip") {
-    SUBCASE("Short sequences") {
-        coati::fasta_t fasta("test-write-phylip.phylip", {"1", "2"},
-                             {"CTCTGGATAGTG", "CT----ATAGTG"});
-
-        REQUIRE(write_phylip(fasta));
-
-        std::ifstream infile("test-write-phylip.phylip");
-        std::string s1, s2;
-
-        infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("12") == 0);
-
-        infile >> s1 >> s2;
-        CHECK(s1.compare("1") == 0);
-        CHECK(s2.compare("CTCTGGATAGTG") == 0);
-
-        infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("CT----ATAGTG") == 0);
-
-        CHECK(std::filesystem::remove("test-write-phylip.phylip"));
-    }
-
-    SUBCASE("Multi-line sequences") {
-        coati::fasta_t fasta(
-            "test-write-phylip.phylip", {"1", "2"},
-            {"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"});
-
-        REQUIRE(write_phylip(fasta));
-
-        std::ifstream infile("test-write-phylip.phylip");
-        std::string s1, s2;
-
-        infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("100") == 0);
-
-        infile >> s1 >> s2;
-        CHECK(s1.compare("1") == 0);
-        CHECK(s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == 0);
-
-        infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == 0);
-
-        CHECK(std::filesystem::remove("test-write-phylip.phylip"));
-    }
-
-    SUBCASE("Opening file fails") {
-        coati::fasta_t fasta("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
-
-        REQUIRE_THROWS_AS(write_phylip(fasta), std::invalid_argument);
-    }
-}
-
-/* Write shortest path (alignment) in PHYLIP format */
-bool write_phylip(VectorFstStdArc& aln, coati::fasta_t& fasta) {
-    fst::SymbolTable symbols;
-    fill_symbol_table(symbols);
-
-    std::string seq1, seq2;
-    fst::StateIterator<fst::StdFst> siter(aln);  // FST state iterator
-    for(int i = 0; i < (aln.NumStates() - 1); siter.Next(), i++) {
-        fst::ArcIteratorData<fst::StdArc> data;
-        aln.InitArcIterator(siter.Value(), &data);
-        seq1.append(symbols.Find(data.arcs[0].ilabel));
-        seq2.append(symbols.Find(data.arcs[0].olabel));
-    }
-
-    fasta.seqs.push_back(seq1);
-    fasta.seqs.push_back(seq2);
-
-    // map all epsilons (<eps>) to gaps (-)
-    while(fasta.seqs[0].find("<eps>") != std::string::npos) {
-        fasta.seqs[0].replace(fasta.seqs[0].find("<eps>"), 5, "-");
-    }
-    while(fasta.seqs[1].find("<eps>") != std::string::npos) {
-        fasta.seqs[1].replace(fasta.seqs[1].find("<eps>"), 5, "-");
-    }
-
-    return write_phylip(fasta);
-}
-
-TEST_CASE("write_phylip-fst") {
-    coati::fasta_t fasta("test-write-phylip.phylip", {"1", "2"});
-
-    VectorFstStdArc fst_write;
-    fst_write.AddState();
-    fst_write.SetStart(0);
-    add_arc(fst_write, 0, 1, 2, 2);  // C -> C
-    add_arc(fst_write, 1, 2, 4, 4);  // T -> T
-    add_arc(fst_write, 2, 3, 0, 2);  // - -> C
-    add_arc(fst_write, 3, 4, 1, 0);  // A -> -
-    fst_write.SetFinal(4, 0.0);
-
-    REQUIRE(write_phylip(fst_write, fasta));
-    std::ifstream infile("test-write-phylip.phylip");
-    std::string s1, s2;
-
-    infile >> s1 >> s2;
-    CHECK(s1.compare("2") == 0);
-    CHECK(s2.compare("4") == 0);
-
-    infile >> s1 >> s2;
-    CHECK(s1.compare("1") == 0);
-    CHECK(s2.compare("CT-A") == 0);
-
-    infile >> s1 >> s2;
-    CHECK(s1.compare("2") == 0);
-    CHECK(s2.compare("CTC-") == 0);
-
-    CHECK(std::filesystem::remove("test-write-phylip.phylip"));
-}
+namespace coati::utils {
 
 /* Hamming distance between two codons */
 int cod_distance(uint8_t cod1, uint8_t cod2) {
@@ -279,38 +130,37 @@ TEST_CASE("parse_matrix_csv") {
 }
 
 /* Setup command line options */
-void set_cli_options(CLI::App& app, coati::utils::args_t& in_data,
+void set_cli_options(CLI::App& app, coati::utils::args_t& args,
                      const std::string& command) {
     // Add new options/flags
-    app.add_option("fasta", in_data.fasta.path, "Fasta file path")
+    app.add_option("fasta", args.fasta.path, "Fasta file path")
         ->required()
         ->check(CLI::ExistingFile);
     if(command.compare("msa") == 0) {
-        app.add_option("tree", in_data.tree, "Newick phylogenetic tree")
+        app.add_option("tree", args.tree, "Newick phylogenetic tree")
             ->required()
             ->check(CLI::ExistingFile);
-        app.add_option("reference", in_data.ref, "Reference sequence")
-            ->required();
+        app.add_option("reference", args.ref, "Reference sequence")->required();
     }
-    app.add_option("-m,--model", in_data.model, "Substitution model");
+    app.add_option("-m,--model", args.model, "Substitution model");
     if(command.compare("alignpair") == 0) {
-        app.add_option("-t,--time", in_data.br_len,
+        app.add_option("-t,--time", args.br_len,
                        "Evolutionary time/branch length")
             ->check(CLI::PositiveNumber);
-        app.add_option("-l,--weight", in_data.weight_file,
+        app.add_option("-l,--weight", args.weight_file,
                        "Write alignment score to file");
-        app.add_flag("-s,--score", in_data.score, "Score alignment");
+        app.add_flag("-s,--score", args.score, "Score alignment");
     }
-    app.add_option("-o,--output", in_data.output, "Alignment output file");
-    app.add_option("-g,--gap-open", in_data.gap.open, "Gap opening score")
+    app.add_option("-o,--output", args.output, "Alignment output file");
+    app.add_option("-g,--gap-open", args.gap.open, "Gap opening score")
         ->check(CLI::PositiveNumber);
-    app.add_option("-e,--gap-extend", in_data.gap.extend, "Gap extension score")
+    app.add_option("-e,--gap-extend", args.gap.extend, "Gap extension score")
         ->check(CLI::PositiveNumber);
-    app.add_option("-w,--omega", in_data.omega, "Nonsynonymous-synonymous bias")
+    app.add_option("-w,--omega", args.omega, "Nonsynonymous-synonymous bias")
         ->check(CLI::PositiveNumber);
-    app.add_option("-p,--pi", in_data.pi, "Nucleotide frequencies (A C G T)")
+    app.add_option("-p,--pi", args.pi, "Nucleotide frequencies (A C G T)")
         ->expected(4);
-    app.add_option("-n,--gap-len", in_data.gap.len, "Set gap unit size");
+    app.add_option("-n,--gap-len", args.gap.len, "Set gap unit size");
 }
 
 /* Encode ( as vector<unsigned char>) ancestor (ref) sequence as codon & phase,
@@ -366,3 +216,30 @@ TEST_CASE("marginal_seq_encoding") {
     CHECK(result[1][3] == static_cast<unsigned char>(3));
     CHECK(result[1][4] == static_cast<unsigned char>(4));
 }
+
+void set_subst(args_t& args, alignment_t& aln) {
+    Matrixf P(64, 64);
+
+    if(!args.rate.empty()) {
+        aln.model = "user_marg_model";
+        P = parse_matrix_csv(args.rate);
+        aln.subst_matrix = marginal_p(P, args.pi);
+    } else if(args.model.compare("m-ecm") == 0) {
+        P = ecm_p(args.br_len, args.omega);
+        aln.subst_matrix = marginal_p(P, args.pi);
+    } else if(args.model.compare("m-coati") == 0) {  // m-coati
+        P = mg94_p(args.br_len, args.omega, args.pi);
+        aln.subst_matrix = marginal_p(P, args.pi);
+    } else if(args.model.compare("coati") == 0) {
+        aln.subst_fst = mg94(args.br_len, args.omega, args.pi);
+    } else if(args.model.compare("dna") == 0) {
+        aln.subst_fst = dna(args.br_len, args.omega, args.pi);
+    } else if(args.model.compare("ecm") == 0) {
+        aln.subst_fst = ecm(args.br_len, args.omega);
+        args.pi = {0.2676350, 0.2357727, 0.2539630, 0.2426323};
+    } else {
+        throw std::invalid_argument("Mutation model unknown.");
+    }
+}
+
+}  // namespace coati::utils

@@ -24,13 +24,13 @@ namespace coati {
 // gap_extend = log(e)
 void align_pair(align_pair_work_t &work, const seq_view_t &a,
                 const seq_view_t &b, const Matrixf &match,
-                utils::args_t &in_data) {
+                utils::args_t &args) {
     // calculate log(1-g) log(1-e) log(g) log(e)
-    float_t no_gap = std::log1pf(-in_data.gap.open);
-    float_t gap_stop = std::log1pf(-in_data.gap.extend);
-    float_t gap_open = ::logf(in_data.gap.open);
-    float_t gap_extend = ::logf(in_data.gap.extend);
-    size_t look_back = in_data.gap.len;
+    float_t no_gap = std::log1pf(-args.gap.open);
+    float_t gap_stop = std::log1pf(-args.gap.extend);
+    float_t gap_open = ::logf(args.gap.open);
+    float_t gap_extend = ::logf(args.gap.extend);
+    size_t look_back = args.gap.len;
     size_t start = look_back - 1;
 
     const float_t lowest = std::numeric_limits<float_t>::lowest();
@@ -96,7 +96,8 @@ void align_pair(align_pair_work_t &work, const seq_view_t &a,
 }
 
 void traceback(const align_pair_work_t &work, const std::string &a,
-               const std::string &b, alignment_t &aln, size_t look_back) {
+               const std::string &b, utils::alignment_t &aln,
+               size_t look_back) {
     size_t i = static_cast<int>(work.mch_mch.rows() - 1);
     size_t j = static_cast<int>(work.mch_mch.cols() - 1);
 

@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,23 +20,16 @@
 # SOFTWARE.
 */
 
-#ifndef ALIGN_HPP
-#define ALIGN_HPP
+#ifndef PHYLIP_HPP
+#define PHYLIP_HPP
 
-#include <fst/fstlib.h>
+#include <fstream>
+#include <string>
 
-#include <vector>
+#include "coati/fasta.hpp"
 
-#include "align_pair.hpp"
-#include "insertions.hpp"
-#include "mutation_ecm.hpp"
-#include "phylip.hpp"
-#include "tree.hpp"
-#include "utils.hpp"
-
-bool mcoati(coati::utils::args_t& args, coati::utils::alignment_t& aln);
-bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln);
-bool ref_indel_alignment(coati::utils::args_t& args);
-float alignment_score(coati::utils::args_t& args, coati::Matrixf& P);
-
+namespace coati {
+bool write_phylip(const coati::fasta_t& fasta);
+bool write_phylip(const VectorFstStdArc& aln, coati::fasta_t& fasta);
+}  // namespace coati
 #endif

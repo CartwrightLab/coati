@@ -26,20 +26,20 @@
 #include <regex>
 
 int main(int argc, char* argv[]) {
-    coati::utils::args_t in_data;
+    coati::utils::args_t args;
 
     // Parse command line options
     CLI::App msa;
-    set_cli_options(msa, in_data, "msa");
+    coati::utils::set_cli_options(msa, args, "msa");
     CLI11_PARSE(msa, argc, argv);
 
     // if no output is specified save in current dir in PHYLIP format
-    if(in_data.output.empty()) {
-        in_data.output =
-            std::filesystem::path(in_data.fasta.path).stem().string() + ".phy";
+    if(args.output.empty()) {
+        args.output =
+            std::filesystem::path(args.fasta.path).stem().string() + ".phy";
     } else {  // check format is valid (phylip/fasta)
         const std::string extension =
-            std::filesystem::path(in_data.output).extension();
+            std::filesystem::path(args.output).extension();
         const std::regex valid_ext("[.phy,.fasta.fa]");
         if(!std::regex_match(extension, valid_ext)) {
             throw std::invalid_argument(
@@ -49,12 +49,12 @@ int main(int argc, char* argv[]) {
     }
 
     // read input fasta file
-    in_data.fasta = coati::read_fasta(in_data.fasta.path.string());
+    args.fasta = coati::read_fasta(args.fasta.path.string());
 
-    if(in_data.fasta.size() < 3) {
+    if(args.fasta.size() < 3) {
         throw std::invalid_argument(
             "At least three sequences required. Exiting!");
     }
 
-    return ref_indel_alignment(in_data);
+    return ref_indel_alignment(args);
 }

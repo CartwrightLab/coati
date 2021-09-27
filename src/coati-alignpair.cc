@@ -28,19 +28,19 @@
 #include <coati/utils.hpp>
 
 int main(int argc, char* argv[]) {
-    coati::utils::args_t in_data;
+    coati::utils::args_t args;
 
     // Parse command line options
     CLI::App alignpair;
-    set_cli_options(alignpair, in_data, "alignpair");
+    coati::utils::set_cli_options(alignpair, args, "alignpair");
     CLI11_PARSE(alignpair, argc, argv);
 
     // if no output is specified save in current dir in PHYLIP format
-    if(in_data.output.empty()) {
-        in_data.output = in_data.fasta.path.stem();
-        in_data.output += std::filesystem::path(".phy");
+    if(args.output.empty()) {
+        args.output = args.fasta.path.stem();
+        args.output += std::filesystem::path(".phy");
     } else {  // check format is valid (phylip/fasta)
-        const std::string extension = in_data.output.extension();
+        const std::string extension = args.output.extension();
         const std::regex valid_ext("^.phy$|^.fasta$|^.fa$");
         if(!std::regex_match(extension, valid_ext)) {
             throw std::invalid_argument(
@@ -49,15 +49,25 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::vector<VectorFstStdArc> fsts;
+    coati::utils::alignment_t aln;
+    aln.fasta.path = args.output;
+    aln.fasta.names = args.fasta.names;
+    coati::utils::set_subst(args, aln);
 
-    if(in_data.model.compare("m-coati") == 0 ||
-       in_data.model.compare("m-ecm") == 0) {
-        in_data.fasta =
-            coati::read_fasta_pair(in_data.fasta.path.string(), fsts, false);
-        return mcoati(in_data);
+    // subst models aligned by dynamic programming
+    if(aln.is_marginal()) {
+        args.fasta = coati::read_fasta(args.fasta.path.string());
+
+        if(args.fasta.size() != 2) {
+            throw std::invalid_argument("Exactly two sequences required.");
+        }
+        return mcoati(args, aln);
     }
-    in_data.fasta =
-        coati::read_fasta_pair(in_data.fasta.path.string(), fsts, true);
-    return fst_alignment(in_data, fsts);
+    // subst models aligned by FST composition
+    args.fasta = coati::read_fasta(args.fasta.path.string(), aln.seqs);
+
+    if(args.fasta.size() != 2 || args.fasta.size() != aln.seqs.size()) {
+        throw std::invalid_argument("Exactly two sequences required.");
+    }
+    return fst_alignment(args, aln);
 }

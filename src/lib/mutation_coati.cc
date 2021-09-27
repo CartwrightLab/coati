@@ -66,7 +66,7 @@ coati::Matrixf mg94_p(float br_len, float omega,
         for(uint8_t j = 0; j < 64; j++) {
             if(i == j) {
                 Q(i, j) = 0;
-            } else if(cod_distance(i, j) > 1) {
+            } else if(coati::utils::cod_distance(i, j) > 1) {
                 Q(i, j) = 0;
             } else {
                 w = ((amino_group_table[i] == amino_group_table[j]) ? 1
