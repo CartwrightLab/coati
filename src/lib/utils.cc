@@ -240,6 +240,8 @@ void set_subst(args_t& args, alignment_t& aln) {
     } else {
         throw std::invalid_argument("Mutation model unknown.");
     }
+
+    aln.model = args.model;
 }
 
 }  // namespace coati::utils

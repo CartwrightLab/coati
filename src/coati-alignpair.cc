@@ -51,24 +51,26 @@ int main(int argc, char* argv[]) {
     }
 
     coati::utils::alignment_t aln;
-    aln.fasta.path = args.output;
-    aln.fasta.names = args.fasta.names;
     coati::utils::set_subst(args, aln);
 
     // subst models aligned by dynamic programming
     if(aln.is_marginal()) {
         args.fasta = coati::read_fasta(args.fasta.path.string());
+        aln.fasta.path = args.output;
+        aln.fasta.names = args.fasta.names;
 
         if(args.fasta.size() != 2) {
             throw std::invalid_argument("Exactly two sequences required.");
         }
-        return coati::marg_alignment(args, aln);
+        return coati::marg_alignment(args, aln) ? 0 : 1;
     }
     // subst models aligned by FST composition
     args.fasta = coati::read_fasta(args.fasta.path.string(), aln.seqs);
+    aln.fasta.path = args.output;
+    aln.fasta.names = args.fasta.names;
 
     if(args.fasta.size() != 2 || args.fasta.size() != aln.seqs.size()) {
         throw std::invalid_argument("Exactly two sequences required.");
     }
-    return coati::fst_alignment(args, aln);
+    return coati::fst_alignment(args, aln) ? 0 : 1;
 }
