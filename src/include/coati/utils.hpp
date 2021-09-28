@@ -142,7 +142,7 @@ struct alignment_t {
           seqs{std::move(ss)} {}
 
     bool is_marginal() {
-        return !((subst_matrix.rows() > 0) && (subst_matrix.cols() > 0));
+        return (model.compare("m-coati") == 0 || model.compare("m-ecm") == 0);
     }
 };
 
