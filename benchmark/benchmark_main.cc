@@ -41,7 +41,7 @@ static void BM_marg_alignment_short(benchmark::State& state) {
     std::filesystem::remove(aln.fasta.path);
 }
 
-BENCHMARK(BM_marg_alignment_short);
+BENCHMARK(BM_marg_alignment_short)->Unit(benchmark::kMillisecond);
 
 static void BM_marg_alignment_1k(benchmark::State& state) {
     std::string seq_a(example_1k_a, 1002);
@@ -60,6 +60,6 @@ static void BM_marg_alignment_1k(benchmark::State& state) {
     std::filesystem::remove(aln.fasta.path);
 }
 
-BENCHMARK(BM_marg_alignment_1k);
+BENCHMARK(BM_marg_alignment_1k)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_MAIN();
