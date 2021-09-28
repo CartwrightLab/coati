@@ -32,11 +32,16 @@
 *.app
 
 # Build directory
-build/*
-!build/.gitkeep
+build*
 
 # Subprojects
 subprojects/*
 !/subprojects/*.wrap
 !/subprojects/doctest
 !/subprojects/fstlib
+
+# Meson log files
+*/meson-info/*
+*/meson-logs/*
+*/meson-private/*
+
