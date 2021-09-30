@@ -57,7 +57,11 @@ fs = import('fs')
 benchmarks = fs.read(benchmark_list).strip().split('\n')
 foreach benchmark_case : benchmarks
   benchmark(f'[libcoati] @benchmark_case@', benchmark_exe,
-    args : [f'--benchmark_filter=@benchmark_case@'],
-    timeout : 60
+    args : [
+      f'--benchmark_filter=@benchmark_case@',
+      f'--benchmark_out=@benchmark_case@.json'.replace('/','_'),
+      '--benchmark_out_format=json'
+    ],
+    timeout : 90
   )
 endforeach

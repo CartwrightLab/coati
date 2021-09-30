@@ -7,3 +7,9 @@ BM_marg_alignment/bm_16k
 BM_fst_alignment/bm_short
 BM_fst_alignment/bm_1k
 BM_fst_alignment/bm_2k
+BM_align_pair/bm_short
+BM_align_pair/bm_1k
+BM_align_pair/bm_2k
+BM_align_pair/bm_4k
+BM_align_pair/bm_8k
+BM_align_pair/bm_16k

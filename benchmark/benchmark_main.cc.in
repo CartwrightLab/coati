@@ -25,7 +25,6 @@
 
 #include <coati/align_fst.hpp>
 #include <coati/align_marginal.hpp>
-#include <fasta.tcc>
 #include <string>
 
 // marg_alignment
@@ -34,18 +33,17 @@ static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args
     coati::utils::args_t args;
     coati::utils::alignment_t aln;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
-    args.fasta = coati::read_fasta(fasta);
-    aln.fasta.path = args.fasta.path.stem();
-    aln.fasta.path += std::filesystem::path(".phy");
-    // aln.fasta.path = fasta;
-    aln.fasta.names = args.fasta.names;
-    coati::utils::set_subst(args, aln);
 
     for(auto _ : state) {
+        args.fasta = coati::read_fasta(fasta);
+        aln.fasta.path = args.fasta.path.stem();
+        aln.fasta.path += std::filesystem::path(".phy");
+        aln.fasta.names = args.fasta.names;
+        coati::utils::set_subst(args, aln);
         coati::marg_alignment(args, aln);
     }
 
-    //std::filesystem::remove(aln.fasta.path);
+    std::filesystem::remove(aln.fasta.path);
 }
 
 BENCHMARK_CAPTURE(BM_marg_alignment, bm_short, std::string("@bm_data@/benchmark_short.fasta"))
@@ -67,18 +65,18 @@ static void BM_fst_alignment(benchmark::State& state, ExtraArgs&&... extra_args)
     coati::utils::args_t args;
     coati::utils::alignment_t aln;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
-    args.fasta = coati::read_fasta(fasta, aln.seqs);
-    aln.fasta.path = args.fasta.path.stem();
-    aln.fasta.path += std::filesystem::path(".phy");
-    aln.fasta.names = args.fasta.names;
-    args.model = "coati";
-    coati::utils::set_subst(args, aln);
 
     for(auto _ : state) {
+        args.fasta = coati::read_fasta(fasta, aln.seqs);
+        aln.fasta.path = args.fasta.path.stem();
+        aln.fasta.path += std::filesystem::path(".phy");
+        aln.fasta.names = args.fasta.names;
+        args.model = "coati";
+        coati::utils::set_subst(args, aln);
         coati::fst_alignment(args, aln);
     }
 
-    // std::filesystem::remove(aln.fasta.path);
+    std::filesystem::remove(aln.fasta.path);
 }
 
 BENCHMARK_CAPTURE(BM_fst_alignment, bm_short, std::string("@bm_data@/benchmark_short.fasta"))
@@ -87,5 +85,37 @@ BENCHMARK_CAPTURE(BM_fst_alignment, bm_1k, std::string("@bm_data@/benchmark_1k.f
     ->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(BM_fst_alignment, bm_2k, std::string("@bm_data@/benchmark_2k.fasta"))
     ->Unit(benchmark::kMillisecond);
+
+// align_pair
+template <class ...ExtraArgs>
+static void BM_align_pair(benchmark::State& state, ExtraArgs&&... extra_args) {
+    coati::utils::args_t args;
+    coati::utils::alignment_t aln;
+    std::string fasta(std::forward<ExtraArgs>(extra_args)...);
+    args.fasta = coati::read_fasta(fasta, aln.seqs);
+    coati::utils::set_subst(args, aln);
+    auto anc = args.fasta.seqs[0];
+    auto des = args.fasta.seqs[1];
+    coati::align_pair_work_t work;
+    sequence_pair_t seq_pair = coati::utils::marginal_seq_encoding(anc, des);
+
+    for(auto _ : state) {
+        coati::align_pair(work, seq_pair[0], seq_pair[1], aln.subst_matrix, args);
+    }
+}
+
+BENCHMARK_CAPTURE(BM_align_pair, bm_short, std::string("@bm_data@/benchmark_short.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair, bm_1k, std::string("@bm_data@/benchmark_1k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair, bm_2k, std::string("@bm_data@/benchmark_2k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair, bm_4k, std::string("@bm_data@/benchmark_4k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair, bm_8k, std::string("@bm_data@/benchmark_8k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair, bm_16k, std::string("@bm_data@/benchmark_16k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+
 
 BENCHMARK_MAIN();
