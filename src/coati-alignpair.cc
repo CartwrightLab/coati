@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
     aln.fasta.path = args.output;
     aln.fasta.names = args.fasta.names;
 
-    if(args.fasta.size() != 2 || args.fasta.size() != aln.seqs.size()) {
+    if(args.fasta.names.size() != 2 || args.fasta.size() != aln.seqs.size()) {
         throw std::invalid_argument("Exactly two sequences required.");
     }
     return coati::fst_alignment(args, aln) ? 0 : 1;

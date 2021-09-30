@@ -96,7 +96,8 @@ bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln) {
     fst::TopSort(&aln_path);
 
     // write alignment
-    if(aln.fasta.path.extension() == ".fasta") {
+    if((aln.fasta.path.extension() == ".fasta") ||
+       (aln.fasta.path.extension() == ".fa")) {
         return coati::write_fasta(aln_path, aln.fasta);
     }
     return coati::write_phylip(aln_path, aln.fasta);

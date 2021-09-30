@@ -23,17 +23,41 @@ gbenchmark_dep = dependency('google-benchmark',
 	version : '>=1.5.2',
 	required : get_option('dev_benchmark'))
 
-# benchmark_sources = [
-#   'align_fst.cc',
-#   'align_marginal.cc',
-#   'align_msa.cc'
-# ]
+bm_src = configure_file(
+  input : 'benchmark_main.cc.in',
+  output : 'benchmark_main.cc',
+  # depfile : 'benchmark_main.cc.in',
+  configuration : {
+    'bm_data' : meson.current_source_dir()+'/data',
+  }
+)
 
 benchmark_exe = executable('all_benchmarks',
-  ['benchmark_main.cc'],
+  meson.project_build_root()+'/benchmark/benchmark_main.cc',
   include_directories : inc,
   dependencies : [boost_dep, cli_dep, eigen_dep, fstlib_dep, gbenchmark_dep, minionrng_dep],
   link_with : [libcoati]
 )
 
-benchmark('all_benchmarks', benchmark_exe)
+benchmark_list = files('libcoati-benchmark-tests.txt')
+
+benchmark_list_wrapper = find_program('benchmark-list-wrapper.sh')
+
+run_target('update-benchmark',
+  command : [benchmark_list_wrapper, 'update', benchmark_exe, benchmark_list]
+)
+
+benchmark('[pretest] Checking benchmark list completeness',
+  benchmark_list_wrapper,
+  args : ['test', benchmark_exe, benchmark_list],
+  priority : 1000
+)
+
+fs = import('fs')
+benchmarks = fs.read(benchmark_list).strip().split('\n')
+foreach benchmark_case : benchmarks
+  benchmark(f'[libcoati] @benchmark_case@', benchmark_exe,
+    args : [f'--benchmark_filter=@benchmark_case@'],
+    timeout : 60
+  )
+endforeach

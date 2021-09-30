@@ -1,0 +1,9 @@
+BM_marg_alignment/bm_short
+BM_marg_alignment/bm_1k
+BM_marg_alignment/bm_2k
+BM_marg_alignment/bm_4k
+BM_marg_alignment/bm_8k
+BM_marg_alignment/bm_16k
+BM_fst_alignment/bm_short
+BM_fst_alignment/bm_1k
+BM_fst_alignment/bm_2k

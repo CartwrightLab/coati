@@ -1,0 +1,91 @@
+/*
+# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+*/
+
+#include <benchmark/benchmark.h>
+#include <fst/fstlib.h>
+
+#include <coati/align_fst.hpp>
+#include <coati/align_marginal.hpp>
+#include <fasta.tcc>
+#include <string>
+
+// marg_alignment
+template <class ...ExtraArgs>
+static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args) {
+    coati::utils::args_t args;
+    coati::utils::alignment_t aln;
+    std::string fasta(std::forward<ExtraArgs>(extra_args)...);
+    args.fasta = coati::read_fasta(fasta);
+    aln.fasta.path = args.fasta.path.stem();
+    aln.fasta.path += std::filesystem::path(".phy");
+    // aln.fasta.path = fasta;
+    aln.fasta.names = args.fasta.names;
+    coati::utils::set_subst(args, aln);
+
+    for(auto _ : state) {
+        coati::marg_alignment(args, aln);
+    }
+
+    //std::filesystem::remove(aln.fasta.path);
+}
+
+BENCHMARK_CAPTURE(BM_marg_alignment, bm_short, std::string("@bm_data@/benchmark_short.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_marg_alignment, bm_1k, std::string("@bm_data@/benchmark_1k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_marg_alignment, bm_2k, std::string("@bm_data@/benchmark_2k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_marg_alignment, bm_4k, std::string("@bm_data@/benchmark_4k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_marg_alignment, bm_8k, std::string("@bm_data@/benchmark_8k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_marg_alignment, bm_16k, std::string("@bm_data@/benchmark_16k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+
+// fst_alignment
+template <class ...ExtraArgs>
+static void BM_fst_alignment(benchmark::State& state, ExtraArgs&&... extra_args) {
+    coati::utils::args_t args;
+    coati::utils::alignment_t aln;
+    std::string fasta(std::forward<ExtraArgs>(extra_args)...);
+    args.fasta = coati::read_fasta(fasta, aln.seqs);
+    aln.fasta.path = args.fasta.path.stem();
+    aln.fasta.path += std::filesystem::path(".phy");
+    aln.fasta.names = args.fasta.names;
+    args.model = "coati";
+    coati::utils::set_subst(args, aln);
+
+    for(auto _ : state) {
+        coati::fst_alignment(args, aln);
+    }
+
+    // std::filesystem::remove(aln.fasta.path);
+}
+
+BENCHMARK_CAPTURE(BM_fst_alignment, bm_short, std::string("@bm_data@/benchmark_short.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_fst_alignment, bm_1k, std::string("@bm_data@/benchmark_1k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_fst_alignment, bm_2k, std::string("@bm_data@/benchmark_2k.fasta"))
+    ->Unit(benchmark::kMillisecond);
+
+BENCHMARK_MAIN();

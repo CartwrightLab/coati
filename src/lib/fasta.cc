@@ -187,7 +187,8 @@ bool write_fasta(const fasta_t& fasta) {
     std::ofstream outfile;
     outfile.open(fasta.path);
     if(!outfile) {
-        throw std::invalid_argument("Opening output file failed.");
+        throw std::invalid_argument("Opening output file" +
+                                    fasta.path.string() + "  failed.");
     }
 
     for(size_t i = 0; i < fasta.size(); i++) {
@@ -240,8 +241,9 @@ bool write_fasta(const VectorFstStdArc& aln, fasta_t& fasta) {
         seq2.append(symbols.Find(data.arcs[0].olabel));
     }
 
-    fasta.seqs.push_back(seq1);
-    fasta.seqs.push_back(seq2);
+    fasta.seqs.resize(2);
+    fasta.seqs[0] = seq1;
+    fasta.seqs[1] = seq2;
 
     // map all epsilons (<eps>) to gaps (-)
     while(fasta.seqs[0].find("<eps>") != std::string::npos) {
