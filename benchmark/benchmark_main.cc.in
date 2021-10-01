@@ -52,7 +52,7 @@ static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args
     std::filesystem::remove(aln.fasta.path);
 }
 
-BENCHMARK_CAPTURE(BM_marg_alignment, bm_short, std::string("@bm_data@/benchmark_short.fasta"))
+BENCHMARK_CAPTURE(BM_marg_alignment, bm_156, std::string("@bm_data@/benchmark_156.fasta"))
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(BM_marg_alignment, bm_1k, std::string("@bm_data@/benchmark_1k.fasta"))
@@ -96,7 +96,7 @@ static void BM_fst_alignment(benchmark::State& state, ExtraArgs&&... extra_args)
     std::filesystem::remove(aln.fasta.path);
 }
 
-BENCHMARK_CAPTURE(BM_fst_alignment, bm_short, std::string("@bm_data@/benchmark_short.fasta"))
+BENCHMARK_CAPTURE(BM_fst_alignment, bm_156, std::string("@bm_data@/benchmark_156.fasta"))
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(BM_fst_alignment, bm_1k, std::string("@bm_data@/benchmark_1k.fasta"))
@@ -129,7 +129,7 @@ static void BM_align_pair(benchmark::State& state, ExtraArgs&&... extra_args) {
     }
 }
 
-BENCHMARK_CAPTURE(BM_align_pair, bm_short, std::string("@bm_data@/benchmark_short.fasta"))
+BENCHMARK_CAPTURE(BM_align_pair, bm_156, std::string("@bm_data@/benchmark_156.fasta"))
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(BM_align_pair, bm_1k, std::string("@bm_data@/benchmark_1k.fasta"))
