@@ -28,20 +28,30 @@
 #include <string>
 #include <chrono>
 
-// marg_alignment
+// TODO: add comments
+
+/* marginal pairwise alignment */
 template <class ...ExtraArgs>
 static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args) {
+    // initialize auxiliary variables
     coati::utils::args_t args;
     coati::utils::alignment_t aln;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
 
     for(auto _ : state) {
         auto start = std::chrono::high_resolution_clock::now();
+        // read fasta
         args.fasta = coati::read_fasta(fasta);
+
+        // set ouput path and sequences names
         aln.fasta.path = args.fasta.path.stem();
         aln.fasta.path += std::filesystem::path(".phy");
         aln.fasta.names = args.fasta.names;
+
+        // set substitution matrix
         coati::utils::set_subst(args, aln);
+
+        // pairwise alignment and report time elapsed
         coati::marg_alignment(args, aln);
         auto end = std::chrono::high_resolution_clock::now();
         auto elapsed_time =
@@ -71,21 +81,32 @@ BENCHMARK_CAPTURE(BM_marg_alignment, bm_16k, std::string("@bm_data@/benchmark_16
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 
-// fst_alignment
+/* fst pairwise alignment */
 template <class ...ExtraArgs>
 static void BM_fst_alignment(benchmark::State& state, ExtraArgs&&... extra_args) {
+    // initialize auxiliary variables
     coati::utils::args_t args;
     coati::utils::alignment_t aln;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
 
     for(auto _ : state) {
         auto start = std::chrono::high_resolution_clock::now();
+
+        // read fasta
         args.fasta = coati::read_fasta(fasta, aln.seqs);
+
+        // set output path and sequences names
         aln.fasta.path = args.fasta.path.stem();
         aln.fasta.path += std::filesystem::path(".phy");
         aln.fasta.names = args.fasta.names;
+
+        // set model to coati
         args.model = "coati";
+
+        // set substitution matrix
         coati::utils::set_subst(args, aln);
+
+        // pairwise alignment via FST composition and report time elapsed
         coati::fst_alignment(args, aln);
         auto end = std::chrono::high_resolution_clock::now();
         auto elapsed_time =
