@@ -62,6 +62,6 @@ foreach benchmark_case : benchmarks
       f'--benchmark_out=@benchmark_case@.json'.replace('/','_'),
       '--benchmark_out_format=json'
     ],
-    timeout : 90
+    timeout : 300
   )
 endforeach

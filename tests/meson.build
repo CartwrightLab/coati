@@ -21,7 +21,7 @@
 
 doctest_exe = executable('libcoati-doctest', ['libcoati-doctest.cc', version_file, libcoati_sources],
   include_directories : inc,
-  dependencies : [doctest_dep, cli_dep, eigen_dep, fstlib_dep, minionrng_dep],
+  dependencies : [boost_dep, doctest_dep, cli_dep, eigen_dep, fstlib_dep, minionrng_dep],
   build_by_default : false
 )
 

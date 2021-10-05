@@ -28,8 +28,6 @@
 #include <string>
 #include <chrono>
 
-// TODO: add comments
-
 /* marginal pairwise alignment */
 template <class ...ExtraArgs>
 static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args) {
@@ -62,6 +60,7 @@ static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args
     std::filesystem::remove(aln.fasta.path);
 }
 
+/* marginal alignment with different length fasta files */
 BENCHMARK_CAPTURE(BM_marg_alignment, bm_156, std::string("@bm_data@/benchmark_156.fasta"))
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
@@ -124,6 +123,12 @@ BENCHMARK_CAPTURE(BM_fst_alignment, bm_1k, std::string("@bm_data@/benchmark_1k.f
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(BM_fst_alignment, bm_2k, std::string("@bm_data@/benchmark_2k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_fst_alignment, bm_4k, std::string("@bm_data@/benchmark_4k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_fst_alignment, bm_8k, std::string("@bm_data@/benchmark_8k.fasta"))
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 
