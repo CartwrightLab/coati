@@ -128,9 +128,6 @@ BENCHMARK_CAPTURE(BM_fst_alignment, bm_2k, std::string("@bm_data@/benchmark_2k.f
 BENCHMARK_CAPTURE(BM_fst_alignment, bm_4k, std::string("@bm_data@/benchmark_4k.fasta"))
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
-BENCHMARK_CAPTURE(BM_fst_alignment, bm_8k, std::string("@bm_data@/benchmark_8k.fasta"))
-    ->UseManualTime()
-    ->Unit(benchmark::kMillisecond);
 
 // align_pair
 template <class ...ExtraArgs>
