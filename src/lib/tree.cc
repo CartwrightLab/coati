@@ -47,24 +47,29 @@ x3::rule<class ilabel, std::string> const ilabel =  // NOLINT(cert-err58-cpp)
     "ilabel";
 x3::rule<class length, float> const length =  // NOLINT(cert-err58-cpp)
     "length";
-x3::rule<class leaf, tree_t> const leaf = "leaf";     // NOLINT(cert-err58-cpp)
-x3::rule<class inode, tree_t> const inode = "inode";  // NOLINT(cert-err58-cpp)
-x3::rule<class node, tree_t> const node = "node";     // NOLINT(cert-err58-cpp)
-x3::rule<class tree, tree_t> const tree = "tree";     // NOLINT(cert-err58-cpp)
+x3::rule<class leaf, coati::tree::tree_t> const leaf =
+    "leaf";  // NOLINT(cert-err58-cpp)
+x3::rule<class inode, coati::tree::tree_t> const inode =
+    "inode";  // NOLINT(cert-err58-cpp)
+x3::rule<class node, coati::tree::tree_t> const node =
+    "node";  // NOLINT(cert-err58-cpp)
+x3::rule<class tree, coati::tree::tree_t> const tree =
+    "tree";  // NOLINT(cert-err58-cpp)
 
 // semantic actions
 auto const make_leaf = [](auto& ctx) {
     auto label = at_c<0>(_attr(ctx));  // get label
     auto len = at_c<1>(_attr(ctx));    // get br length
-    _val(ctx) =
-        tree_t(1, {label, len, true});  // set to tree_t with 1 leaf node
+    _val(ctx) = coati::tree::tree_t(
+        1, {label, len, true});  // set to tree_t with 1 leaf node
 };
 
 auto const make_inode = [](auto& ctx) {
-    auto label = at_c<1>(_attr(ctx));     // get label
-    auto len = at_c<2>(_attr(ctx));       // get br length
-    _val(ctx) = tree_t(1, {label, len});  // set to tree_t with 1 (i)node
-    auto v = at_c<0>(_attr(ctx));         // get node list (tree_t)
+    auto label = at_c<1>(_attr(ctx));  // get label
+    auto len = at_c<2>(_attr(ctx));    // get br length
+    _val(ctx) =
+        coati::tree::tree_t(1, {label, len});  // set to tree_t with 1 (i)node
+    auto v = at_c<0>(_attr(ctx));              // get node list (tree_t)
     for(auto&& w : v) {
         auto n = _val(ctx).size();
         for(auto&& x : w) {
@@ -100,6 +105,14 @@ BOOST_SPIRIT_DEFINE(tree);  // NOLINT(performance-unnecessary-value-param)
 
 }  // namespace newick
 
+namespace coati::tree {
+
+/**
+ * \brief Read newick format file.
+ *
+ * @param[in] tree_file std::string path to newick file.
+ * @param[in,out] content std::string to store newick file content.
+ */
 bool read_newick(const std::string& tree_file, std::string& content) {
     std::ifstream input(tree_file);  // open input stream
     if(!input.good()) {
@@ -118,7 +131,14 @@ bool read_newick(const std::string& tree_file, std::string& content) {
     return true;
 }
 
-/* Read Newick format tree. NOTE: quotation marks on labels not supported.*/
+/**
+ * \brief Parse newick format tree.
+ *
+ * NOTE: quotation marks on labels not supported.
+ *
+ * @param[in] content std::string tree in newick format.
+ * @param[in,out] guide_tree coati::tree::tree_t parsed tree.
+ */
 int parse_newick(std::string content, tree_t& guide_tree) {
     // remove tabs \t ,new lines \n, and spaces
     boost::algorithm::erase_all(content, "\t");
@@ -138,6 +158,7 @@ int parse_newick(std::string content, tree_t& guide_tree) {
     return EXIT_SUCCESS;
 }
 
+/// @private
 TEST_CASE("parse_newick") {
     tree_t tree;
 
@@ -181,7 +202,16 @@ TEST_CASE("parse_newick") {
     CHECK(tree[6].parent == 0);
 }
 
-/* Determine order of leafs for progressive alignment */
+/**
+ * \brief Determine order of leafs for progressive alignment
+ *
+ * Determine order of leafs in which they should be aligned. List of <int,float>
+ * pairs as index in tree and branch length.
+ *
+ * @param[in] tree coati::tree::tree_t parsed newick tree.
+ * @param[out] order_list std::vector<std::pair<int,float>> list of leafs in
+ * tree in order in which they should be aligned.
+ */
 int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list) {
     // Part1: find closest pair of leafs
 
@@ -274,6 +304,7 @@ int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list) {
     return EXIT_SUCCESS;
 }
 
+/// @private
 TEST_CASE("aln_order") {
     tree_t tree;
     // cppcheck-suppress unusedVariable
@@ -302,7 +333,15 @@ TEST_CASE("aln_order") {
     CHECK(order_list[4].second == 11);
 }
 
-/* Find fasta sequence given its name */
+/**
+ * \brief Find sequence in fasta_t given its name
+ *
+ * @param[in] name std::string sequence name.
+ * @param[in] f coati::fasta_t names and sequences.
+ * @param[in,out] seq std::string sequence if found.
+ *
+ * \return true if found.
+ */
 bool find_seq(const std::string& name, coati::fasta_t& f, std::string& seq) {
     seq.clear();
 
@@ -315,6 +354,7 @@ bool find_seq(const std::string& name, coati::fasta_t& f, std::string& seq) {
     return !seq.empty();
 }
 
+/// @private
 TEST_CASE("find_seq") {
     // cppcheck-suppress unusedVariable
     std::string sequence;
@@ -330,7 +370,15 @@ TEST_CASE("find_seq") {
     CHECK(sequence.compare("GTAC") == 0);
 }
 
-/* Find node in tree given its name */
+/**
+ * \brief Find node in tree given its name
+ *
+ * @param[in] tree coati::tree:tree_t phylogenetic tree.
+ * @param[in] name std::string node name.
+ * @param[in,out] index std::size_t index of node if found.
+ *
+ * \return true if found.
+ */
 bool find_node(tree_t& tree, const std::string& name, std::size_t& index) {
     auto it = find_if(begin(tree), end(tree), [name](const node_t& node) {
         return node.label == name;
@@ -340,6 +388,7 @@ bool find_node(tree_t& tree, const std::string& name, std::size_t& index) {
     return it != end(tree);
 }
 
+/// @private
 TEST_CASE("find_node") {
     tree_t tree;
     // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
@@ -363,7 +412,12 @@ TEST_CASE("find_node") {
     REQUIRE(!find_node(tree, "Z", index));
 }
 
-/* Re-root tree given an outgroup (leaf node) */
+/**
+ * \brief Re-root tree given an outgroup (leaf node)
+ *
+ * @param[in,out] tree coati::tree:tree_t phylogenetic tree re-rooted [out].
+ * @param[in] outgroup std::string outgroup to be the new root.
+ */
 bool reroot(tree_t& tree, const std::string& outgroup) {
     std::size_t ref{0};
 
@@ -399,6 +453,7 @@ bool reroot(tree_t& tree, const std::string& outgroup) {
     return true;
 }
 
+/// @private
 TEST_CASE("reroot") {
     tree_t tree;
 
@@ -463,7 +518,17 @@ TEST_CASE("reroot") {
     }
 }
 
-/* Find distance from REF to node. Tree is assumed to be rerooted. */
+/**
+ * \brief Find distance from REF to node.
+ *
+ * Tree is assumed to be rerooted.
+ *
+ * @param[in] tree coati::tree::tree_t phylogenetic tree.
+ * @param[in] ref std::size_t index of reference sequence in tree.
+ * @param[in] node std::size_t index of node in tree.
+ *
+ * \return distance from reference sequence to node (float).
+ */
 float distance_ref(const tree_t& tree, std::size_t ref, std::size_t node) {
     float distance = 0;
 
@@ -479,6 +544,7 @@ float distance_ref(const tree_t& tree, std::size_t ref, std::size_t node) {
     return distance;
 }
 
+/// @private
 TEST_CASE("distance_ref") {
     tree_t tree;
     // tree:
@@ -505,3 +571,4 @@ TEST_CASE("distance_ref") {
     CHECK(distance_ref(tree, 13, 12) == doctest::Approx(50.4));
     CHECK(distance_ref(tree, 13, 11) == doctest::Approx(99.2));
 }
+}  // namespace coati::tree

@@ -65,15 +65,15 @@ const uint8_t amino_group_table[64] = {
     69, 68, 69, 68, 65, 65, 65, 65, 71, 71, 71, 71, 86, 86, 86, 86,
     42, 89, 42, 89, 83, 83, 83, 83, 42, 67, 87, 67, 76, 70, 76, 70};
 
+namespace coati::utils {
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 using sequence_pair_t = std::vector<std::basic_string<unsigned char>>;
 
-namespace coati::utils {
 struct gap_t {
-    std::size_t len{1};
-    float_t open{0.001};
-    float_t extend{1.f - 1.f / 6.f};
+    std::size_t len{1};              /*!< unit size of gaps */
+    float_t open{0.001};             /*!< gap opening score */
+    float_t extend{1.f - 1.f / 6.f}; /*!< gap extension score */
 
     gap_t() = default;
     explicit gap_t(std::size_t l, float_t o = 0.001,
@@ -82,15 +82,19 @@ struct gap_t {
 };
 
 struct args_t {
-    coati::fasta_t fasta;
-    std::string model{"m-coati"}, weight_file{""};
-    std::filesystem::path output;
-    bool score{false};
-    std::string tree{""}, ref{""}, rate{""};
-    gap_t gap;
-    float_t br_len{0.0133};
-    float_t omega{0.2};
-    std::vector<float_t> pi{0.308, 0.185, 0.199, 0.308};
+    coati::fasta_t fasta;         /*!< fasta struct */
+    std::string model{"m-coati"}; /*!< substitution model */
+    std::string weight_file{""};  /*!< file to output alignment weight */
+    std::filesystem::path output; /*!< path to alignment output file */
+    bool score{false};            /*!< if true an input alignment is scored */
+    std::string tree{""};         /*!< path to input newick tree file */
+    std::string ref{""};          /*!< name of reference sequence */
+    std::string rate{""};   /*!< path to csv input substitution matrix file */
+    gap_t gap;              /*!< gap struct */
+    float_t br_len{0.0133}; /*!< branch length */
+    float_t omega{0.2};     /*!< nonsynonymous-synonymous bias */
+    std::vector<float_t> pi{0.308, 0.185, 0.199,
+                            0.308}; /*!< nucleotide frequencies */
 
     args_t() = default;
     args_t(const std::string& f, const std::vector<std::string>& n,
@@ -114,16 +118,16 @@ struct args_t {
           pi{std::move(p)} {}
 };
 
-coati::Matrix<coati::float_t> parse_matrix_csv(const std::string& file);
+coati::Matrixf parse_matrix_csv(const std::string& file);
 
 struct alignment_t {
-    coati::fasta_t fasta;
-    float_t weight{0.0};
-    std::filesystem::path weight_file;
-    std::string model{""};
-    Matrixf subst_matrix;
-    VectorFstStdArc subst_fst;
-    std::vector<VectorFstStdArc> seqs = {};
+    coati::fasta_t fasta;              /*!< fasta struct */
+    float_t weight{0.0};               /*!< alignment weight */
+    std::filesystem::path weight_file; /*!< file to output alignment weight */
+    std::string model{""};             /*!< substitution model */
+    Matrixf subst_matrix;              /*!< substitution matrix */
+    VectorFstStdArc subst_fst;         /*!< substitution FST */
+    std::vector<VectorFstStdArc> seqs = {}; /*!< sequences as FSTs */
 
     alignment_t() = default;
     // NOLINTNEXTLINE(misc-unused-parameters)
@@ -141,6 +145,7 @@ struct alignment_t {
           subst_fst{std::move(fst)},
           seqs{std::move(ss)} {}
 
+    /** \brief Return true if model selected is marginal (m-coati or m-ecm) */
     bool is_marginal() {
         return (model.compare("m-coati") == 0 || model.compare("m-ecm") == 0);
     }

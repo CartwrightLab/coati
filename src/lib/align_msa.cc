@@ -25,40 +25,49 @@
 #include <coati/align_msa.hpp>
 
 namespace coati {
+
+/**
+ * \brief Pairwise alignment using dynamic programming and a marginal model.
+ *
+ * Multiple sequence alignment by pairwise alignment reference with rest of
+ *  sequences using coati::align_pair, then merging indels.
+ *
+ * @param[in] args coati::utils::args_t input parameters.
+ */
 /* Initial msa by collapsing indels after pairwise aln with reference */
 bool ref_indel_alignment(coati::utils::args_t& args) {
     coati::Matrixf P(64, 64), p_marg;
-    tree_t tree;
+    coati::tree::tree_t tree;
     std::string newick;
     coati::utils::alignment_t aln, aln_tmp;
 
     aln.fasta = coati::fasta_t(args.output);
 
     // read newick tree file
-    if(!read_newick(args.tree, newick)) {
+    if(!coati::tree::read_newick(args.tree, newick)) {
         throw std::invalid_argument("Reading newick tree failed.");
     }
 
     // parse tree into tree_t (vector<node_t>) variable
-    if(parse_newick(newick, tree) != 0) {
+    if(coati::tree::parse_newick(newick, tree) != 0) {
         throw std::invalid_argument("Parsing newick tree failed.");
     }
 
     // reroot tree
-    if(!reroot(tree, args.ref)) {
+    if(!coati::tree::reroot(tree, args.ref)) {
         throw std::invalid_argument("Re-rooting tree failed.");
     }
 
     // find position of ref in tree
     std::size_t ref_pos = 0;
-    if(!find_node(tree, args.ref, ref_pos)) {
+    if(!coati::tree::find_node(tree, args.ref, ref_pos)) {
         throw std::invalid_argument("Reference node not found in tree.");
     }
 
     // find sequence of ref in args
     std::vector<std::string> pair_seqs;
     std::string ref_seq;
-    if(!find_seq(args.ref, args.fasta, ref_seq)) {
+    if(!coati::tree::find_seq(args.ref, args.fasta, ref_seq)) {
         throw std::invalid_argument("reference sequence " + args.ref +
                                     " not found in fasta file.");
     }
@@ -79,7 +88,7 @@ bool ref_indel_alignment(coati::utils::args_t& args) {
     for(std::size_t node = 0; node < tree.size(); node++) {
         if(tree[node].is_leaf && (tree[node].label != args.ref)) {
             float branch = distance_ref(tree, ref_pos, node);
-            if(!find_seq(tree[node].label, args.fasta, node_seq)) {
+            if(!coati::tree::find_seq(tree[node].label, args.fasta, node_seq)) {
                 throw std::invalid_argument("sequence " + tree[node].label +
                                             " not found in fasta file.");
             }
@@ -93,7 +102,7 @@ bool ref_indel_alignment(coati::utils::args_t& args) {
             auto anc = pair_seqs[0];
             auto des = pair_seqs[1];
             coati::align_pair_work_t work;
-            sequence_pair_t seq_pair =
+            coati::utils::sequence_pair_t seq_pair =
                 coati::utils::marginal_seq_encoding(anc, des);
             coati::align_pair(work, seq_pair[0], seq_pair[1],
                               aln_tmp.subst_matrix, args);
@@ -180,6 +189,7 @@ bool ref_indel_alignment(coati::utils::args_t& args) {
     return coati::write_phylip(aln.fasta);
 }
 
+/// @private
 TEST_CASE("ref_indel_alignment") {
     std::ofstream outfile;
     outfile.open("tree-msa.newick");

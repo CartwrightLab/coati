@@ -28,7 +28,16 @@
 // const float omega = 0.2;  // github.com/reedacartwright/toycoati
 // const float kappa = 2.5;  // Kosiol et al. 2007, supplemental material
 
-/* calculate number of transitions and transversions between codons c1 and c2*/
+namespace coati {
+
+/**
+ * \brief Calculate number of transitions and transversion between two codons.
+ *
+ * @param[in] c1 uint8_t encoded codon (AAA=0,...,TTT=63).
+ * @param[in] c2 uint8_t encoded codon.
+ * @param[in,out] nts int number of transitions.
+ * @param[in,out] ntv int number of transversions.
+ */
 void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv) {
     nts = ntv = 0;
     if(c1 == c2) return;
@@ -43,6 +52,7 @@ void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv) {
     }
 }
 
+/// @private
 TEST_CASE("nts_ntv") {
     int nts = 0, ntv = 0;
 
@@ -67,7 +77,21 @@ TEST_CASE("nts_ntv") {
     CHECK(ntv == 0);
 }
 
-/* transition-transversion bias function, depending on # of ts and tv (Nts,Ntv)
+/**
+ * \brief Transition-transverison bias function.
+ *
+ * Used in the empirical codon model (ECM), k represents the the relative
+ *  strength of the transitions-transversion bias, modeled as a function that
+ *  depends on the number of transitions and transversion between two codons.
+ * More information here https://doi.org/10.1093/molbev/msm064.
+ *
+ * @param[in] c1 uint8_t encoded codon (AAA=0, ... , TTT=63)
+ * @param[in] c2 uint8_t encoded codon.
+ * @param[in] model int model assumed to best fit the data.
+ * @param[in] kappa float measure relative to the value implicit in
+ *  exchangeabilities.
+ *
+ * \return relative strength of transition-transversion bias (float).
  */
 float k(uint8_t c1, uint8_t c2, int model, float kappa) {
     int nts = 0, ntv = 0;
@@ -86,6 +110,7 @@ float k(uint8_t c1, uint8_t c2, int model, float kappa) {
     return 0;
 }
 
+/// @private
 TEST_CASE("k") {
     CHECK(k(0, 0, 0) == 1);         // AAA -> AAA, ECM+f+omega
     CHECK(k(32, 0, 0) == 1);        // GAA -> CTC, ECM+f+omega
@@ -101,7 +126,14 @@ TEST_CASE("k") {
     CHECK(k(22, 19, 2) == 6.25);    // CCG -> CAT, ECM+F+omega+1k(tv)
 }
 
-/* Empirical Codon Model P matrix */
+/**
+ * \brief Create Empirical Codon Model substitution P matrix
+ *
+ * @param[in] br_len float brach length.
+ * @param[in] omega float nonsynonymous-synonymous bias.
+ *
+ * \return empirical codon model substitution P matrix (coati::Matrixf).
+ */
 coati::Matrixf ecm_p(float br_len, float omega) {
     if(br_len <= 0) {
         throw std::out_of_range("Branch length must be positive.");
@@ -142,7 +174,14 @@ coati::Matrixf ecm_p(float br_len, float omega) {
     return P;
 }
 
-/* Empirical Codon Model (Kosiol et al. 2007) FST */
+/**
+ * \brief Create Empirical Codon Model (Kosiol et al. 2007) FST
+ *
+ * @param[in] br_len float branch length;
+ * @param[in] omega float nonsynonymous-synonymous bias.
+ *
+ * \return empirical codon model FST (coati::VectorFstStdArc).
+ */
 VectorFstStdArc ecm(float br_len, float omega) {
     coati::Matrixf P = ecm_p(br_len, omega);
 
@@ -166,3 +205,4 @@ VectorFstStdArc ecm(float br_len, float omega) {
     ecm.SetFinal(0, 0.0);
     return optimize(ecm);
 }
+}  // namespace coati

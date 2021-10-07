@@ -26,7 +26,17 @@
 #include <filesystem>
 
 namespace coati {
-/* Alignment using dynamic programming implementation of marginal COATi model */
+
+/**
+ * \brief Pairwise alignment using dynamic programming and a marginal model.
+ *
+ * Alignment of two sequences via dynamic programming using an affine
+ *  (geometrical) gap model and a marginal version of Muse and Gaut (1984)
+ *  codon substitution model.
+ *
+ * @param[in] args coati::utils::args_t input parameters.
+ * @param[in] aln coati::utils::alignment_t alignment information.
+ */
 bool marg_alignment(coati::utils::args_t& args,
                     coati::utils::alignment_t& aln) {
     coati::Matrixf P(64, 64), p_marg;
@@ -38,21 +48,27 @@ bool marg_alignment(coati::utils::args_t& args,
         return true;
     }
 
+    // check that length of ref sequence is multiple of 3 and gap unit size
     size_t len_a = args.fasta.seqs[0].length();
     if((len_a % 3 != 0) && (len_a % args.gap.len != 0)) {
         throw std::invalid_argument(
             "Length of reference sequence must be multiple of 3.");
     }
+    // check that length of descendant sequence is multiple of gap unit size
     if(args.fasta.seqs[1].length() % args.gap.len != 0) {
         throw std::invalid_argument(
             "Length of descendant sequence must be multiple of " +
             std::to_string(args.gap.len) + ".");
     }
 
+    // encode sequences
     auto anc = args.fasta.seqs[0];
     auto des = args.fasta.seqs[1];
+    coati::utils::sequence_pair_t seq_pair =
+        coati::utils::marginal_seq_encoding(anc, des);
+
+    // dynamic programming pairwise alignment and traceback
     coati::align_pair_work_t work;
-    sequence_pair_t seq_pair = coati::utils::marginal_seq_encoding(anc, des);
     coati::align_pair(work, seq_pair[0], seq_pair[1], aln.subst_matrix, args);
     coati::traceback(work, anc, des, aln, args.gap.len);
 
@@ -71,6 +87,7 @@ bool marg_alignment(coati::utils::args_t& args,
     return coati::write_phylip(aln.fasta);
 }
 
+/// @private
 TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output fasta") {
         coati::utils::args_t args("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
@@ -237,16 +254,28 @@ TEST_CASE("marg_alignment") {
     }
 }
 
-/* Score alignment */
+/**
+ * \brief Score alignment using marginal model.
+ *
+ * @param[in] args coati::utils::args_t input parameters.
+ * @param[in] p_marg coati::Matrixf substitution matrix.
+ *
+ * \return alignment score (float).
+ */
 float alignment_score(coati::utils::args_t& args, coati::Matrixf& p_marg) {
     std::vector<std::string> aln = args.fasta.seqs;
+
+    // check that both sequences have equal length
     if(aln[0].length() != aln[1].length()) {
         throw std::invalid_argument(
             "For alignment scoring both sequences must have equal length.");
     }
+
+    // encode desc and gap-less ref sequences for subsitution matrix access
     std::string anc{aln[0]};
     boost::erase_all(anc, "-");
-    sequence_pair_t seq_pair = coati::utils::marginal_seq_encoding(anc, aln[1]);
+    coati::utils::sequence_pair_t seq_pair =
+        coati::utils::marginal_seq_encoding(anc, aln[1]);
 
     // calculate log(1-g) log(1-e) log(g) log(e) log(pi)
     float_t no_gap = std::log1pf(-args.gap.open);
@@ -262,7 +291,7 @@ float alignment_score(coati::utils::args_t& args, coati::Matrixf& p_marg) {
     int state{0}, ngap{0};
     for(size_t i = 0; i < aln[0].length(); i++) {
         switch(state) {
-        case 0:
+        case 0:  // subsitution
             if(aln[0][i] == '-') {
                 // insertion;
                 weight += gap_open;
@@ -278,7 +307,7 @@ float alignment_score(coati::utils::args_t& args, coati::Matrixf& p_marg) {
                     2 * no_gap + p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
             }
             break;
-        case 1:
+        case 1:  // deletion
             if(aln[0][i] == '-') {
                 throw std::runtime_error(
                     "Insertion after deletion is not modeled.");
@@ -292,7 +321,7 @@ float alignment_score(coati::utils::args_t& args, coati::Matrixf& p_marg) {
                 state = 0;
             }
             break;
-        case 2:
+        case 2:  // insertion
             if(aln[0][i] == '-') {
                 // insertion_ext
                 weight += gap_extend;
@@ -319,6 +348,7 @@ float alignment_score(coati::utils::args_t& args, coati::Matrixf& p_marg) {
     return weight;
 }
 
+/// @private
 TEST_CASE("alignment_score") {
     coati::utils::args_t args;
     coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));

@@ -26,10 +26,9 @@
 #include <Eigen/Dense>
 #include <vector>
 
-using Matrix64f = Eigen::Matrix<float, 64, 64>;
-
 namespace coati {
 
+using Matrix64f = Eigen::Matrix<float, 64, 64>;
 using float_t = float;
 
 template <class T>

@@ -27,7 +27,12 @@
 constexpr std::size_t PRINT_SIZE = 100;
 
 namespace coati {
-/* Write alignment in PHYLIP format */
+
+/**
+ * \brief Write alignment in PHYLIP format
+ *
+ * @param[in] fasta coati::fasta_t path, names, and sequences.
+ */
 bool write_phylip(const coati::fasta_t& fasta) {
     std::ofstream outfile;
     outfile.open(fasta.path);
@@ -56,6 +61,7 @@ bool write_phylip(const coati::fasta_t& fasta) {
     return true;
 }
 
+/// @private
 TEST_CASE("write_phylip") {
     SUBCASE("Short sequences") {
         coati::fasta_t fasta("test-write-phylip.phylip", {"1", "2"},
@@ -118,7 +124,13 @@ TEST_CASE("write_phylip") {
     }
 }
 
-/* Write shortest path (alignment) in PHYLIP format */
+/**
+ * \brief Write shortest path (alignment) in PHYLIP format
+ *
+ * @param[in] aln coati::VectorFstStdArc FST containing alignment.
+ * @param[in] fasta coati::fasta_t path and names.
+ *
+ */
 bool write_phylip(const VectorFstStdArc& aln, coati::fasta_t& fasta) {
     fst::SymbolTable symbols;
     fill_symbol_table(symbols);
@@ -147,6 +159,7 @@ bool write_phylip(const VectorFstStdArc& aln, coati::fasta_t& fasta) {
     return write_phylip(fasta);
 }
 
+/// @private
 TEST_CASE("write_phylip-fst") {
     coati::fasta_t fasta("test-write-phylip.phylip", {"1", "2"});
 

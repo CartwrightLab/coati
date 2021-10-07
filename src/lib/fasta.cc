@@ -26,7 +26,14 @@
 
 namespace coati {
 
-/* Read fasta format file */
+/**
+ * \brief Read fasta format file and create FSAs.
+ *
+ * @param[in] f_path std::string path to fasta file.
+ * @param[in,out] fsts std::vector<VectorFstStdArc> vector of sequences as FSAs.
+ *
+ * \return file path, names, and sequences (fasta_t).
+ */
 fasta_t read_fasta(const std::string& f_path,
                    std::vector<VectorFstStdArc>& fsts) {
     fasta_t fasta(f_path);
@@ -78,6 +85,7 @@ fasta_t read_fasta(const std::string& f_path,
     return fasta;
 }
 
+/// @private
 TEST_CASE("read_fasta-fst") {
     // cppcheck-suppress unusedVariable
     std::vector<VectorFstStdArc> fsts;
@@ -116,7 +124,13 @@ TEST_CASE("read_fasta-fst") {
     }
 }
 
-/* Read fasta format file */
+/**
+ * \brief Read fasta format file into vector of strings.
+ *
+ * @param[in] f_path std::string path to fasta file.
+ *
+ * \return file path, names, and sequences (fasta_t).
+ */
 fasta_t read_fasta(const std::string& f_path) {
     fasta_t fasta(f_path);
     std::ifstream input(f_path);
@@ -155,6 +169,7 @@ fasta_t read_fasta(const std::string& f_path) {
     return fasta;
 }
 
+/// @private
 TEST_CASE("read_fasta") {
     std::ofstream outfile;
 
@@ -182,7 +197,10 @@ TEST_CASE("read_fasta") {
     }
 }
 
-/* Write alignment in Fasta format */
+/**
+ * \brief Write alignment in fasta format.
+ * @param[in] fasta fasta_t output path, names, and aligned sequences.
+ */
 bool write_fasta(const fasta_t& fasta) {
     std::ofstream outfile;
     outfile.open(fasta.path);
@@ -200,6 +218,7 @@ bool write_fasta(const fasta_t& fasta) {
     return true;
 }
 
+/// @private
 TEST_CASE("write_fasta") {
     SUBCASE("Write fasta") {
         fasta_t fasta("test-write-fasta.fasta", {"1", "2"},
@@ -227,7 +246,11 @@ TEST_CASE("write_fasta") {
     }
 }
 
-/* Write shortest path (alignment) in Fasta format */
+/**
+ * \brief Write shortest path (alignment) in fasta format.
+ * @param[in] aln VectorFstStdArc shortest path FST.
+ * @param[in] fasta fasta_t storing output path and aligned sequences.
+ */
 bool write_fasta(const VectorFstStdArc& aln, fasta_t& fasta) {
     fst::SymbolTable symbols;
     fill_symbol_table(symbols);
@@ -258,6 +281,7 @@ bool write_fasta(const VectorFstStdArc& aln, fasta_t& fasta) {
     return true;
 }
 
+/// @private
 TEST_CASE("write_fasta-fst") {
     fasta_t fasta("test-write-fasta.fasta", {"1", "2"});
 

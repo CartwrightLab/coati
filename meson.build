@@ -30,6 +30,8 @@ project('COATI', 'cpp',
 subdir('contrib')
 subdir('src')
 subdir('tests')
+subdir('doc')
+
 if(get_option('dev_benchmark').enabled())
 	subdir('benchmark')
 endif

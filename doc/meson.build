@@ -1,4 +1,3 @@
-/*
 # Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,19 +17,26 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-*/
 
-#ifndef MUTATION_ECM_HPP
-#define MUTATION_ECM_HPP
+doxygen = find_program('doxygen', required : false)
 
-#include "ecm.tcc"
-#include "matrix.hpp"
-#include "mutation_fst.hpp"
+if doxygen.found()
+  doxy_conf = configuration_data()
+  doxy_conf.set('DOXYGEN_INPUT', meson.project_source_root() + '/src')
+  doxy_conf.set('DOXYGEN_OUTPUT', meson.current_build_dir())
 
-namespace coati {
-void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
-float k(uint8_t c1, uint8_t c2, int model = 0, float kappa = 2.5);
-coati::Matrixf ecm_p(float br_len, float omega);
-VectorFstStdArc ecm(float br_len, float omega);
-}  // namespace coati
-#endif
+  doxyfile = configure_file(
+    input : 'Doxyfile.in',
+    output : 'Doxyfile',
+    configuration : doxy_conf
+  )
+
+  custom_target('doc',
+    build_by_default : true,
+    build_always_stale : true,
+    command : [doxygen, doxyfile],
+    output : ['html']
+  )
+else
+  message('Documentation disabled, doxygen not found')
+endif

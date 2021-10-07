@@ -36,18 +36,24 @@ using seq_view_t = std::basic_string_view<base_t>;
 using stationary_vector_t = std::vector<float_t>;
 
 struct align_pair_work_t {
-    Matrixf mch;      // match state
-    Matrixf del;      // deletion state
-    Matrixf ins;      // insertion state
-    Matrixf mch_mch;  // match to match state
-    Matrixf mch_del;  // match to del state
-    Matrixf mch_ins;  // match to ins state
-    Matrixf del_mch;  // del to mch state
-    Matrixf del_del;  // del to del state
-    Matrixf ins_mch;  // ins to mch state
-    Matrixf ins_del;  // ins to del state
-    Matrixf ins_ins;  // ins to ins state
+    Matrixf mch;     /*!< match state */
+    Matrixf del;     /*!< deletion state */
+    Matrixf ins;     /*!< insertion state */
+    Matrixf mch_mch; /*!< match to match state */
+    Matrixf mch_del; /*!< match to del state */
+    Matrixf mch_ins; /*!< match to ins state */
+    Matrixf del_mch; /*!< del to mch state */
+    Matrixf del_del; /*!< del to del state */
+    Matrixf ins_mch; /*!< ins to mch state */
+    Matrixf ins_del; /*!< ins to del state */
+    Matrixf ins_ins; /*!< ins to ins state */
 
+    /** \brief Resize matrices and initialize to given value
+     *
+     * @param[in] len_a std::size_t number of rows.
+     * @param[in] len_b std::size_t number of columns.
+     * @param[in] val coati::float_t value.
+     */
     void resize(size_t len_a, size_t len_b, float_t val) {
         mch.resize(len_a, len_b, val);      // match matrix
         del.resize(len_a, len_b, val);      // deletion matrix
@@ -63,10 +69,13 @@ struct align_pair_work_t {
     }
 };
 
+/** \brief Max value between two coati::float_t values */
 inline float_t maximum(float_t x, float_t y) { return std::max(x, y); }
+/** \brief Max value between three coati::float_t values */
 inline float_t maximum(float_t x, float_t y, float_t z) {
     return std::max(maximum(x, y), z);
 }
+/** \brief Index of max value between three coati::float_t values */
 inline int max_index(float_t x, float_t y, float_t z) {
     int i = 0;
     float_t val = x;

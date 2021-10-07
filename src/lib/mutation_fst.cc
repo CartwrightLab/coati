@@ -24,7 +24,17 @@
 
 #include <coati/mutation_fst.hpp>
 
-/* Create Muse and Gaut codon model FST */
+namespace coati {
+
+/**
+ * \brief Create Muse and Gaut codon model FST
+ *
+ * @param[in] br_len float branch length.
+ * @param[in] omega float nonsynonymous-synonymous bias.
+ * @param[in] pi std::vector<coati::float_t> nucleotide frequencies (A,C,G,T).
+ *
+ * \return Muse and Gaut codon model FST (coati::VectorFstStdArc).
+ */
 VectorFstStdArc mg94(float br_len, float omega,
                      const std::vector<coati::float_t>& pi) {
     coati::Matrixf P = mg94_p(br_len, omega, pi);
@@ -55,6 +65,7 @@ VectorFstStdArc mg94(float br_len, float omega,
     return optimize(mg94_rmep);
 }
 
+/// @private
 TEST_CASE("mg94") {
     // float branch_length = 0.0133;
     VectorFstStdArc mut_fst(mg94(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
@@ -64,7 +75,15 @@ TEST_CASE("mg94") {
     CHECK(mut_fst.NumStates() == 241);
 }
 
-/* Create dna marginal Muse and Gaut codon model FST*/
+/**
+ * \brief Create dna marginal Muse and Gaut codon model FST
+ *
+ * @param[in] br_len float branch length.
+ * @param[in] omega float nonsynonymous-synonymous bias.
+ * @param[in] pi std::vector<coati::float_t> nucleotide frequencies (A,C,G,T).
+ *
+ * \return dna marginal Muse and Gaut codon model FST (coati::VectorFstStdArc).
+ */
 VectorFstStdArc dna(float br_len, float omega,
                     const std::vector<coati::float_t>& pi) {
     coati::Matrixf P = mg94_p(br_len, omega, pi);
@@ -113,6 +132,7 @@ VectorFstStdArc dna(float br_len, float omega,
     return optimize(dna);
 }
 
+/// @private
 TEST_CASE("dna") {
     // float branch_length = 0.0133;
     VectorFstStdArc dna_fst = dna(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308});
@@ -137,7 +157,11 @@ TEST_CASE("dna") {
     }
 }
 
-/* Create FST that maps nucleotide to AA position */
+/**
+ * \brief Create FST that maps nucleotide to AA position
+ *
+ * \return FST to map nucleotides to AA position (coati::VectorFstStdArc).
+ */
 VectorFstStdArc nuc2pos() {
     // Add state 0 and make it the start state
     VectorFstStdArc n2p;
@@ -163,6 +187,7 @@ VectorFstStdArc nuc2pos() {
     return n2p;
 }
 
+/// @private
 TEST_CASE("nuc2pos") {
     VectorFstStdArc n2p_fst(nuc2pos());
 
@@ -171,7 +196,15 @@ TEST_CASE("nuc2pos") {
     CHECK(n2p_fst.NumStates() == 129);  // 64 AA with 2 states each + init state
 }
 
-/* Create affine gap indel model FST*/
+/**
+ * \brief Create affine gap indel model FST.
+ *
+ * @param[in] gap_open float gap opening score.
+ * @param[in] gap_extend float gap extension score.
+ * @param[in] pi std::vector<float> nucleotide frequencies (A,C,G,T).
+ *
+ * \return indel model FST (coati::VectorFstStdArc).
+ */
 VectorFstStdArc indel(float gap_open, float gap_extend,
                       const std::vector<float>& pi) {
     float deletion = gap_open, insertion = gap_open;
@@ -226,6 +259,7 @@ VectorFstStdArc indel(float gap_open, float gap_extend,
     return optimize(indel_rmep);
 }
 
+/// @private
 TEST_CASE("indel") {
     std::string model = "m-coati";
     VectorFstStdArc indel_model(
@@ -239,8 +273,17 @@ TEST_CASE("indel") {
     CHECK(indel_model.NumArcs(3) == 1);
 }
 
-/* Add arc to FST */
-void add_arc(VectorFstStdArc& n2p, int src, int dest, int ilabel, int olabel,
+/**
+ * \brief Add arc to FST
+ *
+ * @param[in,out] fst coati::VectorFstStdArc FST to be added an arc.
+ * @param[in] src int source state.
+ * @param[in] dest int destination state.
+ * @param[in] ilabel int input label.
+ * @param[in] olabel int output label.
+ * @param[in] weight float weight of the arc.
+ */
+void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel, int olabel,
              float weight) {
     if(weight == 1.0) {
         weight = 0.0;
@@ -250,15 +293,20 @@ void add_arc(VectorFstStdArc& n2p, int src, int dest, int ilabel, int olabel,
         weight = -logf(weight);
     }
 
-    if(n2p.NumStates() <= dest) {
-        n2p.AddState();
-        n2p.AddArc(src, fst::StdArc(ilabel, olabel, weight, dest));
+    if(fst.NumStates() <= dest) {
+        fst.AddState();
+        fst.AddArc(src, fst::StdArc(ilabel, olabel, weight, dest));
     } else {
-        n2p.AddArc(src, fst::StdArc(ilabel, olabel, weight, dest));
+        fst.AddArc(src, fst::StdArc(ilabel, olabel, weight, dest));
     }
 }
 
-/* Create FSAs (acceptors) from a fasta file*/
+/**
+ * \brief Create FSA (acceptor) from a fasta file
+ *
+ * @param[in] content std::string sequence to be converted to an FSA.
+ * @param[in,out] accept coati::VectorFstStdArc empty FSA.
+ */
 bool acceptor(std::string content, VectorFstStdArc& accept) {
     std::map<char, int> syms = {{'-', 0}, {'A', 1}, {'C', 2}, {'G', 3},
                                 {'T', 4}, {'U', 4}, {'N', 5}};
@@ -277,7 +325,12 @@ bool acceptor(std::string content, VectorFstStdArc& accept) {
     return Verify(accept);
 }
 
-/* Optimize FST: remove epsilons, determinize, and minimize */
+/**
+ * \brief Optimize FST: remove epsilons, determinize, and minimize
+ *
+ * @param[in] fst_raw coati::VectorFstStdArc FST to be optimized.
+ * \return optimized FST (coati::VectorFstStdArc).
+ */
 VectorFstStdArc optimize(VectorFstStdArc fst_raw) {
     using fst::StdArc;
     // encode FST
@@ -305,3 +358,4 @@ VectorFstStdArc optimize(VectorFstStdArc fst_raw) {
 
     return fst_det;
 }
+}  // namespace coati

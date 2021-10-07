@@ -28,11 +28,14 @@
 #include <numeric>
 #include <vector>
 
+namespace coati {
 using SparseVectorInt = Eigen::SparseVector<int, Eigen::RowMajor>;
 
 struct insertion_data_t {
-    std::vector<std::string> sequences, names;
-    SparseVectorInt insertions;
+    std::vector<std::string> sequences; /*!< sequences */
+    std::vector<std::string> names;     /*!< sequence names */
+    SparseVectorInt
+        insertions; /*!< insertion positions and type (open/closed) */
 
     insertion_data_t() = default;
 
@@ -51,5 +54,5 @@ bool merge_indels(std::vector<insertion_data_t>& ins_data,
                   insertion_data_t& merged_data);
 void add_gap(std::vector<insertion_data_t>& ins_data,
              std::vector<int> seq_indexes, int pos);
-
+}  // namespace coati
 #endif

@@ -31,6 +31,8 @@
 #include "matrix.hpp"
 #include "utils.hpp"
 
+namespace coati {
+
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 VectorFstStdArc mg94(float br_len, float omega,
@@ -44,5 +46,5 @@ void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel = 0,
              int olabel = 0, float weight = 1.0);
 bool acceptor(std::string content, VectorFstStdArc& accept);
 VectorFstStdArc optimize(VectorFstStdArc fst_raw);
-
+}  // namespace coati
 #endif

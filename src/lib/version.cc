@@ -33,17 +33,21 @@ static_assert(COATI_VERSION_PATCH >= 0 &&
                   COATI_VERSION_PATCH < 10000,  // NOLINT
               "COATI patch version must be less than 1000.");
 
+/// @private
 bool coati::version_number_check_equal(int version_int) {
     return version_int == COATI_VERSION_INTEGER;
 }
 
+/// @private
 TEST_CASE("version_number_check_equal") {
     CHECK(coati::version_number_check_equal(COATI_VERSION_INTEGER) == true);
     CHECK(coati::version_number_check_equal(-1) == false);
 }
 
+/// @private
 int coati::version_integer() { return COATI_VERSION_INTEGER; }
 
+/// @private
 TEST_CASE("version_integer") {
     CHECK(coati::version_integer() == COATI_VERSION_INTEGER);
 }

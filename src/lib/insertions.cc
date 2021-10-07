@@ -24,7 +24,15 @@
 
 #include <coati/insertions.hpp>
 
-/* Create sparse vector with positions in which there are (open) insertions */
+namespace coati {
+/**
+ * \brief Store open insertions in a sparse vector given two aligned sequences.
+ *
+ * @param[in] ref std::string reference/ancestor sequence.
+ * @param[in] seq std::string descendant sequence.
+ * @param[in, out] insertions_vector coati::SparseVectorInt vector to store open
+ *  insertion positions.
+ */
 bool insertion_flags(const std::string& ref, const std::string& seq,
                      SparseVectorInt& insertions_vector) {
     if(ref.length() != seq.length()) {
@@ -45,6 +53,7 @@ bool insertion_flags(const std::string& ref, const std::string& seq,
     return true;
 }
 
+/// @private
 TEST_CASE("insertion_flags") {
     SparseVectorInt insertions(7);
 
@@ -61,6 +70,20 @@ TEST_CASE("insertion_flags") {
 }
 
 /* Collapse insertions between two sequences after pairwise alignment w/ REF */
+/**
+ * \brief Collapse insertions between two sequences.
+ *
+ * Collapse insertions between two descendant sequences, respectively pairwise
+ *  aligned to ref sequence. If an insertion is closed, gaps are added to other
+ *  sequences. However, if an insertion is open it is matched with all other
+ *  open insertions with same nucleotide, then insertion is closed. Unless all
+ *  other sequences have open insertions, in which case they remain as such.
+ *
+ * @param[in] ins_data std::vector<insertion_data_t> vector with sequences and
+ *  inertions to be merged.
+ * @param[in,out] merged_data insertion_data_t names, sequences, and positions
+ *  of merged insertions.
+ */
 bool merge_indels(std::vector<insertion_data_t>& ins_data,
                   insertion_data_t& merged_data) {
     // SparseVectorInt is expected to be of 2*length(seq) so that
@@ -153,6 +176,7 @@ bool merge_indels(std::vector<insertion_data_t>& ins_data,
     return true;
 }
 
+/// @private
 TEST_CASE("merge_indels") {
     SUBCASE("Two sequences, two insertion vectors, two merges") {
         SparseVectorInt insA(14);  // size (upperbound) should be 2*length
@@ -281,7 +305,15 @@ TEST_CASE("merge_indels") {
     }
 }
 
-/* Add (closed) gaps to sequences and insertion vectors */
+/**
+ * \brief Add closed gaps to sequences and insertion vectors.
+ *
+ * @param[in,out] ins_data std::vector<insertion_data_t> sequences and insertion
+ *  positions and type.
+ * @param[in] seq_indexes std::vector<int> indexes of which sequences to add
+ *  closed insertion.
+ * @param[in] pos int position in sequence where to add closed insertion.
+ */
 void add_gap(std::vector<insertion_data_t>& ins_data,
              std::vector<int> seq_indexes, int pos) {
     std::vector<int> add;
@@ -312,6 +344,7 @@ void add_gap(std::vector<insertion_data_t>& ins_data,
     }
 }
 
+/// @private
 TEST_CASE("add_gap") {
     SUBCASE("Three sequences with three insertion vectors") {
         SparseVectorInt insA(14);  // size (upperbound) should be 2*length
@@ -384,3 +417,4 @@ TEST_CASE("add_gap") {
         CHECK(ins_data[1].insertions.coeffRef(7) == 111);
     }
 }
+}  // namespace coati

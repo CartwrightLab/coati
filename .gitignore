@@ -45,3 +45,5 @@ subprojects/*
 */meson-logs/*
 */meson-private/*
 
+# Compile_commands
+*compile_commands.json

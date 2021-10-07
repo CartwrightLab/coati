@@ -27,7 +27,16 @@
 
 namespace coati::utils {
 
-/* Hamming distance between two codons */
+/**
+ * \brief Hamming distance between two codons
+ *
+ * Number of positions in which the two codons are different.
+ *
+ * @param[in] cod1 uint8_t encoded codon.
+ * @param[in] cod2 uint8_t encoded codon.
+ *
+ * \return hamming distance between two codons (int).
+ */
 int cod_distance(uint8_t cod1, uint8_t cod2) {
     int distance = 0;
 
@@ -38,7 +47,13 @@ int cod_distance(uint8_t cod1, uint8_t cod2) {
     return distance;
 }
 
-/* Cast codon to position in codon list AAA->0, AAAC->1 ... TTT->63 */
+/**
+ * \brief Cast codon to position in codon list (AAA->0, AAAC->1 ... TTT->63)
+ *
+ * @param[in] codon std::string codon.
+ *
+ * \return encoded codon as its position in codon list.
+ */
 int cod_int(const std::string& codon) {
     unsigned char pos0 = codon[0];
     unsigned char pos1 = codon[1];
@@ -47,8 +62,18 @@ int cod_int(const std::string& codon) {
     return (nt4_table[pos0] << 4) | (nt4_table[pos1] << 2) | nt4_table[pos2];
 }
 
-/* Read substitution rate matrix from a CSV file */
-coati::Matrix<coati::float_t> parse_matrix_csv(const std::string& file) {
+/**
+ * \brief Read substitution rate matrix from a CSV file
+ *
+ * Read from file a branch length and a codon substitution rate matrix.
+ *  File is expected to have 4067 lines; 1 with branch length and 4096 with
+ *  the following structure: codon,codon,value (e.g. AAA,AAA,0.0015).
+ *
+ * @param[in] file std::string path to input file.
+ *
+ * \return codon substitution matrix (coati::Matrixf).
+ */
+coati::Matrixf parse_matrix_csv(const std::string& file) {
     float br_len{NAN};
     Matrix64f Q;
     std::ifstream input(file);
@@ -88,6 +113,7 @@ coati::Matrix<coati::float_t> parse_matrix_csv(const std::string& file) {
     return P;
 }
 
+/// @private
 TEST_CASE("parse_matrix_csv") {
     std::ofstream outfile;
     coati::Matrix<coati::float_t> P(
@@ -129,7 +155,14 @@ TEST_CASE("parse_matrix_csv") {
     CHECK(std::filesystem::remove("test-marg-matrix.csv"));
 }
 
-/* Setup command line options */
+/**
+ * \brief Setup command line options
+ *
+ * @param[in] app CLI::App command line arguments parser from CLI11.
+ * @param[in,out] args coati::utils::args_t to store the input parameters.
+ * @param[in] command std::string one of coati commands (i.e. alignpair or msa).
+ *
+ */
 void set_cli_options(CLI::App& app, coati::utils::args_t& args,
                      const std::string& command) {
     // Add new options/flags
@@ -163,8 +196,19 @@ void set_cli_options(CLI::App& app, coati::utils::args_t& args,
     app.add_option("-n,--gap-len", args.gap.len, "Set gap unit size");
 }
 
-/* Encode ( as vector<unsigned char>) ancestor (ref) sequence as codon & phase,
- *      descendant as nucs */
+/**
+ * \brief Encode two sequences as vector<unsigned char>
+ *
+ * Encode ancestor (ref) sequence as codon \& phase, descendant as nucleotide.
+ *  ref: AAA \& position 0 -> 0, AAA \& 1 -> 1, ... , TTT \& 3 -> 191.
+ *  des: A -> 0, C -> 1, G -> 2, T -> 3.
+ *
+ * @param[in] anc std::string sequence of ancestor (reference).
+ * @param[in] des std::string sequence of descendant.
+ *
+ * \return two sequences (ancestor \& descendant) encoded
+ *  (coati::sequence_pair_t).
+ */
 sequence_pair_t marginal_seq_encoding(const std::string& anc,
                                       const std::string& des) {
     sequence_pair_t ret(2);
@@ -197,6 +241,7 @@ sequence_pair_t marginal_seq_encoding(const std::string& anc,
     return ret;
 }
 
+/// @private
 TEST_CASE("marginal_seq_encoding") {
     std::string anc = "AAAGGGTTT", des = "ACGT-";
     auto result = marginal_seq_encoding(anc, des);
@@ -217,6 +262,12 @@ TEST_CASE("marginal_seq_encoding") {
     CHECK(result[1][4] == static_cast<unsigned char>(4));
 }
 
+/**
+ * \brief Set subtitution matrix or FST according to model
+ *
+ * @param[in,out] args coati::utils::args_t input arguments.
+ * @param[in,out] aln coati::alignment_t alignment information.
+ */
 void set_subst(args_t& args, alignment_t& aln) {
     Matrixf P(64, 64);
 

@@ -33,8 +33,10 @@
 #include "mg94p.tcc"
 #include "utils.hpp"
 
+namespace coati {
 coati::Matrixf mg94_p(coati::float_t br_len, coati::float_t omega,
                       const std::vector<coati::float_t>& nuc_freqs);
 coati::Matrixf marginal_p(const coati::Matrixf& P,
                           const std::vector<coati::float_t>& pi);
+}  // namespace coati
 #endif

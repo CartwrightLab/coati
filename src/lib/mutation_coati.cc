@@ -27,7 +27,20 @@
 /* nonsynonymous-synonymous bias (\omega) */
 // const float omega = 0.2;  // github.com/reedacartwright/toycoati
 
-/* Muse & Gaut Model (1994) P matrix given branch length*/
+namespace coati {
+/**
+ * \brief Create Muse \& Gaut (1994) substitution matrix.
+ *
+ * Given a branch length, create a 64x64 codon substitution P matrix based on
+ *  Muse \& Gaut model. Using nucleotide substitution rates from Yang (1994).
+ *
+ * @param[in] br_len float branch length.
+ * @param[in] omega float nonsynonymous-synonymous bias.
+ * @param[in] nuc_freqs std::vector<coati::float_t> nucleotide frequencies
+ *  (A,C,G,T).
+ *
+ * \return substitution P matrix (coati::Matrixf).
+ */
 coati::Matrixf mg94_p(float br_len, float omega,
                       const std::vector<coati::float_t>& nuc_freqs) {
     if(br_len <= 0) {
@@ -103,6 +116,7 @@ coati::Matrixf mg94_p(float br_len, float omega,
     return P;
 }
 
+/// @private
 TEST_CASE("mg94_p") {
     coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
@@ -113,7 +127,15 @@ TEST_CASE("mg94_p") {
     }
 }
 
-/* Create marginal P matrix*/
+/**
+ * \brief Create marginal 192x4 substitution P matrix give a 64x64
+ *  substitution matrix.
+ *
+ * @param[in] P coati::Matrixf 64x64 codon substitution matrix.
+ * @param[in] pi std::vector<coati::float_t> nucleotide frequencies (A,C,G,T).
+ *
+ * \return marginal 192x4 substitution matrix (coati::Matrixf).
+ */
 coati::Matrixf marginal_p(const coati::Matrixf& P,
                           const std::vector<coati::float_t>& pi) {
     float marg{NAN};
@@ -150,6 +172,7 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
     return p;
 }
 
+/// @private
 TEST_CASE("marginal_p") {
     std::vector<coati::float_t> pi{0.308, 0.185, 0.199, 0.308};
     coati::Matrixf P = mg94_p(0.0133, 0.2, pi);
@@ -165,3 +188,4 @@ TEST_CASE("marginal_p") {
         }
     }
 }
+}  // namespace coati

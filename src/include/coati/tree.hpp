@@ -28,12 +28,14 @@
 
 #include "utils.hpp"
 
+namespace coati::tree {
+
 struct node_t {
-    std::string label;
-    float length;
-    bool is_leaf;
-    size_t parent{0};
-    std::vector<size_t> children;
+    std::string label; /*!< node name */
+    float length; /*!< branch length connecting node to most recent ancestor */
+    bool is_leaf; /*!< true if node is leaf, false otherwise */
+    size_t parent{0}; /*!< node index of parent (ancestor) in tree */
+    std::vector<size_t> children; /*!< children of node */
 
     node_t(std::string name, float len, bool leaf = false, size_t ancestor = 0)
         : label{std::move(name)},
@@ -51,5 +53,5 @@ bool find_seq(const std::string& name, coati::fasta_t& f, std::string& seq);
 bool find_node(tree_t& tree, const std::string& name, size_t& ID);
 bool reroot(tree_t& tree, const std::string& label);
 float distance_ref(const tree_t& tree, size_t ref, size_t node);
-
+}  // namespace coati::tree
 #endif

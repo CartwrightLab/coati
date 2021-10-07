@@ -22,6 +22,19 @@ namespace coati {
 // match matrix holds log(P(b[j]|a[i]))-log(P(b[j]))
 // gap_open = log(g)
 // gap_extend = log(e)
+
+/**
+ * \brief Dynamic programming of pairwise alignment.
+ *
+ * Gotoh-like algorithm for finding the best alignment of two sequences.
+ *  Fill matrices using dynamic programming O(n*m).
+ *
+ * @param[in,out] work align_pair_work_t dynamic programming matrices.
+ * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
+ * @param[in] b coati::seq_view_t encoded descendant sequence.
+ * @param[in] match coati::Matrixf substitution matrix.
+ * @param[in] args coati::utils::args_t iput parameters.
+ */
 void align_pair(align_pair_work_t &work, const seq_view_t &a,
                 const seq_view_t &b, const Matrixf &match,
                 utils::args_t &args) {
@@ -95,6 +108,19 @@ void align_pair(align_pair_work_t &work, const seq_view_t &a,
     }
 }
 
+/**
+ * \brief Get aligned sequences.
+ *
+ * Trace back a set of filled matrices from coati::align_pair to retrieve
+ *  the pairwise aligned sequences.
+ *
+ * @param[in] work coati::align_pair_work_t filled dynamic programming matrices.
+ * @param[in] a std::string reference/ancestor sequence.
+ * @param[in] b std::string descendant sequence.
+ * @param[in,out] aln coati::utils::alignment_t aligned sequences data.
+ * @param[in] look_back std::size_t gap unit size.
+ *
+ */
 void traceback(const align_pair_work_t &work, const std::string &a,
                const std::string &b, utils::alignment_t &aln,
                size_t look_back) {

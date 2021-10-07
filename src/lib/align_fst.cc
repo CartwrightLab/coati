@@ -27,7 +27,15 @@
 
 namespace coati {
 
-/* Alignment using FST library*/
+/**
+ * \brief Pairwise alignment using FST composition.
+ *
+ * Composition of indel and subsitution FSTs together with input sequences
+ *  as FSAs. Alignment is found searching for shortest path in resulting FST.
+ *
+ * @param[in] args coati::utils::args_t input parameters.
+ * @param[in] aln coati::utils::alignment_t alignment information.
+ */
 bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln) {
     using fst::StdArc;
 
@@ -103,6 +111,7 @@ bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln) {
     return coati::write_phylip(aln_path, aln.fasta);
 }
 
+/// @private
 TEST_CASE("fst_alignment") {
     std::vector<VectorFstStdArc> fsts;
     VectorFstStdArc fsa0, fsa1;
