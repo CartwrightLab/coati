@@ -1,0 +1,16 @@
+BM_marg_alignment/bm_156/manual_time
+BM_marg_alignment/bm_1k/manual_time
+BM_marg_alignment/bm_2k/manual_time
+BM_marg_alignment/bm_4k/manual_time
+BM_marg_alignment/bm_8k/manual_time
+BM_marg_alignment/bm_16k/manual_time
+BM_fst_alignment/bm_156/manual_time
+BM_fst_alignment/bm_1k/manual_time
+BM_fst_alignment/bm_2k/manual_time
+BM_fst_alignment/bm_4k/manual_time
+BM_align_pair/bm_156/manual_time
+BM_align_pair/bm_1k/manual_time
+BM_align_pair/bm_2k/manual_time
+BM_align_pair/bm_4k/manual_time
+BM_align_pair/bm_8k/manual_time
+BM_align_pair/bm_16k/manual_time

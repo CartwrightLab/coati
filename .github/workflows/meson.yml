@@ -1,0 +1,50 @@
+name: "Test"
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - name: Install Boost
+      run: sudo apt-get update && sudo apt-get install -yq libboost-all-dev
+    - name: Install Eigen
+      run: sudo apt-get update && sudo apt-get install -yq libeigen3-dev
+    - name: Install Testing Tools
+      run: sudo apt-get update && sudo apt-get install -yq clang-format clang-tidy cppcheck
+    - name: Install Gcovr
+      run: sudo pip install gcovr
+    - uses: BSFishy/meson-build@v1.0.3
+      with:
+        action: test
+        directory: builddir
+        setup-options: -Db_coverage=true
+        options: --verbose
+        meson-version: 0.59.1
+        ninja-version: 1.10.2
+    - name: Coverage
+      run: ninja coverage-html -C builddir
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: Linux_Meson_Testlog
+        path: builddir/meson-logs/testlog.txt
+    - name: Upload coverage results
+      uses: codecov/codecov-action@v1.5.2
+      with:
+        files: builddir/meson-logs/coverage.info
+    - run: ninja clang-format-check -C builddir/
+    - run: ninja clang-tidy -C builddir/

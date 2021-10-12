@@ -24,14 +24,28 @@
 
 #include <coati/insertions.hpp>
 
-/* Create sparse vector with positions in which there are (open) insertions */
-bool insertion_flags(const string& ref, const string& seq,
+namespace coati {
+/**
+ * \brief Store open insertions in a sparse vector given two aligned sequences.
+ *
+ * @param[in] ref std::string reference/ancestor sequence.
+ * @param[in] seq std::string descendant sequence.
+ * @param[in, out] insertions_vector coati::SparseVectorInt vector to store open
+ *  insertion positions.
+ */
+bool insertion_flags(const std::string& ref, const std::string& seq,
                      SparseVectorInt& insertions_vector) {
-    if(ref.length() != seq.length()) return false;
+    if(ref.length() != seq.length()) {
+        return false;  // return if length is diff
+    }
 
-    for(int i = 0; i < ref.length(); i++) {
+    if(ref.find('-') == std::string::npos) {
+        return true;  // return if no insertions
+    }
+
+    for(std::size_t i = 0; i < ref.length(); i++) {
         if(ref[i] == '-') {
-            insertions_vector.coeffRef(i) =
+            insertions_vector.coeffRef(static_cast<int>(i)) =
                 111;  // 'o' (open) in ASCII dec value
         }
     }
@@ -39,21 +53,16 @@ bool insertion_flags(const string& ref, const string& seq,
     return true;
 }
 
-TEST_CASE("[insertions.cc] insertion_flags") {
+/// @private
+TEST_CASE("insertion_flags") {
     SparseVectorInt insertions(7);
 
     SUBCASE("Different length - fail") {
-        string reference = "TCA-TC";
-        string sequence = "TCAGTCG";
-
-        REQUIRE(!insertion_flags(reference, sequence, insertions));
+        REQUIRE(!insertion_flags("TCA_TC", "TCAGTCG", insertions));
     }
 
     SUBCASE("Two insertions") {
-        string reference = "TCA-TC-";
-        string sequence = "TCAGTCG";
-
-        REQUIRE(insertion_flags(reference, sequence, insertions));
+        REQUIRE(insertion_flags("TCA-TC-", "TCAGTCG", insertions));
         CHECK(insertions.nonZeros() == 2);
         CHECK(insertions.coeffRef(3) == 'o');
         CHECK(insertions.coeffRef(6) == 111);
@@ -61,7 +70,21 @@ TEST_CASE("[insertions.cc] insertion_flags") {
 }
 
 /* Collapse insertions between two sequences after pairwise alignment w/ REF */
-bool merge_indels(vector<insertion_data_t>& ins_data,
+/**
+ * \brief Collapse insertions between two sequences.
+ *
+ * Collapse insertions between two descendant sequences, respectively pairwise
+ *  aligned to ref sequence. If an insertion is closed, gaps are added to other
+ *  sequences. However, if an insertion is open it is matched with all other
+ *  open insertions with same nucleotide, then insertion is closed. Unless all
+ *  other sequences have open insertions, in which case they remain as such.
+ *
+ * @param[in] ins_data std::vector<insertion_data_t> vector with sequences and
+ *  inertions to be merged.
+ * @param[in,out] merged_data insertion_data_t names, sequences, and positions
+ *  of merged insertions.
+ */
+bool merge_indels(std::vector<insertion_data_t>& ins_data,
                   insertion_data_t& merged_data) {
     // SparseVectorInt is expected to be of 2*length(seq) so that
     //   after insertions being merged there is no index out of range/bounds
@@ -72,13 +95,14 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
     int num_gaps = 0, processed_gaps = 0;
     for(auto in_d : ins_data) {
         in_d.insertions.prune(1);
-        num_gaps += in_d.insertions.nonZeros();
+        num_gaps += static_cast<int>(in_d.insertions.nonZeros());
     }
 
     int pos = 0;
     while(processed_gaps < num_gaps) {  // while gaps not processed
         // (i) for every closed insertion --> add gap to other sequences
-        for(int seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
+        for(int seq = 0; seq < static_cast<int>(ins_data.size());
+            seq++) {  // foreach set of seqs
             if(ins_data[seq].insertions.coeffRef(pos) ==
                99) {                            // insertion is closed
                 add_gap(ins_data, {seq}, pos);  // add gaps to rest of seqs
@@ -91,30 +115,33 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
         // (ii) if insertions at every seq & all open & same char: continue
         bool all_open_gaps = true;
         char nuc = '0';
-        for(int seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
-            if(ins_data[seq].sequences[0].length() < pos) {
+        for(auto& seq : ins_data) {  // foreach set of sequences
+            if(pos > static_cast<int>(seq.sequences[0].length())) {
                 all_open_gaps = false;
                 break;
             }
             if(nuc == '0') {
-                nuc = ins_data[seq].sequences[0][pos];
+                nuc = seq.sequences[0][pos];
             }
-            if((ins_data[seq].insertions.coeffRef(pos) != 111) ||
-               (ins_data[seq].sequences[0][pos] != nuc))
+            if((seq.insertions.coeffRef(pos) != 111) ||
+               (seq.sequences[0][pos] != nuc)) {
                 all_open_gaps = false;
+            }
         }
         if(all_open_gaps) {
             pos++;
-            processed_gaps += ins_data.size();
+            processed_gaps += static_cast<int>(ins_data.size());
             continue;
         }
 
         // (iii) for every open ins --> find all open ins w/ same char,
-        vector<int> indexes;
+        std::vector<int> indexes;
         nuc = '0';
-        for(int seq = 0; seq < ins_data.size(); seq++) {  // foreach set of seqs
+        for(int seq = 0, ins_data_size = static_cast<int>(ins_data.size());
+            seq < ins_data_size; seq++) {  // foreach set of seqs
             if(ins_data[seq].insertions.coeffRef(pos) == 111) {
-                if(ins_data[seq].sequences[0].length() < pos) {
+                if(pos >
+                   static_cast<int>(ins_data[seq].sequences[0].length())) {
                     continue;
                 }
                 if(nuc == '0') {
@@ -130,7 +157,7 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
 
         if(indexes.size() > 0) {
             add_gap(ins_data, indexes, pos);
-            processed_gaps += indexes.size();
+            processed_gaps += static_cast<int>(indexes.size());
         }
 
         pos++;
@@ -138,7 +165,7 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
     // populate output variable with results
     //  first sequences and names
     for(auto dat : ins_data) {
-        for(int i = 0; i < dat.sequences.size(); i++) {
+        for(std::size_t i = 0; i < dat.sequences.size(); i++) {
             merged_data.sequences.push_back(dat.sequences[i]);
             merged_data.names.push_back(dat.names[i]);
         }
@@ -149,7 +176,8 @@ bool merge_indels(vector<insertion_data_t>& ins_data,
     return true;
 }
 
-TEST_CASE("[insertions.cc] merge_indels") {
+/// @private
+TEST_CASE("merge_indels") {
     SUBCASE("Two sequences, two insertion vectors, two merges") {
         SparseVectorInt insA(14);  // size (upperbound) should be 2*length
         SparseVectorInt insB(14);
@@ -161,7 +189,7 @@ TEST_CASE("[insertions.cc] merge_indels") {
         insertion_data_t dataA("TCATCG", "A", insA);
         insertion_data_t dataB("TCAGTCG", "B", insB);
 
-        vector<insertion_data_t> ins_data = {dataA, dataB};
+        std::vector<insertion_data_t> ins_data{dataA, dataB};
 
         REQUIRE(merge_indels(ins_data, results));
 
@@ -185,7 +213,7 @@ TEST_CASE("[insertions.cc] merge_indels") {
                                  {"A", "B", "C"}, insABC);
         insertion_data_t dataD("TCACTCG", "D", insD);
 
-        vector<insertion_data_t> ins_data = {dataABC, dataD};
+        std::vector<insertion_data_t> ins_data{dataABC, dataD};
 
         REQUIRE(merge_indels(ins_data, results));
 
@@ -212,7 +240,7 @@ TEST_CASE("[insertions.cc] merge_indels") {
                                  {"A", "B", "C"}, insABC);
         insertion_data_t dataD("TCACTCG", "D", insD);
 
-        vector<insertion_data_t> ins_data = {dataABC, dataD};
+        std::vector<insertion_data_t> ins_data{dataABC, dataD};
 
         REQUIRE(merge_indels(ins_data, results));
 
@@ -235,7 +263,7 @@ TEST_CASE("[insertions.cc] merge_indels") {
         insertion_data_t dataA("TCACTCG", "A", insA);
         insertion_data_t dataB("TCAGTCG", "B", insB);
 
-        vector<insertion_data_t> ins_data = {dataA, dataB};
+        std::vector<insertion_data_t> ins_data{dataA, dataB};
 
         REQUIRE(merge_indels(ins_data, results));
 
@@ -260,7 +288,7 @@ TEST_CASE("[insertions.cc] merge_indels") {
         insertion_data_t dataC(
             "AAATTCCAACAACATAAACAGATCGGAAGAGAAACTATGCTTTTCTAG", "C", insC);
 
-        vector<insertion_data_t> ins_data = {dataH, dataG, dataC};
+        std::vector<insertion_data_t> ins_data{dataH, dataG, dataC};
 
         REQUIRE(merge_indels(ins_data, results));
 
@@ -277,11 +305,19 @@ TEST_CASE("[insertions.cc] merge_indels") {
     }
 }
 
-/* Add (closed) gaps to sequences and insertion vectors */
-void add_gap(vector<insertion_data_t>& ins_data, vector<int> seq_indexes,
-             int pos) {
-    vector<int> add;
-    vector<int> aux(ins_data.size());
+/**
+ * \brief Add closed gaps to sequences and insertion vectors.
+ *
+ * @param[in,out] ins_data std::vector<insertion_data_t> sequences and insertion
+ *  positions and type.
+ * @param[in] seq_indexes std::vector<int> indexes of which sequences to add
+ *  closed insertion.
+ * @param[in] pos int position in sequence where to add closed insertion.
+ */
+void add_gap(std::vector<insertion_data_t>& ins_data,
+             std::vector<int> seq_indexes, int pos) {
+    std::vector<int> add;
+    std::vector<int> aux(ins_data.size());
     iota(begin(aux), end(aux), 0);
 
     set_difference(aux.begin(), aux.end(), seq_indexes.begin(),
@@ -294,13 +330,13 @@ void add_gap(vector<insertion_data_t>& ins_data, vector<int> seq_indexes,
 
     // add closed insertion
     for(auto seq : add) {
-        for(int s = 0; s < ins_data[seq].sequences.size(); s++) {
+        for(auto& sequence : ins_data[seq].sequences) {
             // add gap to nucleotide sequence
-            string::iterator it = ins_data[seq].sequences[s].insert(
-                ins_data[seq].sequences[s].begin() + pos, '-');
+            sequence.insert(sequence.begin() + pos, '-');
         }
         // add closed gap to insertion SparseVector
-        for(int i = ins_data[seq].insertions.cols() - 1; i > pos; i--) {
+        for(Eigen::Index i = ins_data[seq].insertions.cols() - 1; i > pos;
+            i--) {
             ins_data[seq].insertions.coeffRef(i) =
                 ins_data[seq].insertions.coeffRef(i - 1);
         }
@@ -308,7 +344,8 @@ void add_gap(vector<insertion_data_t>& ins_data, vector<int> seq_indexes,
     }
 }
 
-TEST_CASE("[insertions.cc] add_gap") {
+/// @private
+TEST_CASE("add_gap") {
     SUBCASE("Three sequences with three insertion vectors") {
         SparseVectorInt insA(14);  // size (upperbound) should be 2*length
         SparseVectorInt insB(14);
@@ -319,9 +356,9 @@ TEST_CASE("[insertions.cc] add_gap") {
         insertion_data_t dataB("TCAGTCG", "B", insB);
         insertion_data_t dataC("TTCATCG", "C", insC);
 
-        vector<int> indexes = {2};
+        std::vector<int> indexes = {2};
 
-        vector<insertion_data_t> ins_data = {dataA, dataB, dataC};
+        std::vector<insertion_data_t> ins_data = {dataA, dataB, dataC};
 
         add_gap(ins_data, indexes, 1);
         CHECK(ins_data[0].sequences[0] == "T-CATCG");
@@ -340,9 +377,9 @@ TEST_CASE("[insertions.cc] add_gap") {
         insertion_data_t dataA("TCATCG", "A", insA);
         insertion_data_t dataB("TCATCGC", "B", insB);
 
-        vector<int> indexes = {1};  // sequence that already have insertion
+        std::vector<int> indexes = {1};  // sequence that already have insertion
 
-        vector<insertion_data_t> ins_data = {dataA, dataB};
+        std::vector<insertion_data_t> ins_data = {dataA, dataB};
 
         add_gap(ins_data, indexes, 6);
 
@@ -365,9 +402,9 @@ TEST_CASE("[insertions.cc] add_gap") {
                                  {"A", "B", "C"}, insABC);
         insertion_data_t dataD("TCACTCG", "D", insD);
 
-        vector<int> indexes = {0};
+        std::vector<int> indexes = {0};
 
-        vector<insertion_data_t> ins_data = {dataABC, dataD};
+        std::vector<insertion_data_t> ins_data = {dataABC, dataD};
 
         add_gap(ins_data, indexes, 3);
         CHECK(ins_data[0].sequences[0] == "TCA-TCG");
@@ -380,3 +417,4 @@ TEST_CASE("[insertions.cc] add_gap") {
         CHECK(ins_data[1].insertions.coeffRef(7) == 111);
     }
 }
+}  // namespace coati

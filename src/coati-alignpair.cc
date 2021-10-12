@@ -22,107 +22,55 @@
 
 #include <fst/fstlib.h>
 
-#include <boost/program_options.hpp>
-#include <coati/align.hpp>
-
-namespace po = boost::program_options;
+#include <CLI11.hpp>
+#include <coati/align_fst.hpp>
+#include <coati/align_marginal.hpp>
+#include <coati/fasta.hpp>
+#include <coati/utils.hpp>
 
 int main(int argc, char* argv[]) {
-    string rate;
-    bool score = false;
-    input_t in_data;
+    coati::utils::args_t args;
 
-    try {
-        po::options_description desc("Allowed options");
-        desc.add_options()("help,h", "Display this message")(
-            "fasta,f", po::value<string>(&in_data.fasta_file.path)->required(),
-            "fasta file path")(
-            "model,m",
-            po::value<string>(&in_data.mut_model)->default_value("m-coati"),
-            "substitution model: coati, m-coati (default), dna, ecm, m-ecm")(
-            "weight,w", po::value<string>(&in_data.weight_file),
-            "Write alignment score to file")(
-            "output,o", po::value<string>(&in_data.out_file),
-            "Alignment output file")(
-            "score,s",
-            "Calculate alignment score using m-coati or m-ecm models")(
-            "rate,r", po::value<string>(&in_data.rate),
-            "Substitution rate matrix (CSV)")(
-            "evo-time,t",
-            po::value<double>(&in_data.br_len)->default_value(0.0133, "0.0133"),
-            "Evolutionary time or branch length");
+    // Parse command line options
+    CLI::App alignpair;
+    coati::utils::set_cli_options(alignpair, args, "alignpair");
+    CLI11_PARSE(alignpair, argc, argv);
 
-        po::positional_options_description pos_p;
-        pos_p.add("fasta", -1);
-        po::variables_map varm;
-        po::store(po::command_line_parser(argc, argv)
-                      .options(desc)
-                      .positional(pos_p)
-                      .run(),
-                  varm);
-
-        if(varm.count("help") || argc < 2) {
-            cout << "Usage:	coati alignpair file.fasta [options]" << endl
-                 << endl;
-            cout << desc << endl;
-            return EXIT_SUCCESS;
+    // if no output is specified save in current dir in PHYLIP format
+    if(args.output.empty()) {
+        args.output = args.fasta.path.stem();
+        args.output += std::filesystem::path(".phy");
+    } else {  // check format is valid (phylip/fasta)
+        const std::string extension = args.output.extension();
+        const std::regex valid_ext("^.phy$|^.fasta$|^.fa$");
+        if(!std::regex_match(extension, valid_ext)) {
+            throw std::invalid_argument(
+                "Output file format is invalid. Phylip and fasta files "
+                "supported.");
         }
+    }
 
-        if(varm.count("score")) {
-            in_data.score = true;
+    coati::utils::alignment_t aln;
+    coati::utils::set_subst(args, aln);
+
+    // subst models aligned by dynamic programming
+    if(aln.is_marginal()) {
+        args.fasta = coati::read_fasta(args.fasta.path.string());
+        aln.fasta.path = args.output;
+        aln.fasta.names = args.fasta.names;
+
+        if(args.fasta.size() != 2) {
+            throw std::invalid_argument("Exactly two sequences required.");
         }
-
-        po::notify(varm);
-
-    } catch(po::error& e) {
-        cerr << e.what() << ". Exiting!" << endl;
-        return EXIT_FAILURE;
+        return coati::marg_alignment(args, aln) ? 0 : 1;
     }
+    // subst models aligned by FST composition
+    args.fasta = coati::read_fasta(args.fasta.path.string(), aln.seqs);
+    aln.fasta.path = args.output;
+    aln.fasta.names = args.fasta.names;
 
-    // read input fasta file sequences as FSA (acceptors)
-    vector<VectorFst<StdArc>> fsts;
-    Matrix64f P;
-
-    if(read_fasta(in_data.fasta_file, fsts) != 0) {
-        cerr << "Error reading " << in_data.fasta_file.path << " file. Exiting!"
-             << endl;
-        return EXIT_FAILURE;
-    } else if(in_data.fasta_file.seq_names.size() != 2 ||
-              in_data.fasta_file.seq_names.size() != fsts.size()) {
-        cerr << "Exactly two sequences required. Exiting!" << endl;
-        return EXIT_FAILURE;
+    if(args.fasta.names.size() != 2 || args.fasta.size() != aln.seqs.size()) {
+        throw std::invalid_argument("Exactly two sequences required.");
     }
-
-    if(in_data.out_file.empty()) {  // if no output is specified save in current
-                                    // dir in PHYLIP format
-        in_data.out_file =
-            boost::filesystem::path(in_data.fasta_file.path).stem().string() +
-            ".phy";
-    } else if(boost::filesystem::extension(in_data.out_file) != ".phy" &&
-              boost::filesystem::extension(in_data.out_file) != ".fasta") {
-        cout << "Format for output file is not valid. Exiting!" << endl;
-        return EXIT_FAILURE;
-    }
-
-    if(!rate.empty()) {
-        in_data.mut_model = "user_marg_model";
-
-        Matrix64f Q;
-        double br_len;
-        parse_matrix_csv(rate, Q, br_len);
-        // P matrix
-        Q = Q * br_len;
-        P = Q.exp();
-
-        return mcoati(in_data, P);
-    } else if((in_data.mut_model.compare("m-coati") == 0) ||
-              in_data.mut_model.compare("no_frameshifts") == 0) {
-        mg94_p(P, in_data.br_len);
-        return mcoati(in_data, P);
-    } else if(in_data.mut_model.compare("m-ecm") == 0) {
-        ecm_p(P, in_data.br_len);
-        return mcoati(in_data, P);
-    } else {
-        return fst_alignment(in_data, fsts);
-    }
+    return coati::fst_alignment(args, aln) ? 0 : 1;
 }

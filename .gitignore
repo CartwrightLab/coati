@@ -30,3 +30,20 @@
 *.exe
 *.out
 *.app
+
+# Build directory
+build*
+
+# Subprojects
+subprojects/*
+!/subprojects/*.wrap
+!/subprojects/doctest
+!/subprojects/fstlib
+
+# Meson log files
+*/meson-info/*
+*/meson-logs/*
+*/meson-private/*
+
+# Compile_commands
+*compile_commands.json

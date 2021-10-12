@@ -25,28 +25,33 @@
 
 #include <algorithm>
 #include <boost/spirit/home/x3.hpp>
-#include <coati/utils.hpp>
+
+#include "utils.hpp"
+
+namespace coati::tree {
 
 struct node_t {
-    string label;
-    float length;
-    bool is_leaf;
-    size_t parent{0};
-    vector<int> children;
+    std::string label; /*!< node name */
+    float length; /*!< branch length connecting node to most recent ancestor */
+    bool is_leaf; /*!< true if node is leaf, false otherwise */
+    size_t parent{0}; /*!< node index of parent (ancestor) in tree */
+    std::vector<size_t> children; /*!< children of node */
 
-    node_t(const string& name, float len, bool leaf = false,
-           size_t ancestor = 0)
-        : label{name}, length{len}, is_leaf{leaf}, parent{ancestor} {}
+    node_t(std::string name, float len, bool leaf = false, size_t ancestor = 0)
+        : label{std::move(name)},
+          length{len},
+          is_leaf{leaf},
+          parent{ancestor} {}
 };
 
-using tree_t = vector<node_t>;
+using tree_t = std::vector<node_t>;
 
-bool read_newick(string tree_file, string& content);
-int parse_newick(string content, tree_t& guide_tree);
-int aln_order(tree_t& tree, vector<pair<int, double>>& order_list);
-bool find_seq(string name, fasta_t& f, string& seq);
-bool find_node(const tree_t& tree, string name, int& ID);
-bool reroot(tree_t& tree, string label);
-double distance_ref(const tree_t& tree, int ref, int node);
-
+bool read_newick(const std::string& tree_file, std::string& content);
+int parse_newick(std::string content, tree_t& guide_tree);
+int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list);
+bool find_seq(const std::string& name, coati::fasta_t& f, std::string& seq);
+bool find_node(tree_t& tree, const std::string& name, size_t& ID);
+bool reroot(tree_t& tree, const std::string& label);
+float distance_ref(const tree_t& tree, size_t ref, size_t node);
+}  // namespace coati::tree
 #endif

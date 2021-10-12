@@ -24,13 +24,23 @@
 
 #include <coati/mutation_fst.hpp>
 
-/* Create Muse and Gaut codon model FST */
-void mg94(VectorFst<StdArc>& mut_fst, const double& br_len) {
-    Matrix64f P;
-    mg94_p(P, br_len);
+namespace coati {
+
+/**
+ * \brief Create Muse and Gaut codon model FST
+ *
+ * @param[in] br_len float branch length.
+ * @param[in] omega float nonsynonymous-synonymous bias.
+ * @param[in] pi std::vector<coati::float_t> nucleotide frequencies (A,C,G,T).
+ *
+ * \return Muse and Gaut codon model FST (coati::VectorFstStdArc).
+ */
+VectorFstStdArc mg94(float br_len, float omega,
+                     const std::vector<coati::float_t>& pi) {
+    coati::Matrixf P = mg94_p(br_len, omega, pi);
 
     // Add state 0 and make it the start state
-    VectorFst<StdArc> mg94;
+    VectorFstStdArc mg94;
     mg94.AddState();
     mg94.SetStart(0);
 
@@ -49,81 +59,112 @@ void mg94(VectorFst<StdArc>& mut_fst, const double& br_len) {
     // Set final state & optimize
     mg94.SetFinal(0, 0.0);
 
-    VectorFst<StdArc> mg94_rmep;
-    mg94_rmep = RmEpsilonFst<StdArc>(mg94);  // epsilon removal
+    VectorFstStdArc mg94_rmep;
+    mg94_rmep = fst::RmEpsilonFst<fst::StdArc>(mg94);  // epsilon removal
 
-    mut_fst = optimize(mg94_rmep);
+    return optimize(mg94_rmep);
 }
 
-TEST_CASE("[mutation_fst.cc] mg94") {
-    VectorFst<StdArc> mut_fst;
-    double branch_length = 0.0133;
-    mg94(mut_fst, branch_length);
+/// @private
+TEST_CASE("mg94") {
+    // float branch_length = 0.0133;
+    VectorFstStdArc mut_fst(mg94(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
     CHECK(Verify(mut_fst));           // openfst built-in sanity check
     CHECK(mut_fst.NumArcs(0) == 16);  // 4x4 nuc to nuc arcs from start state
     CHECK(mut_fst.NumStates() == 241);
 }
 
-/* Create dna marginal Muse and Gaut codon model FST*/
-void dna(VectorFst<StdArc>& mut_fst, const double& br_len) {
-    Matrix64f P;
-    mg94_p(P, br_len);
+/**
+ * \brief Create dna marginal Muse and Gaut codon model FST
+ *
+ * @param[in] br_len float branch length.
+ * @param[in] omega float nonsynonymous-synonymous bias.
+ * @param[in] pi std::vector<coati::float_t> nucleotide frequencies (A,C,G,T).
+ *
+ * \return dna marginal Muse and Gaut codon model FST (coati::VectorFstStdArc).
+ */
+VectorFstStdArc dna(float br_len, float omega,
+                    const std::vector<coati::float_t>& pi) {
+    coati::Matrixf P = mg94_p(br_len, omega, pi);
 
     // Add state 0 and make it the start state
-    VectorFst<StdArc> dna;
+    VectorFstStdArc dna;
     dna.AddState();
     dna.SetStart(0);
 
-    Matrix4f dna_p = Matrix4f::Zero();
+    coati::Matrixf dna_p(4, 4);
 
-    for(uint8_t cod = 0; cod < 64; cod++) {  // for each codon
-        double rowsum = 0.0;
+    for(uint8_t cod = 0; cod < 64; cod++) {     // for each codon
         for(int pos = 0; pos < 3; pos++) {      // for each position in a codon
             for(int nuc = 0; nuc < 4; nuc++) {  // for each nucleotide (from)
                 for(int nuc2 = 0; nuc2 < 4;
                     nuc2++) {                      // for each nucleotide (to)
                     for(int i = 0; i < 64; i++) {  // sum over all codons
                         dna_p(nuc, nuc2) +=
-                            (((i & (uint8_t)(48 / pow(4, pos))) >>
+                            (((i & static_cast<uint8_t>(48 / pow(4, pos))) >>
                               (4 - 2 * pos)) == nuc2
-                                 ? ((cod & (uint8_t)(48 / pow(4, pos))) >>
+                                 ? ((cod &
+                                     static_cast<uint8_t>(48 / pow(4, pos))) >>
                                     (4 - 2 * pos)) == nuc
                                        ? P(cod, i)
-                                       : 0.0
-                                 : 0.0);
+                                       : 0.0f
+                                 : 0.0f);
                     }
                 }
             }
         }
     }
 
-    for(int i = 0; i < 4; i++) {
-        dna_p.row(i) /= dna_p.row(i).sum();
-        for(int j = 0; j < 4; j++) {
+    float row_sums[4]{0.0f, 0.0f, 0.0f, 0.0f};
+    for(auto i = 0; i < 4; i++) {
+        for(auto j = 0; j < 4; j++) {
+            row_sums[i] += dna_p(i, j);
+        }
+        for(auto j = 0; j < 4; j++) {
+            dna_p(i, j) /= row_sums[i];
             add_arc(dna, 0, 0, i + 1, j + 1, dna_p(i, j));
         }
     }
 
     // Set final state & optimize
     dna.SetFinal(0, 0.0);
-    mut_fst = optimize(dna);
+    return optimize(dna);
 }
 
-TEST_CASE("[mutation_fst.cc] dna") {
-    VectorFst<StdArc> dna_fst;
-    double branch_length = 0.0133;
-    dna(dna_fst, branch_length);
+/// @private
+TEST_CASE("dna") {
+    // float branch_length = 0.0133;
+    VectorFstStdArc dna_fst = dna(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308});
 
     CHECK(Verify(dna_fst));           // openfst built-in sanity check
     CHECK(dna_fst.NumArcs(0) == 16);  // all 4x4 nuc transitions
     CHECK(dna_fst.NumStates() ==
           1);  // all transitions are indp, only 1 state needed
+
+    // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
+    float dna_val[16]{
+        0.0035908299, 7.56063986,    5.91386986,    7.92348003,
+        7.04520988,   0.00627565011, 7.14309978,    5.38297987,
+        5.47493982,   7.21499014,    0.00562130986, 7.29403019,
+        7.92336988,   5.89603996,    7.7301898,     0.00355818006};
+    fst::StateIterator<fst::StdFst> siter(dna_fst);  // FST state iterator
+    fst::ArcIteratorData<fst::StdArc> data;
+    dna_fst.InitArcIterator(siter.Value(), &data);
+
+    for(auto i = 0; i < 16; i++) {
+        CHECK(data.arcs[i].weight.Value() == doctest::Approx(dna_val[i]));
+    }
 }
 
-/* Create FST that maps nucleotide to AA position */
-void nuc2pos(VectorFst<StdArc>& n2p) {
+/**
+ * \brief Create FST that maps nucleotide to AA position
+ *
+ * \return FST to map nucleotides to AA position (coati::VectorFstStdArc).
+ */
+VectorFstStdArc nuc2pos() {
     // Add state 0 and make it the start state
+    VectorFstStdArc n2p;
     n2p.AddState();
     n2p.SetStart(0);
 
@@ -143,26 +184,34 @@ void nuc2pos(VectorFst<StdArc>& n2p) {
     }
 
     n2p.SetFinal(0, 0.0);
+    return n2p;
 }
 
-TEST_CASE("[mutation_fst.cc] nuc2pos") {
-    VectorFst<StdArc> n2p_fst;
-    nuc2pos(n2p_fst);
+/// @private
+TEST_CASE("nuc2pos") {
+    VectorFstStdArc n2p_fst(nuc2pos());
 
-    CHECK(Verify(n2p_fst));             // openfst built-in sanity check
+    CHECK(fst::Verify(n2p_fst));        // openfst built-in sanity check
     CHECK(n2p_fst.NumArcs(0) == 64);    // one position for every aminoacid (AA)
     CHECK(n2p_fst.NumStates() == 129);  // 64 AA with 2 states each + init state
 }
 
-/* Create affine gap indel model FST*/
-void indel(VectorFst<StdArc>& indel_model, string model) {
-    double deletion = 0.001, insertion = 0.001;
-    double deletion_ext = 1.0 - 1.0 / 6.0, insertion_ext = 1.0 - 1.0 / 6.0;
-    double nuc_freqs[2][4] = {{0.308, 0.185, 0.199, 0.308},
-                              {0.2676350, 0.2357727, 0.2539630, 0.2426323}};
-    int m = model.compare("ecm") == 0 ? 1 : 0;
+/**
+ * \brief Create affine gap indel model FST.
+ *
+ * @param[in] gap_open float gap opening score.
+ * @param[in] gap_extend float gap extension score.
+ * @param[in] pi std::vector<float> nucleotide frequencies (A,C,G,T).
+ *
+ * \return indel model FST (coati::VectorFstStdArc).
+ */
+VectorFstStdArc indel(float gap_open, float gap_extend,
+                      const std::vector<float>& pi) {
+    float deletion = gap_open, insertion = gap_open;
+    float deletion_ext = gap_extend, insertion_ext = gap_extend;
+    float nuc_freqs[4] = {pi[0], pi[1], pi[2], pi[3]};
 
-    VectorFst<StdArc> indel_fst;
+    VectorFstStdArc indel_fst;
 
     // Add state 0 and make it the start state
     indel_fst.AddState();
@@ -170,19 +219,19 @@ void indel(VectorFst<StdArc>& indel_model, string model) {
 
     // Insertion
     add_arc(indel_fst, 0, 1, 0, 0, insertion);  // 0 as ilabel/olabel is <eps>
-    add_arc(indel_fst, 0, 3, 0, 0, 1.0 - insertion);
+    add_arc(indel_fst, 0, 3, 0, 0, 1.0f - insertion);
 
     for(int i = 0; i < 4; i++) {
-        add_arc(indel_fst, 1, 2, 0, i + 1, nuc_freqs[m][i]);
+        add_arc(indel_fst, 1, 2, 0, i + 1, nuc_freqs[i]);
     }
 
     add_arc(indel_fst, 1, 2, 0, 5);  // 5 as ilabel/olabel is N
     add_arc(indel_fst, 2, 1, 0, 0, insertion_ext);
-    add_arc(indel_fst, 2, 3, 0, 0, 1.0 - insertion_ext);
+    add_arc(indel_fst, 2, 3, 0, 0, 1.0f - insertion_ext);
 
     // Deletion
     add_arc(indel_fst, 3, 4, 0, 0, deletion);
-    add_arc(indel_fst, 3, 6, 0, 0, 1.0 - deletion);
+    add_arc(indel_fst, 3, 6, 0, 0, 1.0f - deletion);
 
     for(int i = 0; i < 4; i++) {
         add_arc(indel_fst, 4, 5, i + 1);
@@ -191,7 +240,7 @@ void indel(VectorFst<StdArc>& indel_model, string model) {
     add_arc(indel_fst, 4, 7);
 
     add_arc(indel_fst, 5, 4, 0, 0, deletion_ext);
-    add_arc(indel_fst, 5, 6, 0, 0, 1.0 - deletion_ext);
+    add_arc(indel_fst, 5, 6, 0, 0, 1.0f - deletion_ext);
 
     // Matches
     for(int i = 0; i < 4; i++) {
@@ -204,17 +253,17 @@ void indel(VectorFst<StdArc>& indel_model, string model) {
     // Set final state & optimize
     indel_fst.SetFinal(7, 0.0);
 
-    VectorFst<StdArc> indel_rmep;
-    indel_rmep = RmEpsilonFst<StdArc>(indel_fst);  // epsilon removal
+    VectorFstStdArc indel_rmep;
+    indel_rmep = fst::RmEpsilonFst<fst::StdArc>(indel_fst);  // epsilon removal
 
-    indel_model = optimize(indel_rmep);
+    return optimize(indel_rmep);
 }
 
-TEST_CASE("[mutation_fst.cc] indel") {
-    VectorFst<StdArc> indel_model;
-    string model = "m-coati";
-
-    indel(indel_model, model);
+/// @private
+TEST_CASE("indel") {
+    std::string model = "m-coati";
+    VectorFstStdArc indel_model(
+        indel(0.001, 1.f - 1.f / 6.f, {0.308, 0.185, 0.199, 0.308}));
 
     CHECK(Verify(indel_model));  // openfst built-in sanity check
     CHECK(indel_model.NumStates() == 4);
@@ -223,3 +272,90 @@ TEST_CASE("[mutation_fst.cc] indel") {
     CHECK(indel_model.NumArcs(2) == 12);
     CHECK(indel_model.NumArcs(3) == 1);
 }
+
+/**
+ * \brief Add arc to FST
+ *
+ * @param[in,out] fst coati::VectorFstStdArc FST to be added an arc.
+ * @param[in] src int source state.
+ * @param[in] dest int destination state.
+ * @param[in] ilabel int input label.
+ * @param[in] olabel int output label.
+ * @param[in] weight float weight of the arc.
+ */
+void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel, int olabel,
+             float weight) {
+    if(weight == 1.0) {
+        weight = 0.0;
+    } else if(weight == 0.0) {
+        weight = static_cast<float>(INT_MAX);
+    } else {
+        weight = -logf(weight);
+    }
+
+    if(fst.NumStates() <= dest) {
+        fst.AddState();
+        fst.AddArc(src, fst::StdArc(ilabel, olabel, weight, dest));
+    } else {
+        fst.AddArc(src, fst::StdArc(ilabel, olabel, weight, dest));
+    }
+}
+
+/**
+ * \brief Create FSA (acceptor) from a fasta file
+ *
+ * @param[in] content std::string sequence to be converted to an FSA.
+ * @param[in,out] accept coati::VectorFstStdArc empty FSA.
+ */
+bool acceptor(std::string content, VectorFstStdArc& accept) {
+    std::map<char, int> syms = {{'-', 0}, {'A', 1}, {'C', 2}, {'G', 3},
+                                {'T', 4}, {'U', 4}, {'N', 5}};
+
+    // Add initial state
+    accept.AddState();
+    accept.SetStart(0);
+
+    for(int i = 0, content_len = static_cast<int>(content.length());
+        i < content_len; i++) {
+        add_arc(accept, i, i + 1, syms.at(content[i]), syms.at(content[i]));
+    }
+
+    // Add final state and run an FST sanity check (Verify)
+    accept.SetFinal(accept.NumStates() - 1, 0.0);
+    return Verify(accept);
+}
+
+/**
+ * \brief Optimize FST: remove epsilons, determinize, and minimize
+ *
+ * @param[in] fst_raw coati::VectorFstStdArc FST to be optimized.
+ * \return optimized FST (coati::VectorFstStdArc).
+ */
+VectorFstStdArc optimize(VectorFstStdArc fst_raw) {
+    using fst::StdArc;
+    // encode FST
+    fst::SymbolTable syms;
+    fill_symbol_table(syms);
+
+    fst::EncodeMapper<StdArc> encoder(fst::kEncodeLabels, fst::ENCODE);
+    encoder.SetInputSymbols(&syms);
+    encoder.SetOutputSymbols(&syms);
+    fst::Encode(&fst_raw, &encoder);
+
+    // reduce to more efficient form
+    // 1. epsilon removal
+    fst::RmEpsilon(&fst_raw);
+
+    // 2. determinize
+    VectorFstStdArc fst_det;
+    fst::Determinize(fst_raw, &fst_det);
+
+    // 3. minimize
+    fst::Minimize(&fst_det);
+
+    // decode
+    fst::Decode(&fst_det, encoder);
+
+    return fst_det;
+}
+}  // namespace coati

@@ -28,9 +28,9 @@
 
 #include <coati/coati.hpp>
 
-#include "@CMAKE_CURRENT_SOURCE_DIR@/verb.hpp"
+#include "@source_dir@/verb.hpp"
 
-const char libexec_dir[] = "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBEXECDIR@";
+const char libexec_dir[] = "@prefix@/@libexecdir@";
 
 int main(int argc, char * const argv[]) {
     COATI_VERB_RUNTIME_CHECK_VERSION_NUMBER_OR_RETURN();
@@ -44,13 +44,13 @@ int main(int argc, char * const argv[]) {
     }
 
     // construct path to coati executable for the verb command
-    std::string exe_path;
+    std::string exe_path{};
     exe_path += libexec_dir;
     exe_path += "/coati-";
     exe_path += argv[1];
 
     // construct new argument vector
-    std::vector<char *> new_argv;
+    std::vector<char *> new_argv{};
     new_argv.push_back(exe_path.data());
     for(int i=2;i<argc;++i) {
         new_argv.push_back(argv[i]);
@@ -58,7 +58,8 @@ int main(int argc, char * const argv[]) {
     new_argv.push_back(nullptr);
 
     // transfer process to the executable
-    int result = ::execv(new_argv[0], new_argv.data());
+    int result{-1};
+    result = ::execv(new_argv[0], new_argv.data());
     // execv only returns if there was an error.
     if(result != 0) {
         return EXIT_FAILURE;

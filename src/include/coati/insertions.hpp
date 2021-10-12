@@ -28,26 +28,31 @@
 #include <numeric>
 #include <vector>
 
-using namespace std;
-
-typedef Eigen::SparseVector<int, Eigen::RowMajor> SparseVectorInt;
+namespace coati {
+using SparseVectorInt = Eigen::SparseVector<int, Eigen::RowMajor>;
 
 struct insertion_data_t {
-    vector<string> sequences, names;
-    SparseVectorInt insertions;
-    insertion_data_t(const vector<string>& s, const vector<string>& n,
-                     SparseVectorInt i)
-        : sequences{s}, names{n}, insertions{i} {}
-    insertion_data_t(const string& s, const string& n, SparseVectorInt i)
-        : sequences{{s}}, names{{n}}, insertions{i} {}
-    insertion_data_t() : sequences{}, names{}, insertions{SparseVectorInt()} {}
+    std::vector<std::string> sequences; /*!< sequences */
+    std::vector<std::string> names;     /*!< sequence names */
+    SparseVectorInt
+        insertions; /*!< insertion positions and type (open/closed) */
+
+    insertion_data_t() = default;
+
+    insertion_data_t(const std::string& s, const std::string& n,
+                     const SparseVectorInt& i)
+        : sequences(1, s), names(1, n), insertions{i} {}
+
+    insertion_data_t(std::vector<std::string> s, std::vector<std::string> n,
+                     const SparseVectorInt& i)
+        : sequences{std::move(s)}, names{std::move(n)}, insertions{i} {}
 };
 
-bool insertion_flags(const string& ref, const string& seq,
+bool insertion_flags(const std::string& ref, const std::string& seq,
                      SparseVectorInt& insertions_vector);
-bool merge_indels(vector<insertion_data_t>& ins_data,
+bool merge_indels(std::vector<insertion_data_t>& ins_data,
                   insertion_data_t& merged_data);
-void add_gap(vector<insertion_data_t>& ins_data, vector<int> seq_indexes,
-             int pos);
-
+void add_gap(std::vector<insertion_data_t>& ins_data,
+             std::vector<int> seq_indexes, int pos);
+}  // namespace coati
 #endif

@@ -25,19 +25,18 @@
 
 #include <algorithm>
 #include <cmath>
-#include <coati/utils.hpp>
 #include <limits>
-// #include <map>
-// #include <unordered_map>
-#include <unsupported/Eigen/CXX11/Tensor>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
 
-typedef Eigen::Matrix<double, 64, 1> Vector64f;
-typedef Eigen::Matrix<double, 4, 4> Matrix4f;
+#include "matrix.hpp"
+#include "mg94p.tcc"
+#include "utils.hpp"
 
-void mg94_q(Matrix64f& Q);
-void mg94_p(Matrix64f& P, const double& br_len);
-void mg94_marginal_p(Eigen::Tensor<double, 3>& p, Matrix64f& P);
-
+namespace coati {
+coati::Matrixf mg94_p(coati::float_t br_len, coati::float_t omega,
+                      const std::vector<coati::float_t>& nuc_freqs);
+coati::Matrixf marginal_p(const coati::Matrixf& P,
+                          const std::vector<coati::float_t>& pi);
+}  // namespace coati
 #endif
