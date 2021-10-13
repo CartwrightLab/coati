@@ -34,28 +34,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // User-specified Seeds
-    std::vector<uint32_t> user_seeds;
-    // Go through arguments
-    for(int i = 1; i < argc; ++i) {
-        int32_t value;
-        const char *first = argv[i];
-        const char *last = argv[i] + strlen(argv[i]);
-        // Does the argument represent a 32-bit signed decimal number
-        auto [p, ec] = std::from_chars(first, last, value, 10);
-        if(ec == std::errc()) {
-            user_seeds.push_back(value);
-            continue;
-        }
-        // For arguments that are not 32-but signed decimal numbers,
-        // hash as strings.
-        user_seeds.push_back(fragmites::random::str_crushto32(argv[i]));
-    }
-
     // Use user-specified seeds or generate a random seed sequence
-    auto seeds = (user_seeds.empty())
+    auto seeds = (argc < 2)
                      ? fragmites::random::auto_seed_seq()
-                     : fragmites::random::SeedSeq256(user_seeds.begin(), user_seeds.end());
+                     : fragmites::random::string_seed_seq(&argv[1], &argv[argc]);
 
 
     // Initialize MinionRNG

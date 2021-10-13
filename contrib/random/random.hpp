@@ -46,6 +46,7 @@ SOFTWARE.
 #include <string>
 #include <string_view>
 #include <thread>
+#include <charconv>
 
 namespace fragmites::random {
 
@@ -375,6 +376,7 @@ class SeedSeq {
 };
 
 using SeedSeq256 = SeedSeq<8>;
+using seed_seq_t = SeedSeq256;
 
 inline void Random::Seed(uint32_t s) {
     SeedSeq256 ss({s});
@@ -449,7 +451,7 @@ constexpr uint32_t str_crushto32(std::string_view value) {
 
 // Based on ideas from https://www.pcg-random.org/posts/simple-portable-cpp-seed-entropy.html
 // Based on code from https://gist.github.com/imneme/540829265469e673d045
-inline SeedSeq256 auto_seed_seq() {
+inline seed_seq_t auto_seed_seq() {
     // Constant that changes every time we compile the code
     constexpr uint32_t compile_stamp = str_crushto32(__DATE__ __TIME__ __FILE__);
 
@@ -487,8 +489,32 @@ inline SeedSeq256 auto_seed_seq() {
     uint32_t cpu = 0;
 #endif
 
-    return SeedSeq256(
-        {compile_stamp, random_int, heap, stack, hitime, time_func, exit_func, self_func, thread_id, pid, cpu});
+    return seed_seq_t({compile_stamp, random_int, heap, stack,
+        hitime, time_func, exit_func, self_func, thread_id, pid, cpu});
+}
+
+
+// Process a range of strings into a seed sequence.
+// Anything that looks like an integer is processed as an integer
+// Otherwise it gets hashed using an FNV hash.
+template<typename T>
+inline seed_seq_t string_seed_seq(T first, T last) {
+    std::vector<uint32_t> user_seeds;
+    // Go through arguments
+    for(; first != last; ++first) {
+        std::string_view str{*first};
+        int32_t value;
+        // Does the argument represent a 32-bit signed decimal number
+        auto [p, ec] = std::from_chars(str.begin(), str.end(), value, 10);
+        if(ec == std::errc() && p == str.end()) {
+            user_seeds.push_back(value);
+            continue;
+        }
+        // For arguments that are not 32-but signed decimal numbers,
+        // hash as strings.
+        user_seeds.push_back(fragmites::random::str_crushto32(str));
+    }
+    return seed_seq_t(user_seeds.begin(), user_seeds.end());
 }
 
 class AliasTable {
