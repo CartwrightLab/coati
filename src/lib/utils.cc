@@ -25,6 +25,9 @@
 #include <climits>
 #include <coati/utils.hpp>
 
+#include <boost/algorithm/string/trim.hpp>
+#include <filesystem>
+
 namespace coati::utils {
 
 /**
@@ -169,17 +172,19 @@ void set_cli_options(CLI::App& app, coati::utils::args_t& args,
     app.add_option("fasta", args.fasta.path, "Fasta file path")
         ->required()
         ->check(CLI::ExistingFile);
-    if(command.compare("msa") == 0) {
+    if(command == "msa") {
         app.add_option("tree", args.tree, "Newick phylogenetic tree")
             ->required()
             ->check(CLI::ExistingFile);
         app.add_option("reference", args.ref, "Reference sequence")->required();
     }
     app.add_option("-m,--model", args.model, "Substitution model");
-    if(command.compare("alignpair") == 0) {
+    if(command == "alignpair" || command == "sample") {
         app.add_option("-t,--time", args.br_len,
                        "Evolutionary time/branch length")
             ->check(CLI::PositiveNumber);
+    }
+    if(command == "alignpair") {
         app.add_option("-l,--weight", args.weight_file,
                        "Write alignment score to file");
         app.add_flag("-s,--score", args.score, "Score alignment");
@@ -293,6 +298,54 @@ void set_subst(args_t& args, alignment_t& aln) {
     }
 
     aln.model = args.model;
+}
+
+// extracts extension and filename from both file.ext and ext:file.foo
+// trims whitespace as well
+file_type_t extract_file_type(std::string path) {
+    constexpr auto npos = std::string::npos;
+
+    // trim whitespace
+    boost::algorithm::trim(path);
+
+    // Format ext:path
+    auto colon = path.find_first_of(':');
+    if(colon != npos && colon > 1) {
+        auto filepath = path.substr(colon+1);
+        auto ext = "." + path.substr(0,colon);
+        return {std::move(filepath), std::move(ext)};
+    }
+    std::filesystem::path fpath{path};
+    return {std::move(path), fpath.extension()};
+}
+
+/// @private
+TEST_CASE("extract_file_type") {
+    auto test = [](std::string filename, file_type_t expected) {
+        CAPTURE(filename);
+        auto test = extract_file_type(filename);
+        CHECK(test.path == expected.path);
+        CHECK(test.type_ext == expected.type_ext);
+    };
+
+    test("foo.bar", {"foo.bar", ".bar"});
+    test("my:foo.bar", {"foo.bar", ".my"});
+    test(".bar", {".bar", ""});
+    test(".", {".", ""});
+    test("..", {"..", ""});
+    test("my:.foo.bar", {".foo.bar", ".my"});
+    test(".foo.bar", {".foo.bar", ".bar"});
+    test("", {"", ""});
+    test(std::string{}, {{},{}});
+    test("foo:-", {"-", ".foo"});
+    test("foo:bar", {"bar", ".foo"});
+    test("bar:", {"", ".bar"});
+    test("c:foo.bar", {"c:foo.bar", ".bar"});
+
+    test(" \f\n\r\t\vfoo.bar \f\n\r\t\v", {"foo.bar", ".bar"});
+    test(" \f\n\r\t\vmy:foo.bar \f\n\r\t\v", {"foo.bar", ".my"});
+    test(" \f\n\r\t\v.bar \f\n\r\t\v", {".bar", ""});
+    test(" \f\n\r\t\v", {{},{}});
 }
 
 }  // namespace coati::utils

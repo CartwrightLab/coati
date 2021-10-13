@@ -55,7 +55,7 @@ foreach p : progs
   exe = executable('coati-@0@'.format(p), ['coati-@0@.cc'.format(p), version_file],
     link_with : [libcoati],
     include_directories : inc,
-    dependencies : [boost_dep, cli_dep, eigen_dep, fstlib_dep, minionrng_dep],
+    dependencies : [libcoati_deps],
     cpp_args : ['-DDOCTEST_CONFIG_DISABLE'],
     install : true,
     install_dir : get_option('libexecdir')

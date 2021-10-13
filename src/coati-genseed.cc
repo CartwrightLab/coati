@@ -22,24 +22,9 @@
 
 #include <charconv>
 #include <coati/coati.hpp>
-#include <minion.hpp>
+#include <random.hpp>
 
 #include "verb.hpp"
-
-namespace {
-const char *base58_alphabet =
-    "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-
-std::string base58_encode(uint64_t u) {
-    std::string buffer(11, base58_alphabet[0]);
-    for(int i = 0; i < 11 && u != 0; ++i) {
-        buffer[10 - i] = base58_alphabet[u % 58];
-        u = u / 58;
-    }
-    return buffer;
-}
-
-}  // namespace
 
 int main(int argc, char *argv[]) {
     {
@@ -62,36 +47,25 @@ int main(int argc, char *argv[]) {
             user_seeds.push_back(value);
             continue;
         }
-        // Fill 32-bit numbers using the bytes in the string
-        for(; first + sizeof(value) < last; first += sizeof(value)) {
-            std::memcpy(&value, first, sizeof(value));
-            user_seeds.push_back(value);
-        }
-        // Use the remaining characters
-        value = 0;
-        std::memcpy(&value, first, last - first);
-        user_seeds.push_back(value);
+        // For arguments that are not 32-but signed decimal numbers,
+        // hash as strings.
+        user_seeds.push_back(fragmites::random::str_crushto32(argv[i]));
     }
 
     // Use user-specified seeds or generate a random seed sequence
     auto seeds = (user_seeds.empty())
-                     ? minion::create_seed_seq()
-                     : minion::SeedSeq32(std::move(user_seeds));
+                     ? fragmites::random::auto_seed_seq()
+                     : fragmites::random::SeedSeq256(user_seeds.begin(), user_seeds.end());
+
 
     // Initialize MinionRNG
-    minion::Random rand;
+    fragmites::random::Random rand;
     rand.Seed(seeds);
 
     // Extract State
-    minion::Random::state_type state = rand.state();
-
-    // Print
-    auto it = state.begin();
-    std::cout << base58_encode(*it);
-    for(++it; it != state.end(); ++it) {
-        std::cout << "-" << base58_encode(*it);
-    }
-    std::cout << std::endl;
+    auto str = fragmites::random::encode_seed(rand.GetSeed());
+    // Print State
+    std::cout << str << std::endl;
 
     return EXIT_SUCCESS;
 }

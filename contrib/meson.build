@@ -1,13 +1,13 @@
 doctest_dep = declare_dependency(include_directories: include_directories('doctest'))
 
-minionrng = static_library(
-    'minionrng', ['minionrng/minion.cc'],
-    include_directories : include_directories('minionrng')
+librandom = static_library(
+    'random', ['random/random.cpp'],
+    include_directories : include_directories('random')
 )
 
-minionrng_dep = declare_dependency(
-    include_directories : include_directories('minionrng'),
-    link_with : minionrng
+librandom_dep = declare_dependency(
+    include_directories : include_directories('random'),
+    link_with : librandom
 )
 
 fstlib = static_library(

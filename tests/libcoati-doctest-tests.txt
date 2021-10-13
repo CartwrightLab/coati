@@ -27,5 +27,6 @@ reroot
 distance_ref
 parse_matrix_csv
 marginal_seq_encoding
+extract_file_type
 version_number_check_equal
 version_integer

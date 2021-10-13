@@ -158,5 +158,17 @@ void set_cli_options(CLI::App& app, coati::utils::args_t& args,
 sequence_pair_t marginal_seq_encoding(const std::string& anc,
                                       const std::string& des);
 void set_subst(args_t& args, alignment_t& aln);
+
+
+// extracts extension and filename from both file.foo and ext:file.foo
+struct file_type_t {
+    std::string path;
+    std::string type_ext;
+};
+
+// returns {.ext, file.foo}
+// trims whitespace as well
+file_type_t extract_file_type(std::string path);
+
 }  // namespace coati::utils
 #endif
