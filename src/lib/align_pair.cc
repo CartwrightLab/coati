@@ -1,5 +1,4 @@
 #include <doctest/doctest.h>
-
 #include <coati/align_pair.hpp>
 
 namespace coati {
@@ -162,6 +161,118 @@ void traceback(const align_pair_work_t &work, const std::string &a,
             j -= look_back;
             break;
         }
+    }
+
+    std::reverse(aln.fasta.seqs[0].begin(), aln.fasta.seqs[0].end());
+    std::reverse(aln.fasta.seqs[1].begin(), aln.fasta.seqs[1].end());
+}
+
+enum struct AlnState {
+    MATCH,
+    DELETION,
+    INSERTION
+};
+
+std::pair<AlnState,float>
+sample_one(float log_mch, float log_del, float log_ins, float p) {
+    float mch = ::expf(log_mch);
+    float del = ::expf(log_del);
+    float ins = ::expf(log_ins);
+    float scale = mch+del+ins;
+    p *= scale;
+    AlnState ret;
+    float weight;
+    if(p < mch) {
+        ret = AlnState::MATCH;
+        weight = log_mch;
+    } else if(p < del+mch) {
+        ret = AlnState::DELETION;
+        weight = log_del;
+    } else {
+        ret = AlnState::INSERTION;
+        weight = log_ins;
+    }
+    weight = weight - ::logf(scale);
+    return {ret, weight};
+}
+
+std::pair<AlnState,float>
+sample_one(float log_mch, float log_ins, float p) {
+    float mch = ::expf(log_mch);
+    float ins = ::expf(log_ins);
+    float scale = mch+ins;
+    p *= scale;
+    AlnState ret;
+    float weight;
+    if(p < mch) {
+        ret = AlnState::MATCH;
+        weight = log_mch;
+    } else {
+        ret = AlnState::INSERTION;
+        weight = log_ins;
+    }
+    weight = weight - ::logf(scale);
+    return {ret, weight};
+}
+
+
+void sampleback(const align_pair_work_t &work, const std::string &a,
+                const std::string &b, utils::alignment_t &aln, size_t look_back,
+                random_t &rand) {
+    size_t i = work.mch_mch.rows() - 1;
+    size_t j = work.mch_mch.cols() - 1;
+
+    aln.fasta.seqs.resize(2);
+    aln.fasta.seqs[0].reserve(i + j);
+    aln.fasta.seqs[1].reserve(i + j);
+    aln.weight = 0.0f;
+
+    float w = maximum(work.mch(i, j), work.del(i, j), work.ins(i, j));
+    auto pick = sample_one(work.mch(i, j)-w, work.del(i, j)-w, work.ins(i, j)-w,
+        rand.f24());
+    aln.weight += pick.second;
+
+    while((j > (look_back - 1)) || (i > (look_back - 1))) {
+        switch(pick.first) {
+        case AlnState::MATCH:
+            aln.fasta.seqs[0].push_back(a[i - 1]);
+            aln.fasta.seqs[1].push_back(b[j - 1]);
+            w = work.mch(i,j);
+            pick = sample_one(work.mch_mch(i, j)-w,
+                              work.del_mch(i, j)-w,
+                              work.ins_mch(i, j)-w,
+                              rand.f24());
+            aln.weight += pick.second;
+            i--;
+            j--;
+            break;
+        case AlnState::DELETION:
+            for(size_t k = i; k > (i - look_back); k--) {
+                aln.fasta.seqs[0].push_back(a[k - look_back]);
+                aln.fasta.seqs[1].push_back('-');
+            }
+            w = work.del(i,j);
+            pick = sample_one(work.mch_del(i, j)-w,
+                              work.del_del(i, j)-w,
+                              work.ins_del(i, j)-w,
+                              rand.f24());
+            aln.weight += pick.second;
+            i -= look_back;
+            break;
+        case AlnState::INSERTION:
+            for(size_t k = j; k > (j - look_back); k--) {
+                aln.fasta.seqs[0].push_back('-');
+                aln.fasta.seqs[1].push_back(b[k - look_back]);
+            }
+            w = work.ins(i,j);
+            pick = sample_one(work.mch_ins(i, j)-w,
+                              work.ins_ins(i, j)-w,
+                              rand.f24());
+            aln.weight += pick.second;
+            j -= look_back;
+            break;
+        }
+        
     }
 
     std::reverse(aln.fasta.seqs[0].begin(), aln.fasta.seqs[0].end());

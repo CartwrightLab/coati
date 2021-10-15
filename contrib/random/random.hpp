@@ -205,6 +205,15 @@ inline double random_f52(uint64_t u) {
     return n / 9007199254740992.0;
 }
 
+inline float random_f24(uint64_t u) {
+    auto n = static_cast<int64_t>(u >> 40);
+    return n / 16777216.0f;
+}
+
+inline float random_f23(uint64_t u) {
+    auto n = static_cast<int64_t>(u >> 40) | 1;
+    return n / 16777216.0f;
+}
 
 inline double random_exp_inv(double f) { return -log(f); }
 
@@ -264,6 +273,8 @@ class Random : public details::RandomEngine {
 
     double f52();
     double f53();
+    float  f24();
+    float  f23();
 
     double exp(double mean = 1.0);
 
@@ -295,6 +306,12 @@ inline double Random::f52() { return details::random_f52(bits()); }
 
 // uniformly distributed between [0,1.0)
 inline double Random::f53() { return details::random_f53(bits()); }
+
+// uniformly distributed between (0,1.0)
+inline float Random::f23() { return details::random_f23(bits()); }
+
+// uniformly distributed between [0,1.0)
+inline float Random::f24() { return details::random_f24(bits()); }
 
 // exponential random value with specified mean. mean=1.0/rate
 inline double Random::exp(double mean) { return details::random_exp_zig(*this) * mean; }

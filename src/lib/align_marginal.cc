@@ -363,4 +363,40 @@ TEST_CASE("alignment_score") {
     args.fasta.seqs = {"CTC", "CT"};
     REQUIRE_THROWS_AS(alignment_score(args, p_marg), std::invalid_argument);
 }
+
+void marg_sample(coati::utils::args_t& args,
+                    coati::utils::alignment_t& aln,
+                    random_t &rand) {
+    coati::Matrixf P(64, 64), p_marg;
+    std::ofstream out_w;
+
+    // check that length of ref sequence is multiple of 3 and gap unit size
+    size_t len_a = args.fasta.seqs[0].length();
+    if((len_a % 3 != 0) && (len_a % args.gap.len != 0)) {
+        throw std::invalid_argument(
+            "Length of reference sequence must be multiple of 3.");
+    }
+    // check that length of descendant sequence is multiple of gap unit size
+    if(args.fasta.seqs[1].length() % args.gap.len != 0) {
+        throw std::invalid_argument(
+            "Length of descendant sequence must be multiple of " +
+            std::to_string(args.gap.len) + ".");
+    }
+
+    // encode sequences
+    auto anc = args.fasta.seqs[0];
+    auto des = args.fasta.seqs[1];
+    coati::utils::sequence_pair_t seq_pair =
+        coati::utils::marginal_seq_encoding(anc, des);
+
+    // dynamic programming pairwise alignment and traceback
+    coati::align_pair_work_t work;
+    coati::align_pair(work, seq_pair[0], seq_pair[1], aln.subst_matrix, args);
+    coati::sampleback(work, anc, des, aln, args.gap.len, rand);
+
+    std::cout << aln.fasta.seqs[0] << std::endl;
+    std::cout << aln.fasta.seqs[1] << std::endl;
+}
+
+
 }  // namespace coati
