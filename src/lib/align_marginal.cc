@@ -417,10 +417,17 @@ void marg_sample(coati::utils::args_t& args,
     // dynamic programming pairwise alignment and traceback
     coati::align_pair_work_t work;
     coati::align_pair(work, seq_pair[0], seq_pair[1], aln.subst_matrix, args);
-    coati::sampleback(work, anc, des, aln, args.gap.len, rand);
 
-    std::cout << aln.fasta.seqs[0] << std::endl;
-    std::cout << aln.fasta.seqs[1] << std::endl;
+    for(size_t i = 0; i < args.sample_size; ++i) {
+        coati::sampleback(work, anc, des, aln, args.gap.len, args.temperature, rand);
+
+        std::cout << aln.fasta.seqs[0] << std::endl;
+        std::cout << aln.fasta.seqs[1] << std::endl;
+        std::cout << "\n";
+        aln.fasta.seqs[0].clear();
+        aln.fasta.seqs[1].clear();
+    }
+
 }
 
 

@@ -174,42 +174,42 @@ enum struct AlnState {
 };
 
 std::pair<AlnState,float>
-sample_one(float log_mch, float log_del, float log_ins, float p) {
-    float mch = ::expf(log_mch);
-    float del = ::expf(log_del);
-    float ins = ::expf(log_ins);
+sample_one(float log_mch, float log_del, float log_ins, float p, float temp) {
+    float mch = ::expf(log_mch/temp);
+    float del = ::expf(log_del/temp);
+    float ins = ::expf(log_ins/temp);
     float scale = mch+del+ins;
     p *= scale;
     AlnState ret;
     float weight;
     if(p < mch) {
         ret = AlnState::MATCH;
-        weight = log_mch;
+        weight = log_mch/temp;
     } else if(p < del+mch) {
         ret = AlnState::DELETION;
-        weight = log_del;
+        weight = log_del/temp;
     } else {
         ret = AlnState::INSERTION;
-        weight = log_ins;
+        weight = log_ins/temp;
     }
     weight = weight - ::logf(scale);
     return {ret, weight};
 }
 
 std::pair<AlnState,float>
-sample_one(float log_mch, float log_ins, float p) {
-    float mch = ::expf(log_mch);
-    float ins = ::expf(log_ins);
+sample_one(float log_mch, float log_ins, float p, float temp) {
+    float mch = ::expf(log_mch/temp);
+    float ins = ::expf(log_ins/temp);
     float scale = mch+ins;
     p *= scale;
     AlnState ret;
     float weight;
     if(p < mch) {
         ret = AlnState::MATCH;
-        weight = log_mch;
+        weight = log_mch/temp;
     } else {
         ret = AlnState::INSERTION;
-        weight = log_ins;
+        weight = log_ins/temp;
     }
     weight = weight - ::logf(scale);
     return {ret, weight};
@@ -218,7 +218,7 @@ sample_one(float log_mch, float log_ins, float p) {
 
 void sampleback(const align_pair_work_t &work, const std::string &a,
                 const std::string &b, utils::alignment_t &aln, size_t look_back,
-                random_t &rand) {
+                float_t temperature, random_t &rand) {
     size_t i = work.mch_mch.rows() - 1;
     size_t j = work.mch_mch.cols() - 1;
 
@@ -241,7 +241,7 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
             pick = sample_one(work.mch_mch(i, j)-w,
                               work.del_mch(i, j)-w,
                               work.ins_mch(i, j)-w,
-                              rand.f24());
+                              rand.f24(), temperature);
             aln.weight += pick.second;
             i--;
             j--;
@@ -255,7 +255,7 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
             pick = sample_one(work.mch_del(i, j)-w,
                               work.del_del(i, j)-w,
                               work.ins_del(i, j)-w,
-                              rand.f24());
+                              rand.f24(), temperature);
             aln.weight += pick.second;
             i -= look_back;
             break;
@@ -267,7 +267,7 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
             w = work.ins(i,j);
             pick = sample_one(work.mch_ins(i, j)-w,
                               work.ins_ins(i, j)-w,
-                              rand.f24());
+                              rand.f24(), temperature);
             aln.weight += pick.second;
             j -= look_back;
             break;

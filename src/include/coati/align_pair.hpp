@@ -97,7 +97,7 @@ void traceback(const align_pair_work_t &work, const std::string &a,
                const std::string &b, utils::alignment_t &aln, size_t look_back);
 void sampleback(const align_pair_work_t &work, const std::string &a,
                 const std::string &b, utils::alignment_t &aln, size_t look_back,
-                random_t &rand);
+                float_t temperature, random_t &rand);
 
 }  // namespace coati
 #endif
