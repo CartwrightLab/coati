@@ -393,7 +393,20 @@ void marg_sample(coati::utils::args_t& args,
                     coati::utils::alignment_t& aln,
                     random_t &rand) {
     coati::Matrixf P(64, 64), p_marg;
-    std::ofstream out_w;
+
+    std::ostream *pout;
+    std::ofstream outfile;
+    if(args.output.empty() || args.output == "-") {
+        pout = &std::cout;
+    } else {
+        outfile.open(args.output);
+        if(!outfile) {
+            throw std::invalid_argument("Opening output file" +
+                                        args.output.string() + "  failed.");
+        }
+        pout = &outfile;
+    }
+    std::ostream &out = *pout;
 
     // check that length of ref sequence is multiple of 3 and gap unit size
     size_t len_a = args.fasta.seqs[0].length();
@@ -418,16 +431,28 @@ void marg_sample(coati::utils::args_t& args,
     coati::align_pair_work_t work;
     coati::align_pair(work, seq_pair[0], seq_pair[1], aln.subst_matrix, args);
 
+    out << "[" << std::endl;
+
     for(size_t i = 0; i < args.sample_size; ++i) {
         coati::sampleback(work, anc, des, aln, args.gap.len, args.temperature, rand);
 
-        std::cout << aln.fasta.seqs[0] << std::endl;
-        std::cout << aln.fasta.seqs[1] << std::endl;
-        std::cout << "\n";
-        aln.fasta.seqs[0].clear();
-        aln.fasta.seqs[1].clear();
+        out << "  {\n    \"aln\": {\n";
+        out << "      \"" << aln.fasta.names[0] << "\": ";
+        out << "\"" << aln.fasta.seqs[0] << "\",\n";
+        out << "      \"" << aln.fasta.names[1] << "\": ";
+        out << "\"" << aln.fasta.seqs[1] << "\"\n";
+        out << "    },\n";
+        out << "    \"weight\": " << ::expf(aln.weight) << ",\n";
+        out << "    \"log_weight\": " << aln.weight << "\n";
+        if(i < args.sample_size-1) {
+            out << "  },";
+        } else {
+            out << "  }";
+        }
+        out << std::endl;
     }
 
+    out << "]" << std::endl;
 }
 
 

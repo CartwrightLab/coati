@@ -174,7 +174,7 @@ enum struct AlnState {
 };
 
 std::pair<AlnState,float>
-sample_one(float log_mch, float log_del, float log_ins, float p, float temp) {
+sample_mdi(float log_mch, float log_del, float log_ins, float p, float temp) {
     float mch = ::expf(log_mch/temp);
     float del = ::expf(log_del/temp);
     float ins = ::expf(log_ins/temp);
@@ -197,7 +197,7 @@ sample_one(float log_mch, float log_del, float log_ins, float p, float temp) {
 }
 
 std::pair<AlnState,float>
-sample_one(float log_mch, float log_ins, float p, float temp) {
+sample_mi(float log_mch, float log_ins, float p, float temp) {
     float mch = ::expf(log_mch/temp);
     float ins = ::expf(log_ins/temp);
     float scale = mch+ins;
@@ -223,22 +223,24 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
     size_t j = work.mch_mch.cols() - 1;
 
     aln.fasta.seqs.resize(2);
+    aln.fasta.seqs[0].clear();
+    aln.fasta.seqs[1].clear();
     aln.fasta.seqs[0].reserve(i + j);
     aln.fasta.seqs[1].reserve(i + j);
     aln.weight = 0.0f;
 
     float w = maximum(work.mch(i, j), work.del(i, j), work.ins(i, j));
-    auto pick = sample_one(work.mch(i, j)-w, work.del(i, j)-w, work.ins(i, j)-w,
-        rand.f24());
+    auto pick = sample_mdi(work.mch(i, j)-w, work.del(i, j)-w, work.ins(i, j)-w,
+        rand.f24(), temperature);
     aln.weight += pick.second;
 
     while((j > (look_back - 1)) || (i > (look_back - 1))) {
         switch(pick.first) {
         case AlnState::MATCH:
-            aln.fasta.seqs[0].push_back(a[i - 1]);
-            aln.fasta.seqs[1].push_back(b[j - 1]);
+            aln.fasta.seqs[0].push_back(a[i - look_back]);
+            aln.fasta.seqs[1].push_back(b[j - look_back]);
             w = work.mch(i,j);
-            pick = sample_one(work.mch_mch(i, j)-w,
+            pick = sample_mdi(work.mch_mch(i, j)-w,
                               work.del_mch(i, j)-w,
                               work.ins_mch(i, j)-w,
                               rand.f24(), temperature);
@@ -252,7 +254,7 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
                 aln.fasta.seqs[1].push_back('-');
             }
             w = work.del(i,j);
-            pick = sample_one(work.mch_del(i, j)-w,
+            pick = sample_mdi(work.mch_del(i, j)-w,
                               work.del_del(i, j)-w,
                               work.ins_del(i, j)-w,
                               rand.f24(), temperature);
@@ -265,7 +267,7 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
                 aln.fasta.seqs[1].push_back(b[k - look_back]);
             }
             w = work.ins(i,j);
-            pick = sample_one(work.mch_ins(i, j)-w,
+            pick = sample_mi(work.mch_ins(i, j)-w,
                               work.ins_ins(i, j)-w,
                               rand.f24(), temperature);
             aln.weight += pick.second;
