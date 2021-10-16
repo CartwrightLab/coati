@@ -73,11 +73,11 @@ using sequence_pair_t = std::vector<std::basic_string<unsigned char>>;
 struct gap_t {
     std::size_t len{1};              /*!< unit size of gaps */
     float_t open{0.001};             /*!< gap opening score */
-    float_t extend{1.f - 1.f / 6.f}; /*!< gap extension score */
+    float_t extend{1.0f - 1.0f / 6.0f}; /*!< gap extension score */
 
     gap_t() = default;
     explicit gap_t(std::size_t l, float_t o = 0.001,
-                   float_t e = 1.f - 1.f / 6.f)
+                   float_t e = 1.0f - 1.0f / 6.0f)
         : len{l}, open{o}, extend{e} {}
 };
 
@@ -95,27 +95,29 @@ struct args_t {
     float_t omega{0.2};     /*!< nonsynonymous-synonymous bias */
     std::vector<float_t> pi{0.308, 0.185, 0.199,
                             0.308}; /*!< nucleotide frequencies */
+    float_t temperature{1.0f};
+    size_t sample_size{1};
 
-    args_t() = default;
-    args_t(const std::string& f, const std::vector<std::string>& n,
-           const std::vector<std::string>& s, std::string m = "m-coati",
-           std::string weight = "", std::filesystem::path out = "",
-           bool sc = false, std::string tr = "", std::string re = "",
-           std::string ra = "", size_t gl = 1, float_t go = 0.001,
-           float_t ge = 1.f - 1.f / 6.f, float_t br = 0.0133, float_t w = 0.2f,
-           std::vector<float> p = {0.308, 0.185, 0.199, 0.308})
-        : fasta{coati::fasta_t(f, n, s)},
-          model{std::move(m)},
-          weight_file{std::move(weight)},
-          output{std::move(out)},
-          score{sc},
-          tree{std::move(tr)},
-          ref{std::move(re)},
-          rate{std::move(ra)},
-          gap{gap_t(gl, go, ge)},
-          br_len{br},
-          omega{w},
-          pi{std::move(p)} {}
+    // args_t() = default;
+    // args_t(const std::string& f, const std::vector<std::string>& n,
+    //        const std::vector<std::string>& s, std::string m = "m-coati",
+    //        std::string weight = "", std::filesystem::path out = "",
+    //        bool sc = false, std::string tr = "", std::string re = "",
+    //        std::string ra = "", size_t gl = 1, float_t go = 0.001,
+    //        float_t ge = 1.f - 1.f / 6.f, float_t br = 0.0133, float_t w = 0.2f,
+    //        std::vector<float> p = {0.308, 0.185, 0.199, 0.308})
+    //     : fasta{coati::fasta_t(f, n, s)},
+    //       model{std::move(m)},
+    //       weight_file{std::move(weight)},
+    //       output{std::move(out)},
+    //       score{sc},
+    //       tree{std::move(tr)},
+    //       ref{std::move(re)},
+    //       rate{std::move(ra)},
+    //       gap{gap_t(gl, go, ge)},
+    //       br_len{br},
+    //       omega{w},
+    //       pi{std::move(p)} {}
 };
 
 coati::Matrixf parse_matrix_csv(const std::string& file);

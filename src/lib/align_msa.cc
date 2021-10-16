@@ -198,10 +198,13 @@ TEST_CASE("ref_indel_alignment") {
     outfile.close();
 
     SUBCASE("m-coati model") {
-        coati::utils::args_t args(
-            "", {"A", "B", "C", "D", "E"},
-            {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"}, "m-coati", "",
-            "test-mcoati-msa.fasta", false, "tree-msa.newick", "A");
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"A", "B", "C", "D", "E"}, {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"});
+        args.model = "m-coati";
+        args.weight_file = "";
+        args.output = "test-mecm-msa.fasta";
+        args.tree = "tree-msa.newick";
+        args.ref = "A";
         coati::fasta_t result(args.output);
 
         REQUIRE(ref_indel_alignment(args));
@@ -223,10 +226,13 @@ TEST_CASE("ref_indel_alignment") {
     }
 
     SUBCASE("m-ecm model") {
-        coati::utils::args_t args(
-            "", {"A", "B", "C", "D", "E"},
-            {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"}, "m-ecm", "",
-            "test-mecm-msa.fasta", false, "tree-msa.newick", "A");
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"A", "B", "C", "D", "E"}, {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"});
+        args.model = "m-ecm";
+        args.weight_file = "";
+        args.output = "test-mecm-msa.fasta";
+        args.tree = "tree-msa.newick";
+        args.ref = "A";
         coati::fasta_t result(args.output);
 
         REQUIRE(ref_indel_alignment(args));

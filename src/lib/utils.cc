@@ -198,7 +198,11 @@ void set_cli_options(CLI::App& app, coati::utils::args_t& args,
         ->check(CLI::PositiveNumber);
     app.add_option("-p,--pi", args.pi, "Nucleotide frequencies (A C G T)")
         ->expected(4);
-    app.add_option("-n,--gap-len", args.gap.len, "Set gap unit size");
+    app.add_option("-k,--gap-len", args.gap.len, "Set gap unit size");
+    if(command == "sample") {
+        app.add_option("-T,--temperature", args.temperature, "Sampling temperature");
+        app.add_option("-n,--sample-size", args.sample_size, "Sample size");
+    }
 }
 
 /**

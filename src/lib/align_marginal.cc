@@ -90,9 +90,12 @@ bool marg_alignment(coati::utils::args_t& args,
 /// @private
 TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output fasta") {
-        coati::utils::args_t args("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                                  "m-coati", "score.log",
-                                  "test-marg_alignment-fasta.fasta");
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        args.model = "m-coati";
+        args.weight_file = "score.log";
+        args.output = "test-marg_alignment-fasta.fasta";
+
         coati::fasta_t result(args.output);
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
@@ -125,9 +128,12 @@ TEST_CASE("marg_alignment") {
     }
 
     SUBCASE("Alignment - output phylip") {
-        coati::utils::args_t args("", {"1", "2"}, {"GCGACTGTT", "GCGATTGCTGTT"},
-                                  "m-coati", "",
-                                  "test-marg_alignment-phylip.phy");
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"GCGACTGTT", "GCGATTGCTGTT"});
+        args.model = "m-coati";
+        args.weight_file = "";
+        args.output = "test-marg_alignment-phylip.phy";
+
         coati::fasta_t result(args.output);
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
@@ -159,9 +165,12 @@ TEST_CASE("marg_alignment") {
     }
 
     SUBCASE("Alignment 2 dels - output phylip") {
-        coati::utils::args_t args("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"},
-                                  "m-coati", "",
-                                  "test-marg_alignment-phylip2.phy");
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"});
+        args.model = "m-coati";
+        args.weight_file = "";
+        args.output = "test-marg_alignment-phylip2.phy";
+
         coati::fasta_t result(args.output);
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
@@ -193,9 +202,13 @@ TEST_CASE("marg_alignment") {
     }
 
     SUBCASE("Alignment with gap length multiple of 3") {
-        coati::utils::args_t args(
-            "", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"}, "m-coati", "",
-            "test-marg_alignment-no-frameshifts.fasta", false, "", "", "", 3);
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"});
+        args.model = "m-coati";
+        args.weight_file = "";
+        args.output = "test-marg_alignment-no-frameshifts.fasta";
+        args.gap.len = 3;
+
         coati::fasta_t result(args.output);
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
@@ -219,9 +232,13 @@ TEST_CASE("marg_alignment") {
     }
 
     SUBCASE("Alignment with gap length multiple of 3 - fail") {
-        coati::utils::args_t args(
-            "", {"1", "2"}, {"GCGATTGCTGT", "GCGACTGTT"}, "m-coati", "",
-            "test-marg_alignment-no-frameshifts.fasta", false, "", "", "", 3);
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"GCGATTGCTGT", "GCGACTGTT"});
+        args.model = "m-coati";
+        args.weight_file = "";
+        args.output = "test-marg_alignment-no-frameshifts.fasta";
+        args.gap.len = 3;
+
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
         aln.fasta.names = args.fasta.names;
@@ -230,9 +247,13 @@ TEST_CASE("marg_alignment") {
     }
 
     SUBCASE("Score alignment") {
-        coati::utils::args_t args("", {"1", "2"},
-                                  {"CTCTGGATAGTG", "CT----ATAGTG"}, "m-coati",
-                                  "", "test-marg_alignment-score.fasta", true);
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
+        args.model = "m-coati";
+        args.weight_file = "";
+        args.output = "test-marg_alignment-score.fasta";
+        args.score = true;
+
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
         aln.fasta.names = args.fasta.names;
@@ -241,9 +262,13 @@ TEST_CASE("marg_alignment") {
     }
 
     SUBCASE("Score alignment - fail") {
-        coati::utils::args_t args("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                                  "m-coati", "",
-                                  "test-marg_alignment-score.fasta", true);
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        args.model = "m-coati";
+        args.weight_file = "";
+        args.output = "test-marg_alignment-score.fasta";
+        args.score = true;
+        
         coati::fasta_t result(args.output);
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
