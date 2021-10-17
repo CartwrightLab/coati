@@ -434,7 +434,7 @@ void marg_sample(coati::utils::args_t& args,
     out << "[" << std::endl;
 
     for(size_t i = 0; i < args.sample_size; ++i) {
-        coati::sampleback(work, anc, des, aln, args.gap.len, args.temperature, rand);
+        coati::sampleback(work, anc, des, aln, args.gap.len, rand);
 
         out << "  {\n    \"aln\": {\n";
         out << "      \"" << aln.fasta.names[0] << "\": ";

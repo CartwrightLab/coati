@@ -172,5 +172,31 @@ struct file_type_t {
 // trims whitespace as well
 file_type_t extract_file_type(std::string path);
 
+
+// calculate log(1+exp(x))
+// https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
+inline
+float_t log1p_exp(float_t x) {
+    if( x <= -37.0f ) {
+        return std::exp(x);
+    } else if ( x <= 18.0f ) {
+        return std::log1p(std::exp(x));
+    } else if( x <= 33.3f ) {
+        return x + std::exp(-x);
+    } else {
+        return x;
+    }
+}
+// calculate log(exp(a)+exp(b))
+// Let x = max(a,b)
+// Let y = -abs(a-b)
+//  log(exp(a)+exp(b)) = m+log(1+exp(y))
+inline
+float_t log_sum_exp(float_t a, float_t b) {
+    float_t x = std::max(a,b);
+    float_t y = -std::fabs(a-b);
+    return x + log1p_exp(y);
+}
+
 }  // namespace coati::utils
 #endif
