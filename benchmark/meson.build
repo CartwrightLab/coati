@@ -35,8 +35,9 @@ bm_src = configure_file(
 benchmark_exe = executable('all_benchmarks',
   meson.project_build_root()+'/benchmark/benchmark_main.cc',
   include_directories : inc,
-  dependencies : [boost_dep, cli_dep, eigen_dep, fstlib_dep, gbenchmark_dep, minionrng_dep],
+  dependencies : [gbenchmark_dep, libcoati_deps],
   link_with : [libcoati]
+  build_by_default : false
 )
 
 benchmark_list = files('libcoati-benchmark-tests.txt')

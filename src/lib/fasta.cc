@@ -43,7 +43,8 @@ fasta_t read_fasta(const std::string& f_path,
     }
 
     std::string line, name, content;
-    while(getline(input, line).good()) {
+    while(input.good()) {
+        getline(input, line);
         if(line.empty()) {
             continue;  // omit empty lines
         }
@@ -139,7 +140,8 @@ fasta_t read_fasta(const std::string& f_path) {
     }
 
     std::string line, name, content;
-    while(getline(input, line).good()) {
+    while(input.good()) {
+        getline(input, line);
         if(line.empty()) {
             continue;  // omit empty lines
         }

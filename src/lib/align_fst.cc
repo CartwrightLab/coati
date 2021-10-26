@@ -122,9 +122,12 @@ TEST_CASE("fst_alignment") {
     fsts.push_back(fsa1);
 
     SUBCASE("coati model, output fasta") {
-        coati::utils::args_t args("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                                  "coati", "score.log",
-                                  "test-fst-alignment.fasta");
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        args.model = "coati";
+        args.weight_file = "score.log";
+        args.output = "test-fst-alignment.fasta";
+
         coati::fasta_t result(args.output);
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
@@ -158,8 +161,12 @@ TEST_CASE("fst_alignment") {
     }
 
     SUBCASE("coati model, output phylip") {
-        coati::utils::args_t args("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                                  "coati", "", "test-fst-phylip.phy");
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        args.model = "coati";
+        args.weight_file = "";
+        args.output = "test-fst-phylip.phy";
+
         coati::fasta_t result(args.output);
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
@@ -195,9 +202,12 @@ TEST_CASE("fst_alignment") {
     }
 
     SUBCASE("dna model") {
-        coati::utils::args_t args("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                                  "dna", "score.log",
-                                  "test-fst-alignment.fasta");
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        args.model = "dna";
+        args.weight_file = "score.log";
+        args.output = "test-fst-alignment.fasta";
+
         coati::fasta_t result(args.output);
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
@@ -232,9 +242,11 @@ TEST_CASE("fst_alignment") {
     }
 
     SUBCASE("ecm model") {
-        coati::utils::args_t args("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                                  "ecm", "score.log",
-                                  "test-fst-alignment.fasta");
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        args.model = "ecm";
+        args.weight_file = "score.log";
+        args.output = "test-fst-alignment.fasta";        
         coati::fasta_t result(args.output);
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
@@ -268,8 +280,11 @@ TEST_CASE("fst_alignment") {
     }
 
     SUBCASE("Unknown model") {
-        coati::utils::args_t args("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"},
-                                  "unknown", "", "test-fst-alignment.fasta");
+        coati::utils::args_t args;
+        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        args.model = "unknown";
+        args.weight_file = "score.log";
+        args.output = "test-fst-alignment.fasta";        
         coati::utils::alignment_t aln;
         aln.fasta.path = args.output;
         aln.fasta.names = args.fasta.names;

@@ -28,12 +28,11 @@ if doxygen.found()
   doxyfile = configure_file(
     input : 'Doxyfile.in',
     output : 'Doxyfile',
-    configuration : doxy_conf
+    configuration : doxy_conf,
+    install : false
   )
 
   custom_target('doc',
-    build_by_default : true,
-    build_always_stale : true,
     command : [doxygen, doxyfile],
     output : ['html']
   )

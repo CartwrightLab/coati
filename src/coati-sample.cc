@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
+# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,34 +20,42 @@
 # SOFTWARE.
 */
 
-#include <charconv>
-#include <coati/coati.hpp>
-#include <random.hpp>
+#include <fst/fstlib.h>
 
-#include "verb.hpp"
+#include <CLI11.hpp>
+#include <coati/align_fst.hpp>
+#include <coati/align_marginal.hpp>
+#include <coati/fasta.hpp>
+#include <coati/utils.hpp>
 
-int main(int argc, char *argv[]) {
-    {
-        auto check = coati::verb::check_version_number();
-        if(check != EXIT_SUCCESS) {
-            return check;
-        }
+int main(int argc, char* argv[]) {
+    coati::utils::args_t args;
+
+    // Parse command line options
+    CLI::App alignpair;
+    coati::utils::set_cli_options(alignpair, args, "sample");
+    CLI11_PARSE(alignpair, argc, argv);
+
+    coati::utils::alignment_t aln;
+    coati::utils::set_subst(args, aln);
+
+    if(!aln.is_marginal()) {
+        throw std::invalid_argument("Alignment model not currently implemented.");
     }
 
-    // Use user-specified seeds or generate a random seed sequence
-    auto seeds = (argc < 2)
-                     ? fragmites::random::auto_seed_seq()
-                     : fragmites::random::string_seed_seq(&argv[1], &argv[argc]);
+    args.fasta = coati::read_fasta(args.fasta.path.string());
+    aln.fasta.path = args.output;
+    aln.fasta.names = args.fasta.names;
 
+    if(args.fasta.size() != 2) {
+        throw std::invalid_argument("Exactly two sequences required.");
+    }
 
-    // Initialize MinionRNG
-    fragmites::random::Random rand;
+    coati::random_t rand;
+    auto seeds = fragmites::random::auto_seed_seq();
     rand.Seed(seeds);
 
-    // Extract State
-    auto str = fragmites::random::encode_seed(rand.GetSeed());
-    // Print State
-    std::cout << str << std::endl;
+    coati::marg_sample(args, aln, rand);
 
-    return EXIT_SUCCESS;
+    return 0;
 }

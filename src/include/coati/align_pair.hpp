@@ -27,10 +27,12 @@
 #include <limits>
 #include <string_view>
 
+#include <random.hpp>
 #include "utils.hpp"
 
 namespace coati {
 
+using random_t = fragmites::random::Random;
 using base_t = unsigned char;
 using seq_view_t = std::basic_string_view<base_t>;
 using stationary_vector_t = std::vector<float_t>;
@@ -89,10 +91,26 @@ inline int max_index(float_t x, float_t y, float_t z) {
     return i;
 }
 
+inline float_t plus(float_t x, float_t y) {
+    return utils::log_sum_exp(x,y);
+}
+
+inline float_t plus(float_t x, float_t y, float_t z) {
+    return plus(plus(x,y),z);
+}
+
 void align_pair(align_pair_work_t &work, const seq_view_t &a,
                 const seq_view_t &b, const Matrixf &match, utils::args_t &args);
 void traceback(const align_pair_work_t &work, const std::string &a,
                const std::string &b, utils::alignment_t &aln, size_t look_back);
+
+void forward(align_pair_work_t &work, const seq_view_t &a,
+                const seq_view_t &b, const Matrixf &match,
+                utils::args_t &args);
+
+void sampleback(const align_pair_work_t &work, const std::string &a,
+                const std::string &b, utils::alignment_t &aln, size_t look_back,
+                random_t &rand);
 
 }  // namespace coati
 #endif

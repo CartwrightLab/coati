@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2020 Reed A. Cartwright <reed@cartwrig.ht>
+Copyright (c) 2019 Reed A. Cartwright <reed@cartwrig.ht>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "minion.hpp"
+#include "random.hpp"
 
 /************************************************************
  * Tables for exponential                                   *
  ************************************************************/
 
-const std::array<double, 256> minion::detail::ew = {
+const std::array<double, 256> fragmites::random::details::ew = {
     9.4294336554777197e-19, 8.3452314829922143e-19, 7.5254837402657195e-19, 7.0238720371966431e-19,
     6.6615166787391891e-19, 6.3774336460586336e-19, 6.1435342137476143e-19, 5.9445619298641686e-19,
     5.7713062906758818e-19, 5.6177797670930974e-19, 5.4798705612062106e-19, 5.3546328459557655e-19,
@@ -95,7 +95,7 @@ const std::array<double, 256> minion::detail::ew = {
     1.7903172712145925e-20, 1.4886635862824366e-20, 1.1366613766300017e-20, 6.9228654726127063e-21,
 };
 
-const std::array<double, 256> minion::detail::ef = {
+const std::array<double, 256> fragmites::random::details::ef = {
     0.00045413435384149660, 0.00096726928232717421, 0.0015362997803015719, 0.0021459677437189054, 0.0027887987935740748,
     0.0034602647778369027,  0.0041572951208337936,  0.0048776559835423906, 0.0056196422072054813, 0.0063819059373191774,
     0.0071633531836349821,  0.0079630774380170365,  0.0087803149858089718, 0.0096144136425022064, 0.010464810181029975,
@@ -150,8 +150,8 @@ const std::array<double, 256> minion::detail::ef = {
     1.0000000000000000,
 };
 
-#define U(x) UINT64_C(x)  // NOLINT
-const std::array<int64_t, 256> minion::detail::ek = {
+#define U(x) INT64_C(x)  // NOLINT
+const std::array<int64_t, 256> fragmites::random::details::ek = {
     U(8162862958009850966), U(8317365004821266796), U(8608587457533758008), U(8747546414904111780),
     U(8830037661796713635), U(8885094666497980832), U(8924652222586790058), U(8954554714978013301),
     U(8978014716828853716), U(8996950217926807086), U(9012579824174066832), U(9025716384411536725),
