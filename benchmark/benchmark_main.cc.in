@@ -79,6 +79,9 @@ BENCHMARK_CAPTURE(BM_marg_alignment, bm_8k, std::string("@bm_data@/benchmark_8k.
 BENCHMARK_CAPTURE(BM_marg_alignment, bm_16k, std::string("@bm_data@/benchmark_16k.fasta"))
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_marg_alignment, bm_32k, std::string("@bm_data@/benchmark_32k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
 
 /* fst pairwise alignment */
 template <class ...ExtraArgs>
@@ -123,9 +126,6 @@ BENCHMARK_CAPTURE(BM_fst_alignment, bm_1k, std::string("@bm_data@/benchmark_1k.f
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(BM_fst_alignment, bm_2k, std::string("@bm_data@/benchmark_2k.fasta"))
-    ->UseManualTime()
-    ->Unit(benchmark::kMillisecond);
-BENCHMARK_CAPTURE(BM_fst_alignment, bm_4k, std::string("@bm_data@/benchmark_4k.fasta"))
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 

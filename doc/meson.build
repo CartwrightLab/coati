@@ -34,7 +34,8 @@ if doxygen.found()
 
   custom_target('doc',
     command : [doxygen, doxyfile],
-    output : ['html']
+    output : ['html'],
+    build_by_default : false
   )
 else
   message('Documentation disabled, doxygen not found')
