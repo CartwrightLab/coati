@@ -1,4 +1,5 @@
 #include <doctest/doctest.h>
+
 #include <coati/align_pair.hpp>
 
 namespace coati {
@@ -107,6 +108,29 @@ void align_pair(align_pair_work_t &work, const seq_view_t &a,
     }
 }
 
+enum struct AlnState { MATCH, DELETION, INSERTION };
+
+/** \brief Index of max value between match, deletion, insertion coati::float_t
+ * values in log space.*/
+AlnState max_mdi(float_t mch, float_t del, float_t ins) {
+    auto i = AlnState::MATCH;
+    float_t val = mch;
+    if(del > val) {
+        val = del;
+        i = AlnState::DELETION;
+    }
+    if(ins > val) {
+        return AlnState::INSERTION;
+    }
+    return i;
+}
+
+/** \brief Index of max value between match and insertion coati::float_t values
+ * in log space.*/
+AlnState max_mi(float_t mch, float_t ins) {
+    return mch > ins ? AlnState::MATCH : AlnState::INSERTION;
+}
+
 /**
  * \brief Get aligned sequences.
  *
@@ -131,33 +155,33 @@ void traceback(const align_pair_work_t &work, const std::string &a,
     aln.fasta.seqs[1].reserve(i + j);
 
     aln.weight = maximum(work.mch(i, j), work.del(i, j), work.ins(i, j));
-    int m = max_index(work.mch(i, j), work.del(i, j), work.ins(i, j));
+    auto m = max_mdi(work.mch(i, j), work.del(i, j), work.ins(i, j));
 
     while((j > (look_back - 1)) || (i > (look_back - 1))) {
         switch(m) {
-        case 0:  // match
+        case AlnState::MATCH:  // match
             aln.fasta.seqs[0].push_back(a[i - look_back]);
             aln.fasta.seqs[1].push_back(b[j - look_back]);
-            m = max_index(work.mch_mch(i, j), work.del_mch(i, j),
-                          work.ins_mch(i, j));
+            m = max_mdi(work.mch_mch(i, j), work.del_mch(i, j),
+                        work.ins_mch(i, j));
             i--;
             j--;
             break;
-        case 1:  // deletion
+        case AlnState::DELETION:  // deletion
             for(size_t k = i; k > (i - look_back); k--) {
                 aln.fasta.seqs[0].push_back(a[k - look_back]);
                 aln.fasta.seqs[1].push_back('-');
             }
-            m = max_index(work.mch_del(i, j), work.del_del(i, j),
-                          work.ins_del(i, j));
+            m = max_mdi(work.mch_del(i, j), work.del_del(i, j),
+                        work.ins_del(i, j));
             i -= look_back;
             break;
-        case 2:  // insertion
+        case AlnState::INSERTION:  // insertion
             for(size_t k = j; k > (j - look_back); k--) {
                 aln.fasta.seqs[0].push_back('-');
                 aln.fasta.seqs[1].push_back(b[k - look_back]);
             }
-            m = work.mch_ins(i, j) > work.ins_ins(i, j) ? 0 : 2;
+            m = max_mi(work.mch_ins(i, j), work.ins_ins(i, j));
             j -= look_back;
             break;
         }
@@ -167,25 +191,29 @@ void traceback(const align_pair_work_t &work, const std::string &a,
     std::reverse(aln.fasta.seqs[1].begin(), aln.fasta.seqs[1].end());
 }
 
-enum struct AlnState {
-    MATCH,
-    DELETION,
-    INSERTION
-};
-
-std::pair<AlnState,float>
-sample_mdi(float log_mch, float log_del, float log_ins, float p) {
+/** \brief Sample from match, insertion, and deletion.
+ *
+ * @param[in] log_mch float log match value.
+ * @param[in] log_del float log deletion value.
+ * @param[in] log_ins float log insertion value.
+ * @param[in] p float random value.
+ *
+ * \return std::pair of match, deletion, or insertion (AlnState) and value
+ * (float).
+ */
+std::pair<AlnState, float> sample_mdi(float log_mch, float log_del,
+                                      float log_ins, float p) {
     float mch = ::expf(log_mch);
     float del = ::expf(log_del);
     float ins = ::expf(log_ins);
-    float scale = mch+del+ins;
+    float scale = mch + del + ins;
     p *= scale;
     AlnState ret;
     float weight;
     if(p < mch) {
         ret = AlnState::MATCH;
         weight = log_mch;
-    } else if(p < del+mch) {
+    } else if(p < del + mch) {
         ret = AlnState::DELETION;
         weight = log_del;
     } else {
@@ -196,11 +224,20 @@ sample_mdi(float log_mch, float log_del, float log_ins, float p) {
     return {ret, weight};
 }
 
-std::pair<AlnState,float>
-sample_mi(float log_mch, float log_ins, float p) {
+/** \brief Sample from match and insertion.
+ *
+ * @param[in] log_mch float log match value.
+ * @param[in] log_del float log deletion value.
+ * @param[in] log_ins float log insertion value.
+ * @param[in] p float random value.
+ *
+ * \return std::pair of match or insertion (AlnState) and value (float).
+ */
+
+std::pair<AlnState, float> sample_mi(float log_mch, float log_ins, float p) {
     float mch = ::expf(log_mch);
     float ins = ::expf(log_ins);
-    float scale = mch+ins;
+    float scale = mch + ins;
     p *= scale;
     AlnState ret;
     float weight;
@@ -215,7 +252,20 @@ sample_mi(float log_mch, float log_ins, float p) {
     return {ret, weight};
 }
 
-
+/**
+ * \brief Traceback with sampling.
+ *
+ * Get alignment from dynamic programming matrices with sampling (i.e. not
+ * necessarily best alignment).
+ *
+ * @param[in,out] work coati::align_pair_work_t dynamic programming matrices.
+ * @param[in] a std::string ancestor (ref) sequence.
+ * @param[in] b std::string descendant sequence.
+ * @param[in,out] aln coati::utils::alignment_t alignment object.
+ * @param[in] look_back std::size_t size of unit gap.
+ * @param[in] rand coati::random_t random number generator object.
+ *
+ */
 void sampleback(const align_pair_work_t &work, const std::string &a,
                 const std::string &b, utils::alignment_t &aln, size_t look_back,
                 random_t &rand) {
@@ -230,8 +280,8 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
     aln.weight = 0.0f;
 
     float w = maximum(work.mch(i, j), work.del(i, j), work.ins(i, j));
-    auto pick = sample_mdi(work.mch(i, j)-w, work.del(i, j)-w, work.ins(i, j)-w,
-        rand.f24());
+    auto pick = sample_mdi(work.mch(i, j) - w, work.del(i, j) - w,
+                           work.ins(i, j) - w, rand.f24());
     aln.weight += pick.second;
 
     while((j > (look_back - 1)) || (i > (look_back - 1))) {
@@ -239,11 +289,9 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
         case AlnState::MATCH:
             aln.fasta.seqs[0].push_back(a[i - look_back]);
             aln.fasta.seqs[1].push_back(b[j - look_back]);
-            w = work.mch(i,j);
-            pick = sample_mdi(work.mch_mch(i, j)-w,
-                              work.del_mch(i, j)-w,
-                              work.ins_mch(i, j)-w,
-                              rand.f24());
+            w = work.mch(i, j);
+            pick = sample_mdi(work.mch_mch(i, j) - w, work.del_mch(i, j) - w,
+                              work.ins_mch(i, j) - w, rand.f24());
             aln.weight += pick.second;
             i--;
             j--;
@@ -253,11 +301,9 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
                 aln.fasta.seqs[0].push_back(a[k - look_back]);
                 aln.fasta.seqs[1].push_back('-');
             }
-            w = work.del(i,j);
-            pick = sample_mdi(work.mch_del(i, j)-w,
-                              work.del_del(i, j)-w,
-                              work.ins_del(i, j)-w,
-                              rand.f24());
+            w = work.del(i, j);
+            pick = sample_mdi(work.mch_del(i, j) - w, work.del_del(i, j) - w,
+                              work.ins_del(i, j) - w, rand.f24());
             aln.weight += pick.second;
             i -= look_back;
             break;
@@ -266,25 +312,31 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
                 aln.fasta.seqs[0].push_back('-');
                 aln.fasta.seqs[1].push_back(b[k - look_back]);
             }
-            w = work.ins(i,j);
-            pick = sample_mi(work.mch_ins(i, j)-w,
-                              work.ins_ins(i, j)-w,
-                              rand.f24());
+            w = work.ins(i, j);
+            pick = sample_mi(work.mch_ins(i, j) - w, work.ins_ins(i, j) - w,
+                             rand.f24());
             aln.weight += pick.second;
             j -= look_back;
             break;
         }
-        
     }
 
     std::reverse(aln.fasta.seqs[0].begin(), aln.fasta.seqs[0].end());
     std::reverse(aln.fasta.seqs[1].begin(), aln.fasta.seqs[1].end());
 }
 
-
-void forward(align_pair_work_t &work, const seq_view_t &a,
-                const seq_view_t &b, const Matrixf &match,
-                utils::args_t &args) {
+/**
+ * \brief Forward algorithm.
+ *
+ * @param[in,out] work align_pair_work_t dynamic programming matrices.
+ * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
+ * @param[in] b coati::seq_view_t encoded descendant sequence.
+ * @param[in] match coati::Matrixf substitution matrix.
+ * @param[in] args coati::utils::args_t iput parameters.
+ *
+ */
+void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
+             const Matrixf &match, utils::args_t &args) {
     // calculate log(1-g) log(1-e) log(g) log(e)
     float_t no_gap = std::log1pf(-args.gap.open);
     float_t gap_stop = std::log1pf(-args.gap.extend);
@@ -342,9 +394,9 @@ void forward(align_pair_work_t &work, const seq_view_t &a,
 
             // save score
             work.mch(i, j) = plus(work.mch_mch(i, j), work.del_mch(i, j),
-                                     work.ins_mch(i, j));
+                                  work.ins_mch(i, j));
             work.del(i, j) = plus(work.mch_del(i, j), work.del_del(i, j),
-                                     work.ins_del(i, j));
+                                  work.ins_del(i, j));
             work.ins(i, j) = plus(work.mch_ins(i, j), work.ins_ins(i, j));
         }
     }

@@ -41,6 +41,7 @@ int main(int argc, char * const argv[]) {
 		std::cout << "                      alignpair" << std::endl;
 		std::cout << "                      msa" << std::endl;
 		std::cout << "                      sample" << std::endl;
+		std::cout << "                      genseed" << std::endl;
         return EXIT_SUCCESS;
     }
 

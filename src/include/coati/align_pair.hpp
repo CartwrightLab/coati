@@ -25,9 +25,9 @@
 
 #include <cmath>
 #include <limits>
+#include <random.hpp>
 #include <string_view>
 
-#include <random.hpp>
 #include "utils.hpp"
 
 namespace coati {
@@ -77,26 +77,11 @@ inline float_t maximum(float_t x, float_t y) { return std::max(x, y); }
 inline float_t maximum(float_t x, float_t y, float_t z) {
     return std::max(maximum(x, y), z);
 }
-/** \brief Index of max value between three coati::float_t values */
-inline int max_index(float_t x, float_t y, float_t z) {
-    int i = 0;
-    float_t val = x;
-    if(y > val) {
-        val = y;
-        i = 1;
-    }
-    if(z > val) {
-        return 2;
-    }
-    return i;
-}
 
-inline float_t plus(float_t x, float_t y) {
-    return utils::log_sum_exp(x,y);
-}
+inline float_t plus(float_t x, float_t y) { return utils::log_sum_exp(x, y); }
 
 inline float_t plus(float_t x, float_t y, float_t z) {
-    return plus(plus(x,y),z);
+    return plus(plus(x, y), z);
 }
 
 void align_pair(align_pair_work_t &work, const seq_view_t &a,
@@ -104,9 +89,8 @@ void align_pair(align_pair_work_t &work, const seq_view_t &a,
 void traceback(const align_pair_work_t &work, const std::string &a,
                const std::string &b, utils::alignment_t &aln, size_t look_back);
 
-void forward(align_pair_work_t &work, const seq_view_t &a,
-                const seq_view_t &b, const Matrixf &match,
-                utils::args_t &args);
+void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
+             const Matrixf &match, utils::args_t &args);
 
 void sampleback(const align_pair_work_t &work, const std::string &a,
                 const std::string &b, utils::alignment_t &aln, size_t look_back,
