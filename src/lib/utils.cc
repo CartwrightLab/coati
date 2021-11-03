@@ -199,7 +199,7 @@ void set_cli_options(CLI::App& app, coati::utils::args_t& args,
         ->expected(4);
     app.add_option("-k,--gap-len", args.gap.len, "Set gap unit size");
     app.add_option("-x,--sigma", args.sigma,
-                   "GTR sigma parameters (AC,AG,AT,CG,CT,GT)")
+                   "GTR sigma parameters (AC AG AT CG CT GT)")
         ->expected(6);
     if(command == "sample") {
         // app.add_option("-T,--temperature", args.temperature, "Sampling
