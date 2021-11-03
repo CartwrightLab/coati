@@ -42,16 +42,29 @@ namespace coati {
  * \return substitution P matrix (coati::Matrixf).
  */
 coati::Matrixf mg94_p(float br_len, float omega,
-                      const std::vector<coati::float_t>& nuc_freqs) {
+                      const std::vector<coati::float_t>& nuc_freqs,
+                      const std::vector<coati::float_t>& sigma) {
     if(br_len <= 0) {
         throw std::out_of_range("Branch length must be positive.");
     }
 
-    // Yang (1994) estimating the pattern of nucleotide substitution
-    float nuc_q[4][4] = {{-0.818, 0.132, 0.586, 0.1},
-                         {0.221, -1.349, 0.231, 0.897},
-                         {0.909, 0.215, -1.322, 0.198},
-                         {0.1, 0.537, 0.128, -0.765}};
+    coati::Matrixf nuc_q(4, 4);
+
+    if(std::any_of(sigma.cbegin(), sigma.cend(),
+                   [](coati::float_t f) { return f > 0.f; })) {
+        // Use GTR model for nuc_q
+        if(std::any_of(sigma.cbegin(), sigma.cend(),
+                       [](coati::float_t f) { return f < 0.f || f > 1.f; })) {
+            throw std::invalid_argument("Sigma values must be in range [0,1].");
+        }
+        nuc_q = gtr_q(nuc_freqs, sigma);
+    } else {
+        // Use Yang (1994) estimating the pattern of nucleotide substitution
+        nuc_q = {{-0.818, 0.132, 0.586, 0.1},
+                 {0.221, -1.349, 0.231, 0.897},
+                 {0.909, 0.215, -1.322, 0.198},
+                 {0.1, 0.537, 0.128, -0.765}};
+    }
 
     // MG94 model - doi:10.1534/genetics.108.092254
     Matrix64f Q = Matrix64f::Zero();
@@ -97,7 +110,7 @@ coati::Matrixf mg94_p(float br_len, float omega,
                     y = j & third_cod_mask;
                 }
 
-                Q(i, j) = w * nuc_q[x][y];
+                Q(i, j) = w * nuc_q(x, y);
             }
             rowSum += Q(i, j);
         }
@@ -185,6 +198,68 @@ TEST_CASE("marginal_p") {
                 val += ::expf(p_marg(cod * 3 + pos, nuc)) * pi[nuc];
             }
             CHECK(val == doctest::Approx(1));  // sum per pos (all nuc) is 1
+        }
+    }
+}
+
+/**
+ * \brief Create GTR subsitution model matrix.
+ *
+ * @param[in] pi std::vector<coati::float_t> nucleotide frequencies.
+ * @param[in] sigma std::vector<coati::float_t> sigma parameters (6) for GTR
+ * model.
+ *
+ * \return GTR Q matrix
+ */
+coati::Matrixf gtr_q(const std::vector<coati::float_t>& pi,
+                     const std::vector<coati::float_t>& sigma) {
+    //   |        A      |       C       |       G       |       T       |
+    // A |        -      | pi_C*sigma_AC | pi_G*sigma_AG | pi_T*sigma_AT |
+    // C | pi_A*sigma_AC |        -      | pi_G*sigma_CG | pi_T*sigma_CT |
+    // G | pi_A*sigma_AG | pi_C*sigma_GC |       -       | pi_T*sigma_GT |
+    // T | pi_A*sigma_AT | pi_C*sigma_CT | pi_G*sigma_GT |       -       |
+
+    coati::Matrixf gtr_mat(4, 4);
+
+    // set sigmas
+    gtr_mat(0, 1) = gtr_mat(1, 0) = sigma[0];  // sigma_AC
+    gtr_mat(0, 2) = gtr_mat(2, 0) = sigma[1];  // sigma_AG
+    gtr_mat(0, 3) = gtr_mat(3, 0) = sigma[2];  // sigma_AT
+    gtr_mat(1, 2) = gtr_mat(2, 1) = sigma[3];  // sigma_GC
+    gtr_mat(1, 3) = gtr_mat(3, 1) = sigma[4];  // sigma_CT
+    gtr_mat(2, 3) = gtr_mat(3, 2) = sigma[5];  // sigma_GT
+
+    // multiply by corresponding pi
+    for(size_t i = 0; i < 4; i++) {
+        for(size_t j = 0; j < 4; j++) {
+            gtr_mat(i, j) *= pi[j];
+        }
+    }
+
+    // set major diagonal
+    gtr_mat(0, 0) = -(gtr_mat(0, 1) + gtr_mat(0, 2) + gtr_mat(0, 3));
+    gtr_mat(1, 1) = -(gtr_mat(1, 0) + gtr_mat(1, 2) + gtr_mat(1, 3));
+    gtr_mat(2, 2) = -(gtr_mat(2, 0) + gtr_mat(2, 1) + gtr_mat(2, 3));
+    gtr_mat(3, 3) = -(gtr_mat(3, 0) + gtr_mat(3, 1) + gtr_mat(3, 2));
+
+    return gtr_mat;
+}
+
+/// @private
+TEST_CASE("gtr_q") {
+    coati::Matrixf gtr(gtr_q({0.308, 0.185, 0.199, 0.308},
+                             {0.009489730, 0.039164824, 0.004318182,
+                              0.015438693, 0.038734091, 0.008550000}));
+
+    coati::Matrixf gtr_correct = {
+        {-0.010879400, 0.001755600, 0.00779380, 0.00133000},
+        {0.002922837, -0.017925237, 0.00307230, 0.01193010},
+        {0.012062766, 0.002856158, -0.01755232, 0.00263340},
+        {0.001330000, 0.007165807, 0.00170145, -0.01019726}};
+
+    for(int i = 0; i < 4; i++) {
+        for(int j = 0; j < 4; j++) {
+            CHECK(gtr(i, j) == doctest::Approx(gtr_correct(i, j)));
         }
     }
 }

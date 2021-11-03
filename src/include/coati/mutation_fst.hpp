@@ -36,7 +36,9 @@ namespace coati {
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 VectorFstStdArc mg94(float br_len, float omega,
-                     const std::vector<coati::float_t>& pi);
+                     const std::vector<coati::float_t>& pi,
+                     const std::vector<coati::float_t>& sigma = {0, 0, 0, 0, 0,
+                                                                 0});
 VectorFstStdArc nuc2pos();
 VectorFstStdArc dna(float br_len, float omega,
                     const std::vector<coati::float_t>& pi);

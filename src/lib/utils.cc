@@ -22,10 +22,9 @@
 
 #include <doctest/doctest.h>
 
+#include <boost/algorithm/string/trim.hpp>
 #include <climits>
 #include <coati/utils.hpp>
-
-#include <boost/algorithm/string/trim.hpp>
 #include <filesystem>
 
 namespace coati::utils {
@@ -199,8 +198,12 @@ void set_cli_options(CLI::App& app, coati::utils::args_t& args,
     app.add_option("-p,--pi", args.pi, "Nucleotide frequencies (A C G T)")
         ->expected(4);
     app.add_option("-k,--gap-len", args.gap.len, "Set gap unit size");
+    app.add_option("-x,--sigma", args.sigma,
+                   "GTR sigma parameters (AC,AG,AT,CG,CT,GT)")
+        ->expected(6);
     if(command == "sample") {
-        //app.add_option("-T,--temperature", args.temperature, "Sampling temperature");
+        // app.add_option("-T,--temperature", args.temperature, "Sampling
+        // temperature");
         app.add_option("-n,--sample-size", args.sample_size, "Sample size");
     }
 }
@@ -288,10 +291,10 @@ void set_subst(args_t& args, alignment_t& aln) {
         P = ecm_p(args.br_len, args.omega);
         aln.subst_matrix = marginal_p(P, args.pi);
     } else if(args.model.compare("m-coati") == 0) {  // m-coati
-        P = mg94_p(args.br_len, args.omega, args.pi);
+        P = mg94_p(args.br_len, args.omega, args.pi, args.sigma);
         aln.subst_matrix = marginal_p(P, args.pi);
     } else if(args.model.compare("coati") == 0) {
-        aln.subst_fst = mg94(args.br_len, args.omega, args.pi);
+        aln.subst_fst = mg94(args.br_len, args.omega, args.pi, args.sigma);
     } else if(args.model.compare("dna") == 0) {
         aln.subst_fst = dna(args.br_len, args.omega, args.pi);
     } else if(args.model.compare("ecm") == 0) {
@@ -315,8 +318,8 @@ file_type_t extract_file_type(std::string path) {
     // Format ext:path
     auto colon = path.find_first_of(':');
     if(colon != npos && colon > 1) {
-        auto filepath = path.substr(colon+1);
-        auto ext = "." + path.substr(0,colon);
+        auto filepath = path.substr(colon + 1);
+        auto ext = "." + path.substr(0, colon);
         return {std::move(filepath), std::move(ext)};
     }
     std::filesystem::path fpath{path};
@@ -340,7 +343,7 @@ TEST_CASE("extract_file_type") {
     test("my:.foo.bar", {".foo.bar", ".my"});
     test(".foo.bar", {".foo.bar", ".bar"});
     test("", {"", ""});
-    test(std::string{}, {{},{}});
+    test(std::string{}, {{}, {}});
     test("foo:-", {"-", ".foo"});
     test("foo:bar", {"bar", ".foo"});
     test("bar:", {"", ".bar"});
@@ -349,7 +352,7 @@ TEST_CASE("extract_file_type") {
     test(" \f\n\r\t\vfoo.bar \f\n\r\t\v", {"foo.bar", ".bar"});
     test(" \f\n\r\t\vmy:foo.bar \f\n\r\t\v", {"foo.bar", ".my"});
     test(" \f\n\r\t\v.bar \f\n\r\t\v", {".bar", ""});
-    test(" \f\n\r\t\v", {{},{}});
+    test(" \f\n\r\t\v", {{}, {}});
 }
 
 }  // namespace coati::utils

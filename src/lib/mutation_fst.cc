@@ -36,8 +36,9 @@ namespace coati {
  * \return Muse and Gaut codon model FST (coati::VectorFstStdArc).
  */
 VectorFstStdArc mg94(float br_len, float omega,
-                     const std::vector<coati::float_t>& pi) {
-    coati::Matrixf P = mg94_p(br_len, omega, pi);
+                     const std::vector<coati::float_t>& pi,
+                     const std::vector<coati::float_t>& sigma) {
+    coati::Matrixf P = mg94_p(br_len, omega, pi, sigma);
 
     // Add state 0 and make it the start state
     VectorFstStdArc mg94;

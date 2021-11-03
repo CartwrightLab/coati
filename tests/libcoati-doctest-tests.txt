@@ -11,6 +11,7 @@ merge_indels
 add_gap
 mg94_p
 marginal_p
+gtr_q
 nts_ntv
 k
 mg94
