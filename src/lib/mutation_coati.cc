@@ -53,10 +53,6 @@ coati::Matrixf mg94_p(float br_len, float omega,
     if(std::any_of(sigma.cbegin(), sigma.cend(),
                    [](coati::float_t f) { return f > 0.f; })) {
         // Use GTR model for nuc_q
-        if(std::any_of(sigma.cbegin(), sigma.cend(),
-                       [](coati::float_t f) { return f < 0.f || f > 1.f; })) {
-            throw std::invalid_argument("Sigma values must be in range [0,1].");
-        }
         nuc_q = gtr_q(nuc_freqs, sigma);
     } else {
         // Use Yang (1994) estimating the pattern of nucleotide substitution
@@ -219,6 +215,11 @@ coati::Matrixf gtr_q(const std::vector<coati::float_t>& pi,
     // G | pi_A*sigma_AG | pi_C*sigma_GC |       -       | pi_T*sigma_GT |
     // T | pi_A*sigma_AT | pi_C*sigma_CT | pi_G*sigma_GT |       -       |
 
+    if(std::any_of(sigma.cbegin(), sigma.cend(),
+                   [](coati::float_t f) { return f < 0.f || f > 1.f; })) {
+        throw std::invalid_argument("Sigma values must be in range [0,1].");
+    }
+
     coati::Matrixf gtr_mat(4, 4);
 
     // set sigmas
@@ -261,6 +262,18 @@ TEST_CASE("gtr_q") {
         for(int j = 0; j < 4; j++) {
             CHECK(gtr(i, j) == doctest::Approx(gtr_correct(i, j)));
         }
+    }
+
+    SUBCASE("Sigma values out of range") {
+        REQUIRE_THROWS_AS(gtr_q({0.308, 0.185, 0.199, 0.308},
+                                {-0.009489730, 0.039164824, 0.004318182,
+                                 0.015438693, 0.038734091, 0.008550000}),
+                          std::invalid_argument);
+
+        REQUIRE_THROWS_AS(gtr_q({0.308, 0.185, 0.199, 0.308},
+                                {0.009489730, 0.039164824, 0.004318182,
+                                 0.015438693, 1.038734091, 0.008550000}),
+                          std::invalid_argument);
     }
 }
 }  // namespace coati
