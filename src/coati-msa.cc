@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
 
     // Parse command line options
     CLI::App msa;
-    coati::utils::set_cli_options(msa, args, "msa");
+    coati::utils::set_cli_options(msa, args, coati::utils::Command::MSA);
     CLI11_PARSE(msa, argc, argv);
 
     // if no output is specified save in current dir in PHYLIP format

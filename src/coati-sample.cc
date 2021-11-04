@@ -33,14 +33,16 @@ int main(int argc, char* argv[]) {
 
     // Parse command line options
     CLI::App alignpair;
-    coati::utils::set_cli_options(alignpair, args, "sample");
+    coati::utils::set_cli_options(alignpair, args,
+                                  coati::utils::Command::SAMPLE);
     CLI11_PARSE(alignpair, argc, argv);
 
     coati::utils::alignment_t aln;
     coati::utils::set_subst(args, aln);
 
     if(!aln.is_marginal()) {
-        throw std::invalid_argument("Alignment model not currently implemented.");
+        throw std::invalid_argument(
+            "Alignment model not currently implemented.");
     }
 
     args.fasta = coati::read_fasta(args.fasta.path.string());

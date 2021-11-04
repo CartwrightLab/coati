@@ -22,10 +22,9 @@
 
 #include <doctest/doctest.h>
 
+#include <boost/algorithm/string/trim.hpp>
 #include <climits>
 #include <coati/utils.hpp>
-
-#include <boost/algorithm/string/trim.hpp>
 #include <filesystem>
 
 namespace coati::utils {
@@ -167,24 +166,29 @@ TEST_CASE("parse_matrix_csv") {
  *
  */
 void set_cli_options(CLI::App& app, coati::utils::args_t& args,
-                     const std::string& command) {
+                     const Command& command) {
     // Add new options/flags
-    app.add_option("fasta", args.fasta.path, "Fasta file path")
-        ->required()
-        ->check(CLI::ExistingFile);
-    if(command == "msa") {
+    // TODO: switch syntax?
+    if(command == Command::FORMAT) {
+        app.add_option("fasta", args.fasta.path, "Fasta file path");
+    } else {
+        app.add_option("fasta", args.fasta.path, "Fasta file path")
+            ->required()
+            ->check(CLI::ExistingFile);
+    }
+    if(command == Command::MSA) {
         app.add_option("tree", args.tree, "Newick phylogenetic tree")
             ->required()
             ->check(CLI::ExistingFile);
         app.add_option("reference", args.ref, "Reference sequence")->required();
     }
     app.add_option("-m,--model", args.model, "Substitution model");
-    if(command == "alignpair" || command == "sample") {
+    if(command == Command::ALIGNPAIR || command == Command::SAMPLE) {
         app.add_option("-t,--time", args.br_len,
                        "Evolutionary time/branch length")
             ->check(CLI::PositiveNumber);
     }
-    if(command == "alignpair") {
+    if(command == Command::ALIGNPAIR) {
         app.add_option("-l,--weight", args.weight_file,
                        "Write alignment score to file");
         app.add_flag("-s,--score", args.score, "Score alignment");
@@ -199,8 +203,9 @@ void set_cli_options(CLI::App& app, coati::utils::args_t& args,
     app.add_option("-p,--pi", args.pi, "Nucleotide frequencies (A C G T)")
         ->expected(4);
     app.add_option("-k,--gap-len", args.gap.len, "Set gap unit size");
-    if(command == "sample") {
-        //app.add_option("-T,--temperature", args.temperature, "Sampling temperature");
+    if(command == Command::SAMPLE) {
+        // app.add_option("-T,--temperature", args.temperature, "Sampling
+        // temperature");
         app.add_option("-n,--sample-size", args.sample_size, "Sample size");
     }
 }
@@ -304,8 +309,16 @@ void set_subst(args_t& args, alignment_t& aln) {
     aln.model = args.model;
 }
 
-// extracts extension and filename from both file.ext and ext:file.foo
-// trims whitespace as well
+/**
+ * \brief Extract file type from path.
+ *
+ * Extracts extension and filename from both file.ext and ext:file.foo
+ * Trims whitespace as well.
+ *
+ * @param[in] path std::string path to input file.
+ *
+ * \return coati::utils::file_type_t object containing the path and extension.
+ */
 file_type_t extract_file_type(std::string path) {
     constexpr auto npos = std::string::npos;
 
@@ -315,8 +328,8 @@ file_type_t extract_file_type(std::string path) {
     // Format ext:path
     auto colon = path.find_first_of(':');
     if(colon != npos && colon > 1) {
-        auto filepath = path.substr(colon+1);
-        auto ext = "." + path.substr(0,colon);
+        auto filepath = path.substr(colon + 1);
+        auto ext = "." + path.substr(0, colon);
         return {std::move(filepath), std::move(ext)};
     }
     std::filesystem::path fpath{path};
@@ -340,7 +353,7 @@ TEST_CASE("extract_file_type") {
     test("my:.foo.bar", {".foo.bar", ".my"});
     test(".foo.bar", {".foo.bar", ".bar"});
     test("", {"", ""});
-    test(std::string{}, {{},{}});
+    test(std::string{}, {{}, {}});
     test("foo:-", {"-", ".foo"});
     test("foo:bar", {"bar", ".foo"});
     test("bar:", {"", ".bar"});
@@ -349,7 +362,7 @@ TEST_CASE("extract_file_type") {
     test(" \f\n\r\t\vfoo.bar \f\n\r\t\v", {"foo.bar", ".bar"});
     test(" \f\n\r\t\vmy:foo.bar \f\n\r\t\v", {"foo.bar", ".my"});
     test(" \f\n\r\t\v.bar \f\n\r\t\v", {".bar", ""});
-    test(" \f\n\r\t\v", {{},{}});
+    test(" \f\n\r\t\v", {{}, {}});
 }
 
 }  // namespace coati::utils

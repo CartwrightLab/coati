@@ -33,7 +33,8 @@ int main(int argc, char* argv[]) {
 
     // Parse command line options
     CLI::App alignpair;
-    coati::utils::set_cli_options(alignpair, args, "alignpair");
+    coati::utils::set_cli_options(alignpair, args,
+                                  coati::utils::Command::ALIGNPAIR);
     CLI11_PARSE(alignpair, argc, argv);
 
     // if no output is specified save in current dir in PHYLIP format

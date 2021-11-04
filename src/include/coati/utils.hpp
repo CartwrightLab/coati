@@ -71,8 +71,8 @@ using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 using sequence_pair_t = std::vector<std::basic_string<unsigned char>>;
 
 struct gap_t {
-    std::size_t len{1};              /*!< unit size of gaps */
-    float_t open{0.001};             /*!< gap opening score */
+    std::size_t len{1};                 /*!< unit size of gaps */
+    float_t open{0.001};                /*!< gap opening score */
     float_t extend{1.0f - 1.0f / 6.0f}; /*!< gap extension score */
 
     gap_t() = default;
@@ -97,27 +97,6 @@ struct args_t {
                             0.308}; /*!< nucleotide frequencies */
     float_t temperature{1.0f};
     size_t sample_size{1};
-
-    // args_t() = default;
-    // args_t(const std::string& f, const std::vector<std::string>& n,
-    //        const std::vector<std::string>& s, std::string m = "m-coati",
-    //        std::string weight = "", std::filesystem::path out = "",
-    //        bool sc = false, std::string tr = "", std::string re = "",
-    //        std::string ra = "", size_t gl = 1, float_t go = 0.001,
-    //        float_t ge = 1.f - 1.f / 6.f, float_t br = 0.0133, float_t w = 0.2f,
-    //        std::vector<float> p = {0.308, 0.185, 0.199, 0.308})
-    //     : fasta{coati::fasta_t(f, n, s)},
-    //       model{std::move(m)},
-    //       weight_file{std::move(weight)},
-    //       output{std::move(out)},
-    //       score{sc},
-    //       tree{std::move(tr)},
-    //       ref{std::move(re)},
-    //       rate{std::move(ra)},
-    //       gap{gap_t(gl, go, ge)},
-    //       br_len{br},
-    //       omega{w},
-    //       pi{std::move(p)} {}
 };
 
 coati::Matrixf parse_matrix_csv(const std::string& file);
@@ -153,14 +132,15 @@ struct alignment_t {
     }
 };
 
+enum struct Command { ALIGNPAIR, MSA, SAMPLE, FORMAT };
+
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(const std::string& codon);
 void set_cli_options(CLI::App& app, coati::utils::args_t& args,
-                     const std::string& command);
+                     const coati::utils::Command& command);
 sequence_pair_t marginal_seq_encoding(const std::string& anc,
                                       const std::string& des);
 void set_subst(args_t& args, alignment_t& aln);
-
 
 // extracts extension and filename from both file.foo and ext:file.foo
 struct file_type_t {
@@ -172,16 +152,14 @@ struct file_type_t {
 // trims whitespace as well
 file_type_t extract_file_type(std::string path);
 
-
 // calculate log(1+exp(x))
 // https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
-inline
-float_t log1p_exp(float_t x) {
-    if( x <= -37.0f ) {
+inline float_t log1p_exp(float_t x) {
+    if(x <= -37.0f) {
         return std::exp(x);
-    } else if ( x <= 18.0f ) {
+    } else if(x <= 18.0f) {
         return std::log1p(std::exp(x));
-    } else if( x <= 33.3f ) {
+    } else if(x <= 33.3f) {
         return x + std::exp(-x);
     } else {
         return x;
@@ -190,11 +168,10 @@ float_t log1p_exp(float_t x) {
 // calculate log(exp(a)+exp(b))
 // Let x = max(a,b)
 // Let y = -abs(a-b)
-//  log(exp(a)+exp(b)) = m+log(1+exp(y))
-inline
-float_t log_sum_exp(float_t a, float_t b) {
-    float_t x = std::max(a,b);
-    float_t y = -std::fabs(a-b);
+//  log(exp(a)+exp(b)) = x+log(1+exp(y))
+inline float_t log_sum_exp(float_t a, float_t b) {
+    float_t x = std::max(a, b);
+    float_t y = -std::fabs(a - b);
     return x + log1p_exp(y);
 }
 
