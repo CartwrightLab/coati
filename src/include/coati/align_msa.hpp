@@ -30,6 +30,6 @@
 #include "utils.hpp"
 
 namespace coati {
-bool ref_indel_alignment(coati::utils::args_t& args);
+bool ref_indel_alignment(coati::alignment_t& input);
 }  // namespace coati
 #endif

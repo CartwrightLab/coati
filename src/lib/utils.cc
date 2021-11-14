@@ -161,48 +161,51 @@ TEST_CASE("parse_matrix_csv") {
  * \brief Setup command line options
  *
  * @param[in] app CLI::App command line arguments parser from CLI11.
- * @param[in,out] args coati::utils::args_t to store the input parameters.
+ * @param[in,out] args coati::args_t to store the input parameters.
  * @param[in] command std::string one of coati commands (i.e. alignpair or msa).
  *
  */
-void set_cli_options(CLI::App& app, coati::utils::args_t& args,
+void set_cli_options(CLI::App& app, coati::args_t& args,
                      const Command& command) {
     // Add new options/flags
     // TODO: switch syntax?
     if(command == Command::FORMAT) {
-        app.add_option("fasta", args.fasta.path, "Fasta file path");
+        app.add_option("fasta", args.aln.data.path, "Fasta file path");
     } else {
-        app.add_option("fasta", args.fasta.path, "Fasta file path")
+        app.add_option("fasta", args.aln.data.path, "Fasta file path")
             ->required()
             ->check(CLI::ExistingFile);
     }
     if(command == Command::MSA) {
-        app.add_option("tree", args.tree, "Newick phylogenetic tree")
+        app.add_option("tree", args.aln.tree, "Newick phylogenetic tree")
             ->required()
             ->check(CLI::ExistingFile);
-        app.add_option("reference", args.ref, "Reference sequence")->required();
+        app.add_option("reference", args.aln.ref, "Reference sequence")
+            ->required();
     }
-    app.add_option("-m,--model", args.model, "Substitution model");
+    app.add_option("-m,--model", args.aln.model, "Substitution model");
     if(command == Command::ALIGNPAIR || command == Command::SAMPLE) {
-        app.add_option("-t,--time", args.br_len,
+        app.add_option("-t,--time", args.aln.br_len,
                        "Evolutionary time/branch length")
             ->check(CLI::PositiveNumber);
     }
     if(command == Command::ALIGNPAIR) {
-        app.add_option("-l,--weight", args.weight_file,
+        app.add_option("-l,--weight", args.aln.weight_file,
                        "Write alignment score to file");
-        app.add_flag("-s,--score", args.score, "Score alignment");
+        app.add_flag("-s,--score", args.aln.score, "Score alignment");
     }
-    app.add_option("-o,--output", args.output, "Alignment output file");
-    app.add_option("-g,--gap-open", args.gap.open, "Gap opening score")
+    app.add_option("-o,--output", args.aln.output, "Alignment output file");
+    app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
         ->check(CLI::PositiveNumber);
-    app.add_option("-e,--gap-extend", args.gap.extend, "Gap extension score")
+    app.add_option("-e,--gap-extend", args.aln.gap.extend,
+                   "Gap extension score")
         ->check(CLI::PositiveNumber);
-    app.add_option("-w,--omega", args.omega, "Nonsynonymous-synonymous bias")
+    app.add_option("-w,--omega", args.aln.omega,
+                   "Nonsynonymous-synonymous bias")
         ->check(CLI::PositiveNumber);
-    app.add_option("-p,--pi", args.pi, "Nucleotide frequencies (A C G T)")
+    app.add_option("-p,--pi", args.aln.pi, "Nucleotide frequencies (A C G T)")
         ->expected(4);
-    app.add_option("-k,--gap-len", args.gap.len, "Set gap unit size");
+    app.add_option("-k,--gap-len", args.aln.gap.len, "Set gap unit size");
     if(command == Command::SAMPLE) {
         // app.add_option("-T,--temperature", args.temperature, "Sampling
         // temperature");
@@ -279,34 +282,31 @@ TEST_CASE("marginal_seq_encoding") {
 /**
  * \brief Set subtitution matrix or FST according to model
  *
- * @param[in,out] args coati::utils::args_t input arguments.
  * @param[in,out] aln coati::alignment_t alignment information.
  */
-void set_subst(args_t& args, alignment_t& aln) {
+void set_subst(alignment_t& aln) {
     Matrixf P(64, 64);
 
-    if(!args.rate.empty()) {
+    if(!aln.rate.empty()) {
         aln.model = "user_marg_model";
-        P = parse_matrix_csv(args.rate);
-        aln.subst_matrix = marginal_p(P, args.pi);
-    } else if(args.model.compare("m-ecm") == 0) {
-        P = ecm_p(args.br_len, args.omega);
-        aln.subst_matrix = marginal_p(P, args.pi);
-    } else if(args.model.compare("m-coati") == 0) {  // m-coati
-        P = mg94_p(args.br_len, args.omega, args.pi);
-        aln.subst_matrix = marginal_p(P, args.pi);
-    } else if(args.model.compare("coati") == 0) {
-        aln.subst_fst = mg94(args.br_len, args.omega, args.pi);
-    } else if(args.model.compare("dna") == 0) {
-        aln.subst_fst = dna(args.br_len, args.omega, args.pi);
-    } else if(args.model.compare("ecm") == 0) {
-        aln.subst_fst = ecm(args.br_len, args.omega);
-        args.pi = {0.2676350, 0.2357727, 0.2539630, 0.2426323};
+        P = parse_matrix_csv(aln.rate);
+        aln.subst_matrix = marginal_p(P, aln.pi);
+    } else if(aln.model.compare("m-ecm") == 0) {
+        P = ecm_p(aln.br_len, aln.omega);
+        aln.subst_matrix = marginal_p(P, aln.pi);
+    } else if(aln.model.compare("m-coati") == 0) {  // m-coati
+        P = mg94_p(aln.br_len, aln.omega, aln.pi);
+        aln.subst_matrix = marginal_p(P, aln.pi);
+    } else if(aln.model.compare("coati") == 0) {
+        aln.subst_fst = mg94(aln.br_len, aln.omega, aln.pi);
+    } else if(aln.model.compare("dna") == 0) {
+        aln.subst_fst = dna(aln.br_len, aln.omega, aln.pi);
+    } else if(aln.model.compare("ecm") == 0) {
+        aln.subst_fst = ecm(aln.br_len, aln.omega);
+        aln.pi = {0.2676350, 0.2357727, 0.2539630, 0.2426323};
     } else {
         throw std::invalid_argument("Mutation model unknown.");
     }
-
-    aln.model = args.model;
 }
 
 /**
@@ -317,7 +317,7 @@ void set_subst(args_t& args, alignment_t& aln) {
  *
  * @param[in] path std::string path to input file.
  *
- * \return coati::utils::file_type_t object containing the path and extension.
+ * \return coati::file_type_t object containing the path and extension.
  */
 file_type_t extract_file_type(std::string path) {
     constexpr auto npos = std::string::npos;
@@ -363,6 +363,167 @@ TEST_CASE("extract_file_type") {
     test(" \f\n\r\t\vmy:foo.bar \f\n\r\t\v", {"foo.bar", ".my"});
     test(" \f\n\r\t\v.bar \f\n\r\t\v", {".bar", ""});
     test(" \f\n\r\t\v", {{}, {}});
+}
+
+data_t read_input(alignment_t& aln) {
+    coati::file_type_t in_type;
+
+    if(aln.output.empty()) {  // default output: json format & stdout
+        aln.data.out_file.path = "-";
+        aln.data.out_file.type_ext = ".json";
+    }
+    data_t input_data;
+    in_type = coati::utils::extract_file_type(aln.data.path);
+
+    // call reader depending on file type
+    if(in_type.type_ext == ".fa" || in_type.type_ext == ".fasta") {
+        input_data = read_fasta(aln.data.path, aln.is_marginal());
+        input_data.out_file = coati::utils::extract_file_type(aln.output);
+        return input_data;
+    } else if(in_type.type_ext == ".phy") {
+        input_data = read_phylip(aln.data.path, aln.is_marginal());
+        input_data.out_file = coati::utils::extract_file_type(aln.output);
+        return input_data;
+    } else if(in_type.type_ext == ".json") {
+        throw std::invalid_argument("Reading from json not supported yet.");
+    } else {
+        throw std::invalid_argument("Invalid input " + aln.data.path.string() +
+                                    ".");
+    }
+}
+
+/// @private
+TEST_CASE("read_input") {
+    std::ofstream outfile;
+    coati::alignment_t aln;
+
+    SUBCASE("fasta") {
+        std::string filename{"test-read-input.fasta"};
+        outfile.open(filename);
+        REQUIRE(outfile);
+        outfile << "; comment line" << std::endl;
+        outfile << ">1" << std::endl << "CTCTGGATAGTC" << std::endl;
+        outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
+        outfile.close();
+
+        aln.data.path = filename;
+        coati::data_t fasta = read_input(aln);
+        CHECK(std::filesystem::remove(filename));
+
+        CHECK(fasta.names[0] == "1");
+        CHECK(fasta.names[1] == "2");
+        CHECK(fasta.seqs[0] == "CTCTGGATAGTC");
+        CHECK(fasta.seqs[1] == "CTATAGTC");
+    }
+
+    SUBCASE("phylip") {
+        std::string filename{"test-read-input.phy"};
+        outfile.open(filename);
+        REQUIRE(outfile);
+        outfile << "2 12" << std::endl;
+        outfile << "1\tCTCTGGATAGTC" << std::endl;
+        outfile << "2\tCTCTGGATAGTC" << std::endl;
+        outfile.close();
+
+        aln.data.path = filename;
+        coati::data_t phylip = read_input(aln);
+        CHECK(std::filesystem::remove(filename));
+
+        CHECK(phylip.names[0] == "1");
+        CHECK(phylip.names[1] == "2");
+        CHECK(phylip.seqs[0] == "CTCTGGATAGTC");
+        CHECK(phylip.seqs[1] == "CTCTGGATAGTC");
+    }
+}
+
+bool write_output(data_t& data, const VectorFstStdArc& aln_path) {
+    // call writer depending on file type
+    if(data.out_file.type_ext == ".fa" || data.out_file.type_ext == ".fasta") {
+        return write_fasta(data, aln_path);
+    } else if(data.out_file.type_ext == ".phy") {
+        return write_phylip(data, aln_path);
+    } else if(data.out_file.type_ext == ".json") {
+        throw std::invalid_argument("Reading from json not supported yet.");
+    } else {
+        throw std::invalid_argument("Invalid output " + data.out_file.path +
+                                    ".");
+    }
+}
+
+/// @private
+TEST_CASE("write_output") {
+    coati::data_t data;
+    std::vector<std::string> names = {"anc", "des"};
+    std::vector<std::string> sequences = {
+        "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC"
+        "GTACGTACGTACGTACGTACGTACGTACGTACGT",
+        "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC"
+        "GTACGTACGTACGTACGTACGTACGTACGTACGT"};  // length > 100 to test new line
+
+    SUBCASE("fasta") {
+        data = coati::data_t("", names, sequences);
+        data.out_file.path = "test-write-output-fasta.fasta";
+        data.out_file.type_ext = ".fasta";
+        REQUIRE(write_output(data));
+
+        std::ifstream infile(data.out_file.path);
+        std::string s;
+        infile >> s;
+        CHECK(s == ">anc");
+        infile >> s;
+        CHECK(s ==
+              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
+              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
+        infile >> s;
+        CHECK(s == ">des");
+        infile >> s;
+        CHECK(s ==
+              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
+              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
+        CHECK(std::filesystem::remove("test-write-output-fasta.fasta"));
+    }
+
+    SUBCASE("phylip") {
+        data = coati::data_t("", names, sequences);
+        data.out_file.path = "test-write-output-phylip.phy";
+        data.out_file.type_ext = ".phy";
+        REQUIRE(write_output(data));
+
+        std::ifstream infile(data.out_file.path);
+        std::string s1, s2;
+        infile >> s1 >> s2;
+        CHECK(s1 == "2");
+        CHECK(s2 == "104");
+        infile >> s1 >> s2;
+        CHECK(s1 == "anc");
+        CHECK(s2 ==
+              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
+              "ACGTACGTACGTACGTACGTACGTACGTA");
+        infile >> s1 >> s2;
+        CHECK(s1 == "des");
+        CHECK(s2 ==
+              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
+              "ACGTACGTACGTACGTACGTACGTACGTA");
+        // infile >> s1;  // blank line
+        infile >> s1 >> s2;
+        CHECK(s1 == "CGTACGTACGT");
+        CHECK(s2 == "CGTACGTACGT");
+        CHECK(std::filesystem::remove("test-write-output-phylip.phy"));
+    }
+
+    SUBCASE("json") {
+        data = coati::data_t("", names, sequences);
+        data.out_file.path = "test-write-output-phylip.json";
+        data.out_file.type_ext = ".json";
+        REQUIRE_THROWS_AS(write_output(data), std::invalid_argument);
+    }
+
+    SUBCASE("ext") {
+        data = coati::data_t("", names, sequences);
+        data.out_file.path = "test-write-output-phylip.ext";
+        data.out_file.type_ext = ".ext";
+        REQUIRE_THROWS_AS(write_output(data), std::invalid_argument);
+    }
 }
 
 }  // namespace coati::utils

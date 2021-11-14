@@ -31,16 +31,16 @@ namespace coati {
  * \brief Pairwise alignment using FST composition.
  *
  * Composition of indel and subsitution FSTs together with input sequences
- *  as FSAs. Alignment is found searching for shortest path in resulting FST.
+ *  as FSAs. Alignment is found searching for shortest path in resulting
+ * FST.
  *
- * @param[in] args coati::utils::args_t input parameters.
- * @param[in] aln coati::utils::alignment_t alignment information.
+ * @param[in] aln coati::alignment_t alignment information.
  */
-bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln) {
+bool fst_alignment(coati::alignment_t& aln) {
     using fst::StdArc;
 
     // get indel FST
-    VectorFstStdArc indel_fst = indel(args.gap.open, args.gap.extend, args.pi);
+    VectorFstStdArc indel_fst = indel(aln.gap.open, aln.gap.extend, aln.pi);
 
     // sort mutation and indel FSTs
     VectorFstStdArc mutation_sort, indel_sort;
@@ -63,23 +63,23 @@ bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln) {
     // find alignment graph
     // 1. compose in_tape and coati FSTs
     fst::ComposeFst<StdArc> aln_inter =
-        fst::ComposeFst<StdArc>(aln.seqs[0], coati_rmep);
+        fst::ComposeFst<StdArc>(aln.data.fsts[0], coati_rmep);
     // 2. sort intermediate composition
     VectorFstStdArc aln_inter_sort;
     aln_inter_sort = fst::ArcSortFst<StdArc, fst::OLabelCompare<StdArc>>(
         aln_inter, fst::OLabelCompare<StdArc>());
     // 3. compose intermediate and out_tape FSTs
     VectorFstStdArc graph_fst;
-    fst::Compose(aln_inter_sort, aln.seqs[1], &graph_fst);
+    fst::Compose(aln_inter_sort, aln.data.fsts[1], &graph_fst);
 
     //  case 1: ComposeFst is time: O(v1 v2 d1 (log d2 + m2)), space O(v1 v2)
-    //			ShortestPath with ComposeFst (PDT) is time: O((V+E)^3),
+    //			ShortestPath with ComposeFst (PDT) is time: O((V+E)^4),
     //          space: O((V+E)^3)
     //          Then convert to VectorFst (FST) is time, space: O(e^(O(V+E)))
     //  case 2: ComposeFst is time: O(v1 v2 d1 (log d2 + m2)), space: O(v1 v2)
     //			Convert ComposeFst (PDT) to VectorFst(FST) is time,
     //          space: O(e^(O(V+E)))
-    // 			Then ShortestPath with VectorFst is O(V log(V) + E)
+    //          Then ShortestPath with VectorFst is O(V log(V) + E)
     //  case 3: Compose is time: O(V1 V2 D1 (log D2 + M2)), space O(V1 V2 D1 M2)
     //			Then ShortestPath with VectorFst is O(V log(V) + E)
 
@@ -88,14 +88,14 @@ bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln) {
     fst::ShortestPath(graph_fst, &aln_path);
 
     // shortestdistance = weight of shortestpath
-    if(!args.weight_file.empty()) {
+    if(!aln.weight_file.empty()) {
         std::vector<StdArc::Weight> distance;
         std::ofstream out_w;
 
         fst::ShortestDistance(aln_path, &distance);
         // append weight and fasta file name info in file
-        out_w.open(args.weight_file, std::ios::app | std::ios::out);
-        out_w << args.fasta.path << "," << args.model << "," << distance[0]
+        out_w.open(aln.weight_file, std::ios::app | std::ios::out);
+        out_w << aln.data.path << "," << aln.model << "," << distance[0]
               << std::endl;
         out_w.close();
     }
@@ -104,11 +104,7 @@ bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln) {
     fst::TopSort(&aln_path);
 
     // write alignment
-    if((aln.fasta.path.extension() == ".fasta") ||
-       (aln.fasta.path.extension() == ".fa")) {
-        return coati::write_fasta(aln_path, aln.fasta);
-    }
-    return coati::write_phylip(aln_path, aln.fasta);
+    return coati::utils::write_output(aln.data, aln_path);
 }
 
 /// @private
@@ -122,175 +118,163 @@ TEST_CASE("fst_alignment") {
     fsts.push_back(fsa1);
 
     SUBCASE("coati model, output fasta") {
-        coati::utils::args_t args;
-        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
-        args.model = "coati";
-        args.weight_file = "score.log";
-        args.output = "test-fst-alignment.fasta";
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        aln.model = "coati";
+        aln.weight_file = "score.log";
+        aln.data.out_file = {{"test-fst-alignment.fasta"}, {".fasta"}};
+        aln.data.fsts = fsts;
 
-        coati::fasta_t result(args.output);
-        coati::utils::alignment_t aln;
-        aln.fasta.path = args.output;
-        aln.fasta.names = args.fasta.names;
-        coati::utils::set_subst(args, aln);
-        aln.seqs = fsts;
+        coati::utils::set_subst(aln);
 
-        if(std::filesystem::exists(args.output)) {
-            std::filesystem::remove(args.output);
+        if(std::filesystem::exists(aln.data.out_file.path)) {
+            std::filesystem::remove(aln.data.out_file.path);
         }
-        if(std::filesystem::exists(args.weight_file)) {
-            std::filesystem::remove(args.weight_file);
+        if(std::filesystem::exists(aln.weight_file)) {
+            std::filesystem::remove(aln.weight_file);
         }
 
-        REQUIRE(fst_alignment(args, aln));
-        result = coati::read_fasta(args.output.string());
+        REQUIRE(fst_alignment(aln));
+        std::ifstream infile(aln.data.out_file.path);  // input file
+        std::string s1, s2;
 
-        CHECK(std::filesystem::remove(args.output));
+        infile >> s1 >> s2;
+        CHECK(s1 == ">1");
+        CHECK(s2 == "CTCTGGATAGTG");
 
-        CHECK(result.names[0] == "1");
-        CHECK(result.names[1] == "2");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">2");
+        CHECK(s2 == "CT----ATAGTG");
+        // CHECK(std::filesystem::remove(aln.data.out_file.path));
 
-        CHECK(result.seqs[0] == "CTCTGGATAGTG");
-        CHECK(result.seqs[1] == "CT----ATAGTG");
-
-        std::ifstream infile(args.weight_file);
+        std::ifstream inweight(aln.weight_file);
         std::string s;
-        infile >> s;
-        CHECK(std::filesystem::remove(args.weight_file));
+        inweight >> s;
+        CHECK(std::filesystem::remove(aln.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31397");
     }
 
     SUBCASE("coati model, output phylip") {
-        coati::utils::args_t args;
-        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
-        args.model = "coati";
-        args.weight_file = "";
-        args.output = "test-fst-phylip.phy";
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        aln.model = "coati";
+        aln.weight_file = "";
+        aln.data.out_file = {{"test-fst-phylip.phy"}, {".phy"}};
+        aln.data.fsts = fsts;
 
-        coati::fasta_t result(args.output);
-        coati::utils::alignment_t aln;
-        aln.fasta.path = args.output;
-        aln.fasta.names = args.fasta.names;
-        coati::utils::set_subst(args, aln);
-        aln.seqs = fsts;
+        coati::utils::set_subst(aln);
 
-        if(std::filesystem::exists(args.output)) {
-            std::filesystem::remove(args.output);
+        if(std::filesystem::exists(aln.data.out_file.path)) {
+            std::filesystem::remove(aln.data.out_file.path);
         }
-        if(std::filesystem::exists(args.weight_file)) {
-            std::filesystem::remove(args.weight_file);
+        if(std::filesystem::exists(aln.weight_file)) {
+            std::filesystem::remove(aln.weight_file);
         }
 
-        REQUIRE(fst_alignment(args, aln));
+        REQUIRE(fst_alignment(aln));
 
-        std::ifstream infile(args.output);
+        std::ifstream infile(aln.data.out_file.path);
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("12") == 0);
+        CHECK(s1 == "2");
+        CHECK(s2 == "12");
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("1") == 0);
-        CHECK(s2.compare("CTCTGGATAGTG") == 0);
+        CHECK(s1 == "1");
+        CHECK(s2 == "CTCTGGATAGTG");
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("CT----ATAGTG") == 0);
+        CHECK(s1 == "2");
+        CHECK(s2 == "CT----ATAGTG");
 
-        CHECK(std::filesystem::remove(args.output));
+        CHECK(std::filesystem::remove(aln.data.out_file.path));
     }
 
     SUBCASE("dna model") {
-        coati::utils::args_t args;
-        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
-        args.model = "dna";
-        args.weight_file = "score.log";
-        args.output = "test-fst-alignment.fasta";
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        aln.model = "dna";
+        aln.weight_file = "score.log";
+        aln.data.out_file = {{"test-fst-alignment.fasta"}, {".fasta"}};
+        aln.data.fsts = fsts;
 
-        coati::fasta_t result(args.output);
-        coati::utils::alignment_t aln;
-        aln.fasta.path = args.output;
-        aln.fasta.names = args.fasta.names;
-        coati::utils::set_subst(args, aln);
-        aln.seqs = fsts;
+        coati::utils::set_subst(aln);
 
-        if(std::filesystem::exists(args.output)) {
-            std::filesystem::remove(args.output);
+        if(std::filesystem::exists(aln.data.out_file.path)) {
+            std::filesystem::remove(aln.data.out_file.path);
         }
-        if(std::filesystem::exists(args.weight_file)) {
-            std::filesystem::remove(args.weight_file);
+        if(std::filesystem::exists(aln.weight_file)) {
+            std::filesystem::remove(aln.weight_file);
         }
 
-        REQUIRE(fst_alignment(args, aln));
-        result = coati::read_fasta(args.output.string());
+        REQUIRE(fst_alignment(aln));
 
-        CHECK(std::filesystem::remove(args.output));
+        std::ifstream infile(aln.data.out_file.path);
+        std::string s1, s2;
 
-        CHECK(result.names[0] == "1");
-        CHECK(result.names[1] == "2");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">1");
+        CHECK(s2 == "CTCTGGATAGTG");
 
-        CHECK(result.seqs[0] == "CTCTGGATAGTG");
-        CHECK(result.seqs[1] == "CT----ATAGTG");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">2");
+        CHECK(s2 == "CT----ATAGTG");
+        CHECK(std::filesystem::remove(aln.data.out_file.path));
 
-        std::ifstream infile(args.weight_file);
+        std::ifstream inweight(aln.weight_file);
         std::string s;
-        infile >> s;
-        CHECK(std::filesystem::remove(args.weight_file));
-        std::cout << s.substr(s.length() - 7) << std::endl;
+        inweight >> s;
+        CHECK(std::filesystem::remove(aln.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31994");
     }
 
     SUBCASE("ecm model") {
-        coati::utils::args_t args;
-        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
-        args.model = "ecm";
-        args.weight_file = "score.log";
-        args.output = "test-fst-alignment.fasta";        
-        coati::fasta_t result(args.output);
-        coati::utils::alignment_t aln;
-        aln.fasta.path = args.output;
-        aln.fasta.names = args.fasta.names;
-        coati::utils::set_subst(args, aln);
-        aln.seqs = fsts;
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        aln.model = "ecm";
+        aln.weight_file = "score.log";
+        aln.data.out_file = {{"test-fst-alignment-ecm.fasta"}, {".fasta"}};
+        aln.data.fsts = fsts;
 
-        if(std::filesystem::exists(args.output)) {
-            std::filesystem::remove(args.output);
+        coati::utils::set_subst(aln);
+
+        if(std::filesystem::exists(aln.data.out_file.path)) {
+            std::filesystem::remove(aln.data.out_file.path);
         }
-        if(std::filesystem::exists(args.weight_file)) {
-            std::filesystem::remove(args.weight_file);
+        if(std::filesystem::exists(aln.weight_file)) {
+            std::filesystem::remove(aln.weight_file);
         }
 
-        REQUIRE(fst_alignment(args, aln));
-        result = coati::read_fasta(args.output.string());
+        REQUIRE(fst_alignment(aln));
+        std::ifstream infile(aln.data.out_file.path);
+        std::string s1, s2;
 
-        CHECK(std::filesystem::remove(args.output));
+        infile >> s1 >> s2;
+        CHECK(s1 == ">1");
+        CHECK(s2 == "CTCTGGATAGTG");
 
-        CHECK(result.names[0] == "1");
-        CHECK(result.names[1] == "2");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">2");
+        CHECK(s2 == "CT----ATAGTG");
 
-        CHECK(result.seqs[0] == "CTCTGGATAGTG");
-        CHECK(result.seqs[1] == "CT----ATAGTG");
+        CHECK(std::filesystem::remove(aln.data.out_file.path));
 
-        std::ifstream infile(args.weight_file);
+        std::ifstream inweight(aln.weight_file);
         std::string s;
-        infile >> s;
-        CHECK(std::filesystem::remove(args.weight_file));
+        inweight >> s;
+        CHECK(std::filesystem::remove(aln.weight_file));
         CHECK(s.substr(s.length() - 7) == "9.31388");
     }
 
     SUBCASE("Unknown model") {
-        coati::utils::args_t args;
-        args.fasta = coati::fasta_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
-        args.model = "unknown";
-        args.weight_file = "score.log";
-        args.output = "test-fst-alignment.fasta";        
-        coati::utils::alignment_t aln;
-        aln.fasta.path = args.output;
-        aln.fasta.names = args.fasta.names;
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        aln.model = "unknown";
+        aln.weight_file = "score.log";
+        aln.data.out_file = {{"test-fst-alignment.fasta"}, {".fasta"}};
 
-        REQUIRE_THROWS_AS(coati::utils::set_subst(args, aln),
-                          std::invalid_argument);
+        REQUIRE_THROWS_AS(coati::utils::set_subst(aln), std::invalid_argument);
     }
 }
 

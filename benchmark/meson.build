@@ -57,10 +57,10 @@ benchmark('[pretest] Checking benchmark list completeness',
 
 if build_machine.system() == 'darwin'
   # MacOS
-  time_exe = find_program('gtime')
+  time_exe = find_program('gtime', required : false)
 else
   # other OS
-  time_exe = find_program('time')
+  time_exe = find_program('time', required : false)
 endif
 
 fs = import('fs')

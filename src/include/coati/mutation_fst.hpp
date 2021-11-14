@@ -27,7 +27,6 @@
 
 #include <string>
 
-#include "fasta.hpp"
 #include "matrix.hpp"
 #include "utils.hpp"
 

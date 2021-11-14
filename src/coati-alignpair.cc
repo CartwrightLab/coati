@@ -29,7 +29,7 @@
 #include <coati/utils.hpp>
 
 int main(int argc, char* argv[]) {
-    coati::utils::args_t args;
+    coati::args_t args;
 
     // Parse command line options
     CLI::App alignpair;
@@ -37,41 +37,21 @@ int main(int argc, char* argv[]) {
                                   coati::utils::Command::ALIGNPAIR);
     CLI11_PARSE(alignpair, argc, argv);
 
-    // if no output is specified save in current dir in PHYLIP format
-    if(args.output.empty()) {
-        args.output = args.fasta.path.stem();
-        args.output += std::filesystem::path(".phy");
-    } else {  // check format is valid (phylip/fasta)
-        const std::string extension = args.output.extension();
-        const std::regex valid_ext("^.phy$|^.fasta$|^.fa$");
-        if(!std::regex_match(extension, valid_ext)) {
-            throw std::invalid_argument(
-                "Output file format is invalid. Phylip and fasta files "
-                "supported.");
-        }
-    }
+    // set substitution matrix according to model
+    coati::utils::set_subst(args.aln);
 
-    coati::utils::alignment_t aln;
-    coati::utils::set_subst(args, aln);
+    // read input data
+    args.aln.data = coati::utils::read_input(args.aln);
 
-    // subst models aligned by dynamic programming
-    if(aln.is_marginal()) {
-        args.fasta = coati::read_fasta(args.fasta.path.string());
-        aln.fasta.path = args.output;
-        aln.fasta.names = args.fasta.names;
-
-        if(args.fasta.size() != 2) {
-            throw std::invalid_argument("Exactly two sequences required.");
-        }
-        return coati::marg_alignment(args, aln) ? 0 : 1;
-    }
-    // subst models aligned by FST composition
-    args.fasta = coati::read_fasta(args.fasta.path.string(), aln.seqs);
-    aln.fasta.path = args.output;
-    aln.fasta.names = args.fasta.names;
-
-    if(args.fasta.names.size() != 2 || args.fasta.size() != aln.seqs.size()) {
+    if(args.aln.data.size() != 2) {
         throw std::invalid_argument("Exactly two sequences required.");
     }
-    return coati::fst_alignment(args, aln) ? 0 : 1;
+
+    if(args.aln.is_marginal()) {
+        // alignment with marginal model by dynamic programming
+        return coati::marg_alignment(args.aln) ? 0 : 1;
+    }
+
+    // alignment with non-marginal model by FST composition
+    return coati::fst_alignment(args.aln) ? 0 : 1;
 }

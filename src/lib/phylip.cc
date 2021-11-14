@@ -27,35 +27,237 @@
 constexpr std::size_t PRINT_SIZE = 100;
 
 namespace coati {
+/**
+ * \brief Read phylip format file and create FSAs.
+ *
+ * @param[in] f_path std::string path to input file.
+ * @param[in] marginal bool true if marginal model.
+ *
+ * \return file path, names, and sequences (data_t).
+ */
+coati::data_t read_phylip(const std::string& f_path, bool marginal) {
+    coati::data_t phylip(f_path);
+
+    std::istream* pin;
+    std::ifstream infile;  // input file
+    coati::file_type_t in_type;
+    if(f_path.empty() || f_path == "-") {
+        pin = &std::cin;  // set to stdin
+        in_type.path = "-";
+    } else {
+        infile.open(f_path);
+        if(!infile || !infile.good()) {
+            throw std::invalid_argument("Opening input file" + f_path +
+                                        " failed.");
+        }
+        pin = &infile;  // set to file
+        in_type = coati::utils::extract_file_type(f_path);
+    }
+    std::istream& in = *pin;
+
+    int n_seqs, len_seqs;
+    std::string line;
+
+    // get number of sequences and length
+    getline(in, line);
+    std::vector<std::string> unsplitted;
+    boost::split(unsplitted, line, boost::is_any_of("\t "));
+    n_seqs = std::stoi(unsplitted[0]);
+    len_seqs = std::stoi(unsplitted[1]);
+
+    // reserve space for sequences
+    phylip.names.resize(n_seqs);
+    phylip.seqs.resize(n_seqs);
+    phylip.fsts.resize(n_seqs);
+
+    // read sequences name and first nucleotides
+    for(int i = 0; i < n_seqs; i++) {
+        phylip.seqs[i].resize(len_seqs);
+        getline(in, line);
+        boost::split(unsplitted, line, boost::is_any_of("\t "));
+        phylip.names[i] = unsplitted[0];
+        phylip.seqs[i] = unsplitted[1];
+    }
+
+    size_t count{0}, index;
+    std::string name;
+    // read rest of sequences
+    while(in.good()) {
+        index = count % n_seqs;
+        getline(in, line);
+        if(line.empty()) {
+            continue;  // omit empty lines
+        }
+        // Remove spaces
+        line.erase(remove_if(line.begin(), line.end(), ::isspace), line.end());
+        phylip.seqs[index] += line;
+        count++;
+    }
+
+    // if FST alignment, create FSAs
+    if(!marginal) {
+        for(int i = 0; i < n_seqs; i++) {
+            VectorFstStdArc accept;  // create FSA with sequence
+            if(!acceptor(phylip.seqs[i], accept)) {
+                throw std::runtime_error("Creating acceptor from " + f_path +
+                                         " failed. Exiting!");
+            }
+            phylip.fsts[i] = accept;  // Add FSA
+        }
+    }
+
+    return phylip;
+}
+
+/// @private
+TEST_CASE("read_phylip") {
+    // cppcheck-suppress unusedVariable
+    std::vector<VectorFstStdArc> fsts;
+    std::ofstream outfile;
+
+    SUBCASE("Read test-read-phylip-fst.phy") {
+        std::string filename{"test-read-phylip-fst.phy"};
+        outfile.open(filename);
+        REQUIRE(outfile);
+        outfile << "2\t100" << std::endl;
+        outfile << "1\t"
+                << "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATA"
+                   "GCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGG"
+                << std::endl;
+        outfile << "2\t"
+                << "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
+                   "ACTATACTATACTATACTATACTATACTATACTATAC"
+                << std::endl;
+        outfile << std::endl;  // blank line
+        outfile << "ATAG" << std::endl;
+        outfile << "TATA" << std::endl;
+        outfile.close();
+
+        coati::data_t phylip = read_phylip(filename, false);
+        CHECK(std::filesystem::remove(phylip.path.string()));
+
+        CHECK(phylip.seqs[0] ==
+              "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCT"
+              "GGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAG");
+        CHECK(phylip.seqs[1] ==
+              "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
+              "ACTATACTATACTATACTATACTATACTATACTATA");
+
+        CHECK(phylip.fsts[0].NumStates() == 101);
+        CHECK(phylip.fsts[1].NumStates() == 101);
+
+        for(int i = 0; i < 99; i++) {
+            CHECK(phylip.fsts[0].NumArcs(i) == 1);
+            CHECK(phylip.fsts[1].NumArcs(i) == 1);
+        }
+    }
+
+    SUBCASE("Read test-read-phylip.phy") {
+        std::string filename{"test-read-phylip.phy"};
+        outfile.open(filename);
+        REQUIRE(outfile);
+        outfile << "2\t100" << std::endl;
+        outfile << "1\t"
+                << "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATA"
+                   "GCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGG"
+                << std::endl;
+        outfile << "2\t"
+                << "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
+                   "ACTATACTATACTATACTATACTATACTATACTATAC"
+                << std::endl;
+        outfile << std::endl;  // blank line
+        outfile << "ATAG" << std::endl;
+        outfile << "TATA" << std::endl;
+        outfile.close();
+
+        coati::data_t phylip = read_phylip(filename, true);
+        CHECK(std::filesystem::remove(phylip.path.string()));
+
+        CHECK(phylip.seqs[0] ==
+              "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCT"
+              "GGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAG");
+        CHECK(phylip.seqs[1] ==
+              "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
+              "ACTATACTATACTATACTATACTATACTATACTATA");
+
+        CHECK(phylip.names[0] == "1");
+        CHECK(phylip.names[1] == "2");
+    }
+
+    SUBCASE("Error opening phylip") {
+        REQUIRE_THROWS_AS(read_phylip("test-9999999999.phy", false),
+                          std::invalid_argument);
+        REQUIRE_THROWS_AS(read_phylip("test-9999999999.phy", true),
+                          std::invalid_argument);
+    }
+}
 
 /**
  * \brief Write alignment in PHYLIP format
  *
- * @param[in] fasta coati::fasta_t path, names, and sequences.
+ * @param[in] phylip coati::data_t path, names, and sequences.
+ * @param[in] aln fst::VectorFst<fst::StdArc> aligned sequences in FST form.
  */
-bool write_phylip(const coati::fasta_t& fasta) {
-    std::ofstream outfile;
-    outfile.open(fasta.path);
-    if(!outfile) {
-        throw std::invalid_argument("Opening output file " +
-                                    fasta.path.string() + " failed.");
+bool write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
+    if(aln.NumStates() > 1) {
+        fst::SymbolTable symbols;
+        fill_symbol_table(symbols);
+
+        std::string seq1, seq2;
+        fst::StateIterator<fst::StdFst> siter(aln);  // FST state iterator
+        for(int i = 0; i < (aln.NumStates() - 1); siter.Next(), i++) {
+            fst::ArcIteratorData<fst::StdArc> data;
+            aln.InitArcIterator(siter.Value(), &data);
+            seq1.append(symbols.Find(data.arcs[0].ilabel));
+            seq2.append(symbols.Find(data.arcs[0].olabel));
+        }
+
+        phylip.seqs.clear();
+        phylip.seqs.resize(2);
+        phylip.seqs[0] = seq1;
+        phylip.seqs[1] = seq2;
+
+        // map all epsilons (<eps>) to gaps (-)
+        while(phylip.seqs[0].find("<eps>") != std::string::npos) {
+            phylip.seqs[0].replace(phylip.seqs[0].find("<eps>"), 5, "-");
+        }
+        while(phylip.seqs[1].find("<eps>") != std::string::npos) {
+            phylip.seqs[1].replace(phylip.seqs[1].find("<eps>"), 5, "-");
+        }
     }
+    // set output pointer
+    std::ostream* pout;
+    std::ofstream outfile;
+    // coati::file_type_t out_type;
+    if(phylip.out_file.path == "-" || phylip.out_file.path == "-.phy") {
+        pout = &std::cout;
+    } else {
+        outfile.open(phylip.out_file.path);
+        // outfile.open(phylip.output);
+        if(!outfile) {
+            throw std::invalid_argument("Opening output file " +
+                                        phylip.out_file.path + " failed.");
+        }
+        pout = &outfile;
+        // out_type = coati::utils::extract_file_type(phylip.output.string());
+    }
+    std::ostream& out = *pout;
 
     // write aligned sequences to file
-    outfile << fasta.size() << " " << fasta.seqs[0].length() << std::endl;
+    out << phylip.size() << " " << phylip.seqs[0].length() << std::endl;
     size_t i = PRINT_SIZE - 4 -
-               std::max(fasta.names[0].length(), fasta.names[1].length());
-    for(size_t j = 0; j < fasta.size(); j++) {
-        outfile << fasta.names[j] << "\t" << fasta.seqs[j].substr(0, i)
-                << std::endl;
+               std::max(phylip.names[0].length(), phylip.names[1].length());
+    for(size_t j = 0; j < phylip.size(); j++) {
+        out << phylip.names[j] << "\t" << phylip.seqs[j].substr(0, i)
+            << std::endl;
     }
-    outfile << std::endl;
+    out << std::endl;
 
-    for(; i < fasta.seqs[0].length(); i += PRINT_SIZE) {
-        for(size_t j = 0; j < fasta.size(); j++) {
-            outfile << fasta.seqs[j].substr(i, PRINT_SIZE) << std::endl;
+    for(; i < phylip.seqs[0].length(); i += PRINT_SIZE) {
+        for(size_t j = 0; j < phylip.size(); j++) {
+            out << phylip.seqs[j].substr(i, PRINT_SIZE) << std::endl;
         }
-        outfile << std::endl;
+        out << std::endl;
     }
 
     return true;
@@ -64,12 +266,12 @@ bool write_phylip(const coati::fasta_t& fasta) {
 /// @private
 TEST_CASE("write_phylip") {
     SUBCASE("Short sequences") {
-        coati::fasta_t fasta("test-write-phylip.phylip", {"1", "2"},
-                             {"CTCTGGATAGTG", "CT----ATAGTG"});
+        coati::data_t phylip("", {"1", "2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
+        phylip.out_file = {{"test-write-phylip.phy"}, {"phy"}};
 
-        REQUIRE(write_phylip(fasta));
+        REQUIRE(write_phylip(phylip));
 
-        std::ifstream infile("test-write-phylip.phylip");
+        std::ifstream infile("test-write-phylip.phy");
         std::string s1, s2;
 
         infile >> s1 >> s2;
@@ -84,20 +286,21 @@ TEST_CASE("write_phylip") {
         CHECK(s1.compare("2") == 0);
         CHECK(s2.compare("CT----ATAGTG") == 0);
 
-        CHECK(std::filesystem::remove("test-write-phylip.phylip"));
+        CHECK(std::filesystem::remove("test-write-phylip.phy"));
     }
 
     SUBCASE("Multi-line sequences") {
-        coati::fasta_t fasta(
-            "test-write-phylip.phylip", {"1", "2"},
+        coati::data_t phylip(
+            "", {"1", "2"},
             {"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"});
 
-        REQUIRE(write_phylip(fasta));
+        phylip.out_file = {{"test-write-phylip-long.phy"}, {"phy"}};
+        REQUIRE(write_phylip(phylip));
 
-        std::ifstream infile("test-write-phylip.phylip");
+        std::ifstream infile("test-write-phylip-long.phy");
         std::string s1, s2;
 
         infile >> s1 >> s2;
@@ -114,80 +317,39 @@ TEST_CASE("write_phylip") {
         CHECK(s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
                          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == 0);
 
-        CHECK(std::filesystem::remove("test-write-phylip.phylip"));
+        CHECK(std::filesystem::remove("test-write-phylip-long.phy"));
     }
+    SUBCASE("fst") {
+        coati::data_t phylip("", {"1", "2"});
+        phylip.out_file = {{"test-write-phylip.phy"}, {"phy"}};
 
-    SUBCASE("Opening file fails") {
-        coati::fasta_t fasta("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        VectorFstStdArc fst_write;
+        fst_write.AddState();
+        fst_write.SetStart(0);
+        add_arc(fst_write, 0, 1, 2, 2);  // C -> C
+        add_arc(fst_write, 1, 2, 4, 4);  // T -> T
+        add_arc(fst_write, 2, 3, 0, 2);  // - -> C
+        add_arc(fst_write, 3, 4, 1, 0);  // A -> -
+        fst_write.SetFinal(4, 0.0);
 
-        REQUIRE_THROWS_AS(write_phylip(fasta), std::invalid_argument);
+        REQUIRE(write_phylip(phylip, fst_write));
+        std::ifstream infile("test-write-phylip.phy");
+        std::string s1, s2;
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("4") == 0);
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("1") == 0);
+        CHECK(s2.compare("CT-A") == 0);
+
+        infile >> s1 >> s2;
+        CHECK(s1.compare("2") == 0);
+        CHECK(s2.compare("CTC-") == 0);
+
+        CHECK(std::filesystem::remove("test-write-phylip.phy"));
     }
 }
 
-/**
- * \brief Write shortest path (alignment) in PHYLIP format
- *
- * @param[in] aln coati::VectorFstStdArc FST containing alignment.
- * @param[in] fasta coati::fasta_t path and names.
- *
- */
-bool write_phylip(const VectorFstStdArc& aln, coati::fasta_t& fasta) {
-    fst::SymbolTable symbols;
-    fill_symbol_table(symbols);
-
-    std::string seq1, seq2;
-    fst::StateIterator<fst::StdFst> siter(aln);  // FST state iterator
-    for(int i = 0; i < (aln.NumStates() - 1); siter.Next(), i++) {
-        fst::ArcIteratorData<fst::StdArc> data;
-        aln.InitArcIterator(siter.Value(), &data);
-        seq1.append(symbols.Find(data.arcs[0].ilabel));
-        seq2.append(symbols.Find(data.arcs[0].olabel));
-    }
-
-    fasta.seqs.resize(2);
-    fasta.seqs[0] = seq1;
-    fasta.seqs[1] = seq2;
-
-    // map all epsilons (<eps>) to gaps (-)
-    while(fasta.seqs[0].find("<eps>") != std::string::npos) {
-        fasta.seqs[0].replace(fasta.seqs[0].find("<eps>"), 5, "-");
-    }
-    while(fasta.seqs[1].find("<eps>") != std::string::npos) {
-        fasta.seqs[1].replace(fasta.seqs[1].find("<eps>"), 5, "-");
-    }
-
-    return write_phylip(fasta);
-}
-
-/// @private
-TEST_CASE("write_phylip-fst") {
-    coati::fasta_t fasta("test-write-phylip.phylip", {"1", "2"});
-
-    VectorFstStdArc fst_write;
-    fst_write.AddState();
-    fst_write.SetStart(0);
-    add_arc(fst_write, 0, 1, 2, 2);  // C -> C
-    add_arc(fst_write, 1, 2, 4, 4);  // T -> T
-    add_arc(fst_write, 2, 3, 0, 2);  // - -> C
-    add_arc(fst_write, 3, 4, 1, 0);  // A -> -
-    fst_write.SetFinal(4, 0.0);
-
-    REQUIRE(write_phylip(fst_write, fasta));
-    std::ifstream infile("test-write-phylip.phylip");
-    std::string s1, s2;
-
-    infile >> s1 >> s2;
-    CHECK(s1.compare("2") == 0);
-    CHECK(s2.compare("4") == 0);
-
-    infile >> s1 >> s2;
-    CHECK(s1.compare("1") == 0);
-    CHECK(s2.compare("CT-A") == 0);
-
-    infile >> s1 >> s2;
-    CHECK(s1.compare("2") == 0);
-    CHECK(s2.compare("CTC-") == 0);
-
-    CHECK(std::filesystem::remove("test-write-phylip.phylip"));
-}
 }  // namespace coati

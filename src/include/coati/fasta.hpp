@@ -29,44 +29,14 @@
 #include <string>
 #include <vector>
 
+#include "structs.hpp"
+
 namespace coati {
 
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
-struct fasta_t {
-    std::filesystem::path path;     /*!< path to fasta file */
-    std::vector<std::string> names; /*!< names of fasta sequences */
-    std::vector<std::string> seqs;  /*!< fasta sequences */
-
-    fasta_t() = default;
-    explicit fasta_t(std::filesystem::path p, std::vector<std::string> n = {},
-                     std::vector<std::string> s = {})
-        : path{std::move(p)}, names{std::move(n)}, seqs{std::move(s)} {}
-
-    /** \brief Return number of names/sequences */
-    size_t size() {
-        if(names.size() != seqs.size()) {
-            throw std::invalid_argument(
-                "Different number of sequences and names in fasta file.");
-        }
-        return names.size();
-    }
-
-    /** \brief Return number of names/sequences */
-    [[nodiscard]] size_t size() const {
-        if(names.size() != seqs.size()) {
-            throw std::invalid_argument(
-                "Different number of sequences and names in fasta file.");
-        }
-        return names.size();
-    }
-};
-
-fasta_t read_fasta(const std::string& f_path,
-                   std::vector<VectorFstStdArc>& fsts);
-fasta_t read_fasta(const std::string& f_path);
-bool write_fasta(const VectorFstStdArc& aln, fasta_t& fasta);
-bool write_fasta(const fasta_t& fasta);
+coati::data_t read_fasta(const std::string& f_path, bool marginal);
+bool write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln = {});
 
 }  // namespace coati
 

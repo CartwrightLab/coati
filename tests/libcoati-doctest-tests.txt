@@ -2,10 +2,8 @@ fst_alignment
 marg_alignment
 alignment_score
 ref_indel_alignment
-read_fasta-fst
 read_fasta
 write_fasta
-write_fasta-fst
 insertion_flags
 merge_indels
 add_gap
@@ -17,8 +15,8 @@ mg94
 dna
 nuc2pos
 indel
+read_phylip
 write_phylip
-write_phylip-fst
 parse_newick
 aln_order
 find_seq
@@ -28,5 +26,7 @@ distance_ref
 parse_matrix_csv
 marginal_seq_encoding
 extract_file_type
+read_input
+write_output
 version_number_check_equal
 version_integer

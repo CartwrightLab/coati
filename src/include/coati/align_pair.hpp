@@ -28,6 +28,7 @@
 #include <random.hpp>
 #include <string_view>
 
+#include "structs.hpp"
 #include "utils.hpp"
 
 namespace coati {
@@ -85,15 +86,15 @@ inline float_t plus(float_t x, float_t y, float_t z) {
 }
 
 void align_pair(align_pair_work_t &work, const seq_view_t &a,
-                const seq_view_t &b, const Matrixf &match, utils::args_t &args);
+                const seq_view_t &b, alignment_t &aln);
 void traceback(const align_pair_work_t &work, const std::string &a,
-               const std::string &b, utils::alignment_t &aln, size_t look_back);
+               const std::string &b, alignment_t &aln, size_t look_back);
 
 void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
-             const Matrixf &match, utils::args_t &args);
+             const Matrixf &match, args_t &args);
 
 void sampleback(const align_pair_work_t &work, const std::string &a,
-                const std::string &b, utils::alignment_t &aln, size_t look_back,
+                const std::string &b, alignment_t &aln, size_t look_back,
                 random_t &rand);
 
 }  // namespace coati

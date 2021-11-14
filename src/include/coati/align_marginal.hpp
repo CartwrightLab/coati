@@ -31,11 +31,11 @@
 #include "utils.hpp"
 
 namespace coati {
-bool marg_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln);
-float alignment_score(coati::utils::args_t& args, coati::Matrixf& P);
+bool marg_alignment(coati::alignment_t& aln);
+float alignment_score(coati::alignment_t& aln, coati::Matrixf& P);
 
-void marg_sample(coati::utils::args_t& args, coati::utils::alignment_t& aln,
-    random_t &rand);
+void marg_sample(coati::alignment_t& aln, size_t sample_size,
+                 random_t& rand);
 
 }  // namespace coati
 #endif

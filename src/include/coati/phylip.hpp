@@ -26,10 +26,10 @@
 #include <fstream>
 #include <string>
 
-#include "coati/fasta.hpp"
+#include "coati/utils.hpp"
 
 namespace coati {
-bool write_phylip(const coati::fasta_t& fasta);
-bool write_phylip(const VectorFstStdArc& aln, coati::fasta_t& fasta);
+coati::data_t read_phylip(const std::string& f_path, bool marginal);
+bool write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln = {});
 }  // namespace coati
 #endif

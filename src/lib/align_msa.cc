@@ -32,19 +32,19 @@ namespace coati {
  * Multiple sequence alignment by pairwise alignment reference with rest of
  *  sequences using coati::align_pair, then merging indels.
  *
- * @param[in] args coati::utils::args_t input parameters.
+ * @param[in] input coati::alignment_t alignment parameters.
  */
 /* Initial msa by collapsing indels after pairwise aln with reference */
-bool ref_indel_alignment(coati::utils::args_t& args) {
-    coati::Matrixf P(64, 64), p_marg;
+bool ref_indel_alignment(coati::alignment_t& input) {
+    coati::Matrixf P(64, 64), p_marg;  // TODO: remove this?
     coati::tree::tree_t tree;
     std::string newick;
-    coati::utils::alignment_t aln, aln_tmp;
+    coati::alignment_t aln, aln_tmp;
 
-    aln.fasta = coati::fasta_t(args.output);
+    aln.data.out_file = input.data.out_file;
 
     // read newick tree file
-    if(!coati::tree::read_newick(args.tree, newick)) {
+    if(!coati::tree::read_newick(input.tree, newick)) {
         throw std::invalid_argument("Reading newick tree failed.");
     }
 
@@ -54,22 +54,22 @@ bool ref_indel_alignment(coati::utils::args_t& args) {
     }
 
     // reroot tree
-    if(!coati::tree::reroot(tree, args.ref)) {
+    if(!coati::tree::reroot(tree, input.ref)) {
         throw std::invalid_argument("Re-rooting tree failed.");
     }
 
     // find position of ref in tree
     std::size_t ref_pos = 0;
-    if(!coati::tree::find_node(tree, args.ref, ref_pos)) {
+    if(!coati::tree::find_node(tree, input.ref, ref_pos)) {
         throw std::invalid_argument("Reference node not found in tree.");
     }
 
-    // find sequence of ref in args
+    // find sequence of ref in input
     std::vector<std::string> pair_seqs;
     std::string ref_seq;
-    if(!coati::tree::find_seq(args.ref, args.fasta, ref_seq)) {
-        throw std::invalid_argument("reference sequence " + args.ref +
-                                    " not found in fasta file.");
+    if(!coati::tree::find_seq(input.ref, input.data, ref_seq)) {
+        throw std::invalid_argument("reference sequence " + input.ref +
+                                    " not found in input file.");
     }
 
     pair_seqs.push_back(ref_seq);
@@ -80,40 +80,39 @@ bool ref_indel_alignment(coati::utils::args_t& args) {
 
     // add insertion_data for REF
     nodes_ins[ref_pos] = insertion_data_t(
-        ref_seq, args.ref,
+        ref_seq, input.ref,
         SparseVectorInt(static_cast<Eigen::Index>(2 * ref_seq.length())));
 
     // pairwise alignment for each leaf
     std::string node_seq;
     for(std::size_t node = 0; node < tree.size(); node++) {
-        if(tree[node].is_leaf && (tree[node].label != args.ref)) {
+        if(tree[node].is_leaf && (tree[node].label != input.ref)) {
             float branch = distance_ref(tree, ref_pos, node);
-            if(!coati::tree::find_seq(tree[node].label, args.fasta, node_seq)) {
+            if(!coati::tree::find_seq(tree[node].label, input.data, node_seq)) {
                 throw std::invalid_argument("sequence " + tree[node].label +
-                                            " not found in fasta file.");
+                                            " not found in input file.");
             }
 
             pair_seqs[1] = node_seq;
 
-            args.br_len = branch;
-            coati::utils::set_subst(args, aln_tmp);
+            input.br_len = branch;
+            coati::utils::set_subst(input);
 
-            aln_tmp.fasta.seqs.clear();
+            aln_tmp.data.seqs.clear();
             auto anc = pair_seqs[0];
             auto des = pair_seqs[1];
             coati::align_pair_work_t work;
             coati::utils::sequence_pair_t seq_pair =
                 coati::utils::marginal_seq_encoding(anc, des);
-            coati::align_pair(work, seq_pair[0], seq_pair[1],
-                              aln_tmp.subst_matrix, args);
-            coati::traceback(work, anc, des, aln_tmp, args.gap.len);
+            coati::align_pair(work, seq_pair[0], seq_pair[1], input);
+            coati::traceback(work, anc, des, aln_tmp, input.gap.len);
 
             SparseVectorInt ins_vector(
-                static_cast<Eigen::Index>(aln_tmp.fasta.seqs[1].length()));
-            insertion_flags(aln_tmp.fasta.seqs[0], aln_tmp.fasta.seqs[1],
+                static_cast<Eigen::Index>(aln_tmp.data.seqs[1].length()));
+            insertion_flags(aln_tmp.data.seqs[0], aln_tmp.data.seqs[1],
                             ins_vector);
 
-            nodes_ins[node] = insertion_data_t(aln_tmp.fasta.seqs[1],
+            nodes_ins[node] = insertion_data_t(aln_tmp.data.seqs[1],
                                                tree[node].label, ins_vector);
         }
     }
@@ -174,19 +173,16 @@ bool ref_indel_alignment(coati::utils::args_t& args) {
 
     // transfer result data nodes_ins[ROOT] --> aln && order sequences
     auto root = tree[ref_pos].parent;
-    for(const auto& name : args.fasta.names) {
+    for(const auto& name : input.data.names) {
         auto it = find(nodes_ins[root].names.begin(),
                        nodes_ins[root].names.end(), name);
         auto index = distance(nodes_ins[root].names.begin(), it);
-        aln.fasta.names.push_back(nodes_ins[root].names[index]);
-        aln.fasta.seqs.push_back(nodes_ins[root].sequences[index]);
+        aln.data.names.push_back(nodes_ins[root].names[index]);
+        aln.data.seqs.push_back(nodes_ins[root].sequences[index]);
     }
 
     // write alignment
-    if(std::filesystem::path(aln.fasta.path).extension() == ".fasta") {
-        return write_fasta(aln.fasta);
-    }
-    return coati::write_phylip(aln.fasta);
+    return coati::utils::write_output(aln.data);
 }
 
 /// @private
@@ -198,59 +194,69 @@ TEST_CASE("ref_indel_alignment") {
     outfile.close();
 
     SUBCASE("m-coati model") {
-        coati::utils::args_t args;
-        args.fasta = coati::fasta_t("", {"A", "B", "C", "D", "E"}, {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"});
-        args.model = "m-coati";
-        args.weight_file = "";
-        args.output = "test-mecm-msa.fasta";
-        args.tree = "tree-msa.newick";
-        args.ref = "A";
-        coati::fasta_t result(args.output);
+        coati::alignment_t aln;
+        aln.data =
+            coati::data_t("", {"A", "B", "C", "D", "E"},
+                          {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"});
+        aln.model = "m-coati";
+        aln.data.out_file = {{"test-mecm-msa.fasta"}, {".fasta"}};
+        aln.tree = "tree-msa.newick";
+        aln.ref = "A";
 
-        REQUIRE(ref_indel_alignment(args));
-        result = coati::read_fasta(args.output.string());
+        REQUIRE(ref_indel_alignment(aln));
 
-        CHECK(std::filesystem::remove(args.output));
+        std::ifstream infile(aln.data.out_file.path);
+        std::string s1, s2;
 
-        CHECK(result.names[0] == "A");
-        CHECK(result.names[1] == "B");
-        CHECK(result.names[2] == "C");
-        CHECK(result.names[3] == "D");
-        CHECK(result.names[4] == "E");
-
-        CHECK(result.seqs[0] == "TCA--TCG");
-        CHECK(result.seqs[1] == "TCA-GTCG");
-        CHECK(result.seqs[2] == "T-A--TCG");
-        CHECK(result.seqs[3] == "TCAC-TCG");
-        CHECK(result.seqs[4] == "TCA--TC-");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">A");
+        CHECK(s2 == "TCA--TCG");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">B");
+        CHECK(s2 == "TCA-GTCG");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">C");
+        CHECK(s2 == "T-A--TCG");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">D");
+        CHECK(s2 == "TCAC-TCG");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">E");
+        CHECK(s2 == "TCA--TC-");
+        CHECK(std::filesystem::remove(aln.data.out_file.path));
     }
 
     SUBCASE("m-ecm model") {
-        coati::utils::args_t args;
-        args.fasta = coati::fasta_t("", {"A", "B", "C", "D", "E"}, {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"});
-        args.model = "m-ecm";
-        args.weight_file = "";
-        args.output = "test-mecm-msa.fasta";
-        args.tree = "tree-msa.newick";
-        args.ref = "A";
-        coati::fasta_t result(args.output);
+        coati::alignment_t aln;
+        aln.data =
+            coati::data_t("", {"A", "B", "C", "D", "E"},
+                          {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"});
+        aln.model = "m-ecm";
+        aln.data.out_file = {{"test-mecm-msa.fasta"}, {".fasta"}};
+        aln.tree = "tree-msa.newick";
+        aln.ref = "A";
 
-        REQUIRE(ref_indel_alignment(args));
-        result = coati::read_fasta(args.output.string());
+        REQUIRE(ref_indel_alignment(aln));
 
-        CHECK(std::filesystem::remove(args.output));
+        std::ifstream infile(aln.data.out_file.path);
+        std::string s1, s2;
 
-        CHECK(result.names[0] == "A");
-        CHECK(result.names[1] == "B");
-        CHECK(result.names[2] == "C");
-        CHECK(result.names[3] == "D");
-        CHECK(result.names[4] == "E");
-
-        CHECK(result.seqs[0] == "TCA--TCG");
-        CHECK(result.seqs[1] == "TCA-GTCG");
-        CHECK(result.seqs[2] == "T-A--TCG");
-        CHECK(result.seqs[3] == "TCAC-TCG");
-        CHECK(result.seqs[4] == "TCA--TC-");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">A");
+        CHECK(s2 == "TCA--TCG");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">B");
+        CHECK(s2 == "TCA-GTCG");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">C");
+        CHECK(s2 == "T-A--TCG");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">D");
+        CHECK(s2 == "TCAC-TCG");
+        infile >> s1 >> s2;
+        CHECK(s1 == ">E");
+        CHECK(s2 == "TCA--TC-");
+        CHECK(std::filesystem::remove(aln.data.out_file.path));
     }
 
     CHECK(std::filesystem::remove("tree-msa.newick"));

@@ -43,6 +43,8 @@
 #include "mutation_coati.hpp"
 #include "mutation_ecm.hpp"
 #include "mutation_fst.hpp"
+#include "phylip.hpp"
+#include "structs.hpp"
 
 /* Table for converting a nucleotide character to 2-bit encoding */
 const uint8_t nt4_table[256] = {
@@ -70,88 +72,24 @@ using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 using sequence_pair_t = std::vector<std::basic_string<unsigned char>>;
 
-struct gap_t {
-    std::size_t len{1};                 /*!< unit size of gaps */
-    float_t open{0.001};                /*!< gap opening score */
-    float_t extend{1.0f - 1.0f / 6.0f}; /*!< gap extension score */
-
-    gap_t() = default;
-    explicit gap_t(std::size_t l, float_t o = 0.001,
-                   float_t e = 1.0f - 1.0f / 6.0f)
-        : len{l}, open{o}, extend{e} {}
-};
-
-struct args_t {
-    coati::fasta_t fasta;         /*!< fasta struct */
-    std::string model{"m-coati"}; /*!< substitution model */
-    std::string weight_file{""};  /*!< file to output alignment weight */
-    std::filesystem::path output; /*!< path to alignment output file */
-    bool score{false};            /*!< if true an input alignment is scored */
-    std::string tree{""};         /*!< path to input newick tree file */
-    std::string ref{""};          /*!< name of reference sequence */
-    std::string rate{""};   /*!< path to csv input substitution matrix file */
-    gap_t gap;              /*!< gap struct */
-    float_t br_len{0.0133}; /*!< branch length */
-    float_t omega{0.2};     /*!< nonsynonymous-synonymous bias */
-    std::vector<float_t> pi{0.308, 0.185, 0.199,
-                            0.308}; /*!< nucleotide frequencies */
-    float_t temperature{1.0f};
-    size_t sample_size{1};
-};
-
 coati::Matrixf parse_matrix_csv(const std::string& file);
-
-struct alignment_t {
-    coati::fasta_t fasta;              /*!< fasta struct */
-    float_t weight{0.0};               /*!< alignment weight */
-    std::filesystem::path weight_file; /*!< file to output alignment weight */
-    std::string model{""};             /*!< substitution model */
-    Matrixf subst_matrix;              /*!< substitution matrix */
-    VectorFstStdArc subst_fst;         /*!< substitution FST */
-    std::vector<VectorFstStdArc> seqs = {}; /*!< sequences as FSTs */
-
-    alignment_t() = default;
-    // NOLINTNEXTLINE(misc-unused-parameters)
-    alignment_t(const std::filesystem::path& f,
-                const std::vector<std::string>& n,
-                // NOLINTNEXTLINE(misc-unused-parameters)
-                const std::vector<std::string>& s, float_t w,
-                std::filesystem::path w_f, std::string m, Matrixf p,
-                VectorFstStdArc fst, std::vector<VectorFstStdArc> ss)
-        : fasta{coati::fasta_t(f, n, s)},
-          weight{w},
-          weight_file{std::move(w_f)},
-          model{std::move(m)},
-          subst_matrix{std::move(p)},
-          subst_fst{std::move(fst)},
-          seqs{std::move(ss)} {}
-
-    /** \brief Return true if model selected is marginal (m-coati or m-ecm) */
-    bool is_marginal() {
-        return (model.compare("m-coati") == 0 || model.compare("m-ecm") == 0);
-    }
-};
 
 enum struct Command { ALIGNPAIR, MSA, SAMPLE, FORMAT };
 
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(const std::string& codon);
-void set_cli_options(CLI::App& app, coati::utils::args_t& args,
+void set_cli_options(CLI::App& app, coati::args_t& args,
                      const coati::utils::Command& command);
 sequence_pair_t marginal_seq_encoding(const std::string& anc,
                                       const std::string& des);
-void set_subst(args_t& args, alignment_t& aln);
-
-// extracts extension and filename from both file.foo and ext:file.foo
-struct file_type_t {
-    std::string path;
-    std::string type_ext;
-};
+void set_subst(alignment_t& aln);
 
 // returns {.ext, file.foo}
 // trims whitespace as well
 file_type_t extract_file_type(std::string path);
 
+data_t read_input(alignment_t& aln);
+bool write_output(data_t& data, const VectorFstStdArc& aln = {});
 // calculate log(1+exp(x))
 // https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
 inline float_t log1p_exp(float_t x) {

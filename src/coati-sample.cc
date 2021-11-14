@@ -25,11 +25,10 @@
 #include <CLI11.hpp>
 #include <coati/align_fst.hpp>
 #include <coati/align_marginal.hpp>
-#include <coati/fasta.hpp>
 #include <coati/utils.hpp>
 
 int main(int argc, char* argv[]) {
-    coati::utils::args_t args;
+    coati::args_t args;
 
     // Parse command line options
     CLI::App alignpair;
@@ -37,19 +36,18 @@ int main(int argc, char* argv[]) {
                                   coati::utils::Command::SAMPLE);
     CLI11_PARSE(alignpair, argc, argv);
 
-    coati::utils::alignment_t aln;
-    coati::utils::set_subst(args, aln);
+    // set substitution matrix according to model
+    coati::utils::set_subst(args.aln);
 
-    if(!aln.is_marginal()) {
+    if(!args.aln.is_marginal()) {
         throw std::invalid_argument(
             "Alignment model not currently implemented.");
     }
 
-    args.fasta = coati::read_fasta(args.fasta.path.string());
-    aln.fasta.path = args.output;
-    aln.fasta.names = args.fasta.names;
+    // read input data
+    args.aln.data = coati::utils::read_input(args.aln);
 
-    if(args.fasta.size() != 2) {
+    if(args.aln.data.size() != 2) {
         throw std::invalid_argument("Exactly two sequences required.");
     }
 
@@ -57,7 +55,7 @@ int main(int argc, char* argv[]) {
     auto seeds = fragmites::random::auto_seed_seq();
     rand.Seed(seeds);
 
-    coati::marg_sample(args, aln, rand);
+    coati::marg_sample(args.aln, args.sample_size, rand);
 
     return 0;
 }

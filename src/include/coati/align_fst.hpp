@@ -28,10 +28,9 @@
 #include <vector>
 
 #include "mutation_ecm.hpp"
-#include "phylip.hpp"
 #include "utils.hpp"
 
 namespace coati {
-bool fst_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln);
+bool fst_alignment(coati::alignment_t& aln);
 }  // namespace coati
 #endif

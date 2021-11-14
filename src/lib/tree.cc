@@ -334,15 +334,15 @@ TEST_CASE("aln_order") {
 }
 
 /**
- * \brief Find sequence in fasta_t given its name
+ * \brief Find sequence in data_t given its name
  *
  * @param[in] name std::string sequence name.
- * @param[in] f coati::fasta_t names and sequences.
+ * @param[in] f coati::data_t names and sequences.
  * @param[in,out] seq std::string sequence if found.
  *
  * \return true if found.
  */
-bool find_seq(const std::string& name, coati::fasta_t& f, std::string& seq) {
+bool find_seq(const std::string& name, coati::data_t& f, std::string& seq) {
     seq.clear();
 
     for(std::size_t i = 0; i < f.names.size(); i++) {
@@ -358,7 +358,7 @@ bool find_seq(const std::string& name, coati::fasta_t& f, std::string& seq) {
 TEST_CASE("find_seq") {
     // cppcheck-suppress unusedVariable
     std::string sequence;
-    coati::fasta_t fasta("", {"A", "B", "C"}, {"ACGT", "CGTA", "GTAC"});
+    coati::data_t fasta("", {"A", "B", "C"}, {"ACGT", "CGTA", "GTAC"});
 
     REQUIRE(!find_seq("Z", fasta,
                       sequence));  // fails, Z is not found -> seq is empty
