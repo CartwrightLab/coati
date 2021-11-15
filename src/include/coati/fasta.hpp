@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "structs.hpp"
+#include "utils.hpp"
 
 namespace coati {
 

@@ -40,14 +40,14 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
 
     std::istream* pin;
     std::ifstream infile;  // input file
-    coati::file_type_t in_type;
-    if(f_path.empty() || f_path == "-") {
+    coati::file_type_t in_type = coati::utils::extract_file_type(f_path);
+    if(in_type.path.empty() || in_type.path == "-") {
         pin = &std::cin;  // set to stdin
         in_type.path = "-";
     } else {
         infile.open(f_path);
         if(!infile || !infile.good()) {
-            throw std::invalid_argument("Opening input file" + f_path +
+            throw std::invalid_argument("Opening input file " + f_path +
                                         " failed.");
         }
         pin = &infile;  // set to file
@@ -229,7 +229,7 @@ bool write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
     std::ostream* pout;
     std::ofstream outfile;
     // coati::file_type_t out_type;
-    if(phylip.out_file.path == "-" || phylip.out_file.path == "-.phy") {
+    if(phylip.out_file.path == "-" || phylip.out_file.path.empty()) {
         pout = &std::cout;
     } else {
         outfile.open(phylip.out_file.path);

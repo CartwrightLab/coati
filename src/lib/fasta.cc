@@ -40,14 +40,14 @@ coati::data_t read_fasta(const std::string& f_path, bool marginal) {
     // set input pointer and file type
     std::istream* pin;
     std::ifstream infile;  // input file
-    coati::file_type_t in_type;
-    if(f_path.empty() || f_path == "-") {
+    coati::file_type_t in_type = coati::utils::extract_file_type(f_path);
+    if(in_type.path.empty() || in_type.path == "-") {
         pin = &std::cin;  // set to stdin
         in_type.path = "-";
     } else {
         infile.open(f_path);
         if(!infile || !infile.good()) {
-            throw std::invalid_argument("Opening input file" + f_path +
+            throw std::invalid_argument("Opening input file " + f_path +
                                         " failed.");
         }
         pin = &infile;  // set to file
@@ -191,7 +191,7 @@ bool write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
     // set output pointer
     std::ostream* pout;
     std::ofstream outfile;
-    if(fasta.out_file.path == "-" || fasta.out_file.path == "-.fasta") {
+    if(fasta.out_file.path == "-" || fasta.out_file.path.empty()) {
         pout = &std::cout;
     } else {
         outfile.open(fasta.out_file.path);

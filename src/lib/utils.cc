@@ -169,13 +169,8 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
                      const Command& command) {
     // Add new options/flags
     // TODO: switch syntax?
-    if(command == Command::FORMAT) {
-        app.add_option("fasta", args.aln.data.path, "Fasta file path");
-    } else {
-        app.add_option("fasta", args.aln.data.path, "Fasta file path")
-            ->required()
-            ->check(CLI::ExistingFile);
-    }
+    app.add_option("input", args.aln.data.path,
+                   "Input file (FASTA/PHYLIP accepted)");
     if(command == Command::MSA) {
         app.add_option("tree", args.aln.tree, "Newick phylogenetic tree")
             ->required()
@@ -366,14 +361,11 @@ TEST_CASE("extract_file_type") {
 }
 
 data_t read_input(alignment_t& aln) {
-    coati::file_type_t in_type;
-
     if(aln.output.empty()) {  // default output: json format & stdout
-        aln.data.out_file.path = "-";
-        aln.data.out_file.type_ext = ".json";
+        aln.output = "json:-";
     }
     data_t input_data;
-    in_type = coati::utils::extract_file_type(aln.data.path);
+    coati::file_type_t in_type = coati::utils::extract_file_type(aln.data.path);
 
     // call reader depending on file type
     if(in_type.type_ext == ".fa" || in_type.type_ext == ".fasta") {
@@ -443,7 +435,7 @@ bool write_output(data_t& data, const VectorFstStdArc& aln_path) {
     } else if(data.out_file.type_ext == ".phy") {
         return write_phylip(data, aln_path);
     } else if(data.out_file.type_ext == ".json") {
-        throw std::invalid_argument("Reading from json not supported yet.");
+        throw std::invalid_argument("Writing to json not supported yet.");
     } else {
         throw std::invalid_argument("Invalid output " + data.out_file.path +
                                     ".");
