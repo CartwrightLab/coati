@@ -200,30 +200,7 @@ TEST_CASE("read_phylip") {
  */
 bool write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
     if(aln.NumStates() > 1) {
-        fst::SymbolTable symbols;
-        fill_symbol_table(symbols);
-
-        std::string seq1, seq2;
-        fst::StateIterator<fst::StdFst> siter(aln);  // FST state iterator
-        for(int i = 0; i < (aln.NumStates() - 1); siter.Next(), i++) {
-            fst::ArcIteratorData<fst::StdArc> data;
-            aln.InitArcIterator(siter.Value(), &data);
-            seq1.append(symbols.Find(data.arcs[0].ilabel));
-            seq2.append(symbols.Find(data.arcs[0].olabel));
-        }
-
-        phylip.seqs.clear();
-        phylip.seqs.resize(2);
-        phylip.seqs[0] = seq1;
-        phylip.seqs[1] = seq2;
-
-        // map all epsilons (<eps>) to gaps (-)
-        while(phylip.seqs[0].find("<eps>") != std::string::npos) {
-            phylip.seqs[0].replace(phylip.seqs[0].find("<eps>"), 5, "-");
-        }
-        while(phylip.seqs[1].find("<eps>") != std::string::npos) {
-            phylip.seqs[1].replace(phylip.seqs[1].find("<eps>"), 5, "-");
-        }
+        coati::utils::fst_to_seqs(phylip, aln);
     }
     // set output pointer
     std::ostream* pout;

@@ -20,26 +20,19 @@
 # SOFTWARE.
 */
 
-#include <CLI11.hpp>
-#include <coati/format.hpp>
-#include <coati/utils.hpp>
+#ifndef JSON_HPP
+#define JSON_HPP
 
-int main(int argc, char* argv[]) {
-    coati::args_t args;
+#include <nlohmann/json.hpp>
 
-    // Parse command line options
-    CLI::App alignpair;
-    coati::utils::set_cli_options_format(alignpair, args,
-                                         coati::utils::Command::FORMAT);
-    CLI11_PARSE(alignpair, argc, argv);
+#include "structs.hpp"
+#include "utils.hpp"
 
-    // if no input specified, use cin and json format as default
-    if(args.aln.data.path.empty()) {
-        args.aln.data.path = "json:-";
-    }
+namespace coati {
+void to_json(nlohmann::json& j, const alignment_t& aln);
+void from_json(const nlohmann::json& j, alignment_t& aln);
+coati::data_t read_json(const std::string& f_path, bool marginal);
+bool write_json(coati::data_t& json, const VectorFstStdArc& aln = {});
+}  // namespace coati
 
-    // read input data
-    args.aln.data = coati::utils::read_input(args.aln);
-
-    return coati::format_sequences(args);
-}
+#endif

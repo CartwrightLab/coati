@@ -45,7 +45,14 @@ eigen_dep = dependency('eigen3',
 
 boost_dep = dependency('boost',
 	version : '>=1.47.0',
-	required : true)
+	required : true
+)
+
+json_dep = dependency('json',
+  fallback : ['json', 'nlohmann_json_dep'],
+  version : '>=3.2.0',
+  required : true
+)
 
 subdir('lib')
 

@@ -38,6 +38,7 @@
 
 #include "dna_syms.hpp"
 #include "fasta.hpp"
+#include "json.hpp"
 #include "matrix.hpp"
 #include "mg94q.tcc"
 #include "mutation_coati.hpp"
@@ -92,6 +93,8 @@ file_type_t extract_file_type(std::string path);
 
 data_t read_input(alignment_t& aln);
 bool write_output(data_t& data, const VectorFstStdArc& aln = {});
+void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln);
+
 // calculate log(1+exp(x))
 // https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
 inline float_t log1p_exp(float_t x) {

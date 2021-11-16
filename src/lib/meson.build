@@ -27,6 +27,7 @@ libcoati_sources = files([
   'fasta.cc',
   'format.cc',
   'insertions.cc',
+  'json.cc',
   'mutation_coati.cc',
   'mutation_ecm.cc',
   'mutation_fst.cc',
@@ -36,7 +37,7 @@ libcoati_sources = files([
   'version.cc'
 ])
 
-libcoati_deps = [cli_dep, boost_dep, doctest_dep, eigen_dep, fstlib_dep, librandom_dep]
+libcoati_deps = [cli_dep, boost_dep, doctest_dep, eigen_dep, fstlib_dep, librandom_dep, json_dep]
 
 libcoati = static_library('libcoati', [libcoati_sources, version_file],
   include_directories : inc,

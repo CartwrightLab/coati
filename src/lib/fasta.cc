@@ -163,30 +163,7 @@ TEST_CASE("read_fasta") {
  */
 bool write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
     if(aln.NumStates() > 0) {  // if FST alignment
-        fst::SymbolTable symbols;
-        fill_symbol_table(symbols);
-
-        std::string seq1, seq2;
-        fst::StateIterator<fst::StdFst> siter(aln);  // FST state iterator
-        for(int i = 0; i < (aln.NumStates() - 1); siter.Next(), i++) {
-            fst::ArcIteratorData<fst::StdArc> data;
-            aln.InitArcIterator(siter.Value(), &data);
-            seq1.append(symbols.Find(data.arcs[0].ilabel));
-            seq2.append(symbols.Find(data.arcs[0].olabel));
-        }
-
-        fasta.seqs.clear();
-        fasta.seqs.resize(2);
-        fasta.seqs[0] = seq1;
-        fasta.seqs[1] = seq2;
-
-        // map all epsilons (<eps>) to gaps (-)
-        while(fasta.seqs[0].find("<eps>") != std::string::npos) {
-            fasta.seqs[0].replace(fasta.seqs[0].find("<eps>"), 5, "-");
-        }
-        while(fasta.seqs[1].find("<eps>") != std::string::npos) {
-            fasta.seqs[1].replace(fasta.seqs[1].find("<eps>"), 5, "-");
-        }
+        coati::utils::fst_to_seqs(fasta, aln);
     }
     // set output pointer
     std::ostream* pout;

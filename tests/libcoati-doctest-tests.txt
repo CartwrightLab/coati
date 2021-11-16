@@ -8,6 +8,8 @@ format_sequences
 insertion_flags
 merge_indels
 add_gap
+read-json
+write-json
 mg94_p
 marginal_p
 nts_ntv
