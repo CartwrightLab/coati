@@ -118,9 +118,11 @@ struct alignment_t {
 };
 
 struct args_t {
-    coati::alignment_t aln;    /*!< input data and alignment parameters */
-    float_t temperature{1.0f}; /*!< temperature parameter for sampling */
-    size_t sample_size{1};     /*!< sampling sample size */
+    coati::alignment_t aln;     /*!< input data and alignment parameters */
+    float_t temperature{1.0f};  /*!< temperature parameter for sampling */
+    size_t sample_size{1};      /*!< sampling sample size */
+    bool preserve_phase{false}; /*!< preserve phase for downstream analyses */
+    std::string padding{"?"};   /*!< padding char to format preserve phase */
 };
 
 }  // namespace coati

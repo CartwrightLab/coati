@@ -167,8 +167,6 @@ TEST_CASE("parse_matrix_csv") {
  */
 void set_cli_options(CLI::App& app, coati::args_t& args,
                      const Command& command) {
-    // Add new options/flags
-    // TODO: switch syntax?
     app.add_option("input", args.aln.data.path,
                    "Input file (FASTA/PHYLIP accepted)");
     if(command == Command::MSA) {
@@ -206,6 +204,26 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
         // temperature");
         app.add_option("-n,--sample-size", args.sample_size, "Sample size");
     }
+}
+
+/**
+ * \brief Setup command line options for coati format.
+ *
+ * @param[in] app CLI::App command line arguments parser from CLI11.
+ * @param[in,out] args coati::args_t to store the input parameters.
+ * @param[in] command std::string one of coati commands (i.e. alignpair or msa).
+ *
+ */
+void set_cli_options_format(CLI::App& app, coati::args_t& args,
+                            const Command& command) {
+    app.add_option("input", args.aln.data.path,
+                   "Input file (FASTA/PHYLIP accepted)");
+    app.add_option("-o,--output", args.aln.output, "Alignment output file");
+    auto phase = app.add_flag("-p,--preserve-phase", args.preserve_phase,
+                              "Preserve phase");
+    app.add_option("-c,--padding", args.padding,
+                   "Padding char to format preserve phase")
+        ->needs(phase);
 }
 
 /**

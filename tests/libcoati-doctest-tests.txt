@@ -4,6 +4,7 @@ alignment_score
 ref_indel_alignment
 read_fasta
 write_fasta
+format_sequences
 insertion_flags
 merge_indels
 add_gap

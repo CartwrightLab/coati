@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
+/*
 # Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,28 +18,23 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+*/
 
-libcoati_sources = files([
-  'align_fst.cc',
-  'align_marginal.cc',
-  'align_msa.cc',
-  'align_pair.cc',
-  'fasta.cc',
-  'format.cc',
-  'insertions.cc',
-  'mutation_coati.cc',
-  'mutation_ecm.cc',
-  'mutation_fst.cc',
-  'phylip.cc',
-  'tree.cc',
-  'utils.cc',
-  'version.cc'
-])
+#include <CLI11.hpp>
+#include <coati/format.hpp>
+#include <coati/utils.hpp>
 
-libcoati_deps = [cli_dep, boost_dep, doctest_dep, eigen_dep, fstlib_dep, librandom_dep]
+int main(int argc, char* argv[]) {
+    coati::args_t args;
 
-libcoati = static_library('libcoati', [libcoati_sources, version_file],
-  include_directories : inc,
-  dependencies : libcoati_deps,
-  cpp_args : ['-DDOCTEST_CONFIG_DISABLE']
-)
+    // Parse command line options
+    CLI::App alignpair;
+    coati::utils::set_cli_options_format(alignpair, args,
+                                         coati::utils::Command::FORMAT);
+    CLI11_PARSE(alignpair, argc, argv);
+
+    // read input data
+    args.aln.data = coati::utils::read_input(args.aln);
+
+    return coati::format_sequences(args);
+}

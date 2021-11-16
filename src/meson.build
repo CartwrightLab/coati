@@ -49,7 +49,7 @@ boost_dep = dependency('boost',
 
 subdir('lib')
 
-progs=['alignpair', 'genseed', 'msa', 'version', 'sample']
+progs=['alignpair', 'genseed', 'msa', 'version', 'sample', 'format']
 
 foreach p : progs
   exe = executable('coati-@0@'.format(p), ['coati-@0@.cc'.format(p), version_file],
