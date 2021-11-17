@@ -200,6 +200,9 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
     app.add_option("-p,--pi", args.aln.pi, "Nucleotide frequencies (A C G T)")
         ->expected(4);
     app.add_option("-k,--gap-len", args.aln.gap.len, "Set gap unit size");
+    app.add_option("-x,--sigma", args.aln.sigma,
+                   "GTR sigma parameters (AC AG AT CG CT GT)")
+        ->expected(6);
     if(command == Command::SAMPLE) {
         // app.add_option("-T,--temperature", args.temperature, "Sampling
         // temperature");

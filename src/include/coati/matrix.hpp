@@ -54,6 +54,22 @@ class Matrix {
     Matrix& operator=(const Matrix&) = default;
     // move assignment operator
     Matrix& operator=(Matrix&&) noexcept = default;
+
+    Matrix(std::initializer_list<std::initializer_list<T>> init_list)
+        : rows_(init_list.size()), cols_(init_list.begin()->size()) {
+        data_.resize(rows_ * cols_);
+
+        size_t i = 0, j = 0;
+        for(const auto& row : init_list) {
+            for(const auto& val : row) {
+                data_[i * cols_ + j] = val;
+                j++;
+            }
+            i++;
+            j = 0;
+        }
+    }
+
     // destructor
     ~Matrix() = default;
 
