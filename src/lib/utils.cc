@@ -168,7 +168,8 @@ TEST_CASE("parse_matrix_csv") {
 void set_cli_options(CLI::App& app, coati::args_t& args,
                      const Command& command) {
     app.add_option("input", args.aln.data.path,
-                   "Input file (FASTA/PHYLIP accepted)");
+                   "Input file (FASTA/PHYLIP/JSON accepted)")
+        ->required();
     if(command == Command::MSA) {
         app.add_option("tree", args.aln.tree, "Newick phylogenetic tree")
             ->required()
@@ -217,7 +218,8 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
 void set_cli_options_format(CLI::App& app, coati::args_t& args,
                             const Command& command) {
     app.add_option("input", args.aln.data.path,
-                   "Input file (FASTA/PHYLIP accepted)");
+                   "Input file (FASTA/PHYLIP/JSON accepted)")
+        ->required();
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
     auto phase = app.add_flag("-p,--preserve-phase", args.preserve_phase,
                               "Preserve phase");
@@ -406,6 +408,9 @@ data_t read_input(alignment_t& aln) {
         input_data.out_file = coati::utils::extract_file_type(aln.output);
         return input_data;
     } else {
+        if(aln.data.path.empty()) {
+            aln.data.path = "(empty)";
+        }
         throw std::invalid_argument("Invalid input " + aln.data.path.string() +
                                     ".");
     }
