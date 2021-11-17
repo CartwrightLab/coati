@@ -112,9 +112,7 @@ struct alignment_t {
     bool score{false}; /*!< if true an input alignment is scored */
 
     /** \brief Return true if model selected is marginal (m-coati or m-ecm) */
-    bool is_marginal() {
-        return (model.compare("m-coati") == 0 || model.compare("m-ecm") == 0);
-    }
+    bool is_marginal() { return (model == "m-coati" || model == "m-ecm"); }
 };
 
 struct args_t {
@@ -123,6 +121,7 @@ struct args_t {
     size_t sample_size{1};      /*!< sampling sample size */
     bool preserve_phase{false}; /*!< preserve phase for downstream analyses */
     std::string padding{"?"};   /*!< padding char to format preserve phase */
+    std::vector<std::string> seeds{{""}}; /*!< seeds for sampling */
 };
 
 }  // namespace coati

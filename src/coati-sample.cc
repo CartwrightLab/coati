@@ -52,7 +52,9 @@ int main(int argc, char* argv[]) {
     }
 
     coati::random_t rand;
-    auto seeds = fragmites::random::auto_seed_seq();
+    auto seeds = args.seeds.empty() ? fragmites::random::auto_seed_seq()
+                                    : fragmites::random::string_seed_seq(
+                                          args.seeds.begin(), args.seeds.end());
     rand.Seed(seeds);
 
     coati::marg_sample(args.aln, args.sample_size, rand);
