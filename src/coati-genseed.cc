@@ -35,10 +35,9 @@ int main(int argc, char *argv[]) {
     }
 
     // Use user-specified seeds or generate a random seed sequence
-    auto seeds = (argc < 2)
-                     ? fragmites::random::auto_seed_seq()
-                     : fragmites::random::string_seed_seq(&argv[1], &argv[argc]);
-
+    auto seeds =
+        (argc < 2) ? fragmites::random::auto_seed_seq()
+                   : fragmites::random::string_seed_seq(&argv[1], &argv[argc]);
 
     // Initialize MinionRNG
     fragmites::random::Random rand;

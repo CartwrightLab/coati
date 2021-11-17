@@ -36,7 +36,7 @@ class Matrix {
    public:
     Matrix() = default;
     Matrix(std::size_t rows, std::size_t cols, T value = static_cast<T>(0))
-        : rows_(rows), cols_(cols), data_(rows*cols, value) { }
+        : rows_(rows), cols_(cols), data_(rows * cols, value) {}
     Matrix(std::size_t rows, std::size_t cols, Matrix64f& eigen_m)
         : rows_(rows), cols_(cols) {
         Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m(
@@ -47,13 +47,13 @@ class Matrix {
         }
     }
     // copy constructor
-    Matrix(const Matrix &) = default;
+    Matrix(const Matrix&) = default;
     // move constructor
-    Matrix(Matrix &&) = default;
+    Matrix(Matrix&&) noexcept = default;
     // assignment operator
-    Matrix & operator=(const Matrix &) = default;
+    Matrix& operator=(const Matrix&) = default;
     // move assignment operator
-    Matrix & operator=(Matrix &&) = default;
+    Matrix& operator=(Matrix&&) noexcept = default;
     // destructor
     ~Matrix() = default;
 
@@ -86,8 +86,8 @@ class Matrix {
         data_.assign(data_.size(), value);
     }
 
-    std::size_t rows() const { return rows_; }
-    std::size_t cols() const { return cols_; }
+    [[nodiscard]] std::size_t rows() const { return rows_; }
+    [[nodiscard]] std::size_t cols() const { return cols_; }
 
    private:
     std::size_t rows_{0}, cols_{0};

@@ -62,13 +62,13 @@ struct data_t {
     explicit data_t(std::filesystem::path p, std::vector<std::string> n = {},
                     std::vector<std::string> s = {}, float_t w = 0.f,
                     std::vector<VectorFstStdArc> f = {},
-                    std::filesystem::path o = {})
+                    const std::filesystem::path& o = "")
         : path{std::move(p)},
           names{std::move(n)},
           seqs{std::move(s)},
-          weight{std::move(w)},
+          weight{w},
           fsts{std::move(f)},
-          out_file{std::move(o)} {}
+          out_file{o} {}
 
     /** \brief Return number of names/sequences */
     std::size_t size() {

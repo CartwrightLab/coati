@@ -100,13 +100,14 @@ void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln);
 inline float_t log1p_exp(float_t x) {
     if(x <= -37.0f) {
         return std::exp(x);
-    } else if(x <= 18.0f) {
-        return std::log1p(std::exp(x));
-    } else if(x <= 33.3f) {
-        return x + std::exp(-x);
-    } else {
-        return x;
     }
+    if(x <= 18.0f) {
+        return std::log1p(std::exp(x));
+    }
+    if(x <= 33.3f) {
+        return x + std::exp(-x);
+    }
+    return x;
 }
 // calculate log(exp(a)+exp(b))
 // Let x = max(a,b)
