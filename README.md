@@ -119,7 +119,7 @@ Options:
 
 ## `msa`
 
-Multiple sequence analyses (still in beta phase).
+Multiple sequence analyses (still in development).
 ```
 Usage: coati msa [OPTIONS] input tree reference
 

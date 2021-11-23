@@ -32,32 +32,32 @@
 template <class ...ExtraArgs>
 static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args) {
     // initialize auxiliary variables
-    coati::utils::args_t args;
-    coati::utils::alignment_t aln;
+    coati::args_t args;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
 
     for(auto _ : state) {
         auto start = std::chrono::high_resolution_clock::now();
         // read fasta
-        args.fasta = coati::read_fasta(fasta);
+        args.aln.data.path = fasta;
+        args.aln.data = coati::utils::read_input(args.aln);
 
         // set ouput path and sequences names
-        aln.fasta.path = args.fasta.path.stem();
-        aln.fasta.path += std::filesystem::path(".phy");
-        aln.fasta.names = args.fasta.names;
+        args.aln.data.path = args.aln.data.path.stem();
+        args.aln.data.path += std::filesystem::path(".phy");
+        args.aln.data.names = args.aln.data.names;
 
         // set substitution matrix
-        coati::utils::set_subst(args, aln);
+        coati::utils::set_subst(args.aln);
 
         // pairwise alignment and report time elapsed
-        coati::marg_alignment(args, aln);
+        coati::marg_alignment(args.aln);
         auto end = std::chrono::high_resolution_clock::now();
         auto elapsed_time =
             std::chrono::duration_cast<std::chrono::duration<double>>(end-start);
         state.SetIterationTime(elapsed_time.count());
     }
 
-    std::filesystem::remove(aln.fasta.path);
+    std::filesystem::remove(args.aln.data.path);
 }
 
 /* marginal alignment with different length fasta files */
@@ -87,36 +87,37 @@ BENCHMARK_CAPTURE(BM_marg_alignment, bm_32k, std::string("@bm_data@/benchmark_32
 template <class ...ExtraArgs>
 static void BM_fst_alignment(benchmark::State& state, ExtraArgs&&... extra_args) {
     // initialize auxiliary variables
-    coati::utils::args_t args;
-    coati::utils::alignment_t aln;
+    coati::args_t args;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
 
     for(auto _ : state) {
         auto start = std::chrono::high_resolution_clock::now();
 
+        // set model to coati
+        args.aln.model = "coati";
+
         // read fasta
-        args.fasta = coati::read_fasta(fasta, aln.seqs);
+        args.aln.data.path = fasta;
+        args.aln.data = coati::utils::read_input(args.aln);
 
         // set output path and sequences names
-        aln.fasta.path = args.fasta.path.stem();
-        aln.fasta.path += std::filesystem::path(".phy");
-        aln.fasta.names = args.fasta.names;
+        args.aln.data.path = args.aln.data.path.stem();
+        args.aln.data.path += std::filesystem::path(".phy");
+        args.aln.data.names = args.aln.data.names;
 
-        // set model to coati
-        args.model = "coati";
 
         // set substitution matrix
-        coati::utils::set_subst(args, aln);
+        coati::utils::set_subst(args.aln);
 
         // pairwise alignment via FST composition and report time elapsed
-        coati::fst_alignment(args, aln);
+        coati::fst_alignment(args.aln);
         auto end = std::chrono::high_resolution_clock::now();
         auto elapsed_time =
             std::chrono::duration_cast<std::chrono::duration<double>>(end-start);
         state.SetIterationTime(elapsed_time.count());
     }
 
-    std::filesystem::remove(aln.fasta.path);
+    std::filesystem::remove(args.aln.data.path);
 }
 
 BENCHMARK_CAPTURE(BM_fst_alignment, bm_156, std::string("@bm_data@/benchmark_156.fasta"))
@@ -132,19 +133,19 @@ BENCHMARK_CAPTURE(BM_fst_alignment, bm_2k, std::string("@bm_data@/benchmark_2k.f
 // align_pair
 template <class ...ExtraArgs>
 static void BM_align_pair(benchmark::State& state, ExtraArgs&&... extra_args) {
-    coati::utils::args_t args;
-    coati::utils::alignment_t aln;
+    coati::args_t args;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
-    args.fasta = coati::read_fasta(fasta, aln.seqs);
-    coati::utils::set_subst(args, aln);
-    auto anc = args.fasta.seqs[0];
-    auto des = args.fasta.seqs[1];
+    args.aln.data.path = fasta;
+    args.aln.data = coati::utils::read_input(args.aln);
+    coati::utils::set_subst(args.aln);
+    auto anc = args.aln.data.seqs[0];
+    auto des = args.aln.data.seqs[1];
     coati::align_pair_work_t work;
     coati::utils::sequence_pair_t seq_pair = coati::utils::marginal_seq_encoding(anc, des);
 
     for(auto _ : state) {
         auto start = std::chrono::high_resolution_clock::now();
-        coati::align_pair(work, seq_pair[0], seq_pair[1], aln.subst_matrix, args);
+        coati::align_pair(work, seq_pair[0], seq_pair[1], args.aln);
         auto end = std::chrono::high_resolution_clock::now();
         auto elapsed_time =
             std::chrono::duration_cast<std::chrono::duration<double>>(end-start);

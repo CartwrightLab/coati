@@ -621,12 +621,8 @@ void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln) {
     data.seqs[1] = seq2;
 
     // map all epsilons (<eps>) to gaps (-)
-    while(data.seqs[0].find("<eps>") != std::string::npos) {
-        data.seqs[0].replace(data.seqs[0].find("<eps>"), 5, "-");
-    }
-    while(data.seqs[1].find("<eps>") != std::string::npos) {
-        data.seqs[1].replace(data.seqs[1].find("<eps>"), 5, "-");
-    }
+    boost::replace_all(data.seqs[0], "<eps>", "-");
+    boost::replace_all(data.seqs[1], "<eps>", "-");
 }
 
 }  // namespace coati::utils

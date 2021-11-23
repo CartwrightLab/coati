@@ -139,16 +139,16 @@ TEST_CASE("marg_alignment") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("12") == 0);
+        CHECK(s1 == "2");
+        CHECK(s2 == "12");
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("1") == 0);
-        CHECK(s2.compare("GCGA---CTGTT") == 0);
+        CHECK(s1 == "1");
+        CHECK(s2 == "GCGA---CTGTT");
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("GCGATTGCTGTT") == 0);
+        CHECK(s1 == "2");
+        CHECK(s2 == "GCGATTGCTGTT");
 
         CHECK(std::filesystem::remove(aln.data.out_file.path));
     }
@@ -172,16 +172,16 @@ TEST_CASE("marg_alignment") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("12") == 0);
+        CHECK(s1 == "2");
+        CHECK(s2 == "12");
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("1") == 0);
-        CHECK(s2.compare("ACGTTAAGGGGT") == 0);
+        CHECK(s1 == "1");
+        CHECK(s2 == "ACGTTAAGGGGT");
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("ACG--AA----T") == 0);
+        CHECK(s1 == "2");
+        CHECK(s2 == "ACG--AA----T");
 
         CHECK(std::filesystem::remove(aln.data.out_file.path));
     }
