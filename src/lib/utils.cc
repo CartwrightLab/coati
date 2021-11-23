@@ -516,9 +516,9 @@ TEST_CASE("write_output") {
     std::vector<std::string> names = {"anc", "des"};
     std::vector<std::string> sequences = {
         "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC"
-        "GTACGTACGTACGTACGTACGTACGTACGTACGT",
+        "GTACGTACGTACGTACGTACGTACGTACGTTTTT",
         "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC"
-        "GTACGTACGTACGTACGTACGTACGTACGTACGT"};  // length > 100 to test new line
+        "GTACGTACGTACGTACGTACGTACGTACGTTTTT"};  // length > 100 to test new line
 
     SUBCASE("fasta") {
         data = coati::data_t("", names, sequences);
@@ -532,15 +532,17 @@ TEST_CASE("write_output") {
         CHECK(s == ">anc");
         infile >> s;
         CHECK(s ==
-              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
-              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
+              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
+        infile >> s;
+        CHECK(s == "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
         infile >> s;
         CHECK(s == ">des");
         infile >> s;
         CHECK(s ==
-              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
-              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
-        CHECK(std::filesystem::remove("test-write-output-fasta.fasta"));
+              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
+        infile >> s;
+        CHECK(s == "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
+        // CHECK(std::filesystem::remove("test-write-output-fasta.fasta"));
     }
 
     SUBCASE("phylip") {
@@ -566,8 +568,8 @@ TEST_CASE("write_output") {
               "ACGTACGTACGTACGTACGTACGTACGTA");
         // infile >> s1;  // blank line
         infile >> s1 >> s2;
-        CHECK(s1 == "CGTACGTACGT");
-        CHECK(s2 == "CGTACGTACGT");
+        CHECK(s1 == "CGTACGTTTTT");
+        CHECK(s2 == "CGTACGTTTTT");
         CHECK(std::filesystem::remove("test-write-output-phylip.phy"));
     }
 
@@ -583,9 +585,10 @@ TEST_CASE("write_output") {
         CHECK(s1 ==
               "{\"data\":{\"names\":[\"anc\",\"des\"],\"seqs\":"
               "[\"ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTA"
-              "CGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT\","
+              "CGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\","
               "\"ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC"
-              "GTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT\"]}}");
+              "GTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\"]}}");
+        CHECK(std::filesystem::remove("test-write-output-phylip.json"));
     }
 
     SUBCASE("ext") {

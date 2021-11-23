@@ -181,7 +181,10 @@ bool write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
     std::ostream& out = *pout;
 
     for(size_t i = 0; i < fasta.size(); i++) {
-        out << ">" << fasta.names[i] << std::endl << fasta.seqs[i] << std::endl;
+        out << ">" << fasta.names[i] << std::endl;
+        for(size_t j = 0; j < fasta.seqs[i].size(); j += 60) {
+            out << fasta.seqs[i].substr(j, 60) << std::endl;
+        }
     }
 
     return true;
