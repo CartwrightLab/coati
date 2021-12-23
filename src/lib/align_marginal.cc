@@ -67,7 +67,7 @@ bool marg_alignment(coati::alignment_t& aln) {
 
     // dynamic programming pairwise alignment and traceback
     coati::align_pair_work_t work;
-    coati::align_pair(work, seq_pair[0], seq_pair[1], aln);
+    coati::viterbi(work, seq_pair[0], seq_pair[1], aln);
     coati::traceback(work, anc, des, aln, aln.gap.len);
 
     if(!aln.weight_file.empty()) {  // save weight and filename
@@ -280,11 +280,12 @@ float alignment_score(coati::alignment_t& aln, coati::Matrixf& p_marg) {
     coati::utils::sequence_pair_t seq_pair =
         coati::utils::marginal_seq_encoding(anc, seqs[1]);
 
+    coati::semiring::tropical tropical_rig;
     // calculate log(1-g) log(1-e) log(g) log(e) log(pi)
-    float_t no_gap = std::log1pf(-aln.gap.open);
-    float_t gap_stop = std::log1pf(-aln.gap.extend);
-    float_t gap_open = ::logf(aln.gap.open);
-    float_t gap_extend = ::logf(aln.gap.extend);
+    float_t no_gap = tropical_rig.from_linear_1mf(aln.gap.open);
+    float_t gap_stop = tropical_rig.from_linear_1mf(aln.gap.extend);
+    float_t gap_open = tropical_rig.from_linearf(aln.gap.open);
+    float_t gap_extend = tropical_rig.from_linearf(aln.gap.extend);
     std::vector<coati::float_t> pi{aln.pi};
     for(size_t i = 0; i < 4; i++) {
         pi[i] = ::logf(pi[i]);
@@ -405,7 +406,7 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
 
     // dynamic programming pairwise alignment and traceback
     coati::align_pair_work_t work;
-    coati::align_pair(work, seq_pair[0], seq_pair[1], aln);
+    coati::viterbi(work, seq_pair[0], seq_pair[1], aln);
 
     out << "[" << std::endl;
 

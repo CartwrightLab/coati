@@ -28,6 +28,7 @@
 #include <random.hpp>
 #include <string_view>
 
+#include "semiring.hpp"
 #include "structs.hpp"
 #include "utils.hpp"
 
@@ -79,19 +80,18 @@ inline float_t maximum(float_t x, float_t y, float_t z) {
     return std::max(maximum(x, y), z);
 }
 
-inline float_t plus(float_t x, float_t y) { return utils::log_sum_exp(x, y); }
-
-inline float_t plus(float_t x, float_t y, float_t z) {
-    return plus(plus(x, y), z);
-}
-
-void align_pair(align_pair_work_t &work, const seq_view_t &a,
-                const seq_view_t &b, alignment_t &aln);
 void traceback(const align_pair_work_t &work, const std::string &a,
                const std::string &b, alignment_t &aln, size_t look_back);
 
+template <class S>
+void forward_impl(align_pair_work_t &work, const seq_view_t &a,
+                  const seq_view_t &b, alignment_t &aln, S &rig);
+
 void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
-             const Matrixf &match, args_t &args);
+             alignment_t &aln);
+
+void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
+             alignment_t &aln);
 
 void sampleback(const align_pair_work_t &work, const std::string &a,
                 const std::string &b, alignment_t &aln, size_t look_back,

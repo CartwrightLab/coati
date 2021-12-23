@@ -104,7 +104,7 @@ bool ref_indel_alignment(coati::alignment_t& input) {
             coati::align_pair_work_t work;
             coati::utils::sequence_pair_t seq_pair =
                 coati::utils::marginal_seq_encoding(anc, des);
-            coati::align_pair(work, seq_pair[0], seq_pair[1], input);
+            coati::viterbi(work, seq_pair[0], seq_pair[1], input);
             coati::traceback(work, anc, des, aln_tmp, input.gap.len);
 
             SparseVectorInt ins_vector(

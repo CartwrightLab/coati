@@ -24,24 +24,23 @@ namespace coati {
 // gap_extend = log(e)
 
 /**
- * \brief Dynamic programming of pairwise alignment.
- *
- * Gotoh-like algorithm for finding the best alignment of two sequences.
- *  Fill matrices using dynamic programming O(n*m).
+ * \brief Implementation of Forward algorithm.
  *
  * @param[in,out] work align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
  * @param[in] b coati::seq_view_t encoded descendant sequence.
- * @param[in] match coati::Matrixf substitution matrix.
  * @param[in] aln coati::alignment_t alignment parameters.
+ * @param[in] rig coati::semiring class with operations defined.
  */
-void align_pair(align_pair_work_t &work, const seq_view_t &a,
-                const seq_view_t &b, alignment_t &aln) {
+template <class S>
+void forward_impl(align_pair_work_t &work, const seq_view_t &a,
+                  const seq_view_t &b, alignment_t &aln, S &rig) {
     // calculate log(1-g) log(1-e) log(g) log(e)
-    float_t no_gap = std::log1pf(-aln.gap.open);
-    float_t gap_stop = std::log1pf(-aln.gap.extend);
-    float_t gap_open = ::logf(aln.gap.open);
-    float_t gap_extend = ::logf(aln.gap.extend);
+    float_t no_gap = rig.from_linear_1mf(aln.gap.open);
+    float_t gap_stop = rig.from_linear_1mf(aln.gap.extend);
+    float_t gap_open = rig.from_linearf(aln.gap.open);
+    float_t gap_extend = rig.from_linearf(aln.gap.extend);
+
     size_t look_back = aln.gap.len;
     size_t start = look_back - 1;
 
@@ -93,11 +92,11 @@ void align_pair(align_pair_work_t &work, const seq_view_t &a,
                 gap_extend * static_cast<float_t>(look_back - 1);
 
             // save score
-            work.mch(i, j) = maximum(work.mch_mch(i, j), work.del_mch(i, j),
-                                     work.ins_mch(i, j));
-            work.del(i, j) = maximum(work.mch_del(i, j), work.del_del(i, j),
-                                     work.ins_del(i, j));
-            work.ins(i, j) = maximum(work.mch_ins(i, j), work.ins_ins(i, j));
+            work.mch(i, j) = rig.plus(work.mch_mch(i, j), work.del_mch(i, j),
+                                      work.ins_mch(i, j));
+            work.del(i, j) = rig.plus(work.mch_del(i, j), work.del_del(i, j),
+                                      work.ins_del(i, j));
+            work.ins(i, j) = rig.plus(work.mch_ins(i, j), work.ins_ins(i, j));
         }
     }
     {
@@ -105,6 +104,37 @@ void align_pair(align_pair_work_t &work, const seq_view_t &a,
         work.mch(len_a - 1, len_b - 1) += no_gap;
         work.ins(len_a - 1, len_b - 1) += gap_stop;
     }
+}
+
+/**
+ * \brief Forward algorithm.
+ *
+ * @param[in,out] work align_pair_work_t dynamic programming matrices.
+ * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
+ * @param[in] b coati::seq_view_t encoded descendant sequence.
+ * @param[in] aln coati::alignment_t alignment parameters.
+ */
+void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
+             alignment_t &aln) {
+    coati::semiring::log semiring_log;
+    coati::forward_impl(work, a, b, aln, semiring_log);
+}
+
+/**
+ * \brief Dynamic programming of pairwise alignment.
+ *
+ * Gotoh-like algorithm for finding the best alignment of two sequences.
+ *  Fill matrices using dynamic programming O(n*m).
+ *
+ * @param[in,out] work align_pair_work_t dynamic programming matrices.
+ * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
+ * @param[in] b coati::seq_view_t encoded descendant sequence.
+ * @param[in] aln coati::alignment_t alignment parameters.
+ */
+void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
+             alignment_t &aln) {
+    coati::semiring::tropical semiring_tropical;
+    coati::forward_impl(work, a, b, aln, semiring_tropical);
 }
 
 enum struct AlnState { MATCH, DELETION, INSERTION };
@@ -323,87 +353,4 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
     std::reverse(aln.data.seqs[0].begin(), aln.data.seqs[0].end());
     std::reverse(aln.data.seqs[1].begin(), aln.data.seqs[1].end());
 }
-
-/**
- * \brief Forward algorithm.
- *
- * @param[in,out] work align_pair_work_t dynamic programming matrices.
- * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
- * @param[in] b coati::seq_view_t encoded descendant sequence.
- * @param[in] match coati::Matrixf substitution matrix.
- * @param[in] args coati::args_t iput parameters.
- *
- */
-void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
-             const Matrixf &match, alignment_t &aln) {
-    // calculate log(1-g) log(1-e) log(g) log(e)
-    float_t no_gap = std::log1pf(-aln.gap.open);
-    float_t gap_stop = std::log1pf(-aln.gap.extend);
-    float_t gap_open = ::logf(aln.gap.open);
-    float_t gap_extend = ::logf(aln.gap.extend);
-    size_t look_back = aln.gap.len;
-    size_t start = look_back - 1;
-
-    const float_t lowest = std::numeric_limits<float_t>::lowest();
-
-    // create matrices
-    size_t len_a = a.length() + look_back;  // length of ancestor
-    size_t len_b = b.length() + look_back;  // length of descendant
-    work.resize(len_a, len_b, lowest);      // resize work matrices
-
-    // initialize the margins of the matrices
-    work.mch(start, start) = 0.0;
-
-    for(size_t i = start + look_back; i < len_a; i += look_back) {
-        work.del(i, start) = work.del_del(i, start) =
-            no_gap + gap_open + gap_extend * static_cast<float_t>(i - 1);
-    }
-    for(size_t j = start + look_back; j < len_b; j += look_back) {
-        work.ins(start, j) = work.ins_ins(start, j) =
-            gap_open + gap_extend * static_cast<float_t>(j - 1);
-    }
-
-    // fill the body of the matrices
-    for(size_t i = look_back; i < len_a; ++i) {
-        for(size_t j = look_back; j < len_b; ++j) {
-            //  from match, ins, or del to match
-            auto mch = match(a[i - look_back], b[j - look_back]);
-            work.mch_mch(i, j) = work.mch(i - 1, j - 1) + 2 * no_gap + mch;
-            work.del_mch(i, j) = work.del(i - 1, j - 1) + gap_stop + mch;
-            work.ins_mch(i, j) =
-                work.ins(i - 1, j - 1) + gap_stop + no_gap + mch;
-
-            // from match or del to del
-            work.mch_del(i, j) =
-                work.mch(i - look_back, j) + no_gap + gap_open +
-                gap_extend * static_cast<float_t>(look_back - 1);
-            work.ins_del(i, j) =
-                work.ins(i - look_back, j) + gap_stop + gap_open +
-                gap_extend * static_cast<float_t>(look_back - 1);
-            work.del_del(i, j) =
-                work.del(i - look_back, j) + gap_extend * look_back;
-
-            // from match, del, or ins to ins
-            work.mch_ins(i, j) =
-                work.mch(i, j - look_back) + gap_open +
-                gap_extend * static_cast<float_t>(look_back - 1);
-            work.ins_ins(i, j) =
-                work.ins(i, j - look_back) +
-                gap_extend * static_cast<float_t>(look_back - 1);
-
-            // save score
-            work.mch(i, j) = plus(work.mch_mch(i, j), work.del_mch(i, j),
-                                  work.ins_mch(i, j));
-            work.del(i, j) = plus(work.mch_del(i, j), work.del_del(i, j),
-                                  work.ins_del(i, j));
-            work.ins(i, j) = plus(work.mch_ins(i, j), work.ins_ins(i, j));
-        }
-    }
-    {
-        // adjust the terminal state
-        work.mch(len_a - 1, len_b - 1) += no_gap;
-        work.ins(len_a - 1, len_b - 1) += gap_stop;
-    }
-}
-
 }  // namespace coati

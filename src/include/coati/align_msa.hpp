@@ -26,6 +26,7 @@
 #include "align_pair.hpp"
 #include "insertions.hpp"
 #include "phylip.hpp"
+#include "semiring.hpp"
 #include "tree.hpp"
 #include "utils.hpp"
 

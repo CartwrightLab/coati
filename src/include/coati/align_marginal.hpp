@@ -28,6 +28,7 @@
 #include "align_pair.hpp"
 #include "mutation_ecm.hpp"
 #include "phylip.hpp"
+#include "semiring.hpp"
 #include "utils.hpp"
 
 namespace coati {
