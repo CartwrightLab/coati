@@ -52,6 +52,16 @@ struct align_pair_work_t {
     Matrixf ins_del; /*!< ins to del state */
     Matrixf ins_ins; /*!< ins to ins state */
 
+    float_t subst;   /*!< substitution tmp value*/
+    float_t mch2mch; /*!< match to match tmp value */
+    float_t mch2del; /*!< match to del tmp value */
+    float_t mch2ins; /*!< match to ins tmp value */
+    float_t del2mch; /*!< del to mch tmp value */
+    float_t del2del; /*!< del to del tmp value */
+    float_t ins2mch; /*!< ins to mch tmp value */
+    float_t ins2del; /*!< ins to del tmp value */
+    float_t ins2ins; /*!< ins to ins tmp value */
+
     /** \brief Resize matrices and initialize to given value
      *
      * @param[in] len_a std::size_t number of rows.
@@ -71,6 +81,60 @@ struct align_pair_work_t {
         ins_ins.resize(len_a, len_b, val);  // ins to ins matrix
         ins_del.resize(len_a, len_b, val);  // ins to del matrix
     }
+
+    /** \brief Save edge values between mch, del, and ins states
+     *
+     * @param[in] i std::size_t row index.
+     * @param[in] j std::size_t column index.
+     */
+    void save_values(size_t i, size_t j) {
+        mch_mch(i, j) = mch2mch;
+        mch_del(i, j) = mch2del;
+        mch_ins(i, j) = mch2ins;
+        del_mch(i, j) = del2mch;
+        del_del(i, j) = del2del;
+        ins_mch(i, j) = ins2mch;
+        ins_del(i, j) = ins2del;
+        ins_ins(i, j) = ins2ins;
+    }
+
+    /** \brief Initialize margins in edge matrices del to del and ins to ins
+     *
+     */
+    void init_margins() {
+        del_del = del;
+        ins_ins = ins;
+    }
+};
+
+struct align_pair_work_mem_t {
+    Matrixf mch;     /*!< match state */
+    Matrixf del;     /*!< deletion state */
+    Matrixf ins;     /*!< insertion state */
+    float_t subst;   /*!< substitution tmp value*/
+    float_t mch2mch; /*!< match to match tmp value */
+    float_t mch2del; /*!< match to del tmp value */
+    float_t mch2ins; /*!< match to ins tmp value */
+    float_t del2mch; /*!< del to mch tmp value */
+    float_t del2del; /*!< del to del tmp value */
+    float_t ins2mch; /*!< ins to mch tmp value */
+    float_t ins2del; /*!< ins to del tmp value */
+    float_t ins2ins; /*!< ins to ins tmp value */
+
+    /** \brief Resize matrices and initialize to given value
+     *
+     * @param[in] len_a std::size_t number of rows.
+     * @param[in] len_b std::size_t number of columns.
+     * @param[in] val coati::float_t value.
+     */
+    void resize(size_t len_a, size_t len_b, float_t val) {
+        mch.resize(len_a, len_b, val);  // match matrix
+        del.resize(len_a, len_b, val);  // deletion matrix
+        ins.resize(len_a, len_b, val);  // insertion matrix
+    }
+
+    void save_values(size_t i, size_t j) {}
+    void init_margins() {}
 };
 
 /** \brief Max value between two coati::float_t values */
@@ -80,18 +144,21 @@ inline float_t maximum(float_t x, float_t y, float_t z) {
     return std::max(maximum(x, y), z);
 }
 
-void traceback(const align_pair_work_t &work, const std::string &a,
-               const std::string &b, alignment_t &aln, size_t look_back);
-
-template <class S>
-void forward_impl(align_pair_work_t &work, const seq_view_t &a,
-                  const seq_view_t &b, alignment_t &aln, S &rig);
+template <class S, class W>
+void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
+                  alignment_t &aln);
 
 void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
              alignment_t &aln);
-
+void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
+                 const seq_view_t &b, alignment_t &aln);
 void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
              alignment_t &aln);
+void viterbi_mem(align_pair_work_mem_t &work, const seq_view_t &a,
+                 const seq_view_t &b, alignment_t &aln);
+
+void traceback(const align_pair_work_mem_t &work, const std::string &a,
+               const std::string &b, alignment_t &aln, size_t look_back);
 
 void sampleback(const align_pair_work_t &work, const std::string &a,
                 const std::string &b, alignment_t &aln, size_t look_back,

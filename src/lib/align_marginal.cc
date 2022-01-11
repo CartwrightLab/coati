@@ -66,8 +66,8 @@ bool marg_alignment(coati::alignment_t& aln) {
         coati::utils::marginal_seq_encoding(anc, des);
 
     // dynamic programming pairwise alignment and traceback
-    coati::align_pair_work_t work;
-    coati::viterbi(work, seq_pair[0], seq_pair[1], aln);
+    coati::align_pair_work_mem_t work;
+    coati::viterbi_mem(work, seq_pair[0], seq_pair[1], aln);
     coati::traceback(work, anc, des, aln, aln.gap.len);
 
     if(!aln.weight_file.empty()) {  // save weight and filename

@@ -30,16 +30,15 @@ namespace coati {
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
  * @param[in] b coati::seq_view_t encoded descendant sequence.
  * @param[in] aln coati::alignment_t alignment parameters.
- * @param[in] rig coati::semiring class with operations defined.
  */
-template <class S>
-void forward_impl(align_pair_work_t &work, const seq_view_t &a,
-                  const seq_view_t &b, alignment_t &aln, S &rig) {
+template <class S, class W>
+void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
+                  alignment_t &aln) {
     // calculate log(1-g) log(1-e) log(g) log(e)
-    float_t no_gap = rig.from_linear_1mf(aln.gap.open);
-    float_t gap_stop = rig.from_linear_1mf(aln.gap.extend);
-    float_t gap_open = rig.from_linearf(aln.gap.open);
-    float_t gap_extend = rig.from_linearf(aln.gap.extend);
+    float_t no_gap = S::from_linear_1mf(aln.gap.open);
+    float_t gap_stop = S::from_linear_1mf(aln.gap.extend);
+    float_t gap_open = S::from_linearf(aln.gap.open);
+    float_t gap_extend = S::from_linearf(aln.gap.extend);
 
     size_t look_back = aln.gap.len;
     size_t start = look_back - 1;
@@ -55,48 +54,45 @@ void forward_impl(align_pair_work_t &work, const seq_view_t &a,
     work.mch(start, start) = 0.0;
 
     for(size_t i = start + look_back; i < len_a; i += look_back) {
-        work.del(i, start) = work.del_del(i, start) =
+        work.del(i, start) =
             no_gap + gap_open + gap_extend * static_cast<float_t>(i - 1);
     }
     for(size_t j = start + look_back; j < len_b; j += look_back) {
-        work.ins(start, j) = work.ins_ins(start, j) =
+        work.ins(start, j) =
             gap_open + gap_extend * static_cast<float_t>(j - 1);
     }
+    work.init_margins();
 
     // fill the body of the matrices
     for(size_t i = look_back; i < len_a; ++i) {
         for(size_t j = look_back; j < len_b; ++j) {
             //  from match, ins, or del to match
-            auto mch = aln.subst_matrix(a[i - look_back], b[j - look_back]);
-            work.mch_mch(i, j) = work.mch(i - 1, j - 1) + 2 * no_gap + mch;
-            work.del_mch(i, j) = work.del(i - 1, j - 1) + gap_stop + mch;
-            work.ins_mch(i, j) =
-                work.ins(i - 1, j - 1) + gap_stop + no_gap + mch;
+            work.subst = aln.subst_matrix(a[i - look_back], b[j - look_back]);
+            work.mch2mch = work.mch(i - 1, j - 1) + 2 * no_gap + work.subst;
+            work.del2mch = work.del(i - 1, j - 1) + gap_stop + work.subst;
+            work.ins2mch =
+                work.ins(i - 1, j - 1) + gap_stop + no_gap + work.subst;
 
-            // from match or del to del
-            work.mch_del(i, j) =
-                work.mch(i - look_back, j) + no_gap + gap_open +
-                gap_extend * static_cast<float_t>(look_back - 1);
-            work.ins_del(i, j) =
-                work.ins(i - look_back, j) + gap_stop + gap_open +
-                gap_extend * static_cast<float_t>(look_back - 1);
-            work.del_del(i, j) =
-                work.del(i - look_back, j) + gap_extend * look_back;
+            // from match, del, or ins to del
+            work.mch2del = work.mch(i - look_back, j) + no_gap + gap_open +
+                           gap_extend * static_cast<float_t>(look_back - 1);
+            work.ins2del = work.ins(i - look_back, j) + gap_stop + gap_open +
+                           gap_extend * static_cast<float_t>(look_back - 1);
+            work.del2del = work.del(i - look_back, j) + gap_extend * look_back;
 
-            // from match, del, or ins to ins
-            work.mch_ins(i, j) =
-                work.mch(i, j - look_back) + gap_open +
-                gap_extend * static_cast<float_t>(look_back - 1);
-            work.ins_ins(i, j) =
-                work.ins(i, j - look_back) +
-                gap_extend * static_cast<float_t>(look_back - 1);
+            // from match  or ins to ins
+            work.mch2ins = work.mch(i, j - look_back) + gap_open +
+                           gap_extend * static_cast<float_t>(look_back - 1);
+            work.ins2ins = work.ins(i, j - look_back) +
+                           gap_extend * static_cast<float_t>(look_back - 1);
 
             // save score
-            work.mch(i, j) = rig.plus(work.mch_mch(i, j), work.del_mch(i, j),
-                                      work.ins_mch(i, j));
-            work.del(i, j) = rig.plus(work.mch_del(i, j), work.del_del(i, j),
-                                      work.ins_del(i, j));
-            work.ins(i, j) = rig.plus(work.mch_ins(i, j), work.ins_ins(i, j));
+            work.mch(i, j) = S::plus(work.mch2mch, work.del2mch, work.ins2mch);
+            work.del(i, j) = S::plus(work.mch2del, work.del2del, work.ins2del);
+            work.ins(i, j) = S::plus(work.mch2ins, work.ins2ins);
+
+            // save intermediate values
+            work.save_values(i, j);
         }
     }
     {
@@ -109,15 +105,25 @@ void forward_impl(align_pair_work_t &work, const seq_view_t &a,
 /**
  * \brief Forward algorithm.
  *
- * @param[in,out] work align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
  * @param[in] b coati::seq_view_t encoded descendant sequence.
  * @param[in] aln coati::alignment_t alignment parameters.
  */
 void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
              alignment_t &aln) {
-    coati::semiring::log semiring_log;
-    coati::forward_impl(work, a, b, aln, semiring_log);
+    coati::forward_impl<coati::semiring::log>(work, a, b, aln);
+}
+
+/**
+ * \brief Memory efficient Forward algorithm.
+ *
+ * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
+ * @param[in] b coati::seq_view_t encoded descendant sequence.
+ * @param[in] aln coati::alignment_t alignment parameters.
+ */
+void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
+                 const seq_view_t &b, alignment_t &aln) {
+    coati::forward_impl<coati::semiring::log>(work, a, b, aln);
 }
 
 /**
@@ -126,15 +132,28 @@ void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
  * Gotoh-like algorithm for finding the best alignment of two sequences.
  *  Fill matrices using dynamic programming O(n*m).
  *
- * @param[in,out] work align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
  * @param[in] b coati::seq_view_t encoded descendant sequence.
  * @param[in] aln coati::alignment_t alignment parameters.
  */
 void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
              alignment_t &aln) {
-    coati::semiring::tropical semiring_tropical;
-    coati::forward_impl(work, a, b, aln, semiring_tropical);
+    coati::forward_impl<coati::semiring::tropical>(work, a, b, aln);
+}
+
+/**
+ * \brief Memory efficient dynamic programming of pairwise alignment.
+ *
+ * Gotoh-like algorithm for finding the best alignment of two sequences.
+ *  Fill matrices using dynamic programming O(n*m).
+ *
+ * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
+ * @param[in] b coati::seq_view_t encoded descendant sequence.
+ * @param[in] aln coati::alignment_t alignment parameters.
+ */
+void viterbi_mem(align_pair_work_mem_t &work, const seq_view_t &a,
+                 const seq_view_t &b, alignment_t &aln) {
+    coati::forward_impl<coati::semiring::tropical>(work, a, b, aln);
 }
 
 enum struct AlnState { MATCH, DELETION, INSERTION };
@@ -161,22 +180,29 @@ AlnState max_mi(float_t mch, float_t ins) {
 }
 
 /**
- * \brief Get aligned sequences.
+ * \brief Implementation of traceback algorithm.
  *
  * Trace back a set of filled matrices from coati::align_pair to retrieve
  *  the pairwise aligned sequences.
  *
- * @param[in] work coati::align_pair_work_t filled dynamic programming matrices.
+ * @param[in] work coati::align_pair_work_mem_t filled dynamic programming
+ * matrices.
  * @param[in] a std::string reference/ancestor sequence.
  * @param[in] b std::string descendant sequence.
  * @param[in,out] aln coati::alignment_t aligned sequences data.
  * @param[in] look_back std::size_t gap unit size.
  *
  */
-void traceback(const align_pair_work_t &work, const std::string &a,
+void traceback(const align_pair_work_mem_t &work, const std::string &a,
                const std::string &b, alignment_t &aln, size_t look_back) {
-    size_t i = static_cast<int>(work.mch_mch.rows() - 1);
-    size_t j = static_cast<int>(work.mch_mch.cols() - 1);
+    size_t i = static_cast<int>(work.mch.rows() - 1);
+    size_t j = static_cast<int>(work.mch.cols() - 1);
+
+    coati::semiring::log s_ring;
+    float_t no_gap = s_ring.from_linear_1mf(aln.gap.open);
+    float_t gap_stop = s_ring.from_linear_1mf(aln.gap.extend);
+    float_t gap_open = s_ring.from_linearf(aln.gap.open);
+    float_t gap_extend = s_ring.from_linearf(aln.gap.extend);
 
     aln.data.seqs.clear();
     aln.data.seqs.resize(2);
@@ -191,27 +217,28 @@ void traceback(const align_pair_work_t &work, const std::string &a,
         case AlnState::MATCH:  // match
             aln.data.seqs[0].push_back(a[i - look_back]);
             aln.data.seqs[1].push_back(b[j - look_back]);
-            m = max_mdi(work.mch_mch(i, j), work.del_mch(i, j),
-                        work.ins_mch(i, j));
             i--;
             j--;
+            m = max_mdi(work.mch(i, j) + 2 * no_gap, work.del(i, j) + gap_stop,
+                        work.ins(i, j) + gap_stop + no_gap);
             break;
         case AlnState::DELETION:  // deletion
             for(size_t k = i; k > (i - look_back); k--) {
                 aln.data.seqs[0].push_back(a[k - look_back]);
                 aln.data.seqs[1].push_back('-');
             }
-            m = max_mdi(work.mch_del(i, j), work.del_del(i, j),
-                        work.ins_del(i, j));
             i -= look_back;
+            m = max_mdi(work.mch(i, j) + no_gap + gap_open,
+                        work.del(i, j) + gap_extend,
+                        work.ins(i, j) + gap_stop + gap_open);
             break;
         case AlnState::INSERTION:  // insertion
             for(size_t k = j; k > (j - look_back); k--) {
                 aln.data.seqs[0].push_back('-');
                 aln.data.seqs[1].push_back(b[k - look_back]);
             }
-            m = max_mi(work.mch_ins(i, j), work.ins_ins(i, j));
             j -= look_back;
+            m = max_mi(work.mch(i, j) + gap_open, work.ins(i, j) + gap_extend);
             break;
         }
     }
