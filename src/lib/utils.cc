@@ -221,14 +221,13 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
  * @param[in] command std::string one of coati commands (i.e. alignpair or msa).
  *
  */
-void set_cli_options_format(CLI::App& app, coati::args_t& args,
-                            const Command& command) {
+void set_cli_options_format(CLI::App& app, coati::args_t& args) {
     app.add_option("input", args.aln.data.path,
                    "Input file (FASTA/PHYLIP/JSON accepted)")
         ->required();
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
-    auto phase = app.add_flag("-p,--preserve-phase", args.preserve_phase,
-                              "Preserve phase");
+    auto* phase = app.add_flag("-p,--preserve-phase", args.preserve_phase,
+                               "Preserve phase");
     app.add_option("-c,--padding", args.padding,
                    "Padding char to format preserve phase")
         ->needs(phase);
@@ -359,9 +358,10 @@ file_type_t extract_file_type(std::string path) {
 
 /// @private
 TEST_CASE("extract_file_type") {
+    // NOLINTNEXTLINE(misc-unused-parameters)
     auto test = [](std::string filename, file_type_t expected) {
-        CAPTURE(filename);
-        auto test = extract_file_type(filename);
+        CAPTURE(std::move(filename));
+        auto test = extract_file_type(std::move(filename));
         CHECK(test.path == expected.path);
         CHECK(test.type_ext == expected.type_ext);
     };
@@ -405,21 +405,22 @@ data_t read_input(alignment_t& aln) {
         input_data = read_fasta(aln.data.path, aln.is_marginal());
         input_data.out_file = coati::utils::extract_file_type(aln.output);
         return input_data;
-    } else if(in_type.type_ext == ".phy") {
+    }
+    if(in_type.type_ext == ".phy") {
         input_data = read_phylip(aln.data.path, aln.is_marginal());
         input_data.out_file = coati::utils::extract_file_type(aln.output);
         return input_data;
-    } else if(in_type.type_ext == ".json") {
+    }
+    if(in_type.type_ext == ".json") {
         input_data = read_json(aln.data.path, aln.is_marginal());
         input_data.out_file = coati::utils::extract_file_type(aln.output);
         return input_data;
-    } else {
-        if(aln.data.path.empty()) {
-            aln.data.path = "(empty)";
-        }
-        throw std::invalid_argument("Invalid input " + aln.data.path.string() +
-                                    ".");
     }
+    if(aln.data.path.empty()) {
+        aln.data.path = "(empty)";
+    }
+    throw std::invalid_argument("Invalid input " + aln.data.path.string() +
+                                ".");
 }
 
 /// @private

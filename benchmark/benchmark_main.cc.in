@@ -172,5 +172,47 @@ BENCHMARK_CAPTURE(BM_align_pair, bm_16k, std::string("@bm_data@/benchmark_16k.fa
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 
+// align_pair_mem
+template <class ...ExtraArgs>
+static void BM_align_pair_mem(benchmark::State& state, ExtraArgs&&... extra_args) {
+    coati::args_t args;
+    std::string fasta(std::forward<ExtraArgs>(extra_args)...);
+    args.aln.data.path = fasta;
+    args.aln.data = coati::utils::read_input(args.aln);
+    coati::utils::set_subst(args.aln);
+    auto anc = args.aln.data.seqs[0];
+    auto des = args.aln.data.seqs[1];
+    coati::align_pair_work_mem_t work;
+    coati::utils::sequence_pair_t seq_pair = coati::utils::marginal_seq_encoding(anc, des);
+
+    for(auto _ : state) {
+        auto start = std::chrono::high_resolution_clock::now();
+        coati::viterbi_mem(work, seq_pair[0], seq_pair[1], args.aln);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto elapsed_time =
+            std::chrono::duration_cast<std::chrono::duration<double>>(end-start);
+        state.SetIterationTime(elapsed_time.count());
+    }
+}
+
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_156, std::string("@bm_data@/benchmark_156.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_1k, std::string("@bm_data@/benchmark_1k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_2k, std::string("@bm_data@/benchmark_2k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_4k, std::string("@bm_data@/benchmark_4k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_8k, std::string("@bm_data@/benchmark_8k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_16k, std::string("@bm_data@/benchmark_16k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+
 
 BENCHMARK_MAIN();

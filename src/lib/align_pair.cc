@@ -78,7 +78,8 @@ void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
                            gap_extend * static_cast<float_t>(look_back - 1);
             work.ins2del = work.ins(i - look_back, j) + gap_stop + gap_open +
                            gap_extend * static_cast<float_t>(look_back - 1);
-            work.del2del = work.del(i - look_back, j) + gap_extend * look_back;
+            work.del2del = work.del(i - look_back, j) +
+                           gap_extend * static_cast<float_t>(look_back);
 
             // from match  or ins to ins
             work.mch2ins = work.mch(i, j - look_back) + gap_open +
@@ -265,7 +266,7 @@ std::pair<AlnState, float> sample_mdi(float log_mch, float log_del,
     float scale = mch + del + ins;
     p *= scale;
     AlnState ret;
-    float weight;
+    float weight{0.f};
     if(p < mch) {
         ret = AlnState::MATCH;
         weight = log_mch;
@@ -296,7 +297,7 @@ std::pair<AlnState, float> sample_mi(float log_mch, float log_ins, float p) {
     float scale = mch + ins;
     p *= scale;
     AlnState ret;
-    float weight;
+    float weight{0.f};
     if(p < mch) {
         ret = AlnState::MATCH;
         weight = log_mch;

@@ -81,8 +81,7 @@ int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(const std::string& codon);
 void set_cli_options(CLI::App& app, coati::args_t& args,
                      const coati::utils::Command& command);
-void set_cli_options_format(CLI::App& app, coati::args_t& args,
-                            const coati::utils::Command& command);
+void set_cli_options_format(CLI::App& app, coati::args_t& args);
 sequence_pair_t marginal_seq_encoding(const std::string& anc,
                                       const std::string& des);
 void set_subst(alignment_t& aln);

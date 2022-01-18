@@ -371,7 +371,7 @@ TEST_CASE("alignment_score") {
 void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     coati::Matrixf P(64, 64), p_marg;
 
-    std::ostream* pout;
+    std::ostream* pout(nullptr);
     std::ofstream outfile;
     if(aln.data.out_file.path.empty() || aln.data.out_file.path == "-") {
         pout = &std::cout;

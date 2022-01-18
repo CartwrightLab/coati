@@ -62,7 +62,7 @@ void from_json(const json_t& j, data_t& data) {
 coati::data_t read_json(const std::string& f_path, bool marginal) {
     coati::data_t json(f_path);
     // set input pointer and file type
-    std::istream* pin;
+    std::istream* pin(nullptr);
     std::ifstream infile;  // input file
     coati::file_type_t in_type = coati::utils::extract_file_type(f_path);
     if(in_type.path.empty() || in_type.path == "-") {
@@ -159,7 +159,7 @@ bool write_json(coati::data_t& json, const VectorFstStdArc& aln) {
         coati::utils::fst_to_seqs(json, aln);
     }
     // set output pointer
-    std::ostream* pout;
+    std::ostream* pout(nullptr);
     std::ofstream outfile;
     if(json.out_file.path == "-" || json.out_file.path.empty()) {
         pout = &std::cout;

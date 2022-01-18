@@ -36,7 +36,6 @@ namespace coati {
  */
 /* Initial msa by collapsing indels after pairwise aln with reference */
 bool ref_indel_alignment(coati::alignment_t& input) {
-    coati::Matrixf P(64, 64), p_marg;  // TODO: remove this?
     coati::tree::tree_t tree;
     std::string newick;
     coati::alignment_t aln, aln_tmp;

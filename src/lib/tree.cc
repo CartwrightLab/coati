@@ -41,20 +41,20 @@ using x3::lit;
 using x3::ascii::char_;
 
 // rule declaration
-x3::rule<class label, std::string> const label =  // NOLINT(cert-err58-cpp)
-    "label";
-x3::rule<class ilabel, std::string> const ilabel =  // NOLINT(cert-err58-cpp)
-    "ilabel";
-x3::rule<class length, float> const length =  // NOLINT(cert-err58-cpp)
-    "length";
-x3::rule<class leaf, coati::tree::tree_t> const leaf =
-    "leaf";  // NOLINT(cert-err58-cpp)
-x3::rule<class inode, coati::tree::tree_t> const inode =
-    "inode";  // NOLINT(cert-err58-cpp)
-x3::rule<class node, coati::tree::tree_t> const node =
-    "node";  // NOLINT(cert-err58-cpp)
-x3::rule<class tree, coati::tree::tree_t> const tree =
-    "tree";  // NOLINT(cert-err58-cpp)
+x3::rule<class label, std::string> const label = "label";
+// NOLINT(cert-err58-cpp)
+x3::rule<class ilabel, std::string> const ilabel = "ilabel";
+// NOLINT(cert-err58-cpp)
+x3::rule<class length, float> const length = "length";
+// NOLINT(cert-err58-cpp)
+x3::rule<class leaf, coati::tree::tree_t> const leaf = "leaf";
+// NOLINT(cert-err58-cpp)
+x3::rule<class inode, coati::tree::tree_t> const inode = "inode";
+// NOLINT(cert-err58-cpp)
+x3::rule<class node, coati::tree::tree_t> const node = "node";
+// NOLINT(cert-err58-cpp)
+x3::rule<class tree, coati::tree::tree_t> const tree = "tree";
+// NOLINT(cert-err58-cpp)
 
 // semantic actions
 auto const make_leaf = [](auto& ctx) {

@@ -38,7 +38,7 @@ namespace coati {
 coati::data_t read_phylip(const std::string& f_path, bool marginal) {
     coati::data_t phylip(f_path);
 
-    std::istream* pin;
+    std::istream* pin(nullptr);
     std::ifstream infile;  // input file
     coati::file_type_t in_type = coati::utils::extract_file_type(f_path);
     if(in_type.path.empty() || in_type.path == "-") {
@@ -55,7 +55,7 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
     }
     std::istream& in = *pin;
 
-    int n_seqs, len_seqs;
+    int n_seqs{0}, len_seqs{0};
     std::string line;
 
     // get number of sequences and length
@@ -79,7 +79,7 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
         phylip.seqs[i] = unsplitted[1];
     }
 
-    size_t count{0}, index;
+    size_t count{0}, index{0};
     std::string name;
     // read rest of sequences
     while(in.good()) {
@@ -203,7 +203,7 @@ bool write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
         coati::utils::fst_to_seqs(phylip, aln);
     }
     // set output pointer
-    std::ostream* pout;
+    std::ostream* pout(nullptr);
     std::ofstream outfile;
     // coati::file_type_t out_type;
     if(phylip.out_file.path == "-" || phylip.out_file.path.empty()) {

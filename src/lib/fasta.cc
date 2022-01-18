@@ -38,7 +38,7 @@ coati::data_t read_fasta(const std::string& f_path, bool marginal) {
     coati::data_t fasta(f_path);
 
     // set input pointer and file type
-    std::istream* pin;
+    std::istream* pin(nullptr);
     std::ifstream infile;  // input file
     coati::file_type_t in_type = coati::utils::extract_file_type(f_path);
     if(in_type.path.empty() || in_type.path == "-") {
@@ -166,7 +166,7 @@ bool write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
         coati::utils::fst_to_seqs(fasta, aln);
     }
     // set output pointer
-    std::ostream* pout;
+    std::ostream* pout(nullptr);
     std::ofstream outfile;
     if(fasta.out_file.path == "-" || fasta.out_file.path.empty()) {
         pout = &std::cout;
