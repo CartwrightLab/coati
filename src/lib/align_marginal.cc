@@ -265,7 +265,8 @@ TEST_CASE("marg_alignment") {
  *
  * \return alignment score (float).
  */
-float alignment_score(coati::alignment_t& aln, coati::Matrixf& p_marg) {
+float alignment_score(const coati::alignment_t& aln,
+                      const coati::Matrixf& p_marg) {
     std::vector<std::string> seqs = aln.data.seqs;
 
     // check that both sequences have equal length

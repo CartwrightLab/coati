@@ -40,6 +40,7 @@ using seq_view_t = std::basic_string_view<base_t>;
 using stationary_vector_t = std::vector<float_t>;
 
 struct align_pair_work_t {
+   public:
     Matrixf mch;     /*!< match state */
     Matrixf del;     /*!< deletion state */
     Matrixf ins;     /*!< insertion state */
@@ -52,15 +53,15 @@ struct align_pair_work_t {
     Matrixf ins_del; /*!< ins to del state */
     Matrixf ins_ins; /*!< ins to ins state */
 
-    float_t subst;   /*!< substitution tmp value*/
-    float_t mch2mch; /*!< match to match tmp value */
-    float_t mch2del; /*!< match to del tmp value */
-    float_t mch2ins; /*!< match to ins tmp value */
-    float_t del2mch; /*!< del to mch tmp value */
-    float_t del2del; /*!< del to del tmp value */
-    float_t ins2mch; /*!< ins to mch tmp value */
-    float_t ins2del; /*!< ins to del tmp value */
-    float_t ins2ins; /*!< ins to ins tmp value */
+    float_t subst{0.0f};   /*!< substitution tmp value*/
+    float_t mch2mch{0.0f}; /*!< match to match tmp value */
+    float_t mch2del{0.0f}; /*!< match to del tmp value */
+    float_t mch2ins{0.0f}; /*!< match to ins tmp value */
+    float_t del2mch{0.0f}; /*!< del to mch tmp value */
+    float_t del2del{0.0f}; /*!< del to del tmp value */
+    float_t ins2mch{0.0f}; /*!< ins to mch tmp value */
+    float_t ins2del{0.0f}; /*!< ins to del tmp value */
+    float_t ins2ins{0.0f}; /*!< ins to ins tmp value */
 
     /** \brief Resize matrices and initialize to given value
      *
@@ -108,18 +109,19 @@ struct align_pair_work_t {
 };
 
 struct align_pair_work_mem_t {
-    Matrixf mch;     /*!< match state */
-    Matrixf del;     /*!< deletion state */
-    Matrixf ins;     /*!< insertion state */
-    float_t subst;   /*!< substitution tmp value*/
-    float_t mch2mch; /*!< match to match tmp value */
-    float_t mch2del; /*!< match to del tmp value */
-    float_t mch2ins; /*!< match to ins tmp value */
-    float_t del2mch; /*!< del to mch tmp value */
-    float_t del2del; /*!< del to del tmp value */
-    float_t ins2mch; /*!< ins to mch tmp value */
-    float_t ins2del; /*!< ins to del tmp value */
-    float_t ins2ins; /*!< ins to ins tmp value */
+   public:
+    Matrixf mch;           /*!< match state */
+    Matrixf del;           /*!< deletion state */
+    Matrixf ins;           /*!< insertion state */
+    float_t subst{0.0f};   /*!< substitution tmp value*/
+    float_t mch2mch{0.0f}; /*!< match to match tmp value */
+    float_t mch2del{0.0f}; /*!< match to del tmp value */
+    float_t mch2ins{0.0f}; /*!< match to ins tmp value */
+    float_t del2mch{0.0f}; /*!< del to mch tmp value */
+    float_t del2del{0.0f}; /*!< del to del tmp value */
+    float_t ins2mch{0.0f}; /*!< ins to mch tmp value */
+    float_t ins2del{0.0f}; /*!< ins to del tmp value */
+    float_t ins2ins{0.0f}; /*!< ins to ins tmp value */
 
     /** \brief Resize matrices and initialize to given value
      *
@@ -146,16 +148,16 @@ inline float_t maximum(float_t x, float_t y, float_t z) {
 
 template <class S, class W>
 void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
-                  alignment_t &aln);
+                  const alignment_t &aln);
 
 void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
-             alignment_t &aln);
+             const alignment_t &aln);
 void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
-                 const seq_view_t &b, alignment_t &aln);
+                 const seq_view_t &b, const alignment_t &aln);
 void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
-             alignment_t &aln);
+             const alignment_t &aln);
 void viterbi_mem(align_pair_work_mem_t &work, const seq_view_t &a,
-                 const seq_view_t &b, alignment_t &aln);
+                 const seq_view_t &b, const alignment_t &aln);
 
 void traceback(const align_pair_work_mem_t &work, const std::string &a,
                const std::string &b, alignment_t &aln, size_t look_back);

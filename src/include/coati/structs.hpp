@@ -34,6 +34,7 @@ namespace coati {
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 struct gap_t {
+   public:
     std::size_t len{1};                 /*!< unit size of gaps */
     float_t open{0.001};                /*!< gap opening score */
     float_t extend{1.0f - 1.0f / 6.0f}; /*!< gap extension score */
@@ -46,11 +47,13 @@ struct gap_t {
 
 // extracts extension and filename from both file.foo and ext:file.foo
 struct file_type_t {
+   public:
     std::string path;
     std::string type_ext;
 };
 
 struct data_t {
+   public:
     std::filesystem::path path;        /*!< path to input file */
     std::vector<std::string> names;    /*!< names of fasta sequences */
     std::vector<std::string> seqs;     /*!< fasta sequences */
@@ -93,6 +96,7 @@ struct data_t {
 };
 
 struct alignment_t {
+   public:
     coati::data_t data;           /*!< sequences */
     std::string model{"m-coati"}; /*!< substitution model */
     float_t br_len{0.0133};       /*!< branch length */
@@ -116,6 +120,7 @@ struct alignment_t {
 };
 
 struct args_t {
+   public:
     coati::alignment_t aln;     /*!< input data and alignment parameters */
     float_t temperature{1.0f};  /*!< temperature parameter for sampling */
     size_t sample_size{1};      /*!< sampling sample size */

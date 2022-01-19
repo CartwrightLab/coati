@@ -33,7 +33,7 @@ namespace coati {
  */
 template <class S, class W>
 void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
-                  alignment_t &aln) {
+                  const alignment_t &aln) {
     // calculate log(1-g) log(1-e) log(g) log(e)
     float_t no_gap = S::from_linear_1mf(aln.gap.open);
     float_t gap_stop = S::from_linear_1mf(aln.gap.extend);
@@ -111,7 +111,7 @@ void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
  * @param[in] aln coati::alignment_t alignment parameters.
  */
 void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
-             alignment_t &aln) {
+             const alignment_t &aln) {
     coati::forward_impl<coati::semiring::log>(work, a, b, aln);
 }
 
@@ -123,7 +123,7 @@ void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
  * @param[in] aln coati::alignment_t alignment parameters.
  */
 void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
-                 const seq_view_t &b, alignment_t &aln) {
+                 const seq_view_t &b, const alignment_t &aln) {
     coati::forward_impl<coati::semiring::log>(work, a, b, aln);
 }
 
@@ -138,7 +138,7 @@ void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
  * @param[in] aln coati::alignment_t alignment parameters.
  */
 void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
-             alignment_t &aln) {
+             const alignment_t &aln) {
     coati::forward_impl<coati::semiring::tropical>(work, a, b, aln);
 }
 
@@ -153,7 +153,7 @@ void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
  * @param[in] aln coati::alignment_t alignment parameters.
  */
 void viterbi_mem(align_pair_work_mem_t &work, const seq_view_t &a,
-                 const seq_view_t &b, alignment_t &aln) {
+                 const seq_view_t &b, const alignment_t &aln) {
     coati::forward_impl<coati::semiring::tropical>(work, a, b, aln);
 }
 

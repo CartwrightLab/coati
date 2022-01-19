@@ -46,10 +46,10 @@ class log {
     static constexpr float zero() { return static_cast<float>(INT_MAX); }
     static constexpr float one() { return 0.0f; }
 
-    static constexpr float from_linearf(float x) { return ::logf(x); }
-    static constexpr float to_linearf(float x) { return ::expf(x); }
-    static constexpr float from_linear_1mf(float x) { return std::log1pf(-x); }
-    static constexpr float to_linear_1mf(float x) { return -std::expm1f(x); }
+    static float from_linearf(float x) { return ::logf(x); }
+    static float to_linearf(float x) { return ::expf(x); }
+    static float from_linear_1mf(float x) { return std::log1pf(-x); }
+    static float to_linear_1mf(float x) { return -std::expm1f(x); }
 };
 class tropical {
    public:
@@ -61,10 +61,10 @@ class tropical {
     static constexpr float zero() { return static_cast<float>(INT_MAX); }
     static constexpr float one() { return 0.0f; }
 
-    static constexpr float from_linearf(float x) { return ::logf(x); }
-    static constexpr float to_linearf(float x) { return ::expf(x); }
-    static constexpr float from_linear_1mf(float x) { return std::log1pf(-x); }
-    static constexpr float to_linear_1mf(float x) { return -std::expm1f(x); }
+    static float from_linearf(float x) { return ::logf(x); }
+    static float to_linearf(float x) { return ::expf(x); }
+    static float from_linear_1mf(float x) { return std::log1pf(-x); }
+    static float to_linear_1mf(float x) { return -std::expm1f(x); }
 };
 }  // namespace coati::semiring
 
