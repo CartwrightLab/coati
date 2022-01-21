@@ -48,6 +48,7 @@ int format_sequences(coati::args_t& args) {
                 pos++;
                 len++;
             }
+            len = len % 3;
             for(size_t i = 0; i < args.aln.data.size(); i++) {
                 switch(len) {
                 case 1:
@@ -133,6 +134,26 @@ TEST_CASE("format_sequences") {
         infile >> s1 >> s2;
         CHECK(s1 == ">Descendant");
         CHECK(s2 == "ACC?GT");
+        // delete file
+        CHECK(std::filesystem::remove(args.aln.data.out_file.path));
+    }
+    SUBCASE("fasta-gap-len11") {
+        args.preserve_phase = true;
+        args.aln.data = coati::data_t("", {"Ancestor", "Descendant"},
+                                      {"A-----------GT", "ACCCCCCCCCCCGT"});
+        args.aln.data.out_file = {"test-format-fasta.fa", ".fa"};
+        REQUIRE(coati::format_sequences(args) == 0);
+        // read file
+        std::ifstream infile(args.aln.data.out_file.path);
+        std::string s1, s2;
+
+        infile >> s1 >> s2;
+        CHECK(s1 == ">Ancestor");
+        CHECK(s2 == "A-----------?GT");
+
+        infile >> s1 >> s2;
+        CHECK(s1 == ">Descendant");
+        CHECK(s2 == "ACCCCCCCCCCC?GT");
         // delete file
         CHECK(std::filesystem::remove(args.aln.data.out_file.path));
     }
