@@ -96,7 +96,7 @@ void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln);
 
 // calculate log(1+exp(x))
 // https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
-static constexpr inline float_t log1p_exp(float_t x) {
+static inline float_t log1p_exp(float_t x) {
     if(x <= -37.0f) {
         return std::exp(x);
     }
@@ -112,7 +112,7 @@ static constexpr inline float_t log1p_exp(float_t x) {
 // Let x = max(a,b)
 // Let y = -abs(a-b)
 //  log(exp(a)+exp(b)) = x+log(1+exp(y))
-static constexpr inline float_t log_sum_exp(float_t a, float_t b) {
+static inline float_t log_sum_exp(float_t a, float_t b) {
     float_t x = std::max(a, b);
     float_t y = -std::fabs(a - b);
     return x + log1p_exp(y);

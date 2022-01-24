@@ -36,10 +36,10 @@ class linear {
 };
 class log {
    public:
-    static constexpr float plus(float x, float y) {
+    static float plus(float x, float y) {
         return coati::utils::log_sum_exp(x, y);
     }
-    static constexpr float plus(float x, float y, float z) {
+    static float plus(float x, float y, float z) {
         return coati::utils::log_sum_exp(coati::utils::log_sum_exp(x, y), z);
     }
     static constexpr float times(float x, float y) { return x + y; }
