@@ -72,9 +72,9 @@ coati::Matrixf mg94_p(float br_len, float omega,
     // construct transition matrix
     for(uint8_t i = 0; i < 64; i++) {
         // uint8_t codon;
-        // (codon & 48) >> 4 = nt4_table encoding of first codon nucleotide
-        // (codon & 12) >> 2 = nt4_table encoding of second codon nucleotide
-        // (codon & 03) = nt4_table encoding of third codon nucleotide
+        // (codon & 48) >> 4 = nt16_table encoding of first codon nucleotide
+        // (codon & 12) >> 2 = nt16_table encoding of second codon nucleotide
+        // (codon & 03) = nt16_table encoding of third codon nucleotide
         // e.g. 00 00 11 10 = 00 A T G = codon "ATG"
         // (00001110 & 48) >> 4 = (00001110 & 00110000) >> 4 = 00000000 >> 4 = 0
         // (A) (00001110 & 12) >> 2 = (00001110 & 00001100) >> 2 = 00001100 >> 2
@@ -147,13 +147,15 @@ TEST_CASE("mg94_p") {
  */
 coati::Matrixf marginal_p(const coati::Matrixf& P,
                           const std::vector<coati::float_t>& pi) {
+    // const coati::utils::AmbiguousNucs amb) {
     float marg{NAN};
 
-    coati::Matrixf p(192, 4);
+    coati::Matrixf p(192, 5);
+    // coati::Matrixf p(192, 16);
 
     for(int cod = 0; cod < 64; cod++) {
         for(int pos = 0; pos < 3; pos++) {
-            for(int nuc = 0; nuc < 4; nuc++) {
+            for(int nuc = 0; nuc < 4; nuc++) {  // A,C,G,T
                 marg = 0.0;
                 switch(pos) {  // divide cases into each value of pos for speed
                                // up (reduce use of pow())
@@ -175,6 +177,8 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
                 }
                 p(cod * 3 + pos, nuc) = ::logf(marg / pi[nuc]);
             }
+            // switch(pos) {  // ambiguous nucleotides
+            // }
         }
     }
 
