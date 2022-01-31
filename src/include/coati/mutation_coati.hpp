@@ -40,6 +40,7 @@ coati::Matrixf mg94_p(coati::float_t br_len, coati::float_t omega,
                                                                   0});
 coati::Matrixf marginal_p(const coati::Matrixf& P,
                           const std::vector<coati::float_t>& pi);
+void ambiguous_avg_p(coati::Matrixf& p);
 coati::Matrixf gtr_q(const std::vector<coati::float_t>& nuc_freqs,
                      const std::vector<coati::float_t>& sigma);
 }  // namespace coati

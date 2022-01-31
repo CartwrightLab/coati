@@ -45,7 +45,7 @@ jobs:
         name: Linux_Meson_Testlog
         path: builddir/meson-logs/testlog.txt
     - name: Upload coverage results
-      uses: codecov/codecov-action@v1.5.2
+      uses: codecov/codecov-action@v2
       with:
         files: builddir/meson-logs/coverage.info
     - run: ninja clang-format-check -C builddir/

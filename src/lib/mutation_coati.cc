@@ -150,37 +150,34 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
     // const coati::utils::AmbiguousNucs amb) {
     float marg{NAN};
 
-    coati::Matrixf p(192, 5);
-    // coati::Matrixf p(192, 16);
+    coati::Matrixf p(192, 15);
 
     for(int cod = 0; cod < 64; cod++) {
-        for(int pos = 0; pos < 3; pos++) {
-            for(int nuc = 0; nuc < 4; nuc++) {  // A,C,G,T
-                marg = 0.0;
-                switch(pos) {  // divide cases into each value of pos for speed
-                               // up (reduce use of pow())
-                case 0:
-                    for(uint8_t i = 0; i < 64; i++) {
-                        marg += (((i & 48) >> 4) == nuc ? P(cod, i) : 0.0f);
-                    }
-                    break;
-                case 1:
-                    for(uint8_t i = 0; i < 64; i++) {
-                        marg += (((i & 12) >> 2) == nuc ? P(cod, i) : 0.0f);
-                    }
-                    break;
-                case 2:
-                    for(uint8_t i = 0; i < 64; i++) {
-                        marg += ((i & 3) == nuc ? P(cod, i) : 0.0f);
-                    }
-                    break;
-                }
-                p(cod * 3 + pos, nuc) = ::logf(marg / pi[nuc]);
+        for(int nuc = 0; nuc < 4; nuc++) {  // A,C,G,T
+            // position 0
+            marg = 0.0;
+            for(uint8_t i = 0; i < 64; i++) {
+                marg += (((i & 48) >> 4) == nuc ? P(cod, i) : 0.0f);
             }
-            // switch(pos) {  // ambiguous nucleotides
-            // }
+            p(cod * 3, nuc) = ::logf(marg / pi[nuc]);
+
+            // position 1
+            marg = 0.0;
+            for(uint8_t i = 0; i < 64; i++) {
+                marg += (((i & 12) >> 2) == nuc ? P(cod, i) : 0.0f);
+            }
+            p(cod * 3 + 1, nuc) = ::logf(marg / pi[nuc]);
+
+            // position 2
+            marg = 0.0;
+            for(uint8_t i = 0; i < 64; i++) {
+                marg += ((i & 3) == nuc ? P(cod, i) : 0.0f);
+            }
+            p(cod * 3 + 2, nuc) = ::logf(marg / pi[nuc]);
         }
     }
+
+    ambiguous_avg_p(p);
 
     return p;
 }
@@ -202,6 +199,39 @@ TEST_CASE("marginal_p") {
     }
 }
 
+void ambiguous_avg_p(coati::Matrixf& p) {
+    size_t row{0};
+    for(int cod = 0; cod < 64; cod++) {
+        for(size_t pos = 0; pos < 3; pos++) {
+            row = cod * 3 + pos;
+
+            p(row, 4) = (p(row, 0) + p(row, 2)) / 2;  // R: purine       A or G
+
+            p(row, 5) = (p(row, 1) + p(row, 3)) / 2;  // Y: pyrimidine   C or T
+
+            p(row, 6) = (p(row, 0) + p(row, 1)) / 2;  // M: amino group  A or C
+
+            p(row, 7) = (p(row, 2) + p(row, 3)) / 2;  // K: keto group   G or T
+
+            p(row, 8) = (p(row, 1) + p(row, 2)) / 2;  // S: strong inter C or G
+
+            p(row, 9) = (p(row, 0) + p(row, 3)) / 2;  // W: weak interac A or T
+
+            p(row, 10) = (p(row, 1) + p(row, 2) + p(row, 3)) / 3;  // B: not A
+
+            p(row, 11) = (p(row, 0) + p(row, 2) + p(row, 3)) / 3;  // D: not C
+
+            p(row, 12) = (p(row, 0) + p(row, 1) + p(row, 3)) / 3;  // H: not G
+
+            p(row, 13) = (p(row, 0) + p(row, 1) + p(row, 2)) / 3;  // V: not T
+
+            p(row, 14) =
+                (p(row, 0) + p(row, 1) + p(row, 2) + p(row, 3)) / 4;  // N: any
+        }
+    }
+}
+
+// void ambiguous_best_p(coati::Matrixf& p) {}
 /**
  * \brief Create GTR subsitution model matrix.
  *
