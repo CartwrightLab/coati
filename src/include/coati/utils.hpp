@@ -47,32 +47,32 @@
 #include "phylip.hpp"
 #include "structs.hpp"
 
-/* Table for converting a nucleotide character to 2-bit encoding
+/* Table for converting a nucleotide character to 4-bit encoding
  *
  * Following IUPAC nucleotide code
  * 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
- * A | C | G | T | R | Y | M | K | S | W | B  | D  | H  | V  | N  | -  |
+ * A | C | G |T/U| R | Y | M | K | S | W | B  | D  | H  | V  | N  | -  |
  *
  * R: purine       A or G
- * Y: pyrimidine   C or T
+ * Y: pyrimidine   C or T/U
  * M: amino group  A or C
- * K: keto group   G or T
+ * K: keto group   G or T/U
  * S: strong inter C or G
- * W: weak interac A or T
- * B: not A        C or G or T
- * D: not C        A or G or T
- * H: not G        A or C or T
+ * W: weak interac A or T/U
+ * B: not A        C or G or T/U
+ * D: not C        A or G or T/U
+ * H: not G        A or C or T/U
  * V: not T        A or C or G
- * N: any          A or C or G or T
+ * N: any          A or C or G or T/U
  */
 const uint8_t nt16_table[256] = {
     16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
     16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
     16, 16, 16, 16, 16, 16, 16, 15, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
     16, 16, 16, 16, 16, 16, 16, 16, 0,  10, 1,  11, 16, 16, 2,  12, 16, 16, 7,
-    16, 6,  14, 16, 16, 16, 4,  8,  3,  16, 13, 9,  16, 5,  16, 16, 16, 16, 16,
+    16, 6,  14, 16, 16, 16, 4,  8,  3,  3,  13, 9,  16, 5,  16, 16, 16, 16, 16,
     16, 16, 0,  10, 1,  11, 16, 16, 2,  12, 16, 16, 7,  16, 6,  14, 16, 16, 16,
-    4,  8,  3,  16, 13, 9,  16, 5,  16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    4,  8,  3,  3,  13, 9,  16, 5,  16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
     16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
     16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
     16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
@@ -137,8 +137,6 @@ static inline float_t log_sum_exp(float_t a, float_t b) {
     float_t y = -std::fabs(a - b);
     return x + log1p_exp(y);
 }
-
-enum struct AmbiguousNucs { AVG, BEST };
 
 }  // namespace coati::utils
 #endif

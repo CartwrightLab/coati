@@ -146,8 +146,8 @@ TEST_CASE("mg94_p") {
  * \return marginal 192x4 substitution matrix (coati::Matrixf).
  */
 coati::Matrixf marginal_p(const coati::Matrixf& P,
-                          const std::vector<coati::float_t>& pi) {
-    // const coati::utils::AmbiguousNucs amb) {
+                          const std::vector<coati::float_t>& pi,
+                          const coati::AmbiguousNucs amb) {
     float marg{NAN};
 
     coati::Matrixf p(192, 15);
@@ -177,7 +177,11 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
         }
     }
 
-    ambiguous_avg_p(p);
+    if(amb == AmbiguousNucs::AVG) {
+        ambiguous_avg_p(p);
+    } else {
+        ambiguous_best_p(p);
+    }
 
     return p;
 }
@@ -186,7 +190,7 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
 TEST_CASE("marginal_p") {
     std::vector<coati::float_t> pi{0.308, 0.185, 0.199, 0.308};
     coati::Matrixf P = mg94_p(0.0133, 0.2, pi);
-    coati::Matrixf p_marg = marginal_p(P, pi);
+    coati::Matrixf p_marg = marginal_p(P, pi, AmbiguousNucs::AVG);
 
     for(int cod = 0; cod < 64; cod++) {
         for(int pos = 0; pos < 3; pos++) {
@@ -231,7 +235,48 @@ void ambiguous_avg_p(coati::Matrixf& p) {
     }
 }
 
-// void ambiguous_best_p(coati::Matrixf& p) {}
+void ambiguous_best_p(coati::Matrixf& p) {
+    size_t row{0};
+    for(int cod = 0; cod < 64; cod++) {
+        for(size_t pos = 0; pos < 3; pos++) {
+            row = cod * 3 + pos;
+
+            p(row, 4) =
+                std::max(p(row, 0), p(row, 2));  // R: purine       A or G
+
+            p(row, 5) =
+                std::max(p(row, 1), p(row, 3));  // Y: pyrimidine   C or T
+
+            p(row, 6) =
+                std::max(p(row, 0), p(row, 1));  // M: amino group  A or C
+
+            p(row, 7) =
+                std::max(p(row, 2), p(row, 3));  // K: keto group   G or T
+
+            p(row, 8) =
+                std::max(p(row, 1), p(row, 2));  // S: strong inter C or G
+
+            p(row, 9) =
+                std::max(p(row, 0), p(row, 3));  // W: weak interac A or T
+
+            p(row, 10) =
+                std::max({p(row, 1), p(row, 2), p(row, 3)});  // B: not A
+
+            p(row, 11) =
+                std::max({p(row, 0), p(row, 2), p(row, 3)});  // D: not C
+
+            p(row, 12) =
+                std::max({p(row, 0), p(row, 1), p(row, 3)});  // H: not G
+
+            p(row, 13) =
+                std::max({p(row, 0), p(row, 1), p(row, 2)});  // V: not T
+
+            p(row, 14) = std::max(
+                {p(row, 0), p(row, 1), p(row, 2), p(row, 3)});  // N: any
+        }
+    }
+}
+
 /**
  * \brief Create GTR subsitution model matrix.
  *

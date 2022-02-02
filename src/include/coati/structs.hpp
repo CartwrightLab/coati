@@ -95,6 +95,8 @@ struct data_t {
     size_t len(size_t index) { return seqs[index].length(); }
 };
 
+enum struct AmbiguousNucs { AVG, BEST };
+
 struct alignment_t {
    public:
     coati::data_t data;           /*!< sequences */
@@ -114,6 +116,8 @@ struct alignment_t {
     std::filesystem::path output;      /*!< path to alignment output file */
     std::filesystem::path weight_file; /*!< file to output alignment weight */
     bool score{false}; /*!< if true an input alignment is scored */
+    AmbiguousNucs amb = AmbiguousNucs::AVG;
+    // AmbiguousNucs amb = AmbiguousNucs::BEST;
 
     /** \brief Return true if model selected is marginal (m-coati or m-ecm) */
     bool is_marginal() { return (model == "m-coati" || model == "m-ecm"); }

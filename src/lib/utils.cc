@@ -321,13 +321,13 @@ void set_subst(alignment_t& aln) {
     if(!aln.rate.empty()) {
         aln.model = "user_marg_model";
         P = parse_matrix_csv(aln.rate);
-        aln.subst_matrix = marginal_p(P, aln.pi);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
     } else if(aln.model.compare("m-ecm") == 0) {
         P = ecm_p(aln.br_len, aln.omega);
-        aln.subst_matrix = marginal_p(P, aln.pi);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
     } else if(aln.model.compare("m-coati") == 0) {  // m-coati
         P = mg94_p(aln.br_len, aln.omega, aln.pi);
-        aln.subst_matrix = marginal_p(P, aln.pi);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
     } else if(aln.model.compare("coati") == 0) {
         aln.subst_fst = mg94(aln.br_len, aln.omega, aln.pi);
     } else if(aln.model.compare("dna") == 0) {

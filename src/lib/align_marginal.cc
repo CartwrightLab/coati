@@ -110,8 +110,9 @@ TEST_CASE("marg_alignment") {
             std::ifstream inweight(aln.weight_file);
             std::string s;
             inweight >> s;
+            std::size_t start = s.find_last_of(",");
             CHECK(std::filesystem::remove(aln.weight_file));
-            CHECK(std::stof(s.substr(s.length() - 7)) == expected.weight);
+            CHECK(std::stof(s.substr(start + 1)) == expected.weight);
         }
     };
 
@@ -197,7 +198,9 @@ TEST_CASE("marg_alignment") {
         aln.data.out_file = {{"test-marg_alignment_ambiguous.fa"}, {".fa"}};
 
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTR"});
-        expected.weight = -1.03892f;
+        expected.weight = -1.03892f;  // AVG
+        // expected.weight = 1.51294f;  // BEST
+        test_fasta(aln, expected);
     }
 
     SUBCASE("Alignment with gap length multiple of 3 - fail") {
@@ -338,7 +341,7 @@ float alignment_score(const coati::alignment_t& aln,
 TEST_CASE("alignment_score") {
     coati::alignment_t aln;
     coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
-    coati::Matrixf p_marg = marginal_p(P, aln.pi);
+    coati::Matrixf p_marg = marginal_p(P, aln.pi, AmbiguousNucs::AVG);
 
     aln.data.seqs = {"CTCTGGATAGTG", "CT----ATAGTG"};
     REQUIRE(alignment_score(aln, p_marg) == doctest::Approx(1.51294f));
