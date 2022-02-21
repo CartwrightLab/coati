@@ -38,15 +38,10 @@ jobs:
         meson-version: 0.59.1
         ninja-version: 1.10.2
     - name: Coverage
-      run: ninja coverage-html -C builddir
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: Linux_Meson_Testlog
-        path: builddir/meson-logs/testlog.txt
+      run: ninja coverage-xml -C builddir
     - name: Upload coverage results
       uses: codecov/codecov-action@v2
       with:
-        files: builddir/meson-logs/coverage.info
+        files: builddir/meson-logs/coverage.xml
     - run: ninja clang-format-check -C builddir/
     - run: ninja clang-tidy -C builddir/
