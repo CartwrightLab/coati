@@ -261,6 +261,13 @@ sequence_pair_t marginal_seq_encoding(const std::string& anc,
     ret[0].reserve(anc.length());
     ret[1].reserve(des.length());
 
+    // check that REF/ancestor doesnt have ambiguous nucs
+    auto pos = anc.find_first_not_of("ACGTU");
+    if(pos != std::string::npos) {
+        throw std::invalid_argument(
+            "Ambiguous nucleotides in reference sequence not supported.");
+    }
+
     // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... , TTT3->191
     for(auto it = anc.cbegin(); it != anc.cend(); it++) {
         auto c0 = static_cast<unsigned char>(
@@ -289,7 +296,7 @@ sequence_pair_t marginal_seq_encoding(const std::string& anc,
 
 /// @private
 TEST_CASE("marginal_seq_encoding") {
-    std::string anc = "AAAGGGTTT", des = "ACGTRYMKSWBDHVN-";
+    std::string anc = "AAAGGGTTTCCC", des = "ACGTRYMKSWBDHVN-";
     auto result = marginal_seq_encoding(anc, des);
 
     CHECK(result[0][0] == static_cast<unsigned char>(0));
@@ -301,6 +308,9 @@ TEST_CASE("marginal_seq_encoding") {
     CHECK(result[0][6] == static_cast<unsigned char>(189));
     CHECK(result[0][7] == static_cast<unsigned char>(190));
     CHECK(result[0][8] == static_cast<unsigned char>(191));
+    CHECK(result[0][9] == static_cast<unsigned char>(63));
+    CHECK(result[0][10] == static_cast<unsigned char>(64));
+    CHECK(result[0][11] == static_cast<unsigned char>(65));
     CHECK(result[1][0] == static_cast<unsigned char>(0));
     CHECK(result[1][1] == static_cast<unsigned char>(1));
     CHECK(result[1][2] == static_cast<unsigned char>(2));
@@ -317,6 +327,13 @@ TEST_CASE("marginal_seq_encoding") {
     CHECK(result[1][13] == static_cast<unsigned char>(13));
     CHECK(result[1][14] == static_cast<unsigned char>(14));
     CHECK(result[1][15] == static_cast<unsigned char>(15));
+
+    anc = "AAACCCGGN";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
+    anc = "AAACCCGGR";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
+    anc = "YAACCCGGG";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
 }
 
 /**
