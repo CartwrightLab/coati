@@ -203,6 +203,15 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
     app.add_option("-x,--sigma", args.aln.sigma,
                    "GTR sigma parameters (AC AG AT CG CT GT)")
         ->expected(6);
+    // specify string->value mappings
+    std::map<std::string, coati::AmbiguousNucs> amb_map{
+        {"AVG", coati::AmbiguousNucs::AVG},
+        {"BEST", coati::AmbiguousNucs::BEST}};
+    // CheckedTransformer translates and checks whether the results are either
+    // in one of the strings or in one of the translations already
+    app.add_option("-a,--ambiguous", args.aln.amb,
+                   "Ambiguous nucleotides model", "AVG")
+        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case));
     if(command == Command::SAMPLE) {
         // app.add_option("-T,--temperature", args.temperature, "Sampling
         // temperature");
