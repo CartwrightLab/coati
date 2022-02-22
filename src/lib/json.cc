@@ -99,6 +99,7 @@ coati::data_t read_json(const std::string& f_path, bool marginal) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("read-json") {
     std::ofstream outfile;
 
@@ -146,6 +147,7 @@ TEST_CASE("read-json") {
         }
     }
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Write content of coati::data_t to json format.
@@ -181,6 +183,7 @@ bool write_json(coati::data_t& json, const VectorFstStdArc& aln) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("write-json") {
     SUBCASE("test-write-json-marg.json") {
         coati::data_t json("", {"a", "b"},
@@ -221,5 +224,6 @@ TEST_CASE("write-json") {
         CHECK(std::filesystem::remove(json.out_file.path));
     }
 }
+// GCOVR_EXCL_STOP
 
 }  // namespace coati

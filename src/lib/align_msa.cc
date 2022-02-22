@@ -185,6 +185,7 @@ bool ref_indel_alignment(coati::alignment_t& input) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("ref_indel_alignment") {
     std::ofstream outfile;
     outfile.open("tree-msa.newick");
@@ -260,4 +261,5 @@ TEST_CASE("ref_indel_alignment") {
 
     CHECK(std::filesystem::remove("tree-msa.newick"));
 }
+// GCOVR_EXCL_STOP
 }  // namespace coati

@@ -159,6 +159,7 @@ int parse_newick(std::string content, tree_t& guide_tree) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("parse_newick") {
     tree_t tree;
 
@@ -201,6 +202,7 @@ TEST_CASE("parse_newick") {
     CHECK(tree[6].is_leaf == true);
     CHECK(tree[6].parent == 0);
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Determine order of leafs for progressive alignment

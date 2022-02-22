@@ -116,6 +116,7 @@ coati::Matrixf parse_matrix_csv(const std::string& file) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("parse_matrix_csv") {
     std::ofstream outfile;
     coati::Matrix<coati::float_t> P(
@@ -156,6 +157,7 @@ TEST_CASE("parse_matrix_csv") {
     }
     CHECK(std::filesystem::remove("test-marg-matrix.csv"));
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Setup command line options
@@ -295,6 +297,7 @@ sequence_pair_t marginal_seq_encoding(const std::string& anc,
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("marginal_seq_encoding") {
     std::string anc = "AAAGGGTTTCCC", des = "ACGTRYMKSWBDHVN-";
     auto result = marginal_seq_encoding(anc, des);
@@ -335,6 +338,7 @@ TEST_CASE("marginal_seq_encoding") {
     anc = "YAACCCGGG";
     REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Set subtitution matrix or FST according to model
@@ -394,6 +398,7 @@ file_type_t extract_file_type(std::string path) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("extract_file_type") {
     // NOLINTNEXTLINE(misc-unused-parameters)
     auto test = [](std::string filename, file_type_t expected) {
@@ -422,6 +427,7 @@ TEST_CASE("extract_file_type") {
     test(" \f\n\r\t\v.bar \f\n\r\t\v", {".bar", ""});
     test(" \f\n\r\t\v", {{}, {}});
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Read sequences and names for any supported format.
@@ -461,6 +467,7 @@ data_t read_input(alignment_t& aln) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("read_input") {
     std::ofstream outfile;
     coati::alignment_t aln;
@@ -525,6 +532,7 @@ TEST_CASE("read_input") {
         REQUIRE_THROWS_AS(read_input(aln), std::invalid_argument);
     }
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Write sequences and names in any suppported format.
@@ -549,6 +557,7 @@ bool write_output(data_t& data, const VectorFstStdArc& aln_path) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("write_output") {
     coati::data_t data;
     std::vector<std::string> names = {"anc", "des"};
@@ -636,6 +645,7 @@ TEST_CASE("write_output") {
         REQUIRE_THROWS_AS(write_output(data), std::invalid_argument);
     }
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Convert alignment FST to std::string sequences.

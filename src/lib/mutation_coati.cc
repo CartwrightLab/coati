@@ -126,6 +126,7 @@ coati::Matrixf mg94_p(float br_len, float omega,
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("mg94_p") {
     coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
@@ -135,6 +136,7 @@ TEST_CASE("mg94_p") {
         }
     }
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Create marginal 192x4 substitution P matrix give a 64x64
@@ -187,6 +189,7 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("marginal_p") {
     std::vector<coati::float_t> pi{0.308, 0.185, 0.199, 0.308};
     coati::Matrixf P = mg94_p(0.0133, 0.2, pi);
@@ -202,6 +205,7 @@ TEST_CASE("marginal_p") {
         }
     }
 }
+// GCOVR_EXCL_STOP
 
 void ambiguous_avg_p(coati::Matrixf& p) {
     size_t row{0};
@@ -326,6 +330,7 @@ coati::Matrixf gtr_q(const std::vector<coati::float_t>& pi,
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("gtr_q") {
     coati::Matrixf gtr(gtr_q({0.308, 0.185, 0.199, 0.308},
                              {0.009489730, 0.039164824, 0.004318182,
@@ -355,4 +360,5 @@ TEST_CASE("gtr_q") {
                           std::invalid_argument);
     }
 }
+// GCOVR_EXCL_STOP
 }  // namespace coati

@@ -110,6 +110,7 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("read_phylip") {
     // cppcheck-suppress unusedVariable
     std::vector<VectorFstStdArc> fsts;
@@ -191,6 +192,7 @@ TEST_CASE("read_phylip") {
                           std::invalid_argument);
     }
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Write alignment in PHYLIP format
@@ -241,6 +243,7 @@ bool write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("write_phylip") {
     SUBCASE("Short sequences") {
         coati::data_t phylip("", {"1", "2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
@@ -328,5 +331,6 @@ TEST_CASE("write_phylip") {
         CHECK(std::filesystem::remove("test-write-phylip.phy"));
     }
 }
+// GCOVR_EXCL_STOP
 
 }  // namespace coati

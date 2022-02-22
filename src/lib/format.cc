@@ -66,6 +66,7 @@ int format_sequences(coati::args_t& args) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("format_sequences") {
     coati::args_t args;
 
@@ -193,4 +194,5 @@ TEST_CASE("format_sequences") {
         REQUIRE_THROWS_AS(coati::format_sequences(args), std::invalid_argument);
     }
 }
+// GCOVR_EXCL_STOP
 }  // namespace coati

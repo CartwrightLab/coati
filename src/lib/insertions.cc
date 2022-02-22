@@ -54,6 +54,7 @@ bool insertion_flags(const std::string& ref, const std::string& seq,
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("insertion_flags") {
     SparseVectorInt insertions(7);
 
@@ -68,6 +69,7 @@ TEST_CASE("insertion_flags") {
         CHECK(insertions.coeffRef(6) == 111);
     }
 }
+// GCOVR_EXCL_STOP
 
 /* Collapse insertions between two sequences after pairwise alignment w/ REF */
 /**
@@ -177,6 +179,7 @@ bool merge_indels(std::vector<insertion_data_t>& ins_data,
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("merge_indels") {
     SUBCASE("Two sequences, two insertion vectors, two merges") {
         SparseVectorInt insA(14);  // size (upperbound) should be 2*length
@@ -304,6 +307,7 @@ TEST_CASE("merge_indels") {
         }
     }
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Add closed gaps to sequences and insertion vectors.
@@ -345,6 +349,7 @@ void add_gap(std::vector<insertion_data_t>& ins_data,
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("add_gap") {
     SUBCASE("Three sequences with three insertion vectors") {
         SparseVectorInt insA(14);  // size (upperbound) should be 2*length
@@ -417,4 +422,5 @@ TEST_CASE("add_gap") {
         CHECK(ins_data[1].insertions.coeffRef(7) == 111);
     }
 }
+// GCOVR_EXCL_STOP
 }  // namespace coati

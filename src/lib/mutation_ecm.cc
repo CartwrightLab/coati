@@ -53,6 +53,7 @@ void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("nts_ntv") {
     int nts = 0, ntv = 0;
 
@@ -76,6 +77,7 @@ TEST_CASE("nts_ntv") {
     CHECK(nts == 3);
     CHECK(ntv == 0);
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Transition-transverison bias function.
@@ -111,6 +113,7 @@ float k(uint8_t c1, uint8_t c2, int model, float kappa) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("k") {
     CHECK(k(0, 0, 0) == 1);         // AAA -> AAA, ECM+f+omega
     CHECK(k(32, 0, 0) == 1);        // GAA -> CTC, ECM+f+omega
@@ -125,6 +128,7 @@ TEST_CASE("k") {
     CHECK(k(47, 38, 2) == 2.5);     // GTT -> GCT, ECM+F+omega+1k(tv)
     CHECK(k(22, 19, 2) == 6.25);    // CCG -> CAT, ECM+F+omega+1k(tv)
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Create Empirical Codon Model substitution P matrix

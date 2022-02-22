@@ -67,6 +67,7 @@ VectorFstStdArc mg94(float br_len, float omega,
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("mg94") {
     // float branch_length = 0.0133;
     VectorFstStdArc mut_fst(mg94(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
@@ -75,6 +76,7 @@ TEST_CASE("mg94") {
     CHECK(mut_fst.NumArcs(0) == 16);  // 4x4 nuc to nuc arcs from start state
     CHECK(mut_fst.NumStates() == 241);
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Create dna marginal Muse and Gaut codon model FST
@@ -134,6 +136,7 @@ VectorFstStdArc dna(float br_len, float omega,
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("dna") {
     // float branch_length = 0.0133;
     VectorFstStdArc dna_fst = dna(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308});
@@ -157,6 +160,7 @@ TEST_CASE("dna") {
         CHECK(data.arcs[i].weight.Value() == doctest::Approx(dna_val[i]));
     }
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Create FST that maps nucleotide to AA position
@@ -189,6 +193,7 @@ VectorFstStdArc nuc2pos() {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("nuc2pos") {
     VectorFstStdArc n2p_fst(nuc2pos());
 
@@ -196,6 +201,7 @@ TEST_CASE("nuc2pos") {
     CHECK(n2p_fst.NumArcs(0) == 64);    // one position for every aminoacid (AA)
     CHECK(n2p_fst.NumStates() == 129);  // 64 AA with 2 states each + init state
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Create affine gap indel model FST.
@@ -261,6 +267,7 @@ VectorFstStdArc indel(float gap_open, float gap_extend,
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("indel") {
     std::string model = "m-coati";
     VectorFstStdArc indel_model(
@@ -273,6 +280,7 @@ TEST_CASE("indel") {
     CHECK(indel_model.NumArcs(2) == 12);
     CHECK(indel_model.NumArcs(3) == 1);
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Add arc to FST

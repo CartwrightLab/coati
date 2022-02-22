@@ -99,6 +99,7 @@ coati::data_t read_fasta(const std::string& f_path, bool marginal) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("read_fasta") {
     std::ofstream outfile;
 
@@ -154,6 +155,7 @@ TEST_CASE("read_fasta") {
                           std::invalid_argument);
     }
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Write alignment in fasta format.
@@ -191,6 +193,7 @@ bool write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("write_fasta") {
     SUBCASE("marginal") {
         coati::data_t fasta("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
@@ -238,4 +241,5 @@ TEST_CASE("write_fasta") {
         CHECK(std::filesystem::remove("test-write-fasta-fst.fasta"));
     }
 }
+// GCOVR_EXCL_STOP
 }  // namespace coati

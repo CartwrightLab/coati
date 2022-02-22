@@ -82,6 +82,7 @@ bool marg_alignment(coati::alignment_t& aln) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("marg_alignment") {
     // NOLINTNEXTLINE(misc-unused-parameters)
     auto test_fasta = [](alignment_t aln, data_t expected) {
@@ -240,6 +241,7 @@ TEST_CASE("marg_alignment") {
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
     }
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Score alignment using marginal model.
@@ -338,6 +340,7 @@ float alignment_score(const coati::alignment_t& aln,
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("alignment_score") {
     coati::alignment_t aln;
     coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
@@ -352,6 +355,7 @@ TEST_CASE("alignment_score") {
     aln.data.seqs = {"CTC", "CT"};
     REQUIRE_THROWS_AS(alignment_score(aln, p_marg), std::invalid_argument);
 }
+// GCOVR_EXCL_STOP
 
 void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     coati::Matrixf P(64, 64), p_marg;

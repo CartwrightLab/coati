@@ -108,6 +108,7 @@ bool fst_alignment(coati::alignment_t& aln) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("fst_alignment") {
     std::vector<VectorFstStdArc> fsts;
     VectorFstStdArc fsa0, fsa1;
@@ -277,5 +278,6 @@ TEST_CASE("fst_alignment") {
         REQUIRE_THROWS_AS(coati::utils::set_subst(aln), std::invalid_argument);
     }
 }
+// GCOVR_EXCL_STOP
 
 }  // namespace coati
