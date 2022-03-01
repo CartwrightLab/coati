@@ -48,7 +48,7 @@ bool marg_alignment(coati::alignment_t& aln) {
 
     // check that length of ref sequence is multiple of 3 and gap unit size
     size_t len_a = aln.data.seqs[0].length();
-    if((len_a % 3 != 0) && (len_a % aln.gap.len != 0)) {
+    if((len_a % 3 != 0) || (len_a % aln.gap.len != 0)) {
         throw std::invalid_argument(
             "Length of reference sequence must be multiple of 3.");
     }
