@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -36,10 +36,10 @@ namespace coati {
  *
  */
 int format_sequences(coati::args_t& args) {
-    if(args.preserve_phase) {  // padd gaps to preserve phase
-        if(args.padding == "-") {
+    if(args.format.preserve_phase) {  // padd gaps to preserve phase
+        if(args.format.padding == "-") {
             throw std::invalid_argument("Invalid padding character " +
-                                        args.padding + " .");
+                                        args.format.padding + " .");
         }
         auto pos = args.aln.data.seqs[0].find('-');
         while(pos != std::string::npos) {
@@ -52,12 +52,35 @@ int format_sequences(coati::args_t& args) {
             for(size_t i = 0; i < args.aln.data.size(); i++) {
                 switch(len) {
                 case 1:
-                    args.aln.data.seqs[i].insert(pos, args.padding, 0, len);
+                    args.aln.data.seqs[i].insert(pos, args.format.padding, 0,
+                                                 len);
                 case 2:
-                    args.aln.data.seqs[i].insert(pos, args.padding, 0, len);
+                    args.aln.data.seqs[i].insert(pos, args.format.padding, 0,
+                                                 len);
                 }
             }
             pos = args.aln.data.seqs[0].find('-', pos++);
+        }
+    }
+
+    // if sequences to extract are specified do so
+    if(args.format.seqs.size() > 0 || args.format.pos.size() > 0) {
+        for(auto index : args.format.pos) {
+            args.format.seqs.emplace_back(args.aln.data.names[index - 1]);
+        }
+
+        for(int i = args.aln.data.names.size() - 1; i >= 0; --i) {
+            // if sequence name is not found on extraction list, remove
+            if(std::find(begin(args.format.seqs), end(args.format.seqs),
+                         args.aln.data.names[i]) == end(args.format.seqs)) {
+                args.aln.data.names.erase(args.aln.data.names.begin() + i);
+                args.aln.data.seqs.erase(args.aln.data.seqs.begin() + i);
+            }
+        }
+
+        // if all sequences are removed, throw an error
+        if(args.aln.data.names.empty()) {
+            throw std::invalid_argument("Sequences not found.");
         }
     }
 
@@ -69,128 +92,146 @@ int format_sequences(coati::args_t& args) {
 // GCOVR_EXCL_START
 TEST_CASE("format_sequences") {
     coati::args_t args;
+    coati::data_t expected;
 
-    SUBCASE("fasta-multiple-3") {
-        args.preserve_phase = true;
-        args.aln.data =
-            coati::data_t("", {"Ancestor", "Descendant"}, {"AG---T", "ACCCGT"});
-        args.aln.data.out_file = {"test-format-fasta-mult3.fa", ".fa"};
+    // NOLINTNEXTLINE(misc-unused-parameters)
+    auto test_format_fasta = [](args_t args, data_t expected) {
+        args.aln.data.out_file = {"test-format-seqs.fa", ".fa"};
+        if(std::filesystem::exists(args.aln.data.out_file.path)) {
+            std::filesystem::remove(args.aln.data.out_file.path);
+        }
+
         REQUIRE(coati::format_sequences(args) == 0);
-        // read file
+
+        std::ifstream infile(args.aln.data.out_file.path);
+        std::string s1, s2;
+
+        for(size_t i = 0; i < expected.size(); ++i) {
+            infile >> s1 >> s2;
+            CHECK(s1 == expected.names[i]);
+            CHECK(s2 == expected.seqs[i]);
+        }
+
+        CHECK(std::filesystem::remove(args.aln.data.out_file.path));
+    };
+
+    // NOLINTNEXTLINE(misc-unused-parameters)
+    auto test_format_phylip = [](args_t args, data_t expected) {
+        args.aln.data.out_file = {"test-format-seqs.phy", ".phy"};
+        if(std::filesystem::exists(args.aln.data.out_file.path)) {
+            std::filesystem::remove(args.aln.data.out_file.path);
+        }
+
+        REQUIRE(coati::format_sequences(args) == 0);
+
         std::ifstream infile(args.aln.data.out_file.path);
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1 == ">Ancestor");
-        CHECK(s2 == "AG---T");
+        CHECK(std::stoul(s1) == expected.size());
+        CHECK(std::stoul(s2) == args.aln.data.seqs[0].size());
 
-        infile >> s1 >> s2;
-        CHECK(s1 == ">Descendant");
-        CHECK(s2 == "ACCCGT");
-        // delete file
+        for(size_t i = 0; i < expected.size(); ++i) {
+            infile >> s1 >> s2;
+            CHECK(s1 == expected.names[i]);
+            CHECK(s2 == expected.seqs[i]);
+        }
+
         CHECK(std::filesystem::remove(args.aln.data.out_file.path));
+    };
+
+    SUBCASE("fasta-multiple-3") {
+        args.format.preserve_phase = true;
+        args.aln.data =
+            coati::data_t("", {"Ancestor", "Descendant"}, {"AG---T", "ACCCGT"});
+        expected = coati::data_t("", {">Ancestor", ">Descendant"},
+                                 {"AG---T", "ACCCGT"});
+        test_format_fasta(args, expected);
     }
     SUBCASE("phylip-3seqs-no-preserve-case") {
         args.aln.data =
             coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
                           {"AGT", "AGT", "AG-"});
-        args.aln.data.out_file = {"test-format-fasta-phylip.phy", ".phy"};
-        REQUIRE(coati::format_sequences(args) == 0);
-        // read file
-        std::ifstream infile(args.aln.data.out_file.path);
-        std::string s1, s2;
-
-        infile >> s1 >> s2;
-        CHECK(s1 == "3");
-        CHECK(s2 == "3");
-
-        infile >> s1 >> s2;
-        CHECK(s1 == "Ancestor");
-        CHECK(s2 == "AGT");
-
-        infile >> s1 >> s2;
-        CHECK(s1 == "Descendant1");
-        CHECK(s2 == "AGT");
-
-        infile >> s1 >> s2;
-        CHECK(s1 == "Descendant2");
-        CHECK(s2 == "AG-");
-        // delete file
-        CHECK(std::filesystem::remove(args.aln.data.out_file.path));
+        expected = coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
+                                 {"AGT", "AGT", "AG-"});
+        test_format_phylip(args, expected);
     }
     SUBCASE("fasta-gap-len2") {
-        args.preserve_phase = true;
+        args.format.preserve_phase = true;
         args.aln.data =
             coati::data_t("", {"Ancestor", "Descendant"}, {"A--GT", "ACCGT"});
-        args.aln.data.out_file = {"test-format-fasta.fa", ".fa"};
-        REQUIRE(coati::format_sequences(args) == 0);
-        // read file
-        std::ifstream infile(args.aln.data.out_file.path);
-        std::string s1, s2;
-
-        infile >> s1 >> s2;
-        CHECK(s1 == ">Ancestor");
-        CHECK(s2 == "A--?GT");
-
-        infile >> s1 >> s2;
-        CHECK(s1 == ">Descendant");
-        CHECK(s2 == "ACC?GT");
-        // delete file
-        CHECK(std::filesystem::remove(args.aln.data.out_file.path));
+        expected = coati::data_t("", {">Ancestor", ">Descendant"},
+                                 {"A--?GT", "ACC?GT"});
+        test_format_fasta(args, expected);
     }
     SUBCASE("fasta-gap-len11") {
-        args.preserve_phase = true;
+        args.format.preserve_phase = true;
         args.aln.data = coati::data_t("", {"Ancestor", "Descendant"},
                                       {"A-----------GT", "ACCCCCCCCCCCGT"});
-        args.aln.data.out_file = {"test-format-fasta.fa", ".fa"};
-        REQUIRE(coati::format_sequences(args) == 0);
-        // read file
-        std::ifstream infile(args.aln.data.out_file.path);
-        std::string s1, s2;
-
-        infile >> s1 >> s2;
-        CHECK(s1 == ">Ancestor");
-        CHECK(s2 == "A-----------?GT");
-
-        infile >> s1 >> s2;
-        CHECK(s1 == ">Descendant");
-        CHECK(s2 == "ACCCCCCCCCCC?GT");
-        // delete file
-        CHECK(std::filesystem::remove(args.aln.data.out_file.path));
+        expected = coati::data_t("", {">Ancestor", ">Descendant"},
+                                 {"A-----------?GT", "ACCCCCCCCCCC?GT"});
+        test_format_fasta(args, expected);
     }
     SUBCASE("phylip-3seqs-gap-len1") {
-        args.preserve_phase = true;
-        args.padding = "X";
+        args.format.preserve_phase = true;
+        args.format.padding = "X";
         args.aln.data =
             coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
                           {"A-GT", "ACGT", "ACG-"});
-        args.aln.data.out_file = {"test-format-phylip.phy", ".phy"};
-        REQUIRE(coati::format_sequences(args) == 0);
-        // read file
-        std::ifstream infile(args.aln.data.out_file.path);
-        std::string s1, s2;
-
-        infile >> s1 >> s2;
-        CHECK(s1 == "3");
-        CHECK(s2 == "6");
-
-        infile >> s1 >> s2;
-        CHECK(s1 == "Ancestor");
-        CHECK(s2 == "A-XXGT");
-
-        infile >> s1 >> s2;
-        CHECK(s1 == "Descendant1");
-        CHECK(s2 == "ACXXGT");
-
-        infile >> s1 >> s2;
-        CHECK(s1 == "Descendant2");
-        CHECK(s2 == "ACXXG-");
-        // delete file
-        CHECK(std::filesystem::remove(args.aln.data.out_file.path));
+        expected = coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
+                                 {"A-XXGT", "ACXXGT", "ACXXG-"});
+        test_format_phylip(args, expected);
     }
-    SUBCASE("invalid padding") {
-        args.preserve_phase = true;
-        args.padding = "-";
+    SUBCASE("fasta-extract-sequences-name") {
+        args.format.preserve_phase = true;
+        args.aln.data = coati::data_t("", {"Ancestor", "Descendant"},
+                                      {"A-----------GT", "ACCCCCCCCCCCGT"});
+        args.format.seqs = {"Ancestor"};
+        expected = coati::data_t("", {">Ancestor"}, {"A-----------?GT"});
+        test_format_fasta(args, expected);
+    }
+    SUBCASE("fasta-extract-sequences-position") {
+        args.format.preserve_phase = true;
+        args.aln.data =
+            coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
+                          {"A--GT", "ACCGT", "A-CGT"});
+        args.format.pos = {1, 3};
+        expected = coati::data_t("", {">Ancestor", ">Descendant2"},
+                                 {"A--?GT", "A-C?GT"});
+        test_format_fasta(args, expected);
+    }
+    SUBCASE("phylip-extract-sequences-name-position") {
+        args.format.preserve_phase = true;
+        args.aln.data =
+            coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
+                          {"A--GT", "ACCGT", "A-CGT"});
+        args.format.seqs = {"Ancestor"};
+        args.format.pos = {1, 3};
+        expected = coati::data_t("", {">Ancestor", ">Descendant2"},
+                                 {"A--?GT", "A-C?GT"});
+        test_format_fasta(args, expected);
+    }
+    SUBCASE("phylip-extract-sequences-name-position2") {
+        args.format.preserve_phase = true;
+        args.format.padding = "$";
+        args.aln.data =
+            coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
+                          {"A-GT", "ACGT", "AC-T"});
+        args.format.seqs = {"Ancestor"};
+        args.format.pos = {2};
+        expected = coati::data_t("", {">Ancestor", ">Descendant1"},
+                                 {"A-$$GT", "AC$$GT"});
+        test_format_fasta(args, expected);
+    }
+    SUBCASE("invalid-padding") {
+        args.format.preserve_phase = true;
+        args.format.padding = "-";
+        REQUIRE_THROWS_AS(coati::format_sequences(args), std::invalid_argument);
+    }
+    SUBCASE("sequences-not-found") {
+        args.aln.data =
+            coati::data_t("", {"Ancestor", "Descendant"}, {"AAA", "AAA"});
+        args.format.seqs = {"coati"};
         REQUIRE_THROWS_AS(coati::format_sequences(args), std::invalid_argument);
     }
 }

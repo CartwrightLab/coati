@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -237,11 +237,15 @@ void set_cli_options_format(CLI::App& app, coati::args_t& args) {
                    "Input file (FASTA/PHYLIP/JSON accepted)")
         ->required();
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
-    auto* phase = app.add_flag("-p,--preserve-phase", args.preserve_phase,
-                               "Preserve phase");
-    app.add_option("-c,--padding", args.padding,
+    auto* phase = app.add_flag("-p,--preserve-phase",
+                               args.format.preserve_phase, "Preserve phase");
+    app.add_option("-c,--padding", args.format.padding,
                    "Padding char to format preserve phase")
         ->needs(phase);
+    app.add_option("-s,--cut-sequences", args.format.seqs,
+                   "Name of sequences to extract");
+    app.add_option("-x,--cut-position", args.format.pos,
+                   "Position of sequences to extract (1 based)");
 }
 
 /**
@@ -589,7 +593,7 @@ TEST_CASE("write_output") {
               "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
         infile >> s;
         CHECK(s == "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
-        // CHECK(std::filesystem::remove("test-write-output-fasta.fasta"));
+        CHECK(std::filesystem::remove("test-write-output-fasta.fasta"));
     }
 
     SUBCASE("phylip") {

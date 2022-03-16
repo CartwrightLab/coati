@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -122,14 +122,21 @@ struct alignment_t {
     bool is_marginal() { return (model == "m-coati" || model == "m-ecm"); }
 };
 
-struct args_t {
+struct format_t {
    public:
-    coati::alignment_t aln;     /*!< input data and alignment parameters */
-    float_t temperature{1.0f};  /*!< temperature parameter for sampling */
-    size_t sample_size{1};      /*!< sampling sample size */
     bool preserve_phase{false}; /*!< preserve phase for downstream analyses */
     std::string padding{"?"};   /*!< padding char to format preserve phase */
+    std::vector<std::string> seqs{}; /*!< seqs to extract - coati format*/
+    std::vector<size_t> pos{};
+};
+
+struct args_t {
+   public:
+    coati::alignment_t aln;    /*!< input data and alignment parameters */
+    float_t temperature{1.0f}; /*!< temperature parameter for sampling */
+    size_t sample_size{1};     /*!< sampling sample size */
     std::vector<std::string> seeds{{""}}; /*!< seeds for sampling */
+    coati::format_t format;               /*!< coati format arguments */
 };
 
 }  // namespace coati

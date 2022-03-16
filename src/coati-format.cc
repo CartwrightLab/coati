@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,9 +28,9 @@ int main(int argc, char* argv[]) {
     coati::args_t args;
 
     // Parse command line options
-    CLI::App alignpair;
-    coati::utils::set_cli_options_format(alignpair, args);
-    CLI11_PARSE(alignpair, argc, argv);
+    CLI::App format;
+    coati::utils::set_cli_options_format(format, args);
+    CLI11_PARSE(format, argc, argv);
 
     // if no input specified, use cin and json format as default
     if(args.aln.data.path.empty()) {
