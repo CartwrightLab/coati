@@ -48,7 +48,7 @@ bool ref_indel_alignment(coati::alignment_t& input) {
     }
 
     // parse tree into tree_t (vector<node_t>) variable
-    if(coati::tree::parse_newick(newick, tree) != 0) {
+    if(!coati::tree::parse_newick(newick, tree)) {
         throw std::invalid_argument("Parsing newick tree failed.");
     }
 
@@ -85,6 +85,7 @@ bool ref_indel_alignment(coati::alignment_t& input) {
     // pairwise alignment for each leaf
     std::string node_seq;
     for(std::size_t node = 0; node < tree.size(); node++) {
+        // if node is a leaf and not the reference pairwise align w/ reference
         if(tree[node].is_leaf && (tree[node].label != input.ref)) {
             float branch = distance_ref(tree, ref_pos, node);
             if(!coati::tree::find_seq(tree[node].label, input.data, node_seq)) {
@@ -98,16 +99,15 @@ bool ref_indel_alignment(coati::alignment_t& input) {
             coati::utils::set_subst(input);
 
             aln_tmp.data.seqs.clear();
-            auto anc = pair_seqs[0];
-            auto des = pair_seqs[1];
             coati::utils::sequence_pair_t seq_pair =
-                coati::utils::marginal_seq_encoding(anc, des);
+                coati::utils::marginal_seq_encoding(pair_seqs[0], pair_seqs[1]);
             coati::align_pair_work_mem_t work;
             coati::viterbi_mem(work, seq_pair[0], seq_pair[1], input);
-            coati::traceback(work, anc, des, aln_tmp, input.gap.len);
+            coati::traceback(work, pair_seqs[0], pair_seqs[1], aln_tmp,
+                             input.gap.len);
 
             SparseVectorInt ins_vector(
-                static_cast<Eigen::Index>(aln_tmp.data.seqs[1].length()));
+                static_cast<Eigen::Index>(2 * aln_tmp.data.seqs[1].length()));
             insertion_flags(aln_tmp.data.seqs[0], aln_tmp.data.seqs[1],
                             ins_vector);
 
@@ -118,7 +118,7 @@ bool ref_indel_alignment(coati::alignment_t& input) {
 
     // get position of inodes in tree and set leafs as visited (true)
     std::vector<std::size_t> inode_indexes;
-    std::vector<int> visited(tree.size(), false);  // list of visited nodes
+    std::vector<bool> visited(tree.size(), false);  // list of visited nodes
 
     for(std::size_t node = 0; node < tree.size(); node++) {
         if(!tree[node].is_leaf) {
@@ -133,20 +133,23 @@ bool ref_indel_alignment(coati::alignment_t& input) {
         if(tree[i].parent != i) tree[tree[i].parent].children.push_back(i);
     }
 
-    // while not all nodes have been visited (any value in visitied is
-    // false)
+    // while not all nodes have been visited (any value in visited is false)
     while(any_of(visited.begin(), visited.end(), [](bool b) { return !b; })) {
         for(auto inode_pos : inode_indexes) {  // for all inodes
-            bool children_visited = true;
+            if(visited[inode_pos]) {
+                continue;
+            }
+            bool all_children_visited = true;  // assume children are visited
             for(auto child : tree[inode_pos].children) {
-                if(!visited[child]) {
-                    children_visited = false;
-                    continue;
+                if(!visited[child]) {  // if children not visited, set to false
+                    all_children_visited = false;
+                    break;
                 }
             }
 
-            if(!children_visited) {
-                continue;  // if all childen of inode have been visited
+            // if not all children are visited, skip & come back when all are
+            if(!all_children_visited) {
+                continue;
             }
 
             visited[inode_pos] = true;
@@ -158,13 +161,14 @@ bool ref_indel_alignment(coati::alignment_t& input) {
             }
 
             // create vector of insertion_data_t with children
-            std::vector<insertion_data_t> tmp_ins_data(
-                tree[inode_pos].children.size());
-            for(std::size_t i = 0; i < tree[inode_pos].children.size(); i++) {
-                tmp_ins_data[i] = nodes_ins[tree[inode_pos].children[i]];
+            std::vector<insertion_data_t> tmp_ins_data;
+            tmp_ins_data.reserve(tree[inode_pos].children.size());
+            for(auto child : tree[inode_pos].children) {
+                tmp_ins_data.emplace_back(nodes_ins[child]);
             }
 
-            // run merge_indels(children_ins_data, nodes_ins[inode_pos]);
+            // merge insertions from all children of inode
+            //  and store in self (inode) position
             nodes_ins[inode_pos] = insertion_data_t();
             merge_indels(tmp_ins_data, nodes_ins[inode_pos]);
         }

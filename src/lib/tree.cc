@@ -139,7 +139,7 @@ bool read_newick(const std::string& tree_file, std::string& content) {
  * @param[in] content std::string tree in newick format.
  * @param[in,out] guide_tree coati::tree::tree_t parsed tree.
  */
-int parse_newick(std::string content, tree_t& guide_tree) {
+bool parse_newick(std::string content, tree_t& guide_tree) {
     // remove tabs \t ,new lines \n, and spaces
     boost::algorithm::erase_all(content, "\t");
     boost::algorithm::erase_all(content, "\n");
@@ -152,10 +152,10 @@ int parse_newick(std::string content, tree_t& guide_tree) {
     bool result = boost::spirit::x3::parse(it, end, newick::tree, guide_tree);
 
     if(!(result && it == end)) {
-        return EXIT_FAILURE;
+        return false;
     }
 
-    return EXIT_SUCCESS;
+    return true;
 }
 
 /// @private
@@ -163,9 +163,8 @@ int parse_newick(std::string content, tree_t& guide_tree) {
 TEST_CASE("parse_newick") {
     tree_t tree;
 
-    REQUIRE(
-        parse_newick("(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);",
-                     tree) == 0);
+    REQUIRE(parse_newick(
+        "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);", tree));
     REQUIRE(tree.size() == 7);
 
     CHECK(tree[0].length == 0);

@@ -59,7 +59,7 @@ TEST_CASE("insertion_flags") {
     SparseVectorInt insertions(7);
 
     SUBCASE("Different length - fail") {
-        REQUIRE(!insertion_flags("TCA_TC", "TCAGTCG", insertions));
+        REQUIRE(!insertion_flags("TCA-TC", "TCAGTCG", insertions));
     }
 
     SUBCASE("Two insertions") {
@@ -306,6 +306,31 @@ TEST_CASE("merge_indels") {
             CHECK(results.insertions.coeffRef(i) == 99);  // closed gap
         }
     }
+
+    SUBCASE("Two sequences, one insertion (len 3), one open insertion") {
+        SparseVectorInt insA(34);
+        SparseVectorInt insB(34);
+
+        insA.insert(4) = 111;  // open gap
+        insB.insert(2) = 111;
+        insB.insert(3) = 111;
+        insB.insert(4) = 111;
+        insB.insert(7) = 111;  // same insertion as insA[4]
+
+        insertion_data_t results;
+        insertion_data_t dataA("CTTGCAT", "A", insA);
+        insertion_data_t dataB("CTACGTGCAT", "B", insB);
+        std::vector<insertion_data_t> ins_data{dataA, dataB};
+
+        REQUIRE(merge_indels(ins_data, results));
+
+        CHECK(results.sequences[0] == "CT---TGCAT");
+        CHECK(results.sequences[1] == "CTACGTGCAT");
+        CHECK(results.insertions.coeffRef(2) == 99);   // closed gap
+        CHECK(results.insertions.coeffRef(3) == 99);   // closed gap
+        CHECK(results.insertions.coeffRef(4) == 99);   // closed gap
+        CHECK(results.insertions.coeffRef(7) == 111);  // open gap
+    }
 }
 // GCOVR_EXCL_STOP
 
@@ -420,6 +445,47 @@ TEST_CASE("add_gap") {
         CHECK(ins_data[1].insertions.coeffRef(3) == 99);
         CHECK(ins_data[1].insertions.coeffRef(4) == 111);
         CHECK(ins_data[1].insertions.coeffRef(7) == 111);
+    }
+
+    SUBCASE("Two sequences, one close insertion (len 3), one open insertion") {
+        SparseVectorInt insA(20);
+        SparseVectorInt insB(20);
+
+        insA.insert(2) = 99;
+        insA.insert(3) = 99;
+        insA.insert(6) = 111;  // open gap
+        insB.insert(2) = 99;
+        insB.insert(3) = 99;
+        insB.insert(4) = 111;
+        insB.insert(7) = 111;  // same insertion as insA[4]
+
+        insertion_data_t dataA("CT--TGCAT", "A", insA);
+        insertion_data_t dataB("CTACGTGCAT", "B", insB);
+        std::vector<insertion_data_t> ins_data = {dataA, dataB};
+        std::vector<int> indexes = {1};
+
+        add_gap(ins_data, indexes, 4);
+
+        CHECK(ins_data[0].sequences[0] == "CT---TGCAT");
+        CHECK(ins_data[1].sequences[0] == "CTACGTGCAT");
+        CHECK(ins_data[0].insertions.coeffRef(0) == 0);
+        CHECK(ins_data[0].insertions.coeffRef(1) == 0);
+        CHECK(ins_data[0].insertions.coeffRef(2) == 99);  // closed gap
+        CHECK(ins_data[0].insertions.coeffRef(3) == 99);
+        CHECK(ins_data[0].insertions.coeffRef(4) == 99);
+        CHECK(ins_data[0].insertions.coeffRef(5) == 0);  // open gap
+        CHECK(ins_data[0].insertions.coeffRef(6) == 0);
+        CHECK(ins_data[0].insertions.coeffRef(7) == 111);
+        CHECK(ins_data[1].insertions.coeffRef(0) == 0);
+        CHECK(ins_data[1].insertions.coeffRef(1) == 0);
+        CHECK(ins_data[1].insertions.coeffRef(2) == 99);  // closed gap
+        CHECK(ins_data[1].insertions.coeffRef(3) == 99);  // open gap
+        CHECK(ins_data[1].insertions.coeffRef(4) == 99);  // open gap
+        CHECK(ins_data[1].insertions.coeffRef(5) == 0);
+        CHECK(ins_data[1].insertions.coeffRef(6) == 0);
+        CHECK(ins_data[1].insertions.coeffRef(7) == 111);  // open gap
+        CHECK(ins_data[1].insertions.coeffRef(8) == 0);
+        CHECK(ins_data[1].insertions.coeffRef(9) == 0);
     }
 }
 // GCOVR_EXCL_STOP

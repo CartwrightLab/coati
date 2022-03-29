@@ -41,5 +41,5 @@ int main(int argc, char* argv[]) {
             "At least three sequences required. Exiting!");
     }
 
-    return coati::ref_indel_alignment(args.aln);
+    return coati::ref_indel_alignment(args.aln) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
