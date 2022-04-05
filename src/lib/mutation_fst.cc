@@ -163,47 +163,6 @@ TEST_CASE("dna") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Create FST that maps nucleotide to AA position
- *
- * \return FST to map nucleotides to AA position (coati::VectorFstStdArc).
- */
-VectorFstStdArc nuc2pos() {
-    // Add state 0 and make it the start state
-    VectorFstStdArc n2p;
-    n2p.AddState();
-    n2p.SetStart(0);
-
-    int state = 1;  // variable to keep track of states
-    int cod = 101;  // variable to keep track of codons
-
-    for(int i = 1; i < 5; i++) {
-        for(int j = 1; j < 5; j++) {
-            for(int h = 1; h < 5; h++) {
-                add_arc(n2p, 0, state, i, cod);
-                add_arc(n2p, state, state + 1, j, cod + 1);
-                add_arc(n2p, state + 1, 0, h, cod + 2);
-                state += 2;
-                cod += 3;
-            }
-        }
-    }
-
-    n2p.SetFinal(0, 0.0);
-    return n2p;
-}
-
-/// @private
-// GCOVR_EXCL_START
-TEST_CASE("nuc2pos") {
-    VectorFstStdArc n2p_fst(nuc2pos());
-
-    CHECK(fst::Verify(n2p_fst));        // openfst built-in sanity check
-    CHECK(n2p_fst.NumArcs(0) == 64);    // one position for every aminoacid (AA)
-    CHECK(n2p_fst.NumStates() == 129);  // 64 AA with 2 states each + init state
-}
-// GCOVR_EXCL_STOP
-
-/**
  * \brief Create affine gap indel model FST.
  *
  * @param[in] gap_open float gap opening score.

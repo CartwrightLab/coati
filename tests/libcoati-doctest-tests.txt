@@ -17,7 +17,6 @@ nts_ntv
 k
 mg94
 dna
-nuc2pos
 indel
 read_phylip
 write_phylip
