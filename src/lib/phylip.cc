@@ -61,7 +61,9 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
     // get number of sequences and length
     getline(in, line);
     std::vector<std::string> unsplitted;
-    boost::split(unsplitted, line, boost::is_any_of("\t "));
+    boost::trim_if(line, boost::is_any_of("\t "));
+    boost::split(unsplitted, line, boost::is_any_of("\t "),
+                 boost::token_compress_on);
     n_seqs = std::stoi(unsplitted[0]);
     len_seqs = std::stoi(unsplitted[1]);
 
@@ -74,7 +76,11 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
     for(int i = 0; i < n_seqs; i++) {
         phylip.seqs[i].resize(len_seqs);
         getline(in, line);
-        boost::split(unsplitted, line, boost::is_any_of("\t "));
+        if(line.empty()) {
+            getline(in, line);
+        }
+        boost::split(unsplitted, line, boost::is_any_of("\t "),
+                     boost::token_compress_on);
         phylip.names[i] = unsplitted[0];
         phylip.seqs[i] = unsplitted[1];
     }
@@ -120,12 +126,12 @@ TEST_CASE("read_phylip") {
         std::string filename{"test-read-phylip-fst.phy"};
         outfile.open(filename);
         REQUIRE(outfile);
-        outfile << "2\t100" << std::endl;
+        outfile << " 2\t100" << std::endl << std::endl;
         outfile << "1\t"
                 << "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATA"
                    "GCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGG"
                 << std::endl;
-        outfile << "2\t"
+        outfile << "2 \t"
                 << "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
                    "ACTATACTATACTATACTATACTATACTATACTATAC"
                 << std::endl;
@@ -158,7 +164,7 @@ TEST_CASE("read_phylip") {
         outfile.open(filename);
         REQUIRE(outfile);
         outfile << "2\t100" << std::endl;
-        outfile << "1\t"
+        outfile << "1\t  "
                 << "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATA"
                    "GCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGG"
                 << std::endl;
