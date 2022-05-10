@@ -230,11 +230,11 @@ bool write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
 
     // write aligned sequences to file
     out << phylip.size() << " " << phylip.seqs[0].length() << std::endl;
-    size_t i = PRINT_SIZE - 4 -
-               std::max(phylip.names[0].length(), phylip.names[1].length());
+    size_t i = PRINT_SIZE - 11;
     for(size_t j = 0; j < phylip.size(); j++) {
-        out << phylip.names[j] << "\t" << phylip.seqs[j].substr(0, i)
-            << std::endl;
+        std::string seq_name = phylip.names[j].substr(0, 10);
+        out << seq_name << std::string(10 - seq_name.length(), ' ') << " "
+            << phylip.seqs[j].substr(0, i) << std::endl;
     }
     out << std::endl;
 
@@ -252,7 +252,8 @@ bool write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
 // GCOVR_EXCL_START
 TEST_CASE("write_phylip") {
     SUBCASE("Short sequences") {
-        coati::data_t phylip("", {"1", "2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
+        coati::data_t phylip("", {"tx_1", "taxa_2"},
+                             {"CTCTGGATAGTG", "CT----ATAGTG"});
         phylip.out_file = {{"test-write-phylip.phy"}, {"phy"}};
 
         REQUIRE(write_phylip(phylip));
@@ -265,11 +266,11 @@ TEST_CASE("write_phylip") {
         CHECK(s2.compare("12") == 0);
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("1") == 0);
+        CHECK(s1.compare("tx_1") == 0);
         CHECK(s2.compare("CTCTGGATAGTG") == 0);
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
+        CHECK(s1.compare("taxa_2") == 0);
         CHECK(s2.compare("CT----ATAGTG") == 0);
 
         CHECK(std::filesystem::remove("test-write-phylip.phy"));
@@ -296,12 +297,15 @@ TEST_CASE("write_phylip") {
         infile >> s1 >> s2;
         CHECK(s1.compare("1") == 0);
         CHECK(s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == 0);
+                         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == 0);
 
         infile >> s1 >> s2;
         CHECK(s1.compare("2") == 0);
         CHECK(s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == 0);
+                         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == 0);
+        infile >> s1 >> s2;
+        CHECK(s1.compare("AAAAAAAAAAA") == 0);
+        CHECK(s2.compare("AAAAAAAAAAA") == 0);
 
         CHECK(std::filesystem::remove("test-write-phylip-long.phy"));
     }

@@ -611,16 +611,16 @@ TEST_CASE("write_output") {
         CHECK(s1 == "anc");
         CHECK(s2 ==
               "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
-              "ACGTACGTACGTACGTACGTACGTACGTA");
+              "ACGTACGTACGTACGTACGTACGTA");
         infile >> s1 >> s2;
         CHECK(s1 == "des");
         CHECK(s2 ==
               "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
-              "ACGTACGTACGTACGTACGTACGTACGTA");
+              "ACGTACGTACGTACGTACGTACGTA");
         // infile >> s1;  // blank line
         infile >> s1 >> s2;
-        CHECK(s1 == "CGTACGTTTTT");
-        CHECK(s2 == "CGTACGTTTTT");
+        CHECK(s1 == "CGTACGTACGTTTTT");
+        CHECK(s2 == "CGTACGTACGTTTTT");
         CHECK(std::filesystem::remove("test-write-output-phylip.phy"));
     }
 

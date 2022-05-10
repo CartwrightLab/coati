@@ -149,10 +149,9 @@ TEST_CASE("format_sequences") {
         test_format_fasta(args, expected);
     }
     SUBCASE("phylip-3seqs-no-preserve-case") {
-        args.aln.data =
-            coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
-                          {"AGT", "AGT", "AG-"});
-        expected = coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
+        args.aln.data = coati::data_t(
+            "", {"Ancestor", "Descend-1", "Descend-2"}, {"AGT", "AGT", "AG-"});
+        expected = coati::data_t("", {"Ancestor", "Descend-1", "Descend-2"},
                                  {"AGT", "AGT", "AG-"});
         test_format_phylip(args, expected);
     }
@@ -176,9 +175,9 @@ TEST_CASE("format_sequences") {
         args.format.preserve_phase = true;
         args.format.padding = "X";
         args.aln.data =
-            coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
+            coati::data_t("", {"Ancestor", "Descend-1", "Descend-2"},
                           {"A-GT", "ACGT", "ACG-"});
-        expected = coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
+        expected = coati::data_t("", {"Ancestor", "Descend-1", "Descend-2"},
                                  {"A-XXGT", "ACXXGT", "ACXXG-"});
         test_format_phylip(args, expected);
     }
@@ -203,25 +202,25 @@ TEST_CASE("format_sequences") {
     SUBCASE("phylip-extract-sequences-name-position") {
         args.format.preserve_phase = true;
         args.aln.data =
-            coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
+            coati::data_t("", {"Ancestor", "Descend-1", "Descend-2"},
                           {"A--GT", "ACCGT", "A-CGT"});
         args.format.seqs = {"Ancestor"};
         args.format.pos = {1, 3};
-        expected = coati::data_t("", {">Ancestor", ">Descendant2"},
-                                 {"A--?GT", "A-C?GT"});
-        test_format_fasta(args, expected);
+        expected =
+            coati::data_t("", {"Ancestor", "Descend-2"}, {"A--?GT", "A-C?GT"});
+        test_format_phylip(args, expected);
     }
     SUBCASE("phylip-extract-sequences-name-position2") {
         args.format.preserve_phase = true;
         args.format.padding = "$";
         args.aln.data =
-            coati::data_t("", {"Ancestor", "Descendant1", "Descendant2"},
+            coati::data_t("", {"Ancestor", "Descend-1", "Descend-2"},
                           {"A-GT", "ACGT", "AC-T"});
         args.format.seqs = {"Ancestor"};
         args.format.pos = {2};
-        expected = coati::data_t("", {">Ancestor", ">Descendant1"},
-                                 {"A-$$GT", "AC$$GT"});
-        test_format_fasta(args, expected);
+        expected =
+            coati::data_t("", {"Ancestor", "Descend-1"}, {"A-$$GT", "AC$$GT"});
+        test_format_phylip(args, expected);
     }
     SUBCASE("invalid-padding") {
         args.format.preserve_phase = true;
