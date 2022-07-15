@@ -37,6 +37,7 @@ configure_file(input : 'coati.sublime-project.in',
   output : 'coati.sublime-project',
 	configuration : {
 	  'source_dir' : meson.project_source_root(),
-		'project_name' : meson.project_name()
+		'project_name' : meson.project_name(),
+		'build_dir' : meson.project_build_root()
 	}
 )
