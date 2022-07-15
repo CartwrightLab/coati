@@ -20,7 +20,7 @@
 
 gbenchmark_dep = dependency('google-benchmark',
   fallback : ['google-benchmark', 'google_benchmark_dep'],
-	version : '>=1.5.2',
+	version : '>=1.6.0',
 	required : false
 )
 

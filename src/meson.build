@@ -44,7 +44,7 @@ eigen_dep = dependency('eigen3',
 )
 
 boost_dep = dependency('boost',
-	version : '>=1.47.0',
+	version : '>=1.67.0',
 	required : true
 )
 
