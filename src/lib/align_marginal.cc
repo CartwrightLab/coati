@@ -67,7 +67,13 @@ bool marg_alignment(coati::alignment_t& aln) {
 
     // dynamic programming pairwise alignment and traceback
     coati::align_pair_work_mem_t work;
-    coati::viterbi_mem(work, seq_pair[0], seq_pair[1], aln);
+    try {
+        coati::viterbi_mem(work, seq_pair[0], seq_pair[1], aln);
+    } catch(const std::bad_alloc& e) {
+        std::cout << "Erorr: sequences to align exceed available memory."
+                  << std::endl;
+        return EXIT_FAILURE;
+    }
     coati::traceback(work, anc, des, aln, aln.gap.len);
 
     if(!aln.weight_file.empty()) {  // save weight and filename
