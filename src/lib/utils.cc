@@ -179,7 +179,7 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
         app.add_option("reference", args.aln.ref, "Reference sequence")
             ->required();
     }
-    app.add_option("-m,--model", args.aln.model, "Substitution model");
+    app.add_option("-m,--model", args.aln.model, "Substitution model (coati ecm dna m-coati m-ecm)");
     if(command == Command::ALIGNPAIR || command == Command::SAMPLE) {
         app.add_option("-t,--time", args.aln.br_len,
                        "Evolutionary time/branch length")
