@@ -1,6 +1,7 @@
 fst_alignment
 marg_alignment
 alignment_score
+marg_sample
 ref_indel_alignment
 read_fasta
 write_fasta

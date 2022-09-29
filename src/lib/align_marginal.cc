@@ -164,7 +164,6 @@ TEST_CASE("marg_alignment") {
 
         test_fasta(aln, expected);
     }
-
     SUBCASE("Alignment - output phylip") {
         aln.data = coati::data_t("", {"1", "2"}, {"GCGACTGTT", "GCGATTGCTGTT"});
         aln.model = "m-coati";
@@ -184,7 +183,6 @@ TEST_CASE("marg_alignment") {
 
         test_phylip(aln, expected);
     }
-
     SUBCASE("Alignment with gap length multiple of 3") {
         aln.data = coati::data_t("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"});
         aln.model = "m-coati";
@@ -197,7 +195,6 @@ TEST_CASE("marg_alignment") {
 
         test_fasta(aln, expected);
     }
-
     SUBCASE("Alignment with ambiguous nucleotides") {
         aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTR"});
         aln.model = "m-coati";
@@ -209,7 +206,6 @@ TEST_CASE("marg_alignment") {
         // expected.weight = 1.51294f;  // BEST
         test_fasta(aln, expected);
     }
-
     SUBCASE("Alignment with gap length multiple of 3 - fail") {
         aln.data = coati::data_t("", {"1", "2"}, {"GCGATTGCTGT", "GCGACTGTT"});
         aln.model = "m-coati";
@@ -220,7 +216,13 @@ TEST_CASE("marg_alignment") {
         coati::utils::set_subst(aln);
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
     }
-
+    SUBCASE("Length of descendant not multiple of gap.len") {
+        aln.data = coati::data_t("", {"A", "B"}, {"CTCGGA", "CTCGG"});
+        aln.model = "m-coati";
+        aln.gap.len = 3;
+        coati::utils::set_subst(aln);
+        REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
+    }
     SUBCASE("Score alignment") {
         aln.data =
             coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
@@ -232,7 +234,6 @@ TEST_CASE("marg_alignment") {
         coati::utils::set_subst(aln);
         REQUIRE(marg_alignment(aln));
     }
-
     SUBCASE("Score alignment - fail") {
         coati::alignment_t aln;
         aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
@@ -353,13 +354,22 @@ TEST_CASE("alignment_score") {
     coati::Matrixf p_marg = marginal_p(P, aln.pi, AmbiguousNucs::AVG);
 
     aln.data.seqs = {"CTCTGGATAGTG", "CT----ATAGTG"};
-    REQUIRE(alignment_score(aln, p_marg) == doctest::Approx(1.51294f));
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(1.51294f));
 
     aln.data.seqs = {"CTCT--AT", "CTCTGGAT"};
-    REQUIRE(alignment_score(aln, p_marg) == doctest::Approx(-0.835939f));
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.835939f));
 
+    aln.data.seqs = {"ACTCT-A", "ACTCTG-"};
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-8.73357f));
+
+    aln.data.seqs = {"ACTCTA-", "ACTCTAG"};
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.658564f));
+    // different length
     aln.data.seqs = {"CTC", "CT"};
     REQUIRE_THROWS_AS(alignment_score(aln, p_marg), std::invalid_argument);
+    // insertion after deletion is not modeled
+    aln.data.seqs = {"ATAC-GGGTC", "ATA-GGGGTC"};
+    REQUIRE_THROWS_AS(alignment_score(aln, p_marg), std::runtime_error);
 }
 // GCOVR_EXCL_STOP
 
@@ -382,7 +392,7 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
 
     // check that length of ref sequence is multiple of 3 and gap unit size
     size_t len_a = aln.data.seqs[0].length();
-    if((len_a % 3 != 0) && (len_a % aln.gap.len != 0)) {
+    if((len_a % 3 != 0) || (len_a % aln.gap.len != 0)) {
         throw std::invalid_argument(
             "Length of reference sequence must be multiple of 3.");
     }
@@ -426,5 +436,95 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
 
     out << "]" << std::endl;
 }
+
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("marg_sample") {
+    // test helper function
+    auto check_line_eq = [](std::ifstream& in, const std::string_view line) {
+        std::string s;
+        std::getline(in, s);
+        CHECK_EQ(s, line);
+    };
+
+    auto test = [check_line_eq](const std::string& seq1,
+                                const std::string& seq2,
+                                const std::vector<std::string>& expected_s1,
+                                const std::vector<std::string>& expected_s2,
+                                const std::vector<std::string>& weight,
+                                const std::vector<std::string>& lweight) {
+        // set seed
+        coati::random_t rand;
+        const std::vector<std::string> s42{{"42"}};
+        auto seed = fragmites::random::string_seed_seq(s42.begin(), s42.end());
+        rand.Seed(seed);
+
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", {"A", "B"}, {seq1, seq2});
+        aln.data.out_file = {{"test-marg_sample.json"}, {".json"}};
+
+        size_t reps{expected_s1.size()};
+        utils::set_subst(aln);
+        coati::marg_sample(aln, reps, rand);
+
+        std::ifstream infile(aln.data.out_file.path);
+        REQUIRE(infile.good());
+
+        check_line_eq(infile, "[");
+        for(size_t i = 0; i < reps; ++i) {
+            check_line_eq(infile, "  {");
+            check_line_eq(infile, "    \"aln\": {");
+            check_line_eq(infile, "      \"A\": \"" + expected_s1[i] + "\",");
+            check_line_eq(infile, "      \"B\": \"" + expected_s2[i] + "\"");
+            check_line_eq(infile, "    },");
+            check_line_eq(infile, "    \"weight\": " + weight[i] + ",");
+            check_line_eq(infile, "    \"log_weight\": " + lweight[i]);
+            if(i < reps - 1) {
+                check_line_eq(infile, "  },");
+            } else {
+                check_line_eq(infile, "  }");
+            }
+        }
+        check_line_eq(infile, "]");
+        infile.close();
+        REQUIRE(std::filesystem::remove(aln.data.out_file.path));
+    };
+
+    SUBCASE("sample size 1") {
+        std::vector<std::string> seq1{"CC--CCCC"};
+        std::vector<std::string> seq2{"CCCCCCCC"};
+        std::vector<std::string> weight{"0.031239"};
+        std::vector<std::string> lweight{"-3.46609"};
+        test("CCCCCC", "CCCCCCCC", seq1, seq2, weight, lweight);
+    }
+    SUBCASE("sample size 3") {
+        std::vector<std::string> seq1{"CC--CCCC", "CCCCCC--", "CCCCC--C"};
+        std::vector<std::string> seq2{"CCCCCCCC", "CCCCCCCC", "CCCCCCCC"};
+        std::vector<std::string> weight{"0.031239", "0.499854", "0.249923"};
+        std::vector<std::string> lweight{"-3.46609", "-0.69344", "-1.3866"};
+        test("CCCCCC", "CCCCCCCC", seq1, seq2, weight, lweight);
+    }
+    SUBCASE("length of reference not multiple of 3") {
+        coati::random_t rand;
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", {"A", "B"}, {"C", "CCC"});
+        CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
+    }
+    SUBCASE("length of descendant no multiple of gap len") {
+        coati::random_t rand;
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", {"A", "B"}, {"CCC", "CCCC"});
+        aln.gap.len = 3;
+        std::vector<std::string> seq1, seq2, weight, lweight;
+        CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
+    }
+    SUBCASE("error opening output file") {
+        coati::random_t rand;
+        coati::alignment_t aln;
+        aln.data.out_file = {{".", {".fasta"}}};
+        CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
+    }
+}
+// GCOVR_EXCL_STOP
 
 }  // namespace coati
