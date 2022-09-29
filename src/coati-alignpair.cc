@@ -37,9 +37,6 @@ int main(int argc, char* argv[]) {
                                   coati::utils::Command::ALIGNPAIR);
     CLI11_PARSE(alignpair, argc, argv);
 
-    // set substitution matrix according to model
-    coati::utils::set_subst(args.aln);
-
     // read input data
     args.aln.data = coati::utils::read_input(args.aln);
 

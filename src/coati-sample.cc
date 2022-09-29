@@ -36,9 +36,6 @@ int main(int argc, char* argv[]) {
                                   coati::utils::Command::SAMPLE);
     CLI11_PARSE(alignpair, argc, argv);
 
-    // set substitution matrix according to model
-    coati::utils::set_subst(args.aln);
-
     if(!args.aln.is_marginal()) {
         throw std::invalid_argument(
             "Alignment model not currently implemented.");
@@ -52,12 +49,13 @@ int main(int argc, char* argv[]) {
     }
 
     coati::random_t rand;
-    auto seeds = args.seeds.empty() ? fragmites::random::auto_seed_seq()
-                                    : fragmites::random::string_seed_seq(
-                                          args.seeds.begin(), args.seeds.end());
+    auto seeds = args.sample.seeds.empty()
+                     ? fragmites::random::auto_seed_seq()
+                     : fragmites::random::string_seed_seq(
+                           args.sample.seeds.begin(), args.sample.seeds.end());
     rand.Seed(seeds);
 
-    coati::marg_sample(args.aln, args.sample_size, rand);
+    coati::marg_sample(args.aln, args.sample.sample_size, rand);
 
     return 0;
 }

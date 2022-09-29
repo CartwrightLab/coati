@@ -262,8 +262,9 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
     if(command == Command::SAMPLE) {
         // app.add_option("-T,--temperature", args.temperature, "Sampling
         // temperature");
-        app.add_option("-n,--sample-size", args.sample_size, "Sample size");
-        app.add_option("-d, --seed", args.seeds,
+        app.add_option("-n,--sample-size", args.sample.sample_size,
+                       "Sample size");
+        app.add_option("-d, --seed", args.sample.seeds,
                        "Space separated list of seed(s) used for sampling");
         //->expected(Nmin,Nmax);
     }

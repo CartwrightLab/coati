@@ -52,7 +52,7 @@ struct file_type_t {
     std::string type_ext;
 };
 
-struct data_t {
+class data_t {
    public:
     std::filesystem::path path;        /*!< path to input file */
     std::vector<std::string> names;    /*!< names of fasta sequences */
@@ -97,7 +97,7 @@ struct data_t {
 
 enum struct AmbiguousNucs { AVG, BEST };
 
-struct alignment_t {
+class alignment_t {
    public:
     coati::data_t data;           /*!< sequences */
     std::string model{"m-coati"}; /*!< substitution model */
@@ -130,13 +130,17 @@ struct format_t {
     std::vector<size_t> pos{};
 };
 
-struct args_t {
-   public:
-    coati::alignment_t aln;    /*!< input data and alignment parameters */
+struct sample_t {
     float_t temperature{1.0f}; /*!< temperature parameter for sampling */
     size_t sample_size{1};     /*!< sampling sample size */
     std::vector<std::string> seeds{{""}}; /*!< seeds for sampling */
-    coati::format_t format;               /*!< coati format arguments */
+};
+
+class args_t {
+   public:
+    coati::alignment_t aln; /*!< input data and alignment parameters */
+    coati::sample_t sample; /*!< coati sample arguments */
+    coati::format_t format; /*!< coati format arguments */
 };
 
 }  // namespace coati

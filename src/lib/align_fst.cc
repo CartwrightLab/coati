@@ -39,6 +39,9 @@ namespace coati {
 bool fst_alignment(coati::alignment_t& aln) {
     using fst::StdArc;
 
+    // set substitution matrix according to model
+    coati::utils::set_subst(aln);
+
     // get indel FST
     VectorFstStdArc indel_fst = indel(aln.gap.open, aln.gap.extend, aln.pi);
 
@@ -126,8 +129,6 @@ TEST_CASE("fst_alignment") {
         aln.data.out_file = {{"test-fst-alignment.fasta"}, {".fasta"}};
         aln.data.fsts = fsts;
 
-        coati::utils::set_subst(aln);
-
         if(std::filesystem::exists(aln.data.out_file.path)) {
             std::filesystem::remove(aln.data.out_file.path);
         }
@@ -162,8 +163,6 @@ TEST_CASE("fst_alignment") {
         aln.weight_file = "";
         aln.data.out_file = {{"test-fst-phylip.phy"}, {".phy"}};
         aln.data.fsts = fsts;
-
-        coati::utils::set_subst(aln);
 
         if(std::filesystem::exists(aln.data.out_file.path)) {
             std::filesystem::remove(aln.data.out_file.path);
@@ -200,8 +199,6 @@ TEST_CASE("fst_alignment") {
         aln.data.out_file = {{"test-fst-alignment.fasta"}, {".fasta"}};
         aln.data.fsts = fsts;
 
-        coati::utils::set_subst(aln);
-
         if(std::filesystem::exists(aln.data.out_file.path)) {
             std::filesystem::remove(aln.data.out_file.path);
         }
@@ -237,8 +234,6 @@ TEST_CASE("fst_alignment") {
         aln.weight_file = "score.log";
         aln.data.out_file = {{"test-fst-alignment-ecm.fasta"}, {".fasta"}};
         aln.data.fsts = fsts;
-
-        coati::utils::set_subst(aln);
 
         if(std::filesystem::exists(aln.data.out_file.path)) {
             std::filesystem::remove(aln.data.out_file.path);

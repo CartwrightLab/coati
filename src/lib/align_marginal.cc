@@ -40,6 +40,9 @@ bool marg_alignment(coati::alignment_t& aln) {
     coati::Matrixf P(64, 64), p_marg;
     std::ofstream out_w;
 
+    // set substitution matrix according to model
+    coati::utils::set_subst(aln);
+
     // score alignment
     if(aln.score) {
         std::cout << alignment_score(aln, aln.subst_matrix) << std::endl;
@@ -47,21 +50,21 @@ bool marg_alignment(coati::alignment_t& aln) {
     }
 
     // check that length of ref sequence is multiple of 3 and gap unit size
-    size_t len_a = aln.data.seqs[0].length();
+    size_t len_a = aln.seq(0).length();
     if((len_a % 3 != 0) || (len_a % aln.gap.len != 0)) {
         throw std::invalid_argument(
             "Length of reference sequence must be multiple of 3.");
     }
     // check that length of descendant sequence is multiple of gap unit size
-    if(aln.data.seqs[1].length() % aln.gap.len != 0) {
+    if(aln.seq(1).length() % aln.gap.len != 0) {
         throw std::invalid_argument(
             "Length of descendant sequence must be multiple of " +
             std::to_string(aln.gap.len) + ".");
     }
 
     // encode sequences
-    auto anc = aln.data.seqs[0];
-    auto des = aln.data.seqs[1];
+    auto anc = aln.seq(0);
+    auto des = aln.seq(1);
     coati::utils::sequence_pair_t seq_pair =
         coati::utils::marginal_seq_encoding(anc, des);
 
@@ -92,7 +95,6 @@ bool marg_alignment(coati::alignment_t& aln) {
 TEST_CASE("marg_alignment") {
     // NOLINTNEXTLINE(misc-unused-parameters)
     auto test_fasta = [](alignment_t aln, data_t expected) {
-        utils::set_subst(aln);
         if(std::filesystem::exists(aln.data.out_file.path)) {
             std::filesystem::remove(aln.data.out_file.path);
         }
@@ -125,7 +127,6 @@ TEST_CASE("marg_alignment") {
 
     // NOLINTNEXTLINE(misc-unused-parameters)
     auto test_phylip = [](alignment_t aln, data_t expected) {
-        utils::set_subst(aln);
         if(std::filesystem::exists(aln.data.out_file.path)) {
             std::filesystem::remove(aln.data.out_file.path);
         }
@@ -139,7 +140,7 @@ TEST_CASE("marg_alignment") {
 
         infile >> s1 >> s2;
         CHECK(s1 == "2");
-        CHECK(std::stoul(s2) == aln.data.seqs[0].size());
+        CHECK(std::stoul(s2) == aln.seq(0).size());
 
         infile >> s1 >> s2;
         CHECK(s1 == expected.names[0]);
@@ -213,14 +214,12 @@ TEST_CASE("marg_alignment") {
                              {".fasta"}};
         aln.gap.len = 3;
 
-        coati::utils::set_subst(aln);
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
     }
     SUBCASE("Length of descendant not multiple of gap.len") {
         aln.data = coati::data_t("", {"A", "B"}, {"CTCGGA", "CTCGG"});
         aln.model = "m-coati";
         aln.gap.len = 3;
-        coati::utils::set_subst(aln);
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
     }
     SUBCASE("Score alignment") {
@@ -231,7 +230,6 @@ TEST_CASE("marg_alignment") {
         aln.data.out_file = {{"test-marg_alignment-score.fasta"}, {".fasta"}};
         aln.score = true;
 
-        coati::utils::set_subst(aln);
         REQUIRE(marg_alignment(aln));
     }
     SUBCASE("Score alignment - fail") {
@@ -243,7 +241,6 @@ TEST_CASE("marg_alignment") {
         aln.score = true;
 
         coati::data_t result(aln.data.out_file.path);
-        coati::utils::set_subst(aln);
 
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
     }
@@ -391,23 +388,26 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     std::ostream& out = *pout;
 
     // check that length of ref sequence is multiple of 3 and gap unit size
-    size_t len_a = aln.data.seqs[0].length();
+    size_t len_a = aln.seq(0).length();
     if((len_a % 3 != 0) || (len_a % aln.gap.len != 0)) {
         throw std::invalid_argument(
             "Length of reference sequence must be multiple of 3.");
     }
     // check that length of descendant sequence is multiple of gap unit size
-    if(aln.data.seqs[1].length() % aln.gap.len != 0) {
+    if(aln.seq(1).length() % aln.gap.len != 0) {
         throw std::invalid_argument(
             "Length of descendant sequence must be multiple of " +
             std::to_string(aln.gap.len) + ".");
     }
 
     // encode sequences
-    auto anc = aln.data.seqs[0];
-    auto des = aln.data.seqs[1];
+    auto anc = aln.seq(0);
+    auto des = aln.seq(1);
     coati::utils::sequence_pair_t seq_pair =
         coati::utils::marginal_seq_encoding(anc, des);
+
+    // set substitution matrix according to model
+    coati::utils::set_subst(aln);
 
     // dynamic programming pairwise alignment and traceback
     coati::align_pair_work_t work;
@@ -420,9 +420,9 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
 
         out << "  {\n    \"aln\": {\n";
         out << "      \"" << aln.data.names[0] << "\": ";
-        out << "\"" << aln.data.seqs[0] << "\",\n";
+        out << "\"" << aln.seq(0) << "\",\n";
         out << "      \"" << aln.data.names[1] << "\": ";
-        out << "\"" << aln.data.seqs[1] << "\"\n";
+        out << "\"" << aln.seq(1) << "\"\n";
         out << "    },\n";
         out << "    \"weight\": " << ::expf(aln.data.weight) << ",\n";
         out << "    \"log_weight\": " << aln.data.weight << "\n";
@@ -464,7 +464,6 @@ TEST_CASE("marg_sample") {
         aln.data.out_file = {{"test-marg_sample.json"}, {".json"}};
 
         size_t reps{expected_s1.size()};
-        utils::set_subst(aln);
         coati::marg_sample(aln, reps, rand);
 
         std::ifstream infile(aln.data.out_file.path);
