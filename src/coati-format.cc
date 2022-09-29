@@ -40,5 +40,5 @@ int main(int argc, char* argv[]) {
     // read input data
     args.aln.data = coati::utils::read_input(args.aln);
 
-    return coati::format_sequences(args);
+    return coati::format_sequences(args.format, args.aln);
 }

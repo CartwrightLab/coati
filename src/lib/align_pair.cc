@@ -207,8 +207,8 @@ void traceback(const align_pair_work_mem_t &work, const std::string &a,
 
     aln.data.seqs.clear();
     aln.data.seqs.resize(2);
-    aln.data.seqs[0].reserve(i + j);
-    aln.data.seqs[1].reserve(i + j);
+    aln.seq(0).reserve(i + j);
+    aln.seq(1).reserve(i + j);
 
     aln.data.weight = maximum(work.mch(i, j), work.del(i, j), work.ins(i, j));
     auto m = max_mdi(work.mch(i, j), work.del(i, j), work.ins(i, j));
@@ -216,8 +216,8 @@ void traceback(const align_pair_work_mem_t &work, const std::string &a,
     while((j > (look_back - 1)) || (i > (look_back - 1))) {
         switch(m) {
         case AlnState::MATCH:  // match
-            aln.data.seqs[0].push_back(a[i - look_back]);
-            aln.data.seqs[1].push_back(b[j - look_back]);
+            aln.seq(0).push_back(a[i - look_back]);
+            aln.seq(1).push_back(b[j - look_back]);
             i--;
             j--;
             m = max_mdi(work.mch(i, j) + 2 * no_gap, work.del(i, j) + gap_stop,
@@ -225,8 +225,8 @@ void traceback(const align_pair_work_mem_t &work, const std::string &a,
             break;
         case AlnState::DELETION:  // deletion
             for(size_t k = i; k > (i - look_back); k--) {
-                aln.data.seqs[0].push_back(a[k - look_back]);
-                aln.data.seqs[1].push_back('-');
+                aln.seq(0).push_back(a[k - look_back]);
+                aln.seq(1).push_back('-');
             }
             i -= look_back;
             m = max_mdi(work.mch(i, j) + no_gap + gap_open,
@@ -235,8 +235,8 @@ void traceback(const align_pair_work_mem_t &work, const std::string &a,
             break;
         case AlnState::INSERTION:  // insertion
             for(size_t k = j; k > (j - look_back); k--) {
-                aln.data.seqs[0].push_back('-');
-                aln.data.seqs[1].push_back(b[k - look_back]);
+                aln.seq(0).push_back('-');
+                aln.seq(1).push_back(b[k - look_back]);
             }
             j -= look_back;
             m = max_mi(work.mch(i, j) + gap_open, work.ins(i, j) + gap_extend);
@@ -244,8 +244,8 @@ void traceback(const align_pair_work_mem_t &work, const std::string &a,
         }
     }
 
-    std::reverse(aln.data.seqs[0].begin(), aln.data.seqs[0].end());
-    std::reverse(aln.data.seqs[1].begin(), aln.data.seqs[1].end());
+    std::reverse(aln.seq(0).begin(), aln.seq(0).end());
+    std::reverse(aln.seq(1).begin(), aln.seq(1).end());
 }
 
 /** \brief Sample from match, insertion, and deletion.
@@ -330,10 +330,10 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
     size_t j = work.mch_mch.cols() - 1;
 
     aln.data.seqs.resize(2);
-    aln.data.seqs[0].clear();
-    aln.data.seqs[1].clear();
-    aln.data.seqs[0].reserve(i + j);
-    aln.data.seqs[1].reserve(i + j);
+    aln.seq(0).clear();
+    aln.seq(1).clear();
+    aln.seq(0).reserve(i + j);
+    aln.seq(1).reserve(i + j);
     aln.data.weight = 0.0f;
 
     float w = maximum(work.mch(i, j), work.del(i, j), work.ins(i, j));
@@ -344,8 +344,8 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
     while((j > (look_back - 1)) || (i > (look_back - 1))) {
         switch(pick.first) {
         case AlnState::MATCH:
-            aln.data.seqs[0].push_back(a[i - look_back]);
-            aln.data.seqs[1].push_back(b[j - look_back]);
+            aln.seq(0).push_back(a[i - look_back]);
+            aln.seq(1).push_back(b[j - look_back]);
             w = work.mch(i, j);
             pick = sample_mdi(work.mch_mch(i, j) - w, work.del_mch(i, j) - w,
                               work.ins_mch(i, j) - w, rand.f24());
@@ -355,8 +355,8 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
             break;
         case AlnState::DELETION:
             for(size_t k = i; k > (i - look_back); k--) {
-                aln.data.seqs[0].push_back(a[k - look_back]);
-                aln.data.seqs[1].push_back('-');
+                aln.seq(0).push_back(a[k - look_back]);
+                aln.seq(1).push_back('-');
             }
             w = work.del(i, j);
             pick = sample_mdi(work.mch_del(i, j) - w, work.del_del(i, j) - w,
@@ -366,8 +366,8 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
             break;
         case AlnState::INSERTION:
             for(size_t k = j; k > (j - look_back); k--) {
-                aln.data.seqs[0].push_back('-');
-                aln.data.seqs[1].push_back(b[k - look_back]);
+                aln.seq(0).push_back('-');
+                aln.seq(1).push_back(b[k - look_back]);
             }
             w = work.ins(i, j);
             pick = sample_mi(work.mch_ins(i, j) - w, work.ins_ins(i, j) - w,
@@ -378,7 +378,7 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
         }
     }
 
-    std::reverse(aln.data.seqs[0].begin(), aln.data.seqs[0].end());
-    std::reverse(aln.data.seqs[1].begin(), aln.data.seqs[1].end());
+    std::reverse(aln.seq(0).begin(), aln.seq(0).end());
+    std::reverse(aln.seq(1).begin(), aln.seq(1).end());
 }
 }  // namespace coati

@@ -120,6 +120,8 @@ class alignment_t {
 
     /** \brief Return true if model selected is marginal (m-coati or m-ecm) */
     bool is_marginal() { return (model == "m-coati" || model == "m-ecm"); }
+
+    std::string& seq(size_t index) { return data.seqs[index]; }
 };
 
 struct format_t {

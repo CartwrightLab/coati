@@ -28,7 +28,7 @@
 
 namespace coati {
 
-int format_sequences(coati::args_t& args);
+int format_sequences(coati::format_t& format, coati::alignment_t& aln);
 
 }  // namespace coati
 

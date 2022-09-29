@@ -35,57 +35,55 @@ namespace coati {
  * @param[in] args coati::args_t input arguments;
  *
  */
-int format_sequences(coati::args_t& args) {
-    if(args.format.preserve_phase) {  // padd gaps to preserve phase
-        if(args.format.padding == "-") {
+int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
+    if(format.preserve_phase) {  // padd gaps to preserve phase
+        if(format.padding == "-") {
             throw std::invalid_argument("Invalid padding character " +
-                                        args.format.padding + " .");
+                                        format.padding + " .");
         }
-        auto pos = args.aln.data.seqs[0].find('-');
+        auto pos = aln.seq(0).find('-');
         while(pos != std::string::npos) {
             size_t len{0};
-            while(args.aln.data.seqs[0][pos] == '-') {
+            while(aln.seq(0)[pos] == '-') {
                 pos++;
                 len++;
             }
             len = len % 3;
-            for(size_t i = 0; i < args.aln.data.size(); i++) {
+            for(size_t i = 0; i < aln.data.size(); i++) {
                 switch(len) {
                 case 1:
-                    args.aln.data.seqs[i].insert(pos, args.format.padding, 0,
-                                                 len);
+                    aln.seq(i).insert(pos, format.padding, 0, len);
                 case 2:
-                    args.aln.data.seqs[i].insert(pos, args.format.padding, 0,
-                                                 len);
+                    aln.seq(i).insert(pos, format.padding, 0, len);
                 }
             }
-            pos = args.aln.data.seqs[0].find('-', pos++);
+            pos = aln.seq(0).find('-', pos++);
         }
     }
 
     // if sequences to extract are specified do so
-    if(args.format.seqs.size() > 0 || args.format.pos.size() > 0) {
-        for(auto index : args.format.pos) {
-            args.format.seqs.emplace_back(args.aln.data.names[index - 1]);
+    if(format.seqs.size() > 0 || format.pos.size() > 0) {
+        for(auto index : format.pos) {
+            format.seqs.emplace_back(aln.data.names[index - 1]);
         }
 
-        for(int i = args.aln.data.names.size() - 1; i >= 0; --i) {
+        for(int i = aln.data.names.size() - 1; i >= 0; --i) {
             // if sequence name is not found on extraction list, remove
-            if(std::find(begin(args.format.seqs), end(args.format.seqs),
-                         args.aln.data.names[i]) == end(args.format.seqs)) {
-                args.aln.data.names.erase(args.aln.data.names.begin() + i);
-                args.aln.data.seqs.erase(args.aln.data.seqs.begin() + i);
+            if(std::find(begin(format.seqs), end(format.seqs),
+                         aln.data.names[i]) == end(format.seqs)) {
+                aln.data.names.erase(aln.data.names.begin() + i);
+                aln.data.seqs.erase(aln.data.seqs.begin() + i);
             }
         }
 
         // if all sequences are removed, throw an error
-        if(args.aln.data.names.empty()) {
+        if(aln.data.names.empty()) {
             throw std::invalid_argument("Sequences not found.");
         }
     }
 
     // output formatted sequences
-    return utils::write_output(args.aln.data) ? 0 : 1;
+    return utils::write_output(aln.data) ? 0 : 1;
 }
 
 /// @private
@@ -101,7 +99,7 @@ TEST_CASE("format_sequences") {
             std::filesystem::remove(args.aln.data.out_file.path);
         }
 
-        REQUIRE(coati::format_sequences(args) == 0);
+        REQUIRE(coati::format_sequences(args.format, args.aln) == 0);
 
         std::ifstream infile(args.aln.data.out_file.path);
         std::string s1, s2;
@@ -122,14 +120,14 @@ TEST_CASE("format_sequences") {
             std::filesystem::remove(args.aln.data.out_file.path);
         }
 
-        REQUIRE(coati::format_sequences(args) == 0);
+        REQUIRE(coati::format_sequences(args.format, args.aln) == 0);
 
         std::ifstream infile(args.aln.data.out_file.path);
         std::string s1, s2;
 
         infile >> s1 >> s2;
         CHECK(std::stoul(s1) == expected.size());
-        CHECK(std::stoul(s2) == args.aln.data.seqs[0].size());
+        CHECK(std::stoul(s2) == args.aln.seq(0).size());
 
         for(size_t i = 0; i < expected.size(); ++i) {
             infile >> s1 >> s2;
@@ -225,13 +223,15 @@ TEST_CASE("format_sequences") {
     SUBCASE("invalid-padding") {
         args.format.preserve_phase = true;
         args.format.padding = "-";
-        REQUIRE_THROWS_AS(coati::format_sequences(args), std::invalid_argument);
+        REQUIRE_THROWS_AS(coati::format_sequences(args.format, args.aln),
+                          std::invalid_argument);
     }
     SUBCASE("sequences-not-found") {
         args.aln.data =
             coati::data_t("", {"Ancestor", "Descendant"}, {"AAA", "AAA"});
         args.format.seqs = {"coati"};
-        REQUIRE_THROWS_AS(coati::format_sequences(args), std::invalid_argument);
+        REQUIRE_THROWS_AS(coati::format_sequences(args.format, args.aln),
+                          std::invalid_argument);
     }
 }
 // GCOVR_EXCL_STOP
