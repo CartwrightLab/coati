@@ -33,7 +33,7 @@ jobs:
       with:
         action: test
         directory: builddir
-        setup-options: -Db_coverage=true
+        setup-options: -Db_coverage=true --buildtype=debug
         options: --verbose
         meson-version: 0.59.1
         ninja-version: 1.10.2
