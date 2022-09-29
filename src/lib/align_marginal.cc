@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -94,7 +94,7 @@ bool marg_alignment(coati::alignment_t& aln) {
 // GCOVR_EXCL_START
 TEST_CASE("marg_alignment") {
     // NOLINTNEXTLINE(misc-unused-parameters)
-    auto test_fasta = [](alignment_t aln, data_t expected) {
+    auto test_fasta = [](alignment_t aln, const data_t& expected) {
         if(std::filesystem::exists(aln.data.out_file.path)) {
             std::filesystem::remove(aln.data.out_file.path);
         }
@@ -117,16 +117,17 @@ TEST_CASE("marg_alignment") {
 
         if(!aln.weight_file.empty()) {
             std::ifstream inweight(aln.weight_file);
-            std::string s;
+            std::string s;  // NOLINT(clang-diagnostic-unused-variable)
             inweight >> s;
-            std::size_t start = s.find_last_of(",");
+            // NOLINTNEXT(clang-diagnostic-unused-variable)
+            std::size_t start = s.find_last_of(',');
             CHECK(std::filesystem::remove(aln.weight_file));
             CHECK(std::stof(s.substr(start + 1)) == expected.weight);
         }
     };
 
     // NOLINTNEXTLINE(misc-unused-parameters)
-    auto test_phylip = [](alignment_t aln, data_t expected) {
+    auto test_phylip = [](alignment_t aln, const data_t& expected) {
         if(std::filesystem::exists(aln.data.out_file.path)) {
             std::filesystem::remove(aln.data.out_file.path);
         }
@@ -419,9 +420,9 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
         coati::sampleback(work, anc, des, aln, aln.gap.len, rand);
 
         out << "  {\n    \"aln\": {\n";
-        out << "      \"" << aln.data.names[0] << "\": ";
+        out << "      \"" << aln.name(0) << "\": ";
         out << "\"" << aln.seq(0) << "\",\n";
-        out << "      \"" << aln.data.names[1] << "\": ";
+        out << "      \"" << aln.name(1) << "\": ";
         out << "\"" << aln.seq(1) << "\"\n";
         out << "    },\n";
         out << "    \"weight\": " << ::expf(aln.data.weight) << ",\n";
@@ -441,6 +442,7 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
 // GCOVR_EXCL_START
 TEST_CASE("marg_sample") {
     // test helper function
+    // NOLINTNEXTLINE(misc-unused-parameters)
     auto check_line_eq = [](std::ifstream& in, const std::string_view line) {
         std::string s;
         std::getline(in, s);
@@ -520,7 +522,7 @@ TEST_CASE("marg_sample") {
     SUBCASE("error opening output file") {
         coati::random_t rand;
         coati::alignment_t aln;
-        aln.data.out_file = {{".", {".fasta"}}};
+        aln.data.out_file = {{"."}, {".fasta"}};
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
     }
 }

@@ -64,15 +64,17 @@ int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
     // if sequences to extract are specified do so
     if(format.seqs.size() > 0 || format.pos.size() > 0) {
         for(auto index : format.pos) {
-            format.seqs.emplace_back(aln.data.names[index - 1]);
+            format.seqs.emplace_back(aln.name(index - 1));
         }
 
-        for(int i = aln.data.names.size() - 1; i >= 0; --i) {
+        // only keep sequences that need to be extracted
+        for(auto i = aln.data.names.rbegin(), i2 = aln.data.seqs.rbegin();
+            i != aln.data.names.rend(); ++i, ++i2) {
             // if sequence name is not found on extraction list, remove
-            if(std::find(begin(format.seqs), end(format.seqs),
-                         aln.data.names[i]) == end(format.seqs)) {
-                aln.data.names.erase(aln.data.names.begin() + i);
-                aln.data.seqs.erase(aln.data.seqs.begin() + i);
+            if(std::find(begin(format.seqs), end(format.seqs), *i) ==
+               end(format.seqs)) {
+                aln.data.names.erase((i + 1).base());
+                aln.data.seqs.erase((i2 + 1).base());
             }
         }
 

@@ -451,8 +451,8 @@ file_type_t extract_file_type(std::string path) {
 // GCOVR_EXCL_START
 TEST_CASE("extract_file_type") {
     // NOLINTNEXTLINE(misc-unused-parameters)
-    auto test = [](std::string filename, file_type_t expected) {
-        CAPTURE(std::move(filename));
+    auto test = [](std::string filename, const file_type_t& expected) {
+        CAPTURE(filename);
         auto test = extract_file_type(std::move(filename));
         CHECK(test.path == expected.path);
         CHECK(test.type_ext == expected.type_ext);
@@ -599,14 +599,14 @@ bool write_output(data_t& data, const VectorFstStdArc& aln_path) {
     // call writer depending on file type
     if(data.out_file.type_ext == ".fa" || data.out_file.type_ext == ".fasta") {
         return write_fasta(data, aln_path);
-    } else if(data.out_file.type_ext == ".phy") {
-        return write_phylip(data, aln_path);
-    } else if(data.out_file.type_ext == ".json") {
-        return write_json(data, aln_path);
-    } else {
-        throw std::invalid_argument("Invalid output " + data.out_file.path +
-                                    ".");
     }
+    if(data.out_file.type_ext == ".phy") {
+        return write_phylip(data, aln_path);
+    }
+    if(data.out_file.type_ext == ".json") {
+        return write_json(data, aln_path);
+    }
+    throw std::invalid_argument("Invalid output " + data.out_file.path + ".");
 }
 
 /// @private

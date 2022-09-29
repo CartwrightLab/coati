@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -48,6 +48,7 @@ int main(int argc, char* argv[]) {
         throw std::invalid_argument("Exactly two sequences required.");
     }
 
+    // Use user-specified seeds or generate a random seed sequence
     coati::random_t rand;
     auto seeds = args.sample.seeds.empty()
                      ? fragmites::random::auto_seed_seq()

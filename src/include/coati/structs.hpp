@@ -122,6 +122,7 @@ class alignment_t {
     bool is_marginal() { return (model == "m-coati" || model == "m-ecm"); }
 
     std::string& seq(size_t index) { return data.seqs[index]; }
+    std::string& name(size_t index) { return data.names[index]; }
 };
 
 struct format_t {

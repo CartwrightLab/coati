@@ -265,7 +265,7 @@ std::pair<AlnState, float> sample_mdi(float log_mch, float log_del,
     float ins = ::expf(log_ins);
     float scale = mch + del + ins;
     p *= scale;
-    AlnState ret;
+    AlnState ret{AlnState::MATCH};
     float weight{0.f};
     if(p < mch) {
         ret = AlnState::MATCH;
@@ -296,7 +296,7 @@ std::pair<AlnState, float> sample_mi(float log_mch, float log_ins, float p) {
     float ins = ::expf(log_ins);
     float scale = mch + ins;
     p *= scale;
-    AlnState ret;
+    AlnState ret{AlnState::MATCH};
     float weight{0.f};
     if(p < mch) {
         ret = AlnState::MATCH;

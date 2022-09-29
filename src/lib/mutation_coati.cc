@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -197,6 +197,7 @@ TEST_CASE("marginal_p") {
 
     for(int cod = 0; cod < 64; cod++) {
         for(int pos = 0; pos < 3; pos++) {
+            // NOLINTNEXTLINE(clang-diagnostic-unused-but-set-variable)
             float val = 0.f;
             for(int nuc = 0; nuc < 4; nuc++) {
                 val += ::expf(p_marg(cod * 3 + pos, nuc)) * pi[nuc];

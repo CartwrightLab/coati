@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -125,6 +125,7 @@ static inline float_t log1p_exp(float_t x) {
 // Let x = max(a,b)
 // Let y = -abs(a-b)
 //  log(exp(a)+exp(b)) = x+log(1+exp(y))
+// NOLINTNEXTLINE(clang-diagnostic-unused-function)
 static inline float_t log_sum_exp(float_t a, float_t b) {
     float_t x = std::max(a, b);
     float_t y = -std::fabs(a - b);

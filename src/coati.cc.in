@@ -36,12 +36,13 @@ int main(int argc, char * const argv[]) {
     COATI_VERB_RUNTIME_CHECK_VERSION_NUMBER_OR_RETURN();
 
     if((argc < 2) || (strcmp(argv[1],"help") == 0)) {
-		std::cout << "Usage:   coati command [options]" << std::endl << std::endl;
-		std::cout << "Commands available:   help"<< std::endl;
-		std::cout << "                      alignpair" << std::endl;
-		std::cout << "                      msa" << std::endl;
-		std::cout << "                      sample" << std::endl;
-		std::cout << "                      genseed" << std::endl;
+        std::cout << "Usage:   coati command [options]" << std::endl << std::endl;
+        std::cout << "Commands available:   help"<< std::endl;
+        std::cout << "                      alignpair" << std::endl;
+        std::cout << "                      msa" << std::endl;
+        std::cout << "                      sample" << std::endl;
+        std::cout << "                      genseed" << std::endl;
+        std::cout << "                      format" << std::endl;
         return EXIT_SUCCESS;
     }
 
