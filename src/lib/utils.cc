@@ -118,44 +118,88 @@ coati::Matrixf parse_matrix_csv(const std::string& file) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("parse_matrix_csv") {
-    std::ofstream outfile;
-    coati::Matrix<coati::float_t> P(
-        mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
+    SUBCASE("default") {
+        std::ofstream outfile;
+        coati::Matrix<coati::float_t> P(
+            mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
-    const std::vector<std::string> codons = {
-        "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC",
-        "AGG", "AGT", "ATA", "ATC", "ATG", "ATT", "CAA", "CAC", "CAG", "CAT",
-        "CCA", "CCC", "CCG", "CCT", "CGA", "CGC", "CGG", "CGT", "CTA", "CTC",
-        "CTG", "CTT", "GAA", "GAC", "GAG", "GAT", "GCA", "GCC", "GCG", "GCT",
-        "GGA", "GGC", "GGG", "GGT", "GTA", "GTC", "GTG", "GTT", "TAA", "TAC",
-        "TAG", "TAT", "TCA", "TCC", "TCG", "TCT", "TGA", "TGC", "TGG", "TGT",
-        "TTA", "TTC", "TTG", "TTT"};
+        const std::vector<std::string> codons = {
+            "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT",
+            "AGA", "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT",
+            "CAA", "CAC", "CAG", "CAT", "CCA", "CCC", "CCG", "CCT",
+            "CGA", "CGC", "CGG", "CGT", "CTA", "CTC", "CTG", "CTT",
+            "GAA", "GAC", "GAG", "GAT", "GCA", "GCC", "GCG", "GCT",
+            "GGA", "GGC", "GGG", "GGT", "GTA", "GTC", "GTG", "GTT",
+            "TAA", "TAC", "TAG", "TAT", "TCA", "TCC", "TCG", "TCT",
+            "TGA", "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT"};
 
-    outfile.open("test-marg-matrix.csv");
-    REQUIRE(outfile);
+        outfile.open("test-marg-matrix.csv");
+        REQUIRE(outfile);
 
-    float Q[4096]{0.0f};
-    for(auto i = 0; i < 640; i++) {
-        Q[mg94_indexes[i]] = mg94Q[i];
-    }
-
-    outfile << "0.0133" << std::endl;  // branch length
-    for(auto i = 0; i < 64; i++) {
-        for(auto j = 0; j < 64; j++) {
-            outfile << codons[i] << "," << codons[j] << "," << Q[i * 64 + j]
-                    << std::endl;
+        float Q[4096]{0.0f};
+        for(auto i = 0; i < 640; i++) {
+            Q[mg94_indexes[i]] = mg94Q[i];
         }
-    }
 
-    outfile.close();
-    coati::Matrix<coati::float_t> P_test(
-        parse_matrix_csv("test-marg-matrix.csv"));
-    for(auto i = 0; i < 64; i++) {
-        for(auto j = 0; j < 64; j++) {
-            CHECK(P(i, j) == doctest::Approx(P_test(i, j)));
+        outfile << "0.0133" << std::endl;  // branch length
+        for(auto i = 0; i < 64; i++) {
+            for(auto j = 0; j < 64; j++) {
+                outfile << codons[i] << "," << codons[j] << "," << Q[i * 64 + j]
+                        << std::endl;
+            }
         }
+
+        outfile.close();
+        coati::Matrix<coati::float_t> P_test(
+            parse_matrix_csv("test-marg-matrix.csv"));
+        for(auto i = 0; i < 64; i++) {
+            for(auto j = 0; j < 64; j++) {
+                CHECK(P(i, j) == doctest::Approx(P_test(i, j)));
+            }
+        }
+        CHECK(std::filesystem::remove("test-marg-matrix.csv"));
     }
-    CHECK(std::filesystem::remove("test-marg-matrix.csv"));
+    SUBCASE("error opening file") {
+        CHECK_THROWS_AS(parse_matrix_csv(""), std::invalid_argument);
+    }
+    SUBCASE("too many lines") {
+        std::ofstream outfile;
+        coati::Matrix<coati::float_t> P(
+            mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
+
+        const std::vector<std::string> codons = {
+            "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT",
+            "AGA", "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT",
+            "CAA", "CAC", "CAG", "CAT", "CCA", "CCC", "CCG", "CCT",
+            "CGA", "CGC", "CGG", "CGT", "CTA", "CTC", "CTG", "CTT",
+            "GAA", "GAC", "GAG", "GAT", "GCA", "GCC", "GCG", "GCT",
+            "GGA", "GGC", "GGG", "GGT", "GTA", "GTC", "GTG", "GTT",
+            "TAA", "TAC", "TAG", "TAT", "TCA", "TCC", "TCG", "TCT",
+            "TGA", "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT"};
+
+        outfile.open("test-marg-matrix.csv");
+        REQUIRE(outfile);
+
+        float Q[4096]{0.0f};
+        for(auto i = 0; i < 640; i++) {
+            Q[mg94_indexes[i]] = mg94Q[i];
+        }
+
+        outfile << "0.0133" << std::endl;  // branch length
+        for(auto i = 0; i < 64; i++) {
+            for(auto j = 0; j < 64; j++) {
+                outfile << codons[i] << "," << codons[j] << "," << Q[i * 64 + j]
+                        << std::endl;
+            }
+        }
+        // extra line
+        outfile << codons[0] << "," << codons[0] << "," << Q[0] << std::endl;
+        outfile.close();
+
+        CHECK_THROWS_AS(parse_matrix_csv("test-marg-matrix.csv"),
+                        std::invalid_argument);
+        REQUIRE(std::filesystem::remove("test-marg-matrix.csv"));
+    }
 }
 // GCOVR_EXCL_STOP
 
@@ -465,7 +509,7 @@ data_t read_input(alignment_t& aln) {
         return input_data;
     }
     if(aln.data.path.empty()) {
-        aln.data.path = "(empty)";
+        throw std::invalid_argument("Input path is empty.");
     }
     throw std::invalid_argument("Invalid input " + aln.data.path.string() +
                                 ".");
@@ -534,6 +578,9 @@ TEST_CASE("read_input") {
     SUBCASE("ext") {
         std::string filename("test-read-input.ext");
         aln.data.path = filename;
+        REQUIRE_THROWS_AS(read_input(aln), std::invalid_argument);
+    }
+    SUBCASE("empty") {
         REQUIRE_THROWS_AS(read_input(aln), std::invalid_argument);
     }
 }
@@ -629,7 +676,7 @@ TEST_CASE("write_output") {
         data = coati::data_t("", names, sequences);
         data.out_file.path = "test-write-output-phylip.json";
         data.out_file.type_ext = ".json";
-        REQUIRE(write_json(data));
+        REQUIRE(write_output(data));
 
         std::ifstream infile(data.out_file.path);
         std::string s1;
@@ -664,7 +711,7 @@ void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln) {
 
     std::string seq1, seq2;
     fst::StateIterator<fst::StdFst> siter(aln);  // FST state iterator
-    for(int i = 0; i < (aln.NumStates() - 1); siter.Next(), i++) {
+    for(int i = 0; i < aln.NumStates() - 1; siter.Next(), i++) {
         fst::ArcIteratorData<fst::StdArc> info;
         aln.InitArcIterator(siter.Value(), &info);
         seq1.append(symbols.Find(info.arcs[0].ilabel));
