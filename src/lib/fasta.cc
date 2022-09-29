@@ -240,6 +240,10 @@ TEST_CASE("write_fasta") {
         CHECK(s1.compare("CTC-") == 0);
         CHECK(std::filesystem::remove("test-write-fasta-fst.fasta"));
     }
+    SUBCASE("data_t size fails - diff number of names and seqs") {
+        coati::data_t fasta("", {"1", "2", "3"}, {"CTC", "CTA"});
+        CHECK_THROWS_AS(write_fasta(fasta), std::invalid_argument);
+    }
 }
 // GCOVR_EXCL_STOP
 }  // namespace coati

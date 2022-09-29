@@ -146,6 +146,11 @@ TEST_CASE("read-json") {
             CHECK(json.fsts[0].NumArcs(i) == 1);
         }
     }
+    SUBCASE("invalid input argument") {
+        std::string filename{"test-read-json.json"};
+        CHECK_THROWS_AS(coati::read_json(filename, true),
+                        std::invalid_argument);
+    }
 }
 // GCOVR_EXCL_STOP
 
