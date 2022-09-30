@@ -816,7 +816,7 @@ class ReplaceFstImpl
       *arcp = arc;
       return true;
     }
-    if (arc.olabel == 0 || arc.olabel < *nonterminal_set_.begin() ||
+    if (arc.olabel == 0 || (arc.olabel < *nonterminal_set_.begin()) ||
         arc.olabel > *nonterminal_set_.rbegin()) {  // Expands local FST.
       const auto nextstate =
           flags & kArcNextStateValue
