@@ -20,8 +20,6 @@
 # SOFTWARE.
 */
 
-#include <fst/fstlib.h>
-
 #include <CLI11.hpp>
 #include <coati/align_fst.hpp>
 #include <coati/align_marginal.hpp>
