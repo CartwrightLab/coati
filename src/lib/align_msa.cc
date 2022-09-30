@@ -140,11 +140,11 @@ bool ref_indel_alignment(coati::alignment_t& input) {
                 continue;
             }
             bool all_children_visited = true;  // assume children are visited
-            for(auto child : tree[inode_pos].children) {
-                if(!visited[child]) {  // if children not visited, set to false
-                    all_children_visited = false;
-                    break;
-                }
+            // if any children is not visited set to false
+            if(std::any_of(tree[inode_pos].children.begin(),
+                           tree[inode_pos].children.end(),
+                           [visited](int c) { return !visited[c]; })) {
+                all_children_visited = false;
             }
 
             // if not all children are visited, skip & come back when all are

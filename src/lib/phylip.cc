@@ -85,11 +85,10 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
         phylip.seqs[i] = unsplitted[1];
     }
 
-    size_t count{0}, index{0};
-    std::string name;
+    size_t count{0};
     // read rest of sequences
     while(in.good()) {
-        index = count % n_seqs;
+        size_t index = count % n_seqs;
         getline(in, line);
         if(line.empty()) {
             continue;  // omit empty lines
@@ -118,8 +117,6 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("read_phylip") {
-    // cppcheck-suppress unusedVariable
-    std::vector<VectorFstStdArc> fsts;
     std::ofstream outfile;
 
     SUBCASE("Read test-read-phylip-fst.phy") {

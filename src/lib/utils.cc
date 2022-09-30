@@ -321,17 +321,17 @@ sequence_pair_t marginal_seq_encoding(const std::string& anc,
     }
 
     // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... , TTT3->191
-    for(auto it = anc.cbegin(); it != anc.cend(); it++) {
+    for(size_t i = 0; i < anc.size() - 2; ++i) {
         auto c0 = static_cast<unsigned char>(
-                      nt16_table[static_cast<unsigned char>(*it)])
+                      nt16_table[static_cast<unsigned char>(anc[i])])
                   << 4;
-        it++;
+        i++;
         auto c1 = static_cast<unsigned char>(
-                      nt16_table[static_cast<unsigned char>(*it)])
+                      nt16_table[static_cast<unsigned char>(anc[i])])
                   << 2;
-        it++;
+        i++;
         auto c2 = static_cast<unsigned char>(
-            nt16_table[static_cast<unsigned char>(*it)]);
+            nt16_table[static_cast<unsigned char>(anc[i])]);
         auto cod = (c0 | c1 | c2) * 3;
         ret[0].push_back(cod);
         ret[0].push_back(cod + 1);

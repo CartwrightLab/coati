@@ -175,7 +175,6 @@ TEST_CASE("marg_alignment") {
 
         test_phylip(aln, expected);
     }
-
     SUBCASE("Alignment 2 dels - output phylip") {
         aln.data = coati::data_t("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"});
         aln.model = "m-coati";
@@ -234,7 +233,6 @@ TEST_CASE("marg_alignment") {
         REQUIRE(marg_alignment(aln));
     }
     SUBCASE("Score alignment - fail") {
-        coati::alignment_t aln;
         aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
         aln.model = "m-coati";
         aln.weight_file = "";
@@ -279,9 +277,8 @@ float alignment_score(const coati::alignment_t& aln,
     float_t gap_open = tropical_rig.from_linearf(aln.gap.open);
     float_t gap_extend = tropical_rig.from_linearf(aln.gap.extend);
     std::vector<coati::float_t> pi{aln.pi};
-    for(size_t i = 0; i < 4; i++) {
-        pi[i] = ::logf(pi[i]);
-    }
+    std::transform(pi.cbegin(), pi.cend(), pi.begin(),
+                   [](auto value) { return ::logf(value); });
 
     float weight{0.f};
     int state{0}, ngap{0};
