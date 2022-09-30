@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <boost/spirit/home/x3.hpp>
+#include <string_view>
 
 #include "utils.hpp"
 
@@ -47,11 +48,12 @@ struct node_t {
 using tree_t = std::vector<node_t>;
 
 bool read_newick(const std::string& tree_file, std::string& content);
-bool parse_newick(std::string content, tree_t& guide_tree);
+bool parse_newick(std::string& content, tree_t& guide_tree);
 int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list);
-bool find_seq(const std::string& name, coati::data_t& f, std::string& seq);
-bool find_node(tree_t& tree, const std::string& name, size_t& ID);
-bool reroot(tree_t& tree, const std::string& label);
+bool find_seq(const std::string_view name, const coati::data_t& f,
+              std::string& seq);
+bool find_node(const tree_t& tree, const std::string_view name, size_t& ID);
+bool reroot(tree_t& tree, const std::string_view label);
 float distance_ref(const tree_t& tree, size_t ref, size_t node);
 }  // namespace coati::tree
 #endif

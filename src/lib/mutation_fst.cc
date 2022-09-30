@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -69,7 +69,6 @@ VectorFstStdArc mg94(float br_len, float omega,
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("mg94") {
-    // float branch_length = 0.0133;
     VectorFstStdArc mut_fst(mg94(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
     CHECK(Verify(mut_fst));           // openfst built-in sanity check
@@ -275,7 +274,7 @@ void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel, int olabel,
  * @param[in] content std::string sequence to be converted to an FSA.
  * @param[in,out] accept coati::VectorFstStdArc empty FSA.
  */
-bool acceptor(std::string content, VectorFstStdArc& accept) {
+bool acceptor(const std::string_view content, VectorFstStdArc& accept) {
     std::map<char, int> syms = {{'-', 0}, {'A', 1}, {'C', 2}, {'G', 3},
                                 {'T', 4}, {'U', 4}, {'N', 5}};
 

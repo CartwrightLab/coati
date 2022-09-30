@@ -26,6 +26,7 @@
 #include <fst/fstlib.h>
 
 #include <string>
+#include <string_view>
 
 #include "matrix.hpp"
 #include "utils.hpp"
@@ -44,7 +45,7 @@ VectorFstStdArc indel(float gap_open, float gap_extend,
                       const std::vector<float>& pi);
 void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel = 0,
              int olabel = 0, float weight = 1.0);
-bool acceptor(std::string content, VectorFstStdArc& accept);
+bool acceptor(const std::string_view content, VectorFstStdArc& accept);
 VectorFstStdArc optimize(VectorFstStdArc fst_raw);
 }  // namespace coati
 #endif

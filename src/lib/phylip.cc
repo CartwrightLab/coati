@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -210,18 +210,15 @@ bool write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
     // set output pointer
     std::ostream* pout(nullptr);
     std::ofstream outfile;
-    // coati::file_type_t out_type;
     if(phylip.out_file.path == "-" || phylip.out_file.path.empty()) {
         pout = &std::cout;
     } else {
         outfile.open(phylip.out_file.path);
-        // outfile.open(phylip.output);
         if(!outfile) {
             throw std::invalid_argument("Opening output file " +
                                         phylip.out_file.path + " failed.");
         }
         pout = &outfile;
-        // out_type = coati::utils::extract_file_type(phylip.output.string());
     }
     std::ostream& out = *pout;
 

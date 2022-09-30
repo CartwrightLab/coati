@@ -32,7 +32,8 @@ namespace coati {
  * Format input sequences to format specified by user (FASTA, PHYLIP, JSON)
  *  and add padding to preserve ancestor phase if required.
  *
- * @param[in] args coati::args_t input arguments;
+ * @param[in,out] format coati::format_t format arguments.
+ * @param[in,out] aln coati::alignment_t alignment arguments.
  *
  */
 int format_sequences(coati::format_t& format, coati::alignment_t& aln) {

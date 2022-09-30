@@ -94,7 +94,7 @@ bool marg_alignment(coati::alignment_t& aln) {
 // GCOVR_EXCL_START
 TEST_CASE("marg_alignment") {
     // NOLINTNEXTLINE(misc-unused-parameters)
-    auto test_fasta = [](alignment_t aln, const data_t& expected) {
+    auto test_fasta = [](alignment_t& aln, const data_t& expected) {
         if(std::filesystem::exists(aln.data.out_file.path)) {
             std::filesystem::remove(aln.data.out_file.path);
         }
@@ -119,7 +119,7 @@ TEST_CASE("marg_alignment") {
             std::ifstream inweight(aln.weight_file);
             std::string s;  // NOLINT(clang-diagnostic-unused-variable)
             inweight >> s;
-            // NOLINTNEXT(clang-diagnostic-unused-variable)
+            // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
             std::size_t start = s.find_last_of(',');
             CHECK(std::filesystem::remove(aln.weight_file));
             CHECK(std::stof(s.substr(start + 1)) == expected.weight);
@@ -127,7 +127,7 @@ TEST_CASE("marg_alignment") {
     };
 
     // NOLINTNEXTLINE(misc-unused-parameters)
-    auto test_phylip = [](alignment_t aln, const data_t& expected) {
+    auto test_phylip = [](alignment_t& aln, const data_t& expected) {
         if(std::filesystem::exists(aln.data.out_file.path)) {
             std::filesystem::remove(aln.data.out_file.path);
         }
@@ -368,6 +368,14 @@ TEST_CASE("alignment_score") {
 }
 // GCOVR_EXCL_STOP
 
+/**
+ * \brief Sample from a marginal alignment
+ *
+ * @param[in,out] aln coati::alignment_t alignment data.
+ * @param[in] sample_size size_t number of alignments to sample.
+ * @param[in] rand coati::random_t random seed generator object.
+ *
+ */
 void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     coati::Matrixf P(64, 64), p_marg;
 

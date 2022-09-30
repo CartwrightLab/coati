@@ -56,7 +56,7 @@ int cod_distance(uint8_t cod1, uint8_t cod2) {
  *
  * \return encoded codon as its position in codon list.
  */
-int cod_int(const std::string& codon) {
+int cod_int(const std::string_view codon) {
     unsigned char pos0 = codon[0];
     unsigned char pos1 = codon[1];
     unsigned char pos2 = codon[2];
@@ -307,8 +307,8 @@ void set_cli_options_format(CLI::App& app, coati::args_t& args) {
  * \return two sequences (ancestor \& descendant) encoded
  *  (coati::sequence_pair_t).
  */
-sequence_pair_t marginal_seq_encoding(const std::string& anc,
-                                      const std::string& des) {
+sequence_pair_t marginal_seq_encoding(const std::string_view anc,
+                                      const std::string_view des) {
     sequence_pair_t ret(2);
     ret[0].reserve(anc.length());
     ret[1].reserve(des.length());

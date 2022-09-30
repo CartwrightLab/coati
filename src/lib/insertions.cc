@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@ namespace coati {
  * @param[in, out] insertions_vector coati::SparseVectorInt vector to store open
  *  insertion positions.
  */
-bool insertion_flags(const std::string& ref, const std::string& seq,
+bool insertion_flags(const std::string_view ref, const std::string_view seq,
                      SparseVectorInt& insertions_vector) {
     if(ref.length() != seq.length()) {
         return false;  // return if length is diff
@@ -344,7 +344,7 @@ TEST_CASE("merge_indels") {
  * @param[in] pos int position in sequence where to add closed insertion.
  */
 void add_gap(std::vector<insertion_data_t>& ins_data,
-             std::vector<int> seq_indexes, int pos) {
+             const std::vector<int>& seq_indexes, int pos) {
     std::vector<int> add;
     std::vector<int> aux(ins_data.size());
     iota(begin(aux), end(aux), 0);

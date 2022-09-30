@@ -24,9 +24,6 @@
 
 #include <coati/mutation_coati.hpp>
 
-/* nonsynonymous-synonymous bias (\omega) */
-// const float omega = 0.2;  // github.com/reedacartwright/toycoati
-
 namespace coati {
 /**
  * \brief Create Muse \& Gaut (1994) substitution matrix.
@@ -71,7 +68,6 @@ coati::Matrixf mg94_p(float br_len, float omega,
 
     // construct transition matrix
     for(uint8_t i = 0; i < 64; i++) {
-        // uint8_t codon;
         // (codon & 48) >> 4 = nt16_table encoding of first codon nucleotide
         // (codon & 12) >> 2 = nt16_table encoding of second codon nucleotide
         // (codon & 03) = nt16_table encoding of third codon nucleotide
@@ -215,25 +211,15 @@ void ambiguous_avg_p(coati::Matrixf& p) {
             row = cod * 3 + pos;
 
             p(row, 4) = (p(row, 0) + p(row, 2)) / 2;  // R: purine       A or G
-
             p(row, 5) = (p(row, 1) + p(row, 3)) / 2;  // Y: pyrimidine   C or T
-
             p(row, 6) = (p(row, 0) + p(row, 1)) / 2;  // M: amino group  A or C
-
             p(row, 7) = (p(row, 2) + p(row, 3)) / 2;  // K: keto group   G or T
-
             p(row, 8) = (p(row, 1) + p(row, 2)) / 2;  // S: strong inter C or G
-
             p(row, 9) = (p(row, 0) + p(row, 3)) / 2;  // W: weak interac A or T
-
             p(row, 10) = (p(row, 1) + p(row, 2) + p(row, 3)) / 3;  // B: not A
-
             p(row, 11) = (p(row, 0) + p(row, 2) + p(row, 3)) / 3;  // D: not C
-
             p(row, 12) = (p(row, 0) + p(row, 1) + p(row, 3)) / 3;  // H: not G
-
             p(row, 13) = (p(row, 0) + p(row, 1) + p(row, 2)) / 3;  // V: not T
-
             p(row, 14) =
                 (p(row, 0) + p(row, 1) + p(row, 2) + p(row, 3)) / 4;  // N: any
         }
@@ -248,34 +234,24 @@ void ambiguous_best_p(coati::Matrixf& p) {
 
             p(row, 4) =
                 std::max(p(row, 0), p(row, 2));  // R: purine       A or G
-
             p(row, 5) =
                 std::max(p(row, 1), p(row, 3));  // Y: pyrimidine   C or T
-
             p(row, 6) =
                 std::max(p(row, 0), p(row, 1));  // M: amino group  A or C
-
             p(row, 7) =
                 std::max(p(row, 2), p(row, 3));  // K: keto group   G or T
-
             p(row, 8) =
                 std::max(p(row, 1), p(row, 2));  // S: strong inter C or G
-
             p(row, 9) =
                 std::max(p(row, 0), p(row, 3));  // W: weak interac A or T
-
             p(row, 10) =
                 std::max({p(row, 1), p(row, 2), p(row, 3)});  // B: not A
-
             p(row, 11) =
                 std::max({p(row, 0), p(row, 2), p(row, 3)});  // D: not C
-
             p(row, 12) =
                 std::max({p(row, 0), p(row, 1), p(row, 3)});  // H: not G
-
             p(row, 13) =
                 std::max({p(row, 0), p(row, 1), p(row, 2)});  // V: not T
-
             p(row, 14) = std::max(
                 {p(row, 0), p(row, 1), p(row, 2), p(row, 3)});  // N: any
         }

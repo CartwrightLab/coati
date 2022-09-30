@@ -139,7 +139,7 @@ bool read_newick(const std::string& tree_file, std::string& content) {
  * @param[in] content std::string tree in newick format.
  * @param[in,out] guide_tree coati::tree::tree_t parsed tree.
  */
-bool parse_newick(std::string content, tree_t& guide_tree) {
+bool parse_newick(std::string& content, tree_t& guide_tree) {
     // remove tabs \t ,new lines \n, and spaces
     boost::algorithm::erase_all(content, "\t");
     boost::algorithm::erase_all(content, "\n");
@@ -163,8 +163,9 @@ bool parse_newick(std::string content, tree_t& guide_tree) {
 TEST_CASE("parse_newick") {
     tree_t tree;
 
-    REQUIRE(parse_newick(
-        "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);", tree));
+    std::string stree{
+        "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"};
+    REQUIRE(parse_newick(stree, tree));
     REQUIRE(tree.size() == 7);
 
     CHECK(tree[0].length == 0);
@@ -233,8 +234,7 @@ int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list) {
                      tree[tree[i].children[k]].is_leaf)) {
                     continue;
                 }
-                // if distance between nodes is less than d, update closest pair
-                // & d
+                // if distance between nodes is < d, update closest pair & d
                 if(tree[tree[i].children[j]].length +
                        tree[tree[i].children[k]].length <
                    d) {
@@ -343,7 +343,8 @@ TEST_CASE("aln_order") {
  *
  * \return true if found.
  */
-bool find_seq(const std::string& name, coati::data_t& f, std::string& seq) {
+bool find_seq(const std::string_view name, const coati::data_t& f,
+              std::string& seq) {
     seq.clear();
 
     for(std::size_t i = 0; i < f.names.size(); i++) {
@@ -380,7 +381,8 @@ TEST_CASE("find_seq") {
  *
  * \return true if found.
  */
-bool find_node(tree_t& tree, const std::string& name, std::size_t& index) {
+bool find_node(const tree_t& tree, const std::string_view name,
+               std::size_t& index) {
     auto it = find_if(begin(tree), end(tree), [name](const node_t& node) {
         return node.label == name;
     });
@@ -419,7 +421,7 @@ TEST_CASE("find_node") {
  * @param[in,out] tree coati::tree:tree_t phylogenetic tree re-rooted [out].
  * @param[in] outgroup std::string outgroup to be the new root.
  */
-bool reroot(tree_t& tree, const std::string& outgroup) {
+bool reroot(tree_t& tree, const std::string_view outgroup) {
     std::size_t ref{0};
 
     // find outgroup node

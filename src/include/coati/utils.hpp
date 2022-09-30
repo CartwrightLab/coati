@@ -33,6 +33,7 @@
 #include <iostream>
 #include <regex>
 #include <string>
+#include <string_view>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
 
@@ -91,12 +92,12 @@ coati::Matrixf parse_matrix_csv(const std::string& file);
 enum struct Command { ALIGNPAIR, MSA, SAMPLE, FORMAT };
 
 int cod_distance(uint8_t cod1, uint8_t cod2);
-int cod_int(const std::string& codon);
+int cod_int(const std::string_view codon);
 void set_cli_options(CLI::App& app, coati::args_t& args,
                      const coati::utils::Command& command);
 void set_cli_options_format(CLI::App& app, coati::args_t& args);
-sequence_pair_t marginal_seq_encoding(const std::string& anc,
-                                      const std::string& des);
+sequence_pair_t marginal_seq_encoding(const std::string_view anc,
+                                      const std::string_view des);
 void set_subst(alignment_t& aln);
 
 // returns {.ext, file.foo}
