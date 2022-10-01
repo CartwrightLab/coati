@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@ namespace coati {
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 coati::data_t read_fasta(const std::string& f_path, bool marginal);
-bool write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln = {});
+void write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln = {});
 
 }  // namespace coati
 

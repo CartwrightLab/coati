@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -107,7 +107,8 @@ bool fst_alignment(coati::alignment_t& aln) {
     fst::TopSort(&aln_path);
 
     // write alignment
-    return coati::utils::write_output(aln.data, aln_path);
+    coati::utils::write_output(aln.data, aln_path);
+    return true;
 }
 
 /// @private

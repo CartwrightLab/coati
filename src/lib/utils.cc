@@ -592,21 +592,19 @@ TEST_CASE("read_input") {
  *
  * @param[in] data coati::data_t sequences, names, fsts, and weight information.
  * @param[in] aln_path coati::VectorFstStdArc FST object with alignment.
- *
- * \return coati::data_t object.
  */
-bool write_output(data_t& data, const VectorFstStdArc& aln_path) {
+void write_output(data_t& data, const VectorFstStdArc& aln_path) {
     // call writer depending on file type
     if(data.out_file.type_ext == ".fa" || data.out_file.type_ext == ".fasta") {
-        return write_fasta(data, aln_path);
+        write_fasta(data, aln_path);
+    } else if(data.out_file.type_ext == ".phy") {
+        write_phylip(data, aln_path);
+    } else if(data.out_file.type_ext == ".json") {
+        write_json(data, aln_path);
+    } else {
+        throw std::invalid_argument("Invalid output " + data.out_file.path +
+                                    ".");
     }
-    if(data.out_file.type_ext == ".phy") {
-        return write_phylip(data, aln_path);
-    }
-    if(data.out_file.type_ext == ".json") {
-        return write_json(data, aln_path);
-    }
-    throw std::invalid_argument("Invalid output " + data.out_file.path + ".");
 }
 
 /// @private
@@ -624,7 +622,7 @@ TEST_CASE("write_output") {
         data = coati::data_t("", names, sequences);
         data.out_file.path = "test-write-output-fasta.fasta";
         data.out_file.type_ext = ".fasta";
-        REQUIRE(write_output(data));
+        write_output(data);
 
         std::ifstream infile(data.out_file.path);
         std::string s;
@@ -649,7 +647,7 @@ TEST_CASE("write_output") {
         data = coati::data_t("", names, sequences);
         data.out_file.path = "test-write-output-phylip.phy";
         data.out_file.type_ext = ".phy";
-        REQUIRE(write_output(data));
+        write_output(data);
 
         std::ifstream infile(data.out_file.path);
         std::string s1, s2;
@@ -677,7 +675,7 @@ TEST_CASE("write_output") {
         data = coati::data_t("", names, sequences);
         data.out_file.path = "test-write-output-phylip.json";
         data.out_file.type_ext = ".json";
-        REQUIRE(write_output(data));
+        write_output(data);
 
         std::ifstream infile(data.out_file.path);
         std::string s1;

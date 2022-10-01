@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -36,40 +36,25 @@ namespace coati {
  */
 /* Initial msa by collapsing indels after pairwise aln with reference */
 bool ref_indel_alignment(coati::alignment_t& input) {
-    coati::tree::tree_t tree;
-    std::string newick;
     coati::alignment_t aln, aln_tmp;
 
     aln.data.out_file = input.data.out_file;
 
     // read newick tree file
-    if(!coati::tree::read_newick(input.tree, newick)) {
-        throw std::invalid_argument("Reading newick tree failed.");
-    }
+    std::string newick = coati::tree::read_newick(input.tree);
 
     // parse tree into tree_t (vector<node_t>) variable
-    if(!coati::tree::parse_newick(newick, tree)) {
-        throw std::invalid_argument("Parsing newick tree failed.");
-    }
+    coati::tree::tree_t tree = coati::tree::parse_newick(newick);
 
     // reroot tree
-    if(!coati::tree::reroot(tree, input.ref)) {
-        throw std::invalid_argument("Re-rooting tree failed.");
-    }
+    coati::tree::reroot(tree, input.ref);
 
     // find position of ref in tree
-    std::size_t ref_pos = 0;
-    if(!coati::tree::find_node(tree, input.ref, ref_pos)) {
-        throw std::invalid_argument("Reference node not found in tree.");
-    }
+    std::size_t ref_pos = coati::tree::find_node(tree, input.ref);
 
     // find sequence of ref in input
     std::vector<std::string> pair_seqs;
-    std::string ref_seq;
-    if(!coati::tree::find_seq(input.ref, input.data, ref_seq)) {
-        throw std::invalid_argument("reference sequence " + input.ref +
-                                    " not found in input file.");
-    }
+    std::string ref_seq = coati::tree::find_seq(input.ref, input.data);
 
     pair_seqs.push_back(ref_seq);
     pair_seqs.push_back(ref_seq);
@@ -88,10 +73,7 @@ bool ref_indel_alignment(coati::alignment_t& input) {
         // if node is a leaf and not the reference pairwise align w/ reference
         if(tree[node].is_leaf && (tree[node].label != input.ref)) {
             float branch = distance_ref(tree, ref_pos, node);
-            if(!coati::tree::find_seq(tree[node].label, input.data, node_seq)) {
-                throw std::invalid_argument("sequence " + tree[node].label +
-                                            " not found in input file.");
-            }
+            node_seq = coati::tree::find_seq(tree[node].label, input.data);
 
             pair_seqs[1] = node_seq;
 
@@ -185,7 +167,8 @@ bool ref_indel_alignment(coati::alignment_t& input) {
     }
 
     // write alignment
-    return coati::utils::write_output(aln.data);
+    coati::utils::write_output(aln.data);
+    return true;
 }
 
 /// @private

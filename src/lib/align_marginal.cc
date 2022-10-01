@@ -87,7 +87,8 @@ bool marg_alignment(coati::alignment_t& aln) {
     }
 
     // write alignment
-    return coati::utils::write_output(aln.data);
+    coati::utils::write_output(aln.data);
+    return true;
 }
 
 /// @private

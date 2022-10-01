@@ -47,13 +47,12 @@ struct node_t {
 
 using tree_t = std::vector<node_t>;
 
-bool read_newick(const std::string& tree_file, std::string& content);
-bool parse_newick(std::string& content, tree_t& guide_tree);
-int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list);
-bool find_seq(const std::string_view name, const coati::data_t& f,
-              std::string& seq);
-bool find_node(const tree_t& tree, const std::string_view name, size_t& ID);
-bool reroot(tree_t& tree, const std::string_view label);
+std::string read_newick(const std::string& tree_file);
+tree_t parse_newick(std::string& content);
+std::vector<std::pair<int, float>> aln_order(tree_t& tree);
+std::string find_seq(const std::string_view name, const coati::data_t& f);
+size_t find_node(const tree_t& tree, const std::string_view name);
+void reroot(tree_t& tree, const std::string_view label);
 float distance_ref(const tree_t& tree, size_t ref, size_t node);
 }  // namespace coati::tree
 #endif

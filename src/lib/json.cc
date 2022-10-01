@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -161,7 +161,7 @@ TEST_CASE("read-json") {
  * @param[in] aln coati::VectorFstStdArc FST with alignment path.
  *
  */
-bool write_json(coati::data_t& json, const VectorFstStdArc& aln) {
+void write_json(coati::data_t& json, const VectorFstStdArc& aln) {
     if(aln.NumStates() > 0) {  // if FST alignment
         coati::utils::fst_to_seqs(json, aln);
     }
@@ -183,8 +183,6 @@ bool write_json(coati::data_t& json, const VectorFstStdArc& aln) {
     json_t out_json = json;
 
     out << out_json << std::endl;
-
-    return true;
 }
 
 /// @private
@@ -195,7 +193,7 @@ TEST_CASE("write-json") {
                            {"ATGTCTTCTCACAAGACT", "ATGTCTTCTCACAAGACT"});
         json.out_file.path = "test-write-json-marg.json";
 
-        REQUIRE(write_json(json));
+        write_json(json);
 
         std::ifstream infile("test-write-json-marg.json");
         std::string s1;
@@ -218,7 +216,7 @@ TEST_CASE("write-json") {
         add_arc(fst_write, 3, 4, 1, 0);  // A -> -
         fst_write.SetFinal(4, 0.0);
 
-        REQUIRE(write_json(json, fst_write));
+        write_json(json, fst_write);
 
         std::ifstream infile(json.out_file.path);
         std::string s1;

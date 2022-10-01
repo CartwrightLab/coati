@@ -111,24 +111,24 @@ namespace coati::tree {
  * \brief Read newick format file.
  *
  * @param[in] tree_file std::string path to newick file.
- * @param[in,out] content std::string to store newick file content.
+ *
+ * return std::string content of newick file
  */
-bool read_newick(const std::string& tree_file, std::string& content) {
+std::string read_newick(const std::string& tree_file) {
     std::ifstream input(tree_file);  // open input stream
     if(!input.good()) {
         throw std::invalid_argument("Error opening " + tree_file + ".");
     }
 
     // read newick tree file
-    std::string text((std::istreambuf_iterator<char>(input)),
-                     std::istreambuf_iterator<char>());
-    content = text;
+    std::string content((std::istreambuf_iterator<char>(input)),
+                        std::istreambuf_iterator<char>());
 
     if(content.length() == 0) {  // Check file isn't empty
         throw std::invalid_argument("Reading tree failed, file is empty!");
     }
 
-    return true;
+    return content;
 }
 
 /**
@@ -137,9 +137,10 @@ bool read_newick(const std::string& tree_file, std::string& content) {
  * NOTE: quotation marks on labels not supported.
  *
  * @param[in] content std::string tree in newick format.
- * @param[in,out] guide_tree coati::tree::tree_t parsed tree.
+ *
+ * return tree_t parsed tree.
  */
-bool parse_newick(std::string& content, tree_t& guide_tree) {
+tree_t parse_newick(std::string& content) {
     // remove tabs \t ,new lines \n, and spaces
     boost::algorithm::erase_all(content, "\t");
     boost::algorithm::erase_all(content, "\n");
@@ -148,24 +149,23 @@ bool parse_newick(std::string& content, tree_t& guide_tree) {
     auto it = content.begin();
     auto end = content.end();
 
+    tree_t guide_tree;
     // NOLINTNEXTLINE(misc-no-recursion)
     bool result = boost::spirit::x3::parse(it, end, newick::tree, guide_tree);
 
     if(!(result && it == end)) {
-        return false;
+        throw std::runtime_error("Parsing content of newick tree failed.");
     }
 
-    return true;
+    return guide_tree;
 }
 
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("parse_newick") {
-    tree_t tree;
-
     std::string stree{
         "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"};
-    REQUIRE(parse_newick(stree, tree));
+    tree_t tree = parse_newick(stree);
     REQUIRE(tree.size() == 7);
 
     CHECK(tree[0].length == 0);
@@ -211,10 +211,10 @@ TEST_CASE("parse_newick") {
  * pairs as index in tree and branch length.
  *
  * @param[in] tree coati::tree::tree_t parsed newick tree.
- * @param[out] order_list std::vector<std::pair<int,float>> list of leafs in
- * tree in order in which they should be aligned.
+ *
+ * return list of tree leafs in order in which they should be aligned.
  */
-int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list) {
+std::vector<std::pair<int, float>> aln_order(tree_t& tree) {
     // Part1: find closest pair of leafs
 
     for(std::size_t i = 1; i < tree.size(); i++) {  // fill list of children
@@ -247,6 +247,7 @@ int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list) {
         }
     }
 
+    std::vector<std::pair<int, float>> order_list;
     order_list.emplace_back(closest_pair.first, 0);
     order_list.emplace_back(
         closest_pair.second,
@@ -302,14 +303,12 @@ int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list) {
         }
     }
 
-    return EXIT_SUCCESS;
+    return order_list;
 }
 
 /// @private
 TEST_CASE("aln_order") {
     tree_t tree;
-    // cppcheck-suppress unusedVariable
-    std::vector<std::pair<int, float>> order_list;
     // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
 
     tree.emplace_back("", 0, false, 0);
@@ -320,7 +319,7 @@ TEST_CASE("aln_order") {
     tree.emplace_back("E.e", 4, true, 2);
     tree.emplace_back("D%", 11, true, 0);
 
-    REQUIRE(aln_order(tree, order_list) == 0);
+    std::vector<std::pair<int, float>> order_list = aln_order(tree);
     REQUIRE(order_list.size() == 5);
     CHECK(order_list[0].first == 4);
     CHECK(order_list[0].second == 0);
@@ -339,21 +338,24 @@ TEST_CASE("aln_order") {
  *
  * @param[in] name std::string sequence name.
  * @param[in] f coati::data_t names and sequences.
- * @param[in,out] seq std::string sequence if found.
  *
- * \return true if found.
+ * \return sequence.
  */
-bool find_seq(const std::string_view name, const coati::data_t& f,
-              std::string& seq) {
-    seq.clear();
-
+std::string find_seq(const std::string_view name, const coati::data_t& f) {
+    std::string seq;
     for(std::size_t i = 0; i < f.names.size(); i++) {
         if(f.names[i].compare(name) == 0) {
             seq = f.seqs[i];
+            break;
         }
     }
 
-    return !seq.empty();
+    if(seq.empty()) {
+        throw std::invalid_argument("Sequence " + std::string(name) +
+                                    " not found.");
+    }
+
+    return seq;
 }
 
 /// @private
@@ -362,14 +364,14 @@ TEST_CASE("find_seq") {
     std::string sequence;
     coati::data_t fasta("", {"A", "B", "C"}, {"ACGT", "CGTA", "GTAC"});
 
-    REQUIRE(!find_seq("Z", fasta,
-                      sequence));  // fails, Z is not found -> seq is empty
-    REQUIRE(find_seq("A", fasta, sequence));
-    CHECK(sequence.compare("ACGT") == 0);
-    REQUIRE(find_seq("B", fasta, sequence));
-    CHECK(sequence.compare("CGTA") == 0);
-    REQUIRE(find_seq("C", fasta, sequence));
-    CHECK(sequence.compare("GTAC") == 0);
+    sequence = find_seq("A", fasta);
+    CHECK_EQ(sequence.compare("ACGT"), 0);
+    sequence = find_seq("B", fasta);
+    CHECK_EQ(sequence.compare("CGTA"), 0);
+    sequence = find_seq("C", fasta);
+    CHECK_EQ(sequence.compare("GTAC"), 0);
+    // fails, Z is not found -> seq is empty
+    REQUIRE_THROWS_AS(find_seq("Z", fasta), std::invalid_argument);
 }
 
 /**
@@ -377,25 +379,25 @@ TEST_CASE("find_seq") {
  *
  * @param[in] tree coati::tree:tree_t phylogenetic tree.
  * @param[in] name std::string node name.
- * @param[in,out] index std::size_t index of node if found.
  *
- * \return true if found.
+ * \return index of node.
  */
-bool find_node(const tree_t& tree, const std::string_view name,
-               std::size_t& index) {
+size_t find_node(const tree_t& tree, const std::string_view name) {
     auto it = find_if(begin(tree), end(tree), [name](const node_t& node) {
         return node.label == name;
     });
-    index = it - begin(tree);
+    size_t index = it - begin(tree);
 
-    return it != end(tree);
+    if(it == end(tree)) {
+        throw std::invalid_argument("Node " + std::string(name) +
+                                    " not found.");
+    }
+    return index;
 }
 
 /// @private
 TEST_CASE("find_node") {
     tree_t tree;
-    // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
-    std::size_t index{0};
     // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
 
     tree.emplace_back("", 0, false, 0);
@@ -406,13 +408,10 @@ TEST_CASE("find_node") {
     tree.emplace_back("E.e", 4, true, 2);
     tree.emplace_back("D%", 11, true, 0);
 
-    REQUIRE(find_node(tree, tree[3].label, index));
-    CHECK(index == 3);
-    REQUIRE(find_node(tree, "C/c", index));
-    CHECK(index == 4);
-    REQUIRE(find_node(tree, "D%", index));
-    CHECK(index == 6);
-    REQUIRE(!find_node(tree, "Z", index));
+    CHECK_EQ(find_node(tree, tree[3].label), 3);
+    CHECK_EQ(find_node(tree, "C/c"), 4);
+    CHECK_EQ(find_node(tree, "D%"), 6);
+    REQUIRE_THROWS_AS(find_node(tree, "Z"), std::invalid_argument);
 }
 
 /**
@@ -421,14 +420,9 @@ TEST_CASE("find_node") {
  * @param[in,out] tree coati::tree:tree_t phylogenetic tree re-rooted [out].
  * @param[in] outgroup std::string outgroup to be the new root.
  */
-bool reroot(tree_t& tree, const std::string_view outgroup) {
-    std::size_t ref{0};
-
+void reroot(tree_t& tree, const std::string_view outgroup) {
     // find outgroup node
-    if(!find_node(tree, outgroup, ref)) {
-        throw std::invalid_argument(
-            "Outgroup label could not be found, re-root failed.");
-    }
+    std::size_t ref = find_node(tree, outgroup);
 
     // find list of ancestors from newroot to current root
     std::vector<std::size_t> ancestors;
@@ -452,8 +446,6 @@ bool reroot(tree_t& tree, const std::string_view outgroup) {
     // set up newroot's parent as itself with length 0
     tree[newroot].parent = newroot;
     tree[newroot].length = 0;
-
-    return true;
 }
 
 /// @private
@@ -470,7 +462,7 @@ TEST_CASE("reroot") {
         tree.emplace_back("E.e", 4, true, 2);
         tree.emplace_back("D%", 11, true, 0);
 
-        REQUIRE(reroot(tree, "A-a"));
+        reroot(tree, "A-a");
 
         CHECK(tree[0].length == 5);
         CHECK(tree[0].parent == 2);
@@ -508,7 +500,7 @@ TEST_CASE("reroot") {
         tree.emplace_back("weasel", 18.9, true, 8);
         tree.emplace_back("dog", 25.5, true, 0);
 
-        REQUIRE(reroot(tree, "cat"));
+        reroot(tree, "cat");
 
         CHECK(tree[0].parent == 4);
         CHECK(tree[0].length == doctest::Approx(3.9));

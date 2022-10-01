@@ -105,7 +105,7 @@ void set_subst(alignment_t& aln);
 file_type_t extract_file_type(std::string path);
 
 data_t read_input(alignment_t& aln);
-bool write_output(data_t& data, const VectorFstStdArc& aln = {});
+void write_output(data_t& data, const VectorFstStdArc& aln = {});
 void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln);
 
 // calculate log(1+exp(x))

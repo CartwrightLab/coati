@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -163,7 +163,7 @@ TEST_CASE("read_fasta") {
  * @param[in] fasta data_t output path, names, and aligned sequences.
  * @param[in] aln VectorFstStdArc FST with alignment (optional).
  */
-bool write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
+void write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
     if(aln.NumStates() > 0) {  // if FST alignment
         coati::utils::fst_to_seqs(fasta, aln);
     }
@@ -188,8 +188,6 @@ bool write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
             out << fasta.seqs[i].substr(j, 60) << std::endl;
         }
     }
-
-    return true;
 }
 
 /// @private
@@ -199,7 +197,7 @@ TEST_CASE("write_fasta") {
         coati::data_t fasta("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
         fasta.out_file.path = "test-write-fasta.fasta";
 
-        REQUIRE(write_fasta(fasta));
+        write_fasta(fasta);
 
         std::ifstream infile("test-write-fasta.fasta");
         std::string s1;
@@ -226,7 +224,7 @@ TEST_CASE("write_fasta") {
         add_arc(fst_write, 3, 4, 1, 0);  // A -> -
         fst_write.SetFinal(4, 0.0);
 
-        REQUIRE(write_fasta(fasta, fst_write));
+        write_fasta(fasta, fst_write);
 
         std::ifstream infile("test-write-fasta-fst.fasta");
         std::string s1;

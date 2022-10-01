@@ -86,7 +86,8 @@ int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
     }
 
     // output formatted sequences
-    return utils::write_output(aln.data) ? 0 : 1;
+    utils::write_output(aln.data);
+    return EXIT_SUCCESS;
 }
 
 /// @private

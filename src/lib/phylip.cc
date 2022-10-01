@@ -203,7 +203,7 @@ TEST_CASE("read_phylip") {
  * @param[in] phylip coati::data_t path, names, and sequences.
  * @param[in] aln fst::VectorFst<fst::StdArc> aligned sequences in FST form.
  */
-bool write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
+void write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
     if(aln.NumStates() > 1) {
         coati::utils::fst_to_seqs(phylip, aln);
     }
@@ -238,8 +238,6 @@ bool write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
         }
         out << std::endl;
     }
-
-    return true;
 }
 
 /// @private
@@ -250,7 +248,7 @@ TEST_CASE("write_phylip") {
                              {"CTCTGGATAGTG", "CT----ATAGTG"});
         phylip.out_file = {{"test-write-phylip.phy"}, {"phy"}};
 
-        REQUIRE(write_phylip(phylip));
+        write_phylip(phylip);
 
         std::ifstream infile("test-write-phylip.phy");
         std::string s1, s2;
@@ -279,7 +277,7 @@ TEST_CASE("write_phylip") {
              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"});
 
         phylip.out_file = {{"test-write-phylip-long.phy"}, {"phy"}};
-        REQUIRE(write_phylip(phylip));
+        write_phylip(phylip);
 
         std::ifstream infile("test-write-phylip-long.phy");
         std::string s1, s2;
@@ -316,7 +314,7 @@ TEST_CASE("write_phylip") {
         add_arc(fst_write, 3, 4, 1, 0);  // A -> -
         fst_write.SetFinal(4, 0.0);
 
-        REQUIRE(write_phylip(phylip, fst_write));
+        write_phylip(phylip, fst_write);
         std::ifstream infile("test-write-phylip.phy");
         std::string s1, s2;
 
