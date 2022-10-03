@@ -23,6 +23,7 @@
 #include <CLI11.hpp>
 #include <coati/align_msa.hpp>
 #include <coati/fasta.hpp>
+#include <coati/io.hpp>
 
 int main(int argc, char* argv[]) {
     coati::args_t args;
@@ -33,7 +34,7 @@ int main(int argc, char* argv[]) {
     CLI11_PARSE(msa, argc, argv);
 
     // read input fasta file
-    args.aln.data = coati::utils::read_input(args.aln);
+    args.aln.data = coati::io::read_input(args.aln);
 
     if(args.aln.data.size() < 3) {
         throw std::invalid_argument(

@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,34 +20,30 @@
 # SOFTWARE.
 */
 
-#include <CLI11.hpp>
-#include <coati/align_fst.hpp>
-#include <coati/align_marginal.hpp>
-#include <coati/fasta.hpp>
-#include <coati/io.hpp>
-#include <coati/utils.hpp>
+#ifndef IO_HPP
+#define IO_HPP
 
-int main(int argc, char* argv[]) {
-    coati::args_t args;
+#include <fst/fstlib.h>
 
-    // Parse command line options
-    CLI::App alignpair;
-    coati::utils::set_cli_options(alignpair, args,
-                                  coati::utils::Command::ALIGNPAIR);
-    CLI11_PARSE(alignpair, argc, argv);
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
 
-    // read input data
-    args.aln.data = coati::io::read_input(args.aln);
+#include "fasta.hpp"
+#include "json.hpp"
+#include "matrix.hpp"
+#include "mg94q.tcc"
+#include "mutation_coati.hpp"
+#include "phylip.hpp"
+#include "structs.hpp"
 
-    if(args.aln.data.size() != 2) {
-        throw std::invalid_argument("Exactly two sequences required.");
-    }
+namespace coati::io {
 
-    if(args.aln.is_marginal()) {
-        // alignment with marginal model by dynamic programming
-        return coati::marg_alignment(args.aln) ? 0 : 1;
-    }
+coati::Matrixf parse_matrix_csv(const std::string& file);
+coati::data_t read_input(coati::alignment_t& aln);
+void write_output(coati::data_t& data, const coati::VectorFstStdArc& aln = {});
 
-    // alignment with non-marginal model by FST composition
-    return coati::fst_alignment(args.aln) ? 0 : 1;
-}
+}  // namespace coati::io
+#endif

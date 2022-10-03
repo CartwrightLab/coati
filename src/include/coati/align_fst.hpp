@@ -27,6 +27,7 @@
 
 #include <vector>
 
+#include "io.hpp"
 #include "mutation_ecm.hpp"
 #include "utils.hpp"
 

@@ -25,6 +25,7 @@
 
 #include <coati/align_fst.hpp>
 #include <coati/align_marginal.hpp>
+#include <coati/io.hpp>
 #include <string>
 #include <chrono>
 
@@ -39,7 +40,7 @@ static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args
         auto start = std::chrono::high_resolution_clock::now();
         // read fasta
         args.aln.data.path = fasta;
-        args.aln.data = coati::utils::read_input(args.aln);
+        args.aln.data = coati::io::read_input(args.aln);
 
         // set ouput path and sequences names
         args.aln.data.path = args.aln.data.path.stem();
@@ -98,7 +99,7 @@ static void BM_fst_alignment(benchmark::State& state, ExtraArgs&&... extra_args)
 
         // read fasta
         args.aln.data.path = fasta;
-        args.aln.data = coati::utils::read_input(args.aln);
+        args.aln.data = coati::io::read_input(args.aln);
 
         // set output path and sequences names
         args.aln.data.path = args.aln.data.path.stem();
@@ -136,7 +137,7 @@ static void BM_align_pair(benchmark::State& state, ExtraArgs&&... extra_args) {
     coati::args_t args;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
     args.aln.data.path = fasta;
-    args.aln.data = coati::utils::read_input(args.aln);
+    args.aln.data = coati::io::read_input(args.aln);
     coati::utils::set_subst(args.aln);
     auto anc = args.aln.data.seqs[0];
     auto des = args.aln.data.seqs[1];
@@ -178,7 +179,7 @@ static void BM_align_pair_mem(benchmark::State& state, ExtraArgs&&... extra_args
     coati::args_t args;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
     args.aln.data.path = fasta;
-    args.aln.data = coati::utils::read_input(args.aln);
+    args.aln.data = coati::io::read_input(args.aln);
     coati::utils::set_subst(args.aln);
     auto anc = args.aln.data.seqs[0];
     auto des = args.aln.data.seqs[1];

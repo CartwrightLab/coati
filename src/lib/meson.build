@@ -27,6 +27,7 @@ libcoati_sources = files([
   'fasta.cc',
   'format.cc',
   'insertions.cc',
+  'io.cc',
   'json.cc',
   'mutation_coati.cc',
   'mutation_ecm.cc',

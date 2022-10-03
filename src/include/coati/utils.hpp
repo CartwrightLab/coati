@@ -39,6 +39,7 @@
 
 #include "dna_syms.hpp"
 #include "fasta.hpp"
+#include "io.hpp"
 #include "json.hpp"
 #include "matrix.hpp"
 #include "mg94q.tcc"
@@ -87,8 +88,6 @@ using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 using sequence_pair_t = std::vector<std::basic_string<unsigned char>>;
 
-coati::Matrixf parse_matrix_csv(const std::string& file);
-
 enum struct Command { ALIGNPAIR, MSA, SAMPLE, FORMAT };
 
 int cod_distance(uint8_t cod1, uint8_t cod2);
@@ -104,8 +103,6 @@ void set_subst(alignment_t& aln);
 // trims whitespace as well
 file_type_t extract_file_type(std::string path);
 
-data_t read_input(alignment_t& aln);
-void write_output(data_t& data, const VectorFstStdArc& aln = {});
 void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln);
 
 // calculate log(1+exp(x))

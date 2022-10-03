@@ -92,7 +92,7 @@ bool marg_alignment(coati::alignment_t& aln) {
     }
 
     // write alignment
-    coati::utils::write_output(aln.data);
+    coati::io::write_output(aln.data);
     return true;
 }
 

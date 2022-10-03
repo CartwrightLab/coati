@@ -23,6 +23,7 @@
 #include <CLI11.hpp>
 #include <coati/align_fst.hpp>
 #include <coati/align_marginal.hpp>
+#include <coati/io.hpp>
 #include <coati/utils.hpp>
 
 int main(int argc, char* argv[]) {
@@ -40,7 +41,7 @@ int main(int argc, char* argv[]) {
     }
 
     // read input data
-    args.aln.data = coati::utils::read_input(args.aln);
+    args.aln.data = coati::io::read_input(args.aln);
 
     if(args.aln.data.size() != 2) {
         throw std::invalid_argument("Exactly two sequences required.");

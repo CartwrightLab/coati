@@ -23,6 +23,7 @@
 #ifndef FORMAT_HPP
 #define FORMAT_HPP
 
+#include "io.hpp"
 #include "structs.hpp"
 #include "utils.hpp"
 

@@ -9,6 +9,9 @@ format_sequences
 insertion_flags
 merge_indels
 add_gap
+parse_matrix_csv
+read_input
+write_output
 read-json
 write-json
 mg94_p
@@ -27,10 +30,7 @@ find_seq
 find_node
 reroot
 distance_ref
-parse_matrix_csv
 marginal_seq_encoding
 extract_file_type
-read_input
-write_output
 version_number_check_equal
 version_integer

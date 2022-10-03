@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "align_pair.hpp"
+#include "io.hpp"
 #include "mutation_ecm.hpp"
 #include "semiring.hpp"
 #include "utils.hpp"

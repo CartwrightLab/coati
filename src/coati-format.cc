@@ -22,6 +22,7 @@
 
 #include <CLI11.hpp>
 #include <coati/format.hpp>
+#include <coati/io.hpp>
 #include <coati/utils.hpp>
 
 int main(int argc, char* argv[]) {
@@ -38,7 +39,7 @@ int main(int argc, char* argv[]) {
     }
 
     // read input data
-    args.aln.data = coati::utils::read_input(args.aln);
+    args.aln.data = coati::io::read_input(args.aln);
 
     return coati::format_sequences(args.format, args.aln);
 }

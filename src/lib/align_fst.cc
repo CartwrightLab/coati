@@ -107,7 +107,7 @@ bool fst_alignment(coati::alignment_t& aln) {
     fst::TopSort(&aln_path);
 
     // write alignment
-    coati::utils::write_output(aln.data, aln_path);
+    coati::io::write_output(aln.data, aln_path);
     return true;
 }
 
