@@ -50,6 +50,7 @@ using tree_t = std::vector<node_t>;
 std::string read_newick(const std::string& tree_file);
 tree_t parse_newick(std::string& content);
 std::vector<std::pair<int, float>> aln_order(tree_t& tree);
+std::vector<std::pair<int, float>> find_closest_pair(tree_t& tree);
 std::string find_seq(const std::string_view name, const coati::data_t& f);
 size_t find_node(const tree_t& tree, const std::string_view name);
 void reroot(tree_t& tree, const std::string_view label);

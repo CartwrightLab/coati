@@ -36,7 +36,7 @@ namespace coati {
  */
 /* Initial msa by collapsing indels after pairwise aln with reference */
 bool ref_indel_alignment(coati::alignment_t& input) {
-    coati::alignment_t aln, aln_tmp;
+    coati::alignment_t aln;
 
     aln.data.out_file = input.data.out_file;
 
@@ -53,14 +53,10 @@ bool ref_indel_alignment(coati::alignment_t& input) {
     std::size_t ref_pos = coati::tree::find_node(tree, input.ref);
 
     // find sequence of ref in input
-    std::vector<std::string> pair_seqs;
     std::string ref_seq = coati::tree::find_seq(input.ref, input.data);
 
-    pair_seqs.push_back(ref_seq);
-    pair_seqs.push_back(ref_seq);
-
     // vector to store insertion_data_t for each node in tree
-    std::vector<insertion_data_t> nodes_ins(tree.size());
+    coati::insertion_vector nodes_ins(tree.size());
 
     // add insertion_data for REF
     nodes_ins[ref_pos] = insertion_data_t(
@@ -68,35 +64,7 @@ bool ref_indel_alignment(coati::alignment_t& input) {
         SparseVectorInt(static_cast<Eigen::Index>(2 * ref_seq.length())));
 
     // pairwise alignment for each leaf
-    std::string node_seq;
-    for(std::size_t node = 0; node < tree.size(); node++) {
-        // if node is a leaf and not the reference pairwise align w/ reference
-        if(tree[node].is_leaf && (tree[node].label != input.ref)) {
-            float branch = distance_ref(tree, ref_pos, node);
-            node_seq = coati::tree::find_seq(tree[node].label, input.data);
-
-            pair_seqs[1] = node_seq;
-
-            input.br_len = branch;
-            coati::utils::set_subst(input);
-
-            aln_tmp.data.seqs.clear();
-            coati::utils::sequence_pair_t seq_pair =
-                coati::utils::marginal_seq_encoding(pair_seqs[0], pair_seqs[1]);
-            coati::align_pair_work_mem_t work;
-            coati::viterbi_mem(work, seq_pair[0], seq_pair[1], input);
-            coati::traceback(work, pair_seqs[0], pair_seqs[1], aln_tmp,
-                             input.gap.len);
-
-            SparseVectorInt ins_vector(
-                static_cast<Eigen::Index>(2 * aln_tmp.data.seqs[1].length()));
-            insertion_flags(aln_tmp.data.seqs[0], aln_tmp.data.seqs[1],
-                            ins_vector);
-
-            nodes_ins[node] = insertion_data_t(aln_tmp.data.seqs[1],
-                                               tree[node].label, ins_vector);
-        }
-    }
+    align_leafs(input, tree, ref_pos, ref_seq, nodes_ins);
 
     // get position of inodes in tree and set leafs as visited (true)
     std::vector<std::size_t> inode_indexes;
@@ -115,46 +83,8 @@ bool ref_indel_alignment(coati::alignment_t& input) {
         if(tree[i].parent != i) tree[tree[i].parent].children.push_back(i);
     }
 
-    // while not all nodes have been visited (any value in visited is false)
-    while(any_of(visited.begin(), visited.end(), [](bool b) { return !b; })) {
-        for(auto inode_pos : inode_indexes) {  // for all inodes
-            if(visited[inode_pos]) {
-                continue;
-            }
-            bool all_children_visited = true;  // assume children are visited
-            // if any children is not visited set to false
-            if(std::any_of(tree[inode_pos].children.begin(),
-                           tree[inode_pos].children.end(),
-                           [visited](int c) { return !visited[c]; })) {
-                all_children_visited = false;
-            }
-
-            // if not all children are visited, skip & come back when all are
-            if(!all_children_visited) {
-                continue;
-            }
-
-            visited[inode_pos] = true;
-
-            // if inode only has a child pass information up
-            if(tree[inode_pos].children.size() == 1) {
-                nodes_ins[inode_pos] = nodes_ins[tree[inode_pos].children[0]];
-                continue;
-            }
-
-            // create vector of insertion_data_t with children
-            std::vector<insertion_data_t> tmp_ins_data;
-            tmp_ins_data.reserve(tree[inode_pos].children.size());
-            for(auto child : tree[inode_pos].children) {
-                tmp_ins_data.emplace_back(nodes_ins[child]);
-            }
-
-            // merge insertions from all children of inode
-            //  and store in self (inode) position
-            nodes_ins[inode_pos] = insertion_data_t();
-            merge_indels(tmp_ins_data, nodes_ins[inode_pos]);
-        }
-    }
+    // merge pairwise alignments up the tree until root - final MSA
+    merge_alignments(visited, tree, nodes_ins, inode_indexes);
 
     // transfer result data nodes_ins[ROOT] --> aln && order sequences
     auto root = tree[ref_pos].parent;
@@ -249,4 +179,108 @@ TEST_CASE("ref_indel_alignment") {
     CHECK(std::filesystem::remove("tree-msa.newick"));
 }
 // GCOVR_EXCL_STOP
+
+/**
+ * \brief Pairwise alignments of leafs with reference sequence.
+ *
+ * @param[in,out] input coati::alignment_t alignment data.
+ * @param[in] tree coati::tree::tree_t.
+ * @param[in] ref_pos std::size_t position of reference seq in tree.
+ * @param[in] ref_seq std::string reference sequence.
+ * @param[in,out] nodes_ins coati::insertion_vector insertions information.
+ */
+void align_leafs(coati::alignment_t& input, const coati::tree::tree_t& tree,
+                 std::size_t ref_pos, const std::string& ref_seq,
+                 coati::insertion_vector& nodes_ins) {
+    coati::alignment_t aln;
+    // find sequence of ref in input
+    std::vector<std::string> pair_seqs;
+
+    pair_seqs.push_back(ref_seq);
+    pair_seqs.push_back(ref_seq);
+
+    std::string node_seq;
+    for(std::size_t node = 0; node < tree.size(); ++node) {
+        // if node is a leaf and not the reference pairwise align w/ reference
+        if(tree[node].is_leaf && (tree[node].label != input.ref)) {
+            float branch = distance_ref(tree, ref_pos, node);
+            node_seq = coati::tree::find_seq(tree[node].label, input.data);
+
+            pair_seqs[1] = node_seq;
+
+            input.br_len = branch;
+            coati::utils::set_subst(input);
+
+            aln.data.seqs.clear();
+            coati::utils::sequence_pair_t seq_pair =
+                coati::utils::marginal_seq_encoding(pair_seqs[0], pair_seqs[1]);
+            coati::align_pair_work_mem_t work;
+            coati::viterbi_mem(work, seq_pair[0], seq_pair[1], input);
+            coati::traceback(work, pair_seqs[0], pair_seqs[1], aln,
+                             input.gap.len);
+
+            SparseVectorInt ins_vector(
+                static_cast<Eigen::Index>(2 * aln.data.seqs[1].length()));
+            insertion_flags(aln.data.seqs[0], aln.data.seqs[1], ins_vector);
+
+            nodes_ins[node] = insertion_data_t(aln.data.seqs[1],
+                                               tree[node].label, ins_vector);
+        }
+    }
+}
+
+/**
+ *  \brief Merge alignments starting from leafs until root.
+ *
+ * @param[in,out] visited std::vetor<bool> nodes visited.
+ * @param[in] tree coati::tree::tree_t.
+ * @param[in,out] nodes_ins coati::insertion_vector insertions information.
+ * @param[in] inode_indexes std::vector<std::size_t> index of internal nodes.
+ */
+void merge_alignments(std::vector<bool>& visited,
+                      const coati::tree::tree_t& tree,
+                      coati::insertion_vector& nodes_ins,
+                      const std::vector<std::size_t>& inode_indexes) {
+    // while not all nodes have been visited (any value in visited is false)
+    while(any_of(visited.begin(), visited.end(), [](bool b) { return !b; })) {
+        for(auto inode_pos : inode_indexes) {  // for all inodes
+            if(visited[inode_pos]) {
+                continue;
+            }
+            bool all_children_visited = true;  // assume children are visited
+            // if any children is not visited set to false
+            if(std::any_of(tree[inode_pos].children.begin(),
+                           tree[inode_pos].children.end(),
+                           [visited](int c) { return !visited[c]; })) {
+                all_children_visited = false;
+            }
+
+            // if not all children are visited, skip & come back when all are
+            if(!all_children_visited) {
+                continue;
+            }
+
+            visited[inode_pos] = true;
+
+            // if inode only has a child pass information up
+            if(tree[inode_pos].children.size() == 1) {
+                nodes_ins[inode_pos] = nodes_ins[tree[inode_pos].children[0]];
+                continue;
+            }
+
+            // create vector of insertion_data_t with children
+            coati::insertion_vector tmp_ins_data;
+            tmp_ins_data.reserve(tree[inode_pos].children.size());
+            for(auto child : tree[inode_pos].children) {
+                tmp_ins_data.emplace_back(nodes_ins[child]);
+            }
+
+            // merge insertions from all children of inode
+            //  and store in self (inode) position
+            nodes_ins[inode_pos] = insertion_data_t();
+            merge_indels(tmp_ins_data, nodes_ins[inode_pos]);
+        }
+    }
+}
+
 }  // namespace coati

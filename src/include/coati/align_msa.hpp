@@ -31,5 +31,12 @@
 
 namespace coati {
 bool ref_indel_alignment(coati::alignment_t& input);
+void align_leafs(coati::alignment_t& input, const coati::tree::tree_t& tree,
+                 std::size_t ref_pos, const std::string& ref_seq,
+                 coati::insertion_vector& nodes_ins);
+void merge_alignments(std::vector<bool>& visited,
+                      const coati::tree::tree_t& tree,
+                      coati::insertion_vector& nodes_ins,
+                      const std::vector<std::size_t>& inode_indexes);
 }  // namespace coati
 #endif

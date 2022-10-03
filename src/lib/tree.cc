@@ -216,45 +216,9 @@ TEST_CASE("parse_newick") {
  */
 std::vector<std::pair<int, float>> aln_order(tree_t& tree) {
     // Part1: find closest pair of leafs
-
-    for(std::size_t i = 1; i < tree.size(); i++) {  // fill list of children
-        tree[tree[i].parent].children.push_back(i);
-    }
-
-    std::pair<int, int> closest_pair;
-    float d = FLT_MAX;
-
-    for(std::size_t i = 0; i < tree.size(); i++) {  // for each node in tree
-        if(tree[i].children.empty()) continue;      // if no descendants skip
-        for(std::size_t j = 0; j < tree[i].children.size() - 1;
-            j++) {  // look for closest pair
-            for(std::size_t k = j + 1; k < tree[i].children.size(); k++) {
-                // if both nodes aren't children skip
-                if(!(tree[tree[i].children[j]].is_leaf &&
-                     tree[tree[i].children[k]].is_leaf)) {
-                    continue;
-                }
-                // if distance between nodes is < d, update closest pair & d
-                if(tree[tree[i].children[j]].length +
-                       tree[tree[i].children[k]].length <
-                   d) {
-                    d = tree[tree[i].children[j]].length +
-                        tree[tree[i].children[k]].length;
-                    closest_pair = std::make_pair(tree[i].children[j],
-                                                  tree[i].children[k]);
-                }
-            }
-        }
-    }
-
-    std::vector<std::pair<int, float>> order_list;
-    order_list.emplace_back(closest_pair.first, 0);
-    order_list.emplace_back(
-        closest_pair.second,
-        tree[closest_pair.first].length + tree[closest_pair.second].length);
+    std::vector<std::pair<int, float>> order_list = find_closest_pair(tree);
 
     // Part2: determine order of remaining leafs
-
     std::vector<int> visited(tree.size(), false);  // list of visited nodes
 
     visited[order_list[0].first] = visited[order_list[1].first] = true;
@@ -302,6 +266,54 @@ std::vector<std::pair<int, float>> aln_order(tree_t& tree) {
             ancestor = tree[ancestor].parent;
         }
     }
+
+    return order_list;
+}
+
+/**
+ * \brief Find closest pair of leafs in tree.
+ *
+ * @param[in] tree coati::tree::tree_t.
+ *
+ * return vector with first two leafs to align.
+ */
+
+std::vector<std::pair<int, float>> find_closest_pair(tree_t& tree) {
+    for(std::size_t i = 1; i < tree.size(); i++) {  // fill list of children
+        tree[tree[i].parent].children.push_back(i);
+    }
+
+    std::pair<int, int> closest_pair;
+    float d = FLT_MAX;
+
+    for(std::size_t i = 0; i < tree.size(); i++) {  // for each node in tree
+        if(tree[i].children.empty()) continue;      // if no descendants skip
+        for(std::size_t j = 0; j < tree[i].children.size() - 1;
+            j++) {  // look for closest pair
+            for(std::size_t k = j + 1; k < tree[i].children.size(); k++) {
+                // if both nodes aren't children skip
+                if(!(tree[tree[i].children[j]].is_leaf &&
+                     tree[tree[i].children[k]].is_leaf)) {
+                    continue;
+                }
+                // if distance between nodes is < d, update closest pair & d
+                if(tree[tree[i].children[j]].length +
+                       tree[tree[i].children[k]].length <
+                   d) {
+                    d = tree[tree[i].children[j]].length +
+                        tree[tree[i].children[k]].length;
+                    closest_pair = std::make_pair(tree[i].children[j],
+                                                  tree[i].children[k]);
+                }
+            }
+        }
+    }
+
+    std::vector<std::pair<int, float>> order_list;
+    order_list.emplace_back(closest_pair.first, 0);
+    order_list.emplace_back(
+        closest_pair.second,
+        tree[closest_pair.first].length + tree[closest_pair.second].length);
 
     return order_list;
 }
