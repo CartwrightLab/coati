@@ -45,7 +45,7 @@ bool insertion_flags(const std::string_view ref, const std::string_view seq,
 
     for(std::size_t i = 0; i < ref.length(); i++) {
         if(ref[i] == '-') {
-            insertions_vector.coeffRef(i) =
+            insertions_vector.coeffRef(static_cast<int64_t>(i)) =
                 111;  // 'o' (open) in ASCII dec value
         }
     }
@@ -94,10 +94,10 @@ bool merge_indels(coati::insertion_vector& ins_data,
     if(ins_data.size() < 2) return false;
 
     // count total number of insertion flags to process
-    int num_gaps = 0, processed_gaps = 0;
+    uint64_t num_gaps = 0, processed_gaps = 0;
     for(auto in_d : ins_data) {
         in_d.insertions.prune(1);
-        num_gaps += in_d.insertions.nonZeros();
+        num_gaps += static_cast<uint64_t>(in_d.insertions.nonZeros());
     }
 
     std::size_t pos = 0;
@@ -140,12 +140,14 @@ bool merge_indels(coati::insertion_vector& ins_data,
  *
  * @param[in,out] ins_data coati::insertion_vector insertion data.
  * @param[in] pos std::size_t current position in alignment/sequence.
+ *
+ * return number of gaps processed.
  */
-int add_closed_ins(coati::insertion_vector& ins_data, std::size_t pos) {
-    int processed_gaps{0};
+uint64_t add_closed_ins(coati::insertion_vector& ins_data, std::size_t pos) {
+    uint64_t processed_gaps{0};
     // foreach set of seqs
     for(std::size_t seq = 0; seq < ins_data.size(); seq++) {
-        if(ins_data[seq].insertions.coeffRef(pos) ==
+        if(ins_data[seq].insertions.coeffRef(static_cast<int64_t>(pos)) ==
            99) {                            // insertion is closed
             add_gap(ins_data, {seq}, pos);  // add gaps to rest of seqs
             seq--;  // start over checking for closed gaps
@@ -173,7 +175,7 @@ bool check_all_open(coati::insertion_vector& ins_data, std::size_t pos) {
         if(nuc == '0') {
             nuc = seq.sequences[0][pos];
         }
-        if((seq.insertions.coeffRef(pos) != 111) ||
+        if((seq.insertions.coeffRef(static_cast<int64_t>(pos)) != 111) ||
            (seq.sequences[0][pos] != nuc)) {
             all_open = false;
         }
@@ -194,7 +196,8 @@ std::vector<std::size_t> find_open_ins(coati::insertion_vector& ins_data,
     char nuc = '0';
     // foreach set of seqs
     for(std::size_t seq = 0; seq < ins_data.size(); seq++) {
-        if(ins_data[seq].insertions.coeffRef(pos) == 111) {
+        if(ins_data[seq].insertions.coeffRef(static_cast<int64_t>(pos)) ==
+           111) {
             if(pos > ins_data[seq].sequences[0].length()) {
                 continue;
             }
@@ -388,22 +391,22 @@ void add_gap(coati::insertion_vector& ins_data,
 
     // make sure insertion is closed
     for(auto seq : seq_indexes) {
-        ins_data[seq].insertions.coeffRef(pos) = 99;
+        ins_data[seq].insertions.coeffRef(static_cast<int64_t>(pos)) = 99;
     }
 
     // add closed insertion
     for(auto seq : add) {
         for(auto& sequence : ins_data[seq].sequences) {
             // add gap to nucleotide sequence
-            sequence.insert(sequence.begin() + pos, '-');
+            sequence.insert(sequence.begin() + static_cast<int64_t>(pos), '-');
         }
         // add closed gap to insertion SparseVector
         for(Eigen::Index i = ins_data[seq].insertions.cols() - 1;
-            i > static_cast<long int>(pos); i--) {
+            i > static_cast<int64_t>(pos); i--) {
             ins_data[seq].insertions.coeffRef(i) =
                 ins_data[seq].insertions.coeffRef(i - 1);
         }
-        ins_data[seq].insertions.coeffRef(pos) = 99;
+        ins_data[seq].insertions.coeffRef(static_cast<int64_t>(pos)) = 99;
     }
 }
 

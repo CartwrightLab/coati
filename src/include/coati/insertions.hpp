@@ -55,7 +55,7 @@ bool insertion_flags(const std::string_view ref, const std::string_view seq,
                      SparseVectorInt& insertions_vector);
 bool merge_indels(coati::insertion_vector& ins_data,
                   insertion_data_t& merged_data);
-int add_closed_ins(coati::insertion_vector& ins_data, std::size_t pos);
+uint64_t add_closed_ins(coati::insertion_vector& ins_data, std::size_t pos);
 bool check_all_open(coati::insertion_vector& ins_data, std::size_t pos);
 std::vector<std::size_t> find_open_ins(coati::insertion_vector& ins_data,
                                        std::size_t pos);
