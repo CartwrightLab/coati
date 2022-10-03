@@ -43,6 +43,11 @@ bool marg_alignment(coati::alignment_t& aln) {
     // set substitution matrix according to model
     coati::utils::set_subst(aln);
 
+    // set reference sequence as first sequence (in aln.data)
+    if(!aln.refs.empty() || aln.refn != 0) {
+        order_ref(aln);
+    }
+
     // score alignment
     if(aln.score) {
         std::cout << alignment_score(aln, aln.subst_matrix) << std::endl;
@@ -73,7 +78,7 @@ bool marg_alignment(coati::alignment_t& aln) {
     try {
         coati::viterbi_mem(work, seq_pair[0], seq_pair[1], aln);
     } catch(const std::bad_alloc& e) {
-        std::cout << "Erorr: sequences to align exceed available memory."
+        std::cout << "Error: sequences to align exceed available memory."
                   << std::endl;
         return EXIT_FAILURE;
     }
@@ -89,6 +94,23 @@ bool marg_alignment(coati::alignment_t& aln) {
     // write alignment
     coati::utils::write_output(aln.data);
     return true;
+}
+
+/**
+ * \brief Reorder pair of input sequences so that reference is at position zero.
+ *
+ * @param[in,out] aln coati::alignment_t alignment data.
+ */
+void order_ref(coati::alignment_t& aln) {
+    if(aln.data.names[0] == aln.refs) {
+        // already the first sequence: do nothing
+    } else if(aln.data.names[1] == aln.refs) {
+        std::swap(aln.data.names[0], aln.data.names[1]);
+        std::swap(aln.data.seqs[0], aln.data.seqs[1]);
+    } else {
+        std::swap(aln.data.names[0], aln.data.names[1]);
+        std::swap(aln.data.seqs[0], aln.data.seqs[1]);
+    }
 }
 
 /// @private
@@ -167,12 +189,42 @@ TEST_CASE("marg_alignment") {
 
         test_fasta(aln, expected);
     }
+    SUBCASE("Alignment - output fasta - use aln.refs") {
+        aln.data = data_t("", {"1", "2"}, {"CTATAGTG", "CTCTGGATAGTG"});
+        aln.model = "m-coati";
+        aln.data.out_file = {{"test-marg_alignment-fasta.fasta"}, {".fasta"}};
+        aln.refs = "2";
+
+        expected = data_t("", {">2", ">1"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
+
+        test_fasta(aln, expected);
+    }
+    SUBCASE("Alignment - output fasta - use aln.refs - no change") {
+        aln.data = data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        aln.model = "m-coati";
+        aln.data.out_file = {{"test-marg_alignment-fasta.fasta"}, {".fasta"}};
+        aln.refs = "1";
+
+        expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
+
+        test_fasta(aln, expected);
+    }
     SUBCASE("Alignment - output phylip") {
         aln.data = coati::data_t("", {"1", "2"}, {"GCGACTGTT", "GCGATTGCTGTT"});
         aln.model = "m-coati";
         aln.data.out_file = {{"test-marg_alignment-phylip.phy"}, {".phy"}};
 
         expected = data_t("", {"1", "2"}, {"GCGA---CTGTT", "GCGATTGCTGTT"});
+
+        test_phylip(aln, expected);
+    }
+    SUBCASE("Alignment - output phylip - use aln.refn") {
+        aln.data = coati::data_t("", {"A", "B"}, {"GCGATTGCTGTT", "GCGACTGTT"});
+        aln.model = "m-coati";
+        aln.data.out_file = {{"test-marg_alignment-phylip.phy"}, {".phy"}};
+        aln.refn = 1;
+
+        expected = data_t("", {"B", "A"}, {"GCGA---CTGTT", "GCGATTGCTGTT"});
 
         test_phylip(aln, expected);
     }

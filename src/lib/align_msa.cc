@@ -47,20 +47,20 @@ bool ref_indel_alignment(coati::alignment_t& input) {
     coati::tree::tree_t tree = coati::tree::parse_newick(newick);
 
     // reroot tree
-    coati::tree::reroot(tree, input.ref);
+    coati::tree::reroot(tree, input.refs);
 
     // find position of ref in tree
-    std::size_t ref_pos = coati::tree::find_node(tree, input.ref);
+    std::size_t ref_pos = coati::tree::find_node(tree, input.refs);
 
     // find sequence of ref in input
-    std::string ref_seq = coati::tree::find_seq(input.ref, input.data);
+    std::string ref_seq = coati::tree::find_seq(input.refs, input.data);
 
     // vector to store insertion_data_t for each node in tree
     coati::insertion_vector nodes_ins(tree.size());
 
     // add insertion_data for REF
     nodes_ins[ref_pos] = insertion_data_t(
-        ref_seq, input.ref,
+        ref_seq, input.refs,
         SparseVectorInt(static_cast<Eigen::Index>(2 * ref_seq.length())));
 
     // pairwise alignment for each leaf
@@ -118,7 +118,7 @@ TEST_CASE("ref_indel_alignment") {
         aln.model = "m-coati";
         aln.data.out_file = {{"test-mecm-msa.fasta"}, {".fasta"}};
         aln.tree = "tree-msa.newick";
-        aln.ref = "A";
+        aln.refs = "A";
 
         REQUIRE(ref_indel_alignment(aln));
 
@@ -151,7 +151,7 @@ TEST_CASE("ref_indel_alignment") {
         aln.model = "m-ecm";
         aln.data.out_file = {{"test-mecm-msa.fasta"}, {".fasta"}};
         aln.tree = "tree-msa.newick";
-        aln.ref = "A";
+        aln.refs = "A";
 
         REQUIRE(ref_indel_alignment(aln));
 
@@ -202,7 +202,7 @@ void align_leafs(coati::alignment_t& input, const coati::tree::tree_t& tree,
     std::string node_seq;
     for(std::size_t node = 0; node < tree.size(); ++node) {
         // if node is a leaf and not the reference pairwise align w/ reference
-        if(tree[node].is_leaf && (tree[node].label != input.ref)) {
+        if(tree[node].is_leaf && (tree[node].label != input.refs)) {
             float branch = distance_ref(tree, ref_pos, node);
             node_seq = coati::tree::find_seq(tree[node].label, input.data);
 

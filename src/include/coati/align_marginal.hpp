@@ -34,8 +34,8 @@ namespace coati {
 bool marg_alignment(coati::alignment_t& aln);
 float alignment_score(const coati::alignment_t& aln,
                       const coati::Matrixf& p_marg);
-
 void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand);
+void order_ref(coati::alignment_t& aln);
 
 }  // namespace coati
 #endif

@@ -220,7 +220,7 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
         app.add_option("tree", args.aln.tree, "Newick phylogenetic tree")
             ->required()
             ->check(CLI::ExistingFile);
-        app.add_option("reference", args.aln.ref, "Reference sequence")
+        app.add_option("reference", args.aln.refs, "Reference sequence")
             ->required();
     }
     app.add_option("-m,--model", args.aln.model,
@@ -231,6 +231,11 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
             ->check(CLI::PositiveNumber);
     }
     if(command == Command::ALIGNPAIR) {
+        app.add_option("-r,--reference", args.aln.refs,
+                       "Name of reference sequence");
+        app.add_option("-R,--Reference", args.aln.refn,
+                       "Position of reference sequence")
+            ->check(CLI::Range(0, 1));
         app.add_option("-l,--weight", args.aln.weight_file,
                        "Write alignment score to file");
         app.add_flag("-s,--score", args.aln.score, "Score alignment");
