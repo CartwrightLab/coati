@@ -130,12 +130,12 @@ TEST_CASE("marg_alignment") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1 == expected.names[0]);
-        CHECK(s2 == expected.seqs[0]);
+        CHECK_EQ(s1, expected.names[0]);
+        CHECK_EQ(s2, expected.seqs[0]);
 
         infile >> s1 >> s2;
-        CHECK(s1 == expected.names[1]);
-        CHECK(s2 == expected.seqs[1]);
+        CHECK_EQ(s1, expected.names[1]);
+        CHECK_EQ(s2, expected.seqs[1]);
         CHECK(std::filesystem::remove(aln.data.out_file.path));
 
         if(!aln.weight_file.empty()) {
@@ -145,7 +145,7 @@ TEST_CASE("marg_alignment") {
             // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
             std::size_t start = s.find_last_of(',');
             CHECK(std::filesystem::remove(aln.weight_file));
-            CHECK(std::stof(s.substr(start + 1)) == expected.weight);
+            CHECK_EQ(std::stof(s.substr(start + 1)), expected.weight);
         }
     };
 
@@ -163,16 +163,16 @@ TEST_CASE("marg_alignment") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1 == "2");
-        CHECK(std::stoul(s2) == aln.seq(0).size());
+        CHECK_EQ(s1, "2");
+        CHECK_EQ(std::stoul(s2), aln.seq(0).size());
 
         infile >> s1 >> s2;
-        CHECK(s1 == expected.names[0]);
-        CHECK(s2 == expected.seqs[0]);
+        CHECK_EQ(s1, expected.names[0]);
+        CHECK_EQ(s2, expected.seqs[0]);
 
         infile >> s1 >> s2;
-        CHECK(s1 == expected.names[1]);
-        CHECK(s2 == expected.seqs[1]);
+        CHECK_EQ(s1, expected.names[1]);
+        CHECK_EQ(s2, expected.seqs[1]);
         CHECK(std::filesystem::remove(aln.data.out_file.path));
     };
 

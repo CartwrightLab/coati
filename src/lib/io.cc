@@ -117,7 +117,7 @@ TEST_CASE("parse_matrix_csv") {
             parse_matrix_csv("test-marg-matrix.csv"));
         for(auto i = 0; i < 64; i++) {
             for(auto j = 0; j < 64; j++) {
-                CHECK(P(i, j) == doctest::Approx(P_test(i, j)));
+                CHECK_EQ(P(i, j), doctest::Approx(P_test(i, j)));
             }
         }
         CHECK(std::filesystem::remove("test-marg-matrix.csv"));
@@ -222,10 +222,10 @@ TEST_CASE("read_input") {
         coati::data_t fasta = read_input(aln);
         CHECK(std::filesystem::remove(filename));
 
-        CHECK(fasta.names[0] == "1");
-        CHECK(fasta.names[1] == "2");
-        CHECK(fasta.seqs[0] == "CTCTGGATAGTC");
-        CHECK(fasta.seqs[1] == "CTATAGTC");
+        CHECK_EQ(fasta.names[0], "1");
+        CHECK_EQ(fasta.names[1], "2");
+        CHECK_EQ(fasta.seqs[0], "CTCTGGATAGTC");
+        CHECK_EQ(fasta.seqs[1], "CTATAGTC");
     }
     SUBCASE("phylip") {
         std::string filename{"test-read-input.phy"};
@@ -240,10 +240,10 @@ TEST_CASE("read_input") {
         coati::data_t phylip = read_input(aln);
         CHECK(std::filesystem::remove(filename));
 
-        CHECK(phylip.names[0] == "1");
-        CHECK(phylip.names[1] == "2");
-        CHECK(phylip.seqs[0] == "CTCTGGATAGTC");
-        CHECK(phylip.seqs[1] == "CTCTGGATAGTC");
+        CHECK_EQ(phylip.names[0], "1");
+        CHECK_EQ(phylip.names[1], "2");
+        CHECK_EQ(phylip.seqs[0], "CTCTGGATAGTC");
+        CHECK_EQ(phylip.seqs[1], "CTCTGGATAGTC");
     }
     SUBCASE("json") {
         std::string filename{"test-read-input.json"};
@@ -258,10 +258,10 @@ TEST_CASE("read_input") {
         coati::data_t json = read_input(aln);
         CHECK(std::filesystem::remove(filename));
 
-        CHECK(json.names[0] == "a");
-        CHECK(json.names[1] == "b");
-        CHECK(json.seqs[0] == "CTCTGGATAGTC");
-        CHECK(json.seqs[1] == "CTCTGGATAGTC");
+        CHECK_EQ(json.names[0], "a");
+        CHECK_EQ(json.names[1], "b");
+        CHECK_EQ(json.seqs[0], "CTCTGGATAGTC");
+        CHECK_EQ(json.seqs[1], "CTCTGGATAGTC");
     }
     SUBCASE("ext") {
         std::string filename("test-read-input.ext");
@@ -314,19 +314,19 @@ TEST_CASE("write_output") {
         std::ifstream infile(data.out_file.path);
         std::string s;
         infile >> s;
-        CHECK(s == ">anc");
+        CHECK_EQ(s, ">anc");
         infile >> s;
-        CHECK(s ==
-              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
+        CHECK_EQ(
+            s, "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
         infile >> s;
-        CHECK(s == "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
+        CHECK_EQ(s, "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
         infile >> s;
-        CHECK(s == ">des");
+        CHECK_EQ(s, ">des");
         infile >> s;
-        CHECK(s ==
-              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
+        CHECK_EQ(
+            s, "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
         infile >> s;
-        CHECK(s == "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
+        CHECK_EQ(s, "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
         CHECK(std::filesystem::remove("test-write-output-fasta.fasta"));
     }
 
@@ -339,22 +339,24 @@ TEST_CASE("write_output") {
         std::ifstream infile(data.out_file.path);
         std::string s1, s2;
         infile >> s1 >> s2;
-        CHECK(s1 == "2");
-        CHECK(s2 == "104");
+        CHECK_EQ(s1, "2");
+        CHECK_EQ(s2, "104");
         infile >> s1 >> s2;
-        CHECK(s1 == "anc");
-        CHECK(s2 ==
-              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
-              "ACGTACGTACGTACGTACGTACGTA");
+        CHECK_EQ(s1, "anc");
+        CHECK_EQ(
+            s2,
+            "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
+            "ACGTACGTACGTACGTACGTACGTA");
         infile >> s1 >> s2;
-        CHECK(s1 == "des");
-        CHECK(s2 ==
-              "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
-              "ACGTACGTACGTACGTACGTACGTA");
+        CHECK_EQ(s1, "des");
+        CHECK_EQ(
+            s2,
+            "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
+            "ACGTACGTACGTACGTACGTACGTA");
         // infile >> s1;  // blank line
         infile >> s1 >> s2;
-        CHECK(s1 == "CGTACGTACGTTTTT");
-        CHECK(s2 == "CGTACGTACGTTTTT");
+        CHECK_EQ(s1, "CGTACGTACGTTTTT");
+        CHECK_EQ(s2, "CGTACGTACGTTTTT");
         CHECK(std::filesystem::remove("test-write-output-phylip.phy"));
     }
 
@@ -367,12 +369,13 @@ TEST_CASE("write_output") {
         std::ifstream infile(data.out_file.path);
         std::string s1;
         infile >> s1;
-        CHECK(s1 ==
-              "{\"data\":{\"names\":[\"anc\",\"des\"],\"seqs\":"
-              "[\"ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTA"
-              "CGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\","
-              "\"ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC"
-              "GTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\"]}}");
+        CHECK_EQ(
+            s1,
+            "{\"data\":{\"names\":[\"anc\",\"des\"],\"seqs\":"
+            "[\"ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTA"
+            "CGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\","
+            "\"ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC"
+            "GTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\"]}}");
         CHECK(std::filesystem::remove("test-write-output-phylip.json"));
     }
 

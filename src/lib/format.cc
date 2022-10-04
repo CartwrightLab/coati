@@ -103,7 +103,7 @@ TEST_CASE("format_sequences") {
             std::filesystem::remove(args.aln.data.out_file.path);
         }
 
-        REQUIRE(coati::format_sequences(args.format, args.aln) == 0);
+        REQUIRE_EQ(coati::format_sequences(args.format, args.aln), 0);
 
         std::ifstream infile(args.aln.data.out_file.path);
         std::string s1, s2;
@@ -124,7 +124,7 @@ TEST_CASE("format_sequences") {
             std::filesystem::remove(args.aln.data.out_file.path);
         }
 
-        REQUIRE(coati::format_sequences(args.format, args.aln) == 0);
+        REQUIRE_EQ(coati::format_sequences(args.format, args.aln), 0);
 
         std::ifstream infile(args.aln.data.out_file.path);
         std::string s1, s2;

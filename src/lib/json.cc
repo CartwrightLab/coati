@@ -103,10 +103,10 @@ TEST_CASE("read-json") {
         coati::data_t json = read_json(filename, true);
         CHECK(std::filesystem::remove(json.path));
 
-        CHECK(json.names[0] == "anc");
-        CHECK(json.names[1] == "des");
-        CHECK(json.seqs[0] == "CTCTGGATAGTC");
-        CHECK(json.seqs[1] == "CTATAGTC");
+        CHECK_EQ(json.names[0], "anc");
+        CHECK_EQ(json.names[1], "des");
+        CHECK_EQ(json.seqs[0], "CTCTGGATAGTC");
+        CHECK_EQ(json.seqs[1], "CTATAGTC");
     }
     SUBCASE("test-read-json-fst.json") {
         std::string filename{"test-read-json-fst.json"};
@@ -120,18 +120,18 @@ TEST_CASE("read-json") {
         coati::data_t json = read_json(filename, false);
         CHECK(std::filesystem::remove(json.path));
 
-        CHECK(json.names[0] == "anc");
-        CHECK(json.names[1] == "des");
-        CHECK(json.seqs[0] == "CTCTGGATAGTC");
-        CHECK(json.seqs[1] == "CTATAGTC");
-        CHECK(json.fsts[0].NumStates() == 13);
-        CHECK(json.fsts[1].NumStates() == 9);
+        CHECK_EQ(json.names[0], "anc");
+        CHECK_EQ(json.names[1], "des");
+        CHECK_EQ(json.seqs[0], "CTCTGGATAGTC");
+        CHECK_EQ(json.seqs[1], "CTATAGTC");
+        CHECK_EQ(json.fsts[0].NumStates(), 13);
+        CHECK_EQ(json.fsts[1].NumStates(), 9);
         for(int i = 0; i < 12; i++) {
-            CHECK(json.fsts[0].NumArcs(i) == 1);
+            CHECK_EQ(json.fsts[0].NumArcs(i), 1);
         }
 
         for(int i = 0; i < 8; i++) {
-            CHECK(json.fsts[0].NumArcs(i) == 1);
+            CHECK_EQ(json.fsts[0].NumArcs(i), 1);
         }
     }
     SUBCASE("invalid input argument") {
@@ -175,9 +175,9 @@ TEST_CASE("write-json") {
         std::ifstream infile("test-write-json-marg.json");
         std::string s1;
         infile >> s1;
-        CHECK(s1 ==
-              "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
-              "[\"ATGTCTTCTCACAAGACT\",\"ATGTCTTCTCACAAGACT\"]}}");
+        CHECK_EQ(s1,
+                 "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
+                 "[\"ATGTCTTCTCACAAGACT\",\"ATGTCTTCTCACAAGACT\"]}}");
         CHECK(std::filesystem::remove(json.out_file.path));
     }
     SUBCASE("test-write-json-fst.json") {
@@ -198,9 +198,9 @@ TEST_CASE("write-json") {
         std::ifstream infile(json.out_file.path);
         std::string s1;
         infile >> s1;
-        CHECK(s1 ==
-              "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
-              "[\"CT-A\",\"CTC-\"]}}");
+        CHECK_EQ(s1,
+                 "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
+                 "[\"CT-A\",\"CTC-\"]}}");
         CHECK(std::filesystem::remove(json.out_file.path));
     }
 }

@@ -128,19 +128,21 @@ TEST_CASE("read_phylip") {
         coati::data_t phylip = read_phylip(filename, false);
         CHECK(std::filesystem::remove(phylip.path.string()));
 
-        CHECK(phylip.seqs[0] ==
-              "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCT"
-              "GGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAG");
-        CHECK(phylip.seqs[1] ==
-              "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
-              "ACTATACTATACTATACTATACTATACTATACTATA");
+        CHECK_EQ(
+            phylip.seqs[0],
+            "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCT"
+            "GGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAG");
+        CHECK_EQ(
+            phylip.seqs[1],
+            "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
+            "ACTATACTATACTATACTATACTATACTATACTATA");
 
-        CHECK(phylip.fsts[0].NumStates() == 101);
-        CHECK(phylip.fsts[1].NumStates() == 101);
+        CHECK_EQ(phylip.fsts[0].NumStates(), 101);
+        CHECK_EQ(phylip.fsts[1].NumStates(), 101);
 
         for(int i = 0; i < 99; i++) {
-            CHECK(phylip.fsts[0].NumArcs(i) == 1);
-            CHECK(phylip.fsts[1].NumArcs(i) == 1);
+            CHECK_EQ(phylip.fsts[0].NumArcs(i), 1);
+            CHECK_EQ(phylip.fsts[1].NumArcs(i), 1);
         }
     }
 
@@ -165,15 +167,17 @@ TEST_CASE("read_phylip") {
         coati::data_t phylip = read_phylip(filename, true);
         CHECK(std::filesystem::remove(phylip.path.string()));
 
-        CHECK(phylip.seqs[0] ==
-              "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCT"
-              "GGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAG");
-        CHECK(phylip.seqs[1] ==
-              "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
-              "ACTATACTATACTATACTATACTATACTATACTATA");
+        CHECK_EQ(
+            phylip.seqs[0],
+            "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCT"
+            "GGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAG");
+        CHECK_EQ(
+            phylip.seqs[1],
+            "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
+            "ACTATACTATACTATACTATACTATACTATACTATA");
 
-        CHECK(phylip.names[0] == "1");
-        CHECK(phylip.names[1] == "2");
+        CHECK_EQ(phylip.names[0], "1");
+        CHECK_EQ(phylip.names[1], "2");
     }
 
     SUBCASE("Error opening phylip") {
@@ -231,16 +235,16 @@ TEST_CASE("write_phylip") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("12") == 0);
+        CHECK_EQ(s1.compare("2"), 0);
+        CHECK_EQ(s2.compare("12"), 0);
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("tx_1") == 0);
-        CHECK(s2.compare("CTCTGGATAGTG") == 0);
+        CHECK_EQ(s1.compare("tx_1"), 0);
+        CHECK_EQ(s2.compare("CTCTGGATAGTG"), 0);
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("taxa_2") == 0);
-        CHECK(s2.compare("CT----ATAGTG") == 0);
+        CHECK_EQ(s1.compare("taxa_2"), 0);
+        CHECK_EQ(s2.compare("CT----ATAGTG"), 0);
 
         CHECK(std::filesystem::remove("test-write-phylip.phy"));
     }
@@ -260,21 +264,25 @@ TEST_CASE("write_phylip") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("100") == 0);
+        CHECK_EQ(s1.compare("2"), 0);
+        CHECK_EQ(s2.compare("100"), 0);
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("1") == 0);
-        CHECK(s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == 0);
+        CHECK_EQ(s1.compare("1"), 0);
+        CHECK_EQ(
+            s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                       "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+            0);
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == 0);
+        CHECK_EQ(s1.compare("2"), 0);
+        CHECK_EQ(
+            s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                       "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+            0);
         infile >> s1 >> s2;
-        CHECK(s1.compare("AAAAAAAAAAA") == 0);
-        CHECK(s2.compare("AAAAAAAAAAA") == 0);
+        CHECK_EQ(s1.compare("AAAAAAAAAAA"), 0);
+        CHECK_EQ(s2.compare("AAAAAAAAAAA"), 0);
 
         CHECK(std::filesystem::remove("test-write-phylip-long.phy"));
     }
@@ -296,16 +304,16 @@ TEST_CASE("write_phylip") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("4") == 0);
+        CHECK_EQ(s1.compare("2"), 0);
+        CHECK_EQ(s2.compare("4"), 0);
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("1") == 0);
-        CHECK(s2.compare("CT-A") == 0);
+        CHECK_EQ(s1.compare("1"), 0);
+        CHECK_EQ(s2.compare("CT-A"), 0);
 
         infile >> s1 >> s2;
-        CHECK(s1.compare("2") == 0);
-        CHECK(s2.compare("CTC-") == 0);
+        CHECK_EQ(s1.compare("2"), 0);
+        CHECK_EQ(s2.compare("CTC-"), 0);
 
         CHECK(std::filesystem::remove("test-write-phylip.phy"));
     }

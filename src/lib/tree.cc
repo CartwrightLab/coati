@@ -166,41 +166,41 @@ TEST_CASE("parse_newick") {
     std::string stree{
         "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"};
     tree_t tree = parse_newick(stree);
-    REQUIRE(tree.size() == 7);
+    REQUIRE_EQ(tree.size(), 7);
 
-    CHECK(tree[0].length == 0);
-    CHECK(tree[0].is_leaf == false);
-    CHECK(tree[0].parent == 0);
+    CHECK_EQ(tree[0].length, 0);
+    CHECK_EQ(tree[0].is_leaf, false);
+    CHECK_EQ(tree[0].parent, 0);
 
-    CHECK(tree[1].label.compare("B_b") == 0);
-    CHECK(tree[1].length == 6);
-    CHECK(tree[1].is_leaf == true);
-    CHECK(tree[1].parent == 0);
+    CHECK_EQ(tree[1].label.compare("B_b"), 0);
+    CHECK_EQ(tree[1].length, 6);
+    CHECK_EQ(tree[1].is_leaf, true);
+    CHECK_EQ(tree[1].parent, 0);
 
-    CHECK(tree[2].label.compare("Ancestor") == 0);
-    CHECK(tree[2].length == 5);
-    CHECK(tree[2].is_leaf == false);
-    CHECK(tree[2].parent == 0);
+    CHECK_EQ(tree[2].label.compare("Ancestor"), 0);
+    CHECK_EQ(tree[2].length, 5);
+    CHECK_EQ(tree[2].is_leaf, false);
+    CHECK_EQ(tree[2].parent, 0);
 
-    CHECK(tree[3].label.compare("A-a") == 0);
-    CHECK(tree[3].length == 5);
-    CHECK(tree[3].is_leaf == true);
-    CHECK(tree[3].parent == 2);
+    CHECK_EQ(tree[3].label.compare("A-a"), 0);
+    CHECK_EQ(tree[3].length, 5);
+    CHECK_EQ(tree[3].is_leaf, true);
+    CHECK_EQ(tree[3].parent, 2);
 
-    CHECK(tree[4].label.compare("C/c") == 0);
-    CHECK(tree[4].length == 3);
-    CHECK(tree[4].is_leaf == true);
-    CHECK(tree[4].parent == 2);
+    CHECK_EQ(tree[4].label.compare("C/c"), 0);
+    CHECK_EQ(tree[4].length, 3);
+    CHECK_EQ(tree[4].is_leaf, true);
+    CHECK_EQ(tree[4].parent, 2);
 
-    CHECK(tree[5].label.compare("E.e") == 0);
-    CHECK(tree[5].length == 4);
-    CHECK(tree[5].is_leaf == true);
-    CHECK(tree[5].parent == 2);
+    CHECK_EQ(tree[5].label.compare("E.e"), 0);
+    CHECK_EQ(tree[5].length, 4);
+    CHECK_EQ(tree[5].is_leaf, true);
+    CHECK_EQ(tree[5].parent, 2);
 
-    CHECK(tree[6].label.compare("D%") == 0);
-    CHECK(tree[6].length == 11);
-    CHECK(tree[6].is_leaf == true);
-    CHECK(tree[6].parent == 0);
+    CHECK_EQ(tree[6].label.compare("D%"), 0);
+    CHECK_EQ(tree[6].length, 11);
+    CHECK_EQ(tree[6].is_leaf, true);
+    CHECK_EQ(tree[6].parent, 0);
 }
 // GCOVR_EXCL_STOP
 
@@ -319,6 +319,7 @@ std::vector<std::pair<int, float>> find_closest_pair(tree_t& tree) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("aln_order") {
     tree_t tree;
     // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
@@ -332,18 +333,19 @@ TEST_CASE("aln_order") {
     tree.emplace_back("D%", 11, true, 0);
 
     std::vector<std::pair<int, float>> order_list = aln_order(tree);
-    REQUIRE(order_list.size() == 5);
-    CHECK(order_list[0].first == 4);
-    CHECK(order_list[0].second == 0);
-    CHECK(order_list[1].first == 5);
-    CHECK(order_list[1].second == 7);
-    CHECK(order_list[2].first == 3);
-    CHECK(order_list[2].second == 5);
-    CHECK(order_list[3].first == 1);
-    CHECK(order_list[3].second == 11);
-    CHECK(order_list[4].first == 6);
-    CHECK(order_list[4].second == 11);
+    REQUIRE_EQ(order_list.size(), 5);
+    CHECK_EQ(order_list[0].first, 4);
+    CHECK_EQ(order_list[0].second, 0);
+    CHECK_EQ(order_list[1].first, 5);
+    CHECK_EQ(order_list[1].second, 7);
+    CHECK_EQ(order_list[2].first, 3);
+    CHECK_EQ(order_list[2].second, 5);
+    CHECK_EQ(order_list[3].first, 1);
+    CHECK_EQ(order_list[3].second, 11);
+    CHECK_EQ(order_list[4].first, 6);
+    CHECK_EQ(order_list[4].second, 11);
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Find sequence in data_t given its name
@@ -371,6 +373,7 @@ std::string find_seq(const std::string_view name, const coati::data_t& f) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("find_seq") {
     // cppcheck-suppress unusedVariable
     std::string sequence;
@@ -385,6 +388,7 @@ TEST_CASE("find_seq") {
     // fails, Z is not found -> seq is empty
     REQUIRE_THROWS_AS(find_seq("Z", fasta), std::invalid_argument);
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Find node in tree given its name
@@ -408,6 +412,7 @@ size_t find_node(const tree_t& tree, const std::string_view name) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("find_node") {
     tree_t tree;
     // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
@@ -425,6 +430,7 @@ TEST_CASE("find_node") {
     CHECK_EQ(find_node(tree, "D%"), 6);
     REQUIRE_THROWS_AS(find_node(tree, "Z"), std::invalid_argument);
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Re-root tree given an outgroup (leaf node)
@@ -461,6 +467,7 @@ void reroot(tree_t& tree, const std::string_view outgroup) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("reroot") {
     tree_t tree;
 
@@ -476,20 +483,20 @@ TEST_CASE("reroot") {
 
         reroot(tree, "A-a");
 
-        CHECK(tree[0].length == 5);
-        CHECK(tree[0].parent == 2);
-        CHECK(tree[1].length == 6);
-        CHECK(tree[1].parent == 0);
-        CHECK(tree[2].length == 0);
-        CHECK(tree[2].parent == 2);
-        CHECK(tree[3].length == 5);
-        CHECK(tree[3].parent == 2);
-        CHECK(tree[4].length == 3);
-        CHECK(tree[4].parent == 2);
-        CHECK(tree[5].length == 4);
-        CHECK(tree[5].parent == 2);
-        CHECK(tree[6].length == 11);
-        CHECK(tree[6].parent == 0);
+        CHECK_EQ(tree[0].length, 5);
+        CHECK_EQ(tree[0].parent, 2);
+        CHECK_EQ(tree[1].length, 6);
+        CHECK_EQ(tree[1].parent, 0);
+        CHECK_EQ(tree[2].length, 0);
+        CHECK_EQ(tree[2].parent, 2);
+        CHECK_EQ(tree[3].length, 5);
+        CHECK_EQ(tree[3].parent, 2);
+        CHECK_EQ(tree[4].length, 3);
+        CHECK_EQ(tree[4].parent, 2);
+        CHECK_EQ(tree[5].length, 4);
+        CHECK_EQ(tree[5].parent, 2);
+        CHECK_EQ(tree[6].length, 11);
+        CHECK_EQ(tree[6].parent, 0);
     }
 
     SUBCASE("Several node changes") {
@@ -514,16 +521,17 @@ TEST_CASE("reroot") {
 
         reroot(tree, "cat");
 
-        CHECK(tree[0].parent == 4);
-        CHECK(tree[0].length == doctest::Approx(3.9));
-        CHECK(tree[4].parent == 8);
-        CHECK(tree[4].length == doctest::Approx(2.1));
-        CHECK(tree[8].parent == 9);
-        CHECK(tree[8].length == doctest::Approx(20.6));
-        CHECK(tree[9].parent == 9);
-        CHECK(tree[9].length == doctest::Approx(0));
+        CHECK_EQ(tree[0].parent, 4);
+        CHECK_EQ(tree[0].length, doctest::Approx(3.9));
+        CHECK_EQ(tree[4].parent, 8);
+        CHECK_EQ(tree[4].length, doctest::Approx(2.1));
+        CHECK_EQ(tree[8].parent, 9);
+        CHECK_EQ(tree[8].length, doctest::Approx(20.6));
+        CHECK_EQ(tree[9].parent, 9);
+        CHECK_EQ(tree[9].length, doctest::Approx(0));
     }
 }
+// GCOVR_EXCL_STOP
 
 /**
  * \brief Find distance from REF to node.
@@ -552,6 +560,7 @@ float distance_ref(const tree_t& tree, std::size_t ref, std::size_t node) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("distance_ref") {
     tree_t tree;
     // tree:
@@ -578,4 +587,5 @@ TEST_CASE("distance_ref") {
     CHECK(distance_ref(tree, 13, 12) == doctest::Approx(50.4));
     CHECK(distance_ref(tree, 13, 11) == doctest::Approx(99.2));
 }
+// GCOVR_EXCL_STOP
 }  // namespace coati::tree

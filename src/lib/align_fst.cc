@@ -142,19 +142,19 @@ TEST_CASE("fst_alignment") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1 == ">1");
-        CHECK(s2 == "CTCTGGATAGTG");
+        CHECK_EQ(s1, ">1");
+        CHECK_EQ(s2, "CTCTGGATAGTG");
 
         infile >> s1 >> s2;
-        CHECK(s1 == ">2");
-        CHECK(s2 == "CT----ATAGTG");
+        CHECK_EQ(s1, ">2");
+        CHECK_EQ(s2, "CT----ATAGTG");
         // CHECK(std::filesystem::remove(aln.data.out_file.path));
 
         std::ifstream inweight(aln.weight_file);
         std::string s;
         inweight >> s;
         CHECK(std::filesystem::remove(aln.weight_file));
-        CHECK(s.substr(s.length() - 7) == "9.31397");
+        CHECK_EQ(s.substr(s.length() - 7), "9.31397");
     }
 
     SUBCASE("coati model, output phylip") {
@@ -178,16 +178,16 @@ TEST_CASE("fst_alignment") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1 == "2");
-        CHECK(s2 == "12");
+        CHECK_EQ(s1, "2");
+        CHECK_EQ(s2, "12");
 
         infile >> s1 >> s2;
-        CHECK(s1 == "1");
-        CHECK(s2 == "CTCTGGATAGTG");
+        CHECK_EQ(s1, "1");
+        CHECK_EQ(s2, "CTCTGGATAGTG");
 
         infile >> s1 >> s2;
-        CHECK(s1 == "2");
-        CHECK(s2 == "CT----ATAGTG");
+        CHECK_EQ(s1, "2");
+        CHECK_EQ(s2, "CT----ATAGTG");
 
         CHECK(std::filesystem::remove(aln.data.out_file.path));
     }
@@ -213,19 +213,19 @@ TEST_CASE("fst_alignment") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1 == ">1");
-        CHECK(s2 == "CTCTGGATAGTG");
+        CHECK_EQ(s1, ">1");
+        CHECK_EQ(s2, "CTCTGGATAGTG");
 
         infile >> s1 >> s2;
-        CHECK(s1 == ">2");
-        CHECK(s2 == "CT----ATAGTG");
+        CHECK_EQ(s1, ">2");
+        CHECK_EQ(s2, "CT----ATAGTG");
         CHECK(std::filesystem::remove(aln.data.out_file.path));
 
         std::ifstream inweight(aln.weight_file);
         std::string s;
         inweight >> s;
         CHECK(std::filesystem::remove(aln.weight_file));
-        CHECK(s.substr(s.length() - 7) == "9.31994");
+        CHECK_EQ(s.substr(s.length() - 7), "9.31994");
     }
 
     SUBCASE("ecm model") {
@@ -248,12 +248,12 @@ TEST_CASE("fst_alignment") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1 == ">1");
-        CHECK(s2 == "CTCTGGATAGTG");
+        CHECK_EQ(s1, ">1");
+        CHECK_EQ(s2, "CTCTGGATAGTG");
 
         infile >> s1 >> s2;
-        CHECK(s1 == ">2");
-        CHECK(s2 == "CT----ATAGTG");
+        CHECK_EQ(s1, ">2");
+        CHECK_EQ(s2, "CT----ATAGTG");
 
         CHECK(std::filesystem::remove(aln.data.out_file.path));
 
@@ -261,7 +261,7 @@ TEST_CASE("fst_alignment") {
         std::string s;
         inweight >> s;
         CHECK(std::filesystem::remove(aln.weight_file));
-        CHECK(s.substr(s.length() - 7) == "9.31388");
+        CHECK_EQ(s.substr(s.length() - 7), "9.31388");
     }
 
     SUBCASE("Unknown model") {

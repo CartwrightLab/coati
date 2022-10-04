@@ -71,9 +71,9 @@ VectorFstStdArc mg94(float br_len, float omega,
 TEST_CASE("mg94") {
     VectorFstStdArc mut_fst(mg94(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
-    CHECK(Verify(mut_fst));           // openfst built-in sanity check
-    CHECK(mut_fst.NumArcs(0) == 16);  // 4x4 nuc to nuc arcs from start state
-    CHECK(mut_fst.NumStates() == 241);
+    REQUIRE(Verify(mut_fst));          // openfst built-in sanity check
+    CHECK_EQ(mut_fst.NumArcs(0), 16);  // 4x4 nuc to nuc arcs from start state
+    CHECK_EQ(mut_fst.NumStates(), 241);
 }
 // GCOVR_EXCL_STOP
 
@@ -140,10 +140,9 @@ TEST_CASE("dna") {
     // float branch_length = 0.0133;
     VectorFstStdArc dna_fst = dna(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308});
 
-    CHECK(Verify(dna_fst));           // openfst built-in sanity check
-    CHECK(dna_fst.NumArcs(0) == 16);  // all 4x4 nuc transitions
-    CHECK(dna_fst.NumStates() ==
-          1);  // all transitions are indp, only 1 state needed
+    REQUIRE(Verify(dna_fst));          // openfst built-in sanity check
+    CHECK_EQ(dna_fst.NumArcs(0), 16);  // all 4x4 nuc transitions
+    CHECK_EQ(dna_fst.NumStates(), 1);  // trans are indp, only 1 state needed
 
     // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
     float dna_val[16]{
@@ -156,7 +155,7 @@ TEST_CASE("dna") {
     dna_fst.InitArcIterator(siter.Value(), &data);
 
     for(auto i = 0; i < 16; i++) {
-        CHECK(data.arcs[i].weight.Value() == doctest::Approx(dna_val[i]));
+        CHECK_EQ(data.arcs[i].weight.Value(), doctest::Approx(dna_val[i]));
     }
 }
 // GCOVR_EXCL_STOP
@@ -231,12 +230,12 @@ TEST_CASE("indel") {
     VectorFstStdArc indel_model(
         indel(0.001, 1.f - 1.f / 6.f, {0.308, 0.185, 0.199, 0.308}));
 
-    CHECK(Verify(indel_model));  // openfst built-in sanity check
-    CHECK(indel_model.NumStates() == 4);
-    CHECK(indel_model.NumArcs(0) == 17);  // number of outcoming arcs
-    CHECK(indel_model.NumArcs(1) == 17);
-    CHECK(indel_model.NumArcs(2) == 12);
-    CHECK(indel_model.NumArcs(3) == 1);
+    REQUIRE(Verify(indel_model));  // openfst built-in sanity check
+    CHECK_EQ(indel_model.NumStates(), 4);
+    CHECK_EQ(indel_model.NumArcs(0), 17);  // number of outcoming arcs
+    CHECK_EQ(indel_model.NumArcs(1), 17);
+    CHECK_EQ(indel_model.NumArcs(2), 12);
+    CHECK_EQ(indel_model.NumArcs(3), 1);
 }
 // GCOVR_EXCL_STOP
 

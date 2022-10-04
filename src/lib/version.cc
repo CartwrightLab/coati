@@ -41,8 +41,8 @@ bool coati::version_number_check_equal(int version_int) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("version_number_check_equal") {
-    CHECK(coati::version_number_check_equal(COATI_VERSION_INTEGER) == true);
-    CHECK(coati::version_number_check_equal(-1) == false);
+    CHECK(coati::version_number_check_equal(COATI_VERSION_INTEGER));
+    CHECK_FALSE(coati::version_number_check_equal(-1));
 }
 // GCOVR_EXCL_STOP
 
@@ -52,6 +52,6 @@ int coati::version_integer() { return COATI_VERSION_INTEGER; }
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("version_integer") {
-    CHECK(coati::version_integer() == COATI_VERSION_INTEGER);
+    CHECK_EQ(coati::version_integer(), COATI_VERSION_INTEGER);
 }
 // GCOVR_EXCL_STOP

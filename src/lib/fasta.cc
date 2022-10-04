@@ -102,10 +102,10 @@ TEST_CASE("read_fasta") {
         coati::data_t fasta = read_fasta(filename, true);
         CHECK(std::filesystem::remove(fasta.path));
 
-        CHECK(fasta.names[0] == "1");
-        CHECK(fasta.names[1] == "2");
-        CHECK(fasta.seqs[0] == "CTCTGGATAGTC");
-        CHECK(fasta.seqs[1] == "CTATAGTC");
+        CHECK_EQ(fasta.names[0], "1");
+        CHECK_EQ(fasta.names[1], "2");
+        CHECK_EQ(fasta.seqs[0], "CTCTGGATAGTC");
+        CHECK_EQ(fasta.seqs[1], "CTATAGTC");
     }
 
     SUBCASE("Read test-read-fasta-fst.fasta") {
@@ -120,18 +120,18 @@ TEST_CASE("read_fasta") {
         coati::data_t fasta = read_fasta(filename, false);
         CHECK(std::filesystem::remove(fasta.path.string()));
 
-        CHECK(fasta.seqs[0] == "CTCTGGATAGTG");
-        CHECK(fasta.seqs[1] == "CTATAGTG");
+        CHECK_EQ(fasta.seqs[0], "CTCTGGATAGTG");
+        CHECK_EQ(fasta.seqs[1], "CTATAGTG");
 
-        CHECK(fasta.fsts[0].NumStates() == 13);
-        CHECK(fasta.fsts[1].NumStates() == 9);
+        CHECK_EQ(fasta.fsts[0].NumStates(), 13);
+        CHECK_EQ(fasta.fsts[1].NumStates(), 9);
 
         for(int i = 0; i < 12; i++) {
-            CHECK(fasta.fsts[0].NumArcs(i) == 1);
+            CHECK_EQ(fasta.fsts[0].NumArcs(i), 1);
         }
 
         for(int i = 0; i < 8; i++) {
-            CHECK(fasta.fsts[0].NumArcs(i) == 1);
+            CHECK_EQ(fasta.fsts[0].NumArcs(i), 1);
         }
     }
 
@@ -178,13 +178,13 @@ TEST_CASE("write_fasta") {
         std::ifstream infile("test-write-fasta.fasta");
         std::string s1;
         infile >> s1;
-        CHECK(s1.compare(">1") == 0);
+        CHECK_EQ(s1.compare(">1"), 0);
         infile >> s1;
-        CHECK(s1.compare("CTCTGGATAGTG") == 0);
+        CHECK_EQ(s1.compare("CTCTGGATAGTG"), 0);
         infile >> s1;
-        CHECK(s1.compare(">2") == 0);
+        CHECK_EQ(s1.compare(">2"), 0);
         infile >> s1;
-        CHECK(s1.compare("CTATAGTG") == 0);
+        CHECK_EQ(s1.compare("CTATAGTG"), 0);
         CHECK(std::filesystem::remove("test-write-fasta.fasta"));
     }
     SUBCASE("fst") {
@@ -205,13 +205,13 @@ TEST_CASE("write_fasta") {
         std::ifstream infile("test-write-fasta-fst.fasta");
         std::string s1;
         infile >> s1;
-        CHECK(s1.compare(">1") == 0);
+        CHECK_EQ(s1.compare(">1"), 0);
         infile >> s1;
-        CHECK(s1.compare("CT-A") == 0);
+        CHECK_EQ(s1.compare("CT-A"), 0);
         infile >> s1;
-        CHECK(s1.compare(">2") == 0);
+        CHECK_EQ(s1.compare(">2"), 0);
         infile >> s1;
-        CHECK(s1.compare("CTC-") == 0);
+        CHECK_EQ(s1.compare("CTC-"), 0);
         CHECK(std::filesystem::remove("test-write-fasta-fst.fasta"));
     }
     SUBCASE("data_t size fails - diff number of names and seqs") {

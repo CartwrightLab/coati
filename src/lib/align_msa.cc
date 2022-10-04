@@ -126,20 +126,20 @@ TEST_CASE("ref_indel_alignment") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1 == ">A");
-        CHECK(s2 == "TCA--TCG");
+        CHECK_EQ(s1, ">A");
+        CHECK_EQ(s2, "TCA--TCG");
         infile >> s1 >> s2;
-        CHECK(s1 == ">B");
-        CHECK(s2 == "TCA-GTCG");
+        CHECK_EQ(s1, ">B");
+        CHECK_EQ(s2, "TCA-GTCG");
         infile >> s1 >> s2;
-        CHECK(s1 == ">C");
-        CHECK(s2 == "T-A--TCG");
+        CHECK_EQ(s1, ">C");
+        CHECK_EQ(s2, "T-A--TCG");
         infile >> s1 >> s2;
-        CHECK(s1 == ">D");
-        CHECK(s2 == "TCAC-TCG");
+        CHECK_EQ(s1, ">D");
+        CHECK_EQ(s2, "TCAC-TCG");
         infile >> s1 >> s2;
-        CHECK(s1 == ">E");
-        CHECK(s2 == "TCA--TC-");
+        CHECK_EQ(s1, ">E");
+        CHECK_EQ(s2, "TCA--TC-");
         CHECK(std::filesystem::remove(aln.data.out_file.path));
     }
 
@@ -159,20 +159,20 @@ TEST_CASE("ref_indel_alignment") {
         std::string s1, s2;
 
         infile >> s1 >> s2;
-        CHECK(s1 == ">A");
-        CHECK(s2 == "TCA--TCG");
+        CHECK_EQ(s1, ">A");
+        CHECK_EQ(s2, "TCA--TCG");
         infile >> s1 >> s2;
-        CHECK(s1 == ">B");
-        CHECK(s2 == "TCA-GTCG");
+        CHECK_EQ(s1, ">B");
+        CHECK_EQ(s2, "TCA-GTCG");
         infile >> s1 >> s2;
-        CHECK(s1 == ">C");
-        CHECK(s2 == "T-A--TCG");
+        CHECK_EQ(s1, ">C");
+        CHECK_EQ(s2, "T-A--TCG");
         infile >> s1 >> s2;
-        CHECK(s1 == ">D");
-        CHECK(s2 == "TCAC-TCG");
+        CHECK_EQ(s1, ">D");
+        CHECK_EQ(s2, "TCAC-TCG");
         infile >> s1 >> s2;
-        CHECK(s1 == ">E");
-        CHECK(s2 == "TCA--TC-");
+        CHECK_EQ(s1, ">E");
+        CHECK_EQ(s2, "TCA--TC-");
         CHECK(std::filesystem::remove(aln.data.out_file.path));
     }
 

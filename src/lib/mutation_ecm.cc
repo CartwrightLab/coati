@@ -54,24 +54,24 @@ TEST_CASE("nts_ntv") {
     int nts = 0, ntv = 0;
 
     nts_ntv(0, 0, nts, ntv);  // AAA -> AAA
-    CHECK(nts == 0);
-    CHECK(ntv == 0);
+    CHECK_EQ(nts, 0);
+    CHECK_EQ(ntv, 0);
 
     nts_ntv(0, 1, nts, ntv);  // AAA -> AAC
-    CHECK(nts == 0);
-    CHECK(ntv == 1);
+    CHECK_EQ(nts, 0);
+    CHECK_EQ(ntv, 1);
 
     nts_ntv(39, 60, nts, ntv);  // GCT -> TTA
-    CHECK(nts == 1);
-    CHECK(ntv == 2);
+    CHECK_EQ(nts, 1);
+    CHECK_EQ(ntv, 2);
 
     nts_ntv(21, 42, nts, ntv);  // CCC -> GGG
-    CHECK(nts == 0);
-    CHECK(ntv == 3);
+    CHECK_EQ(nts, 0);
+    CHECK_EQ(ntv, 3);
 
     nts_ntv(42, 0, nts, ntv);  // GGG -> AAA
-    CHECK(nts == 3);
-    CHECK(ntv == 0);
+    CHECK_EQ(nts, 3);
+    CHECK_EQ(ntv, 0);
 }
 // GCOVR_EXCL_STOP
 
@@ -111,18 +111,18 @@ float k(uint8_t c1, uint8_t c2, int model, float kappa) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("k") {
-    CHECK(k(0, 0, 0) == 1);         // AAA -> AAA, ECM+f+omega
-    CHECK(k(32, 0, 0) == 1);        // GAA -> CTC, ECM+f+omega
-    CHECK(k(47, 38) == 1);          // GTT -> GCT, ECM+f+omega
-    CHECK(k(22, 19) == 1);          // CCG -> CAT, ECM+f+omega
-    CHECK(k(0, 42, 1) == 15.625);   // AAA -> GGG, ECM+F+omega+1k(ts)
-    CHECK(k(32, 29, 1) == 1);       // GAA -> CTC, ECM+F+omega+1k(ts)
-    CHECK(k(47, 38, 1) == 2.5);     // GTT -> GCT, ECM+F+omega+1k(ts)
-    CHECK(k(21, 51, 1) == 6.25);    // CCC -> TAT, ECM+F+omega+1k(ts)
-    CHECK(k(0, 0, 2) == 1);         // AAA -> AAA, ECM+F+omega+1k(tv)
-    CHECK(k(32, 29, 2) == 15.625);  // GAA -> CTC, ECM+F+omega+1k(tv)
-    CHECK(k(47, 38, 2) == 2.5);     // GTT -> GCT, ECM+F+omega+1k(tv)
-    CHECK(k(22, 19, 2) == 6.25);    // CCG -> CAT, ECM+F+omega+1k(tv)
+    CHECK_EQ(k(0, 0, 0), 1);         // AAA -> AAA, ECM+f+omega
+    CHECK_EQ(k(32, 0, 0), 1);        // GAA -> CTC, ECM+f+omega
+    CHECK_EQ(k(47, 38), 1);          // GTT -> GCT, ECM+f+omega
+    CHECK_EQ(k(22, 19), 1);          // CCG -> CAT, ECM+f+omega
+    CHECK_EQ(k(0, 42, 1), 15.625);   // AAA -> GGG, ECM+F+omega+1k(ts)
+    CHECK_EQ(k(32, 29, 1), 1);       // GAA -> CTC, ECM+F+omega+1k(ts)
+    CHECK_EQ(k(47, 38, 1), 2.5);     // GTT -> GCT, ECM+F+omega+1k(ts)
+    CHECK_EQ(k(21, 51, 1), 6.25);    // CCC -> TAT, ECM+F+omega+1k(ts)
+    CHECK_EQ(k(0, 0, 2), 1);         // AAA -> AAA, ECM+F+omega+1k(tv)
+    CHECK_EQ(k(32, 29, 2), 15.625);  // GAA -> CTC, ECM+F+omega+1k(tv)
+    CHECK_EQ(k(47, 38, 2), 2.5);     // GTT -> GCT, ECM+F+omega+1k(tv)
+    CHECK_EQ(k(22, 19, 2), 6.25);    // CCG -> CAT, ECM+F+omega+1k(tv)
 }
 // GCOVR_EXCL_STOP
 

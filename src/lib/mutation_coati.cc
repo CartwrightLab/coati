@@ -128,7 +128,7 @@ TEST_CASE("mg94_p") {
 
     for(int i = 0; i < 64; i++) {
         for(int j = 0; j < 64; j++) {
-            CHECK(P(i, j) == doctest::Approx(mg94P[i][j]));
+            CHECK_EQ(P(i, j), doctest::Approx(mg94P[i][j]));
         }
     }
 }
@@ -198,7 +198,7 @@ TEST_CASE("marginal_p") {
             for(int nuc = 0; nuc < 4; nuc++) {
                 val += ::expf(p_marg(cod * 3 + pos, nuc)) * pi[nuc];
             }
-            CHECK(val == doctest::Approx(1));  // sum per pos (all nuc) is 1
+            CHECK_EQ(val, doctest::Approx(1));  // sum per pos (all nuc) is 1
         }
     }
 }
@@ -321,7 +321,7 @@ TEST_CASE("gtr_q") {
 
     for(int i = 0; i < 4; i++) {
         for(int j = 0; j < 4; j++) {
-            CHECK(gtr(i, j) == doctest::Approx(gtr_correct(i, j)));
+            CHECK_EQ(gtr(i, j), doctest::Approx(gtr_correct(i, j)));
         }
     }
 

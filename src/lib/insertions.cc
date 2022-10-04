@@ -59,14 +59,14 @@ TEST_CASE("insertion_flags") {
     SparseVectorInt insertions(7);
 
     SUBCASE("Different length - fail") {
-        REQUIRE(!insertion_flags("TCA-TC", "TCAGTCG", insertions));
+        REQUIRE_FALSE(insertion_flags("TCA-TC", "TCAGTCG", insertions));
     }
 
     SUBCASE("Two insertions") {
         REQUIRE(insertion_flags("TCA-TC-", "TCAGTCG", insertions));
-        CHECK(insertions.nonZeros() == 2);
-        CHECK(insertions.coeffRef(3) == 'o');
-        CHECK(insertions.coeffRef(6) == 111);
+        CHECK_EQ(insertions.nonZeros(), 2);
+        CHECK_EQ(insertions.coeffRef(3), 'o');
+        CHECK_EQ(insertions.coeffRef(6), 111);
     }
 }
 // GCOVR_EXCL_STOP
@@ -232,10 +232,10 @@ TEST_CASE("merge_indels") {
 
         REQUIRE(merge_indels(ins_data, results));
 
-        CHECK(results.sequences[0] == "TCA-TCG");
-        CHECK(results.sequences[1] == "TCAGTCG");
-        CHECK(results.insertions.coeffRef(3) == 99);   // close gap at 3
-        CHECK(results.insertions.coeffRef(6) == 111);  // open gap at 6
+        CHECK_EQ(results.sequences[0], "TCA-TCG");
+        CHECK_EQ(results.sequences[1], "TCAGTCG");
+        CHECK_EQ(results.insertions.coeffRef(3), 99);   // close gap at 3
+        CHECK_EQ(results.insertions.coeffRef(6), 111);  // open gap at 6
     }
 
     SUBCASE("Four sequences, two insertion vectors, two merges") {
@@ -256,13 +256,13 @@ TEST_CASE("merge_indels") {
 
         REQUIRE(merge_indels(ins_data, results));
 
-        CHECK(results.sequences[0] == "TCA--TCG");
-        CHECK(results.sequences[1] == "TCAG-TCG");
-        CHECK(results.sequences[2] == "T-A--TCG");
-        CHECK(results.sequences[3] == "TCA-CTCG");
-        CHECK(results.insertions.coeffRef(3) == 99);
-        CHECK(results.insertions.coeffRef(4) == 99);
-        CHECK(results.insertions.coeffRef(7) == 111);
+        CHECK_EQ(results.sequences[0], "TCA--TCG");
+        CHECK_EQ(results.sequences[1], "TCAG-TCG");
+        CHECK_EQ(results.sequences[2], "T-A--TCG");
+        CHECK_EQ(results.sequences[3], "TCA-CTCG");
+        CHECK_EQ(results.insertions.coeffRef(3), 99);
+        CHECK_EQ(results.insertions.coeffRef(4), 99);
+        CHECK_EQ(results.insertions.coeffRef(7), 111);
     }
 
     SUBCASE("Four sequences, two insertion vectors, three merges") {
@@ -283,13 +283,13 @@ TEST_CASE("merge_indels") {
 
         REQUIRE(merge_indels(ins_data, results));
 
-        CHECK(results.sequences[0] == "TCA--TCG");
-        CHECK(results.sequences[1] == "TCAG-TCG");
-        CHECK(results.sequences[2] == "T-A--TCG");
-        CHECK(results.sequences[3] == "TCA-CTCG");
-        CHECK(results.insertions.coeffRef(3) == 99);
-        CHECK(results.insertions.coeffRef(4) == 99);
-        CHECK(results.insertions.coeffRef(7) == 111);
+        CHECK_EQ(results.sequences[0], "TCA--TCG");
+        CHECK_EQ(results.sequences[1], "TCAG-TCG");
+        CHECK_EQ(results.sequences[2], "T-A--TCG");
+        CHECK_EQ(results.sequences[3], "TCA-CTCG");
+        CHECK_EQ(results.insertions.coeffRef(3), 99);
+        CHECK_EQ(results.insertions.coeffRef(4), 99);
+        CHECK_EQ(results.insertions.coeffRef(7), 111);
     }
 
     SUBCASE("Two sequences, two insertion vectors, one merge") {
@@ -306,10 +306,10 @@ TEST_CASE("merge_indels") {
 
         REQUIRE(merge_indels(ins_data, results));
 
-        CHECK(results.sequences[0] == "TCAC-TCG");
-        CHECK(results.sequences[1] == "TCA-GTCG");
-        CHECK(results.insertions.coeffRef(3) == 99);  // close gap at 3
-        CHECK(results.insertions.coeffRef(4) == 99);  // open gap at 4
+        CHECK_EQ(results.sequences[0], "TCAC-TCG");
+        CHECK_EQ(results.sequences[1], "TCA-GTCG");
+        CHECK_EQ(results.insertions.coeffRef(3), 99);  // close gap at 3
+        CHECK_EQ(results.insertions.coeffRef(4), 99);  // open gap at 4
     }
 
     SUBCASE("Three sequences, one insertion (len 21) in C sequence") {
@@ -331,15 +331,15 @@ TEST_CASE("merge_indels") {
 
         REQUIRE(merge_indels(ins_data, results));
 
-        CHECK(results.sequences[0] ==
-              "AAATTCCAACAACATAAACAAATCTGA---------------------");
-        CHECK(results.sequences[1] ==
-              "AAATTCCAACAACATAAACAAATCTGA---------------------");
-        CHECK(results.sequences[2] ==
-              "AAATTCCAACAACATAAACAGATCGGAAGAGAAACTATGCTTTTCTAG");
+        CHECK_EQ(results.sequences[0],
+                 "AAATTCCAACAACATAAACAAATCTGA---------------------");
+        CHECK_EQ(results.sequences[1],
+                 "AAATTCCAACAACATAAACAAATCTGA---------------------");
+        CHECK_EQ(results.sequences[2],
+                 "AAATTCCAACAACATAAACAGATCGGAAGAGAAACTATGCTTTTCTAG");
 
         for(int i = 27; i < 48; i++) {
-            CHECK(results.insertions.coeffRef(i) == 99);  // closed gap
+            CHECK_EQ(results.insertions.coeffRef(i), 99);  // closed gap
         }
     }
 
@@ -360,12 +360,12 @@ TEST_CASE("merge_indels") {
 
         REQUIRE(merge_indels(ins_data, results));
 
-        CHECK(results.sequences[0] == "CT---TGCAT");
-        CHECK(results.sequences[1] == "CTACGTGCAT");
-        CHECK(results.insertions.coeffRef(2) == 99);   // closed gap
-        CHECK(results.insertions.coeffRef(3) == 99);   // closed gap
-        CHECK(results.insertions.coeffRef(4) == 99);   // closed gap
-        CHECK(results.insertions.coeffRef(7) == 111);  // open gap
+        CHECK_EQ(results.sequences[0], "CT---TGCAT");
+        CHECK_EQ(results.sequences[1], "CTACGTGCAT");
+        CHECK_EQ(results.insertions.coeffRef(2), 99);   // closed gap
+        CHECK_EQ(results.insertions.coeffRef(3), 99);   // closed gap
+        CHECK_EQ(results.insertions.coeffRef(4), 99);   // closed gap
+        CHECK_EQ(results.insertions.coeffRef(7), 111);  // open gap
     }
 }
 // GCOVR_EXCL_STOP
@@ -428,12 +428,12 @@ TEST_CASE("add_gap") {
         coati::insertion_vector ins_data = {dataA, dataB, dataC};
 
         add_gap(ins_data, indexes, 1);
-        CHECK(ins_data[0].sequences[0] == "T-CATCG");
-        CHECK(ins_data[0].insertions.coeffRef(1) == 99);
-        CHECK(ins_data[1].sequences[0] == "T-CAGTCG");
-        CHECK(ins_data[1].insertions.coeffRef(1) == 99);
-        CHECK(ins_data[2].sequences[0] == "TTCATCG");
-        CHECK(ins_data[2].insertions.coeffRef(1) == 99);
+        CHECK_EQ(ins_data[0].sequences[0], "T-CATCG");
+        CHECK_EQ(ins_data[0].insertions.coeffRef(1), 99);
+        CHECK_EQ(ins_data[1].sequences[0], "T-CAGTCG");
+        CHECK_EQ(ins_data[1].insertions.coeffRef(1), 99);
+        CHECK_EQ(ins_data[2].sequences[0], "TTCATCG");
+        CHECK_EQ(ins_data[2].insertions.coeffRef(1), 99);
     }
 
     SUBCASE("Two sequences with two insertion vectors - end boundaries") {
@@ -451,10 +451,10 @@ TEST_CASE("add_gap") {
 
         add_gap(ins_data, indexes, 6);
 
-        CHECK(ins_data[0].sequences[0] == "TCATCG-");
-        CHECK(ins_data[0].insertions.coeffRef(6) == 99);
-        CHECK(ins_data[1].sequences[0] == "TCATCGC");
-        CHECK(ins_data[1].insertions.coeffRef(6) == 99);
+        CHECK_EQ(ins_data[0].sequences[0], "TCATCG-");
+        CHECK_EQ(ins_data[0].insertions.coeffRef(6), 99);
+        CHECK_EQ(ins_data[1].sequences[0], "TCATCGC");
+        CHECK_EQ(ins_data[1].insertions.coeffRef(6), 99);
     }
 
     SUBCASE("Four sequences with 2 insertion vectors") {
@@ -475,14 +475,14 @@ TEST_CASE("add_gap") {
         coati::insertion_vector ins_data = {dataABC, dataD};
 
         add_gap(ins_data, indexes, 3);
-        CHECK(ins_data[0].sequences[0] == "TCA-TCG");
-        CHECK(ins_data[0].sequences[1] == "TCAGTCG");
-        CHECK(ins_data[0].sequences[2] == "T-A-TCG");
-        CHECK(ins_data[0].insertions.coeffRef(3) == 99);
-        CHECK(ins_data[1].sequences[0] == "TCA-CTCG");
-        CHECK(ins_data[1].insertions.coeffRef(3) == 99);
-        CHECK(ins_data[1].insertions.coeffRef(4) == 111);
-        CHECK(ins_data[1].insertions.coeffRef(7) == 111);
+        CHECK_EQ(ins_data[0].sequences[0], "TCA-TCG");
+        CHECK_EQ(ins_data[0].sequences[1], "TCAGTCG");
+        CHECK_EQ(ins_data[0].sequences[2], "T-A-TCG");
+        CHECK_EQ(ins_data[0].insertions.coeffRef(3), 99);
+        CHECK_EQ(ins_data[1].sequences[0], "TCA-CTCG");
+        CHECK_EQ(ins_data[1].insertions.coeffRef(3), 99);
+        CHECK_EQ(ins_data[1].insertions.coeffRef(4), 111);
+        CHECK_EQ(ins_data[1].insertions.coeffRef(7), 111);
     }
 
     SUBCASE("Two sequences, one close insertion (len 3), one open insertion") {
@@ -504,26 +504,26 @@ TEST_CASE("add_gap") {
 
         add_gap(ins_data, indexes, 4);
 
-        CHECK(ins_data[0].sequences[0] == "CT---TGCAT");
-        CHECK(ins_data[1].sequences[0] == "CTACGTGCAT");
-        CHECK(ins_data[0].insertions.coeffRef(0) == 0);
-        CHECK(ins_data[0].insertions.coeffRef(1) == 0);
-        CHECK(ins_data[0].insertions.coeffRef(2) == 99);  // closed gap
-        CHECK(ins_data[0].insertions.coeffRef(3) == 99);
-        CHECK(ins_data[0].insertions.coeffRef(4) == 99);
-        CHECK(ins_data[0].insertions.coeffRef(5) == 0);  // open gap
-        CHECK(ins_data[0].insertions.coeffRef(6) == 0);
-        CHECK(ins_data[0].insertions.coeffRef(7) == 111);
-        CHECK(ins_data[1].insertions.coeffRef(0) == 0);
-        CHECK(ins_data[1].insertions.coeffRef(1) == 0);
-        CHECK(ins_data[1].insertions.coeffRef(2) == 99);  // closed gap
-        CHECK(ins_data[1].insertions.coeffRef(3) == 99);  // open gap
-        CHECK(ins_data[1].insertions.coeffRef(4) == 99);  // open gap
-        CHECK(ins_data[1].insertions.coeffRef(5) == 0);
-        CHECK(ins_data[1].insertions.coeffRef(6) == 0);
-        CHECK(ins_data[1].insertions.coeffRef(7) == 111);  // open gap
-        CHECK(ins_data[1].insertions.coeffRef(8) == 0);
-        CHECK(ins_data[1].insertions.coeffRef(9) == 0);
+        CHECK_EQ(ins_data[0].sequences[0], "CT---TGCAT");
+        CHECK_EQ(ins_data[1].sequences[0], "CTACGTGCAT");
+        CHECK_EQ(ins_data[0].insertions.coeffRef(0), 0);
+        CHECK_EQ(ins_data[0].insertions.coeffRef(1), 0);
+        CHECK_EQ(ins_data[0].insertions.coeffRef(2), 99);  // closed gap
+        CHECK_EQ(ins_data[0].insertions.coeffRef(3), 99);
+        CHECK_EQ(ins_data[0].insertions.coeffRef(4), 99);
+        CHECK_EQ(ins_data[0].insertions.coeffRef(5), 0);  // open gap
+        CHECK_EQ(ins_data[0].insertions.coeffRef(6), 0);
+        CHECK_EQ(ins_data[0].insertions.coeffRef(7), 111);
+        CHECK_EQ(ins_data[1].insertions.coeffRef(0), 0);
+        CHECK_EQ(ins_data[1].insertions.coeffRef(1), 0);
+        CHECK_EQ(ins_data[1].insertions.coeffRef(2), 99);  // closed gap
+        CHECK_EQ(ins_data[1].insertions.coeffRef(3), 99);  // open gap
+        CHECK_EQ(ins_data[1].insertions.coeffRef(4), 99);  // open gap
+        CHECK_EQ(ins_data[1].insertions.coeffRef(5), 0);
+        CHECK_EQ(ins_data[1].insertions.coeffRef(6), 0);
+        CHECK_EQ(ins_data[1].insertions.coeffRef(7), 111);  // open gap
+        CHECK_EQ(ins_data[1].insertions.coeffRef(8), 0);
+        CHECK_EQ(ins_data[1].insertions.coeffRef(9), 0);
     }
 }
 // GCOVR_EXCL_STOP
