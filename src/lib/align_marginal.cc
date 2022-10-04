@@ -432,19 +432,9 @@ TEST_CASE("alignment_score") {
 void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     coati::Matrixf P(64, 64), p_marg;
 
-    std::ostream* pout(nullptr);
-    std::ofstream outfile;
-    if(aln.data.out_file.path.empty() || aln.data.out_file.path == "-") {
-        pout = &std::cout;
-    } else {
-        outfile.open(aln.data.out_file.path);
-        if(!outfile) {
-            throw std::invalid_argument("Opening output file" +
-                                        aln.data.out_file.path + "  failed.");
-        }
-        pout = &outfile;
-    }
-    std::ostream& out = *pout;
+    // set output pointer
+    std::ostream* os = coati::io::set_ostream(aln.data.out_file.path);
+    std::ostream& out = *os;
 
     // check that length of ref sequence is multiple of 3 and gap unit size
     size_t len_a = aln.seq(0).length();

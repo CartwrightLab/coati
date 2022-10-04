@@ -61,23 +61,11 @@ void from_json(const json_t& j, data_t& data) {
  */
 coati::data_t read_json(const std::string& f_path, bool marginal) {
     coati::data_t json(f_path);
+
     // set input pointer and file type
-    std::istream* pin(nullptr);
-    std::ifstream infile;  // input file
     coati::file_type_t in_type = coati::utils::extract_file_type(f_path);
-    if(in_type.path.empty() || in_type.path == "-") {
-        pin = &std::cin;  // set to stdin
-        in_type.path = "-";
-    } else {
-        infile.open(f_path);
-        if(!infile || !infile.good()) {
-            throw std::invalid_argument("Opening input file " + f_path +
-                                        " failed.");
-        }
-        pin = &infile;  // set to file
-        in_type = coati::utils::extract_file_type(f_path);
-    }
-    std::istream& in = *pin;
+    std::istream* is = coati::io::set_istream(in_type.path);
+    std::istream& in = *is;
 
     // read and convert json format to data_t
     json_t in_json;
@@ -166,19 +154,8 @@ void write_json(coati::data_t& json, const VectorFstStdArc& aln) {
         coati::utils::fst_to_seqs(json, aln);
     }
     // set output pointer
-    std::ostream* pout(nullptr);
-    std::ofstream outfile;
-    if(json.out_file.path == "-" || json.out_file.path.empty()) {
-        pout = &std::cout;
-    } else {
-        outfile.open(json.out_file.path);
-        if(!outfile) {
-            throw std::invalid_argument("Opening output file " +
-                                        json.out_file.path + " failed.");
-        }
-        pout = &outfile;
-    }
-    std::ostream& out = *pout;
+    std::ostream* os = coati::io::set_ostream(json.out_file.path);
+    std::ostream& out = *os;
 
     json_t out_json = json;
 

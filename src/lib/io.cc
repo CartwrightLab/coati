@@ -385,4 +385,34 @@ TEST_CASE("write_output") {
 }
 // GCOVR_EXCL_STOP
 
+std::ostream* set_ostream(const std::string& path) {
+    std::ostream* pout(nullptr);
+    if(path.empty() || path == "-") {
+        pout = &std::cout;
+        return std::move(pout);
+    }
+
+    std::ofstream* outfile = new std::ofstream(path);
+    if(!outfile->is_open()) {
+        throw std::invalid_argument("Opening output " + path + "file failed");
+    }
+    pout = outfile;
+    return std::move(pout);
+}
+
+std::istream* set_istream(const std::string& path) {
+    std::istream* pin(nullptr);
+    if(path.empty() || path == "-") {
+        pin = &std::cin;
+        return std::move(pin);
+    }
+
+    std::ifstream* infile = new std::ifstream(path);
+    if(!infile->is_open()) {
+        throw std::invalid_argument("Opening input file " + path + " failed.");
+    }
+    pin = infile;
+    return std::move(pin);
+}
+
 }  // namespace coati::io

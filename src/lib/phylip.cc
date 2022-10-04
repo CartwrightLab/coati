@@ -38,22 +38,10 @@ namespace coati {
 coati::data_t read_phylip(const std::string& f_path, bool marginal) {
     coati::data_t phylip(f_path);
 
-    std::istream* pin(nullptr);
-    std::ifstream infile;  // input file
+    // set input pointer and file type
     coati::file_type_t in_type = coati::utils::extract_file_type(f_path);
-    if(in_type.path.empty() || in_type.path == "-") {
-        pin = &std::cin;  // set to stdin
-        in_type.path = "-";
-    } else {
-        infile.open(f_path);
-        if(!infile || !infile.good()) {
-            throw std::invalid_argument("Opening input file " + f_path +
-                                        " failed.");
-        }
-        pin = &infile;  // set to file
-        in_type = coati::utils::extract_file_type(f_path);
-    }
-    std::istream& in = *pin;
+    std::istream* is = coati::io::set_istream(in_type.path);
+    std::istream& in = *is;
 
     int n_seqs{0}, len_seqs{0};
     std::string line;
@@ -208,19 +196,8 @@ void write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
         coati::utils::fst_to_seqs(phylip, aln);
     }
     // set output pointer
-    std::ostream* pout(nullptr);
-    std::ofstream outfile;
-    if(phylip.out_file.path == "-" || phylip.out_file.path.empty()) {
-        pout = &std::cout;
-    } else {
-        outfile.open(phylip.out_file.path);
-        if(!outfile) {
-            throw std::invalid_argument("Opening output file " +
-                                        phylip.out_file.path + " failed.");
-        }
-        pout = &outfile;
-    }
-    std::ostream& out = *pout;
+    std::ostream* os = coati::io::set_ostream(phylip.out_file.path);
+    std::ostream& out = *os;
 
     // write aligned sequences to file
     out << phylip.size() << " " << phylip.seqs[0].length() << std::endl;

@@ -44,6 +44,8 @@ namespace coati::io {
 coati::Matrixf parse_matrix_csv(const std::string& file);
 coati::data_t read_input(coati::alignment_t& aln);
 void write_output(coati::data_t& data, const coati::VectorFstStdArc& aln = {});
+std::ostream* set_ostream(const std::string& path);
+std::istream* set_istream(const std::string& path);
 
 }  // namespace coati::io
 #endif

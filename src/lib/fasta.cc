@@ -38,22 +38,9 @@ coati::data_t read_fasta(const std::string& f_path, bool marginal) {
     coati::data_t fasta(f_path);
 
     // set input pointer and file type
-    std::istream* pin(nullptr);
-    std::ifstream infile;  // input file
     coati::file_type_t in_type = coati::utils::extract_file_type(f_path);
-    if(in_type.path.empty() || in_type.path == "-") {
-        pin = &std::cin;  // set to stdin
-        in_type.path = "-";
-    } else {
-        infile.open(f_path);
-        if(!infile || !infile.good()) {
-            throw std::invalid_argument("Opening input file " + f_path +
-                                        " failed.");
-        }
-        pin = &infile;  // set to file
-        in_type = coati::utils::extract_file_type(f_path);
-    }
-    std::istream& in = *pin;
+    std::istream* is = coati::io::set_istream(in_type.path);
+    std::istream& in = *is;
 
     std::string line, name, content;
     while(in.good()) {
@@ -168,19 +155,8 @@ void write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
         coati::utils::fst_to_seqs(fasta, aln);
     }
     // set output pointer
-    std::ostream* pout(nullptr);
-    std::ofstream outfile;
-    if(fasta.out_file.path == "-" || fasta.out_file.path.empty()) {
-        pout = &std::cout;
-    } else {
-        outfile.open(fasta.out_file.path);
-        if(!outfile) {
-            throw std::invalid_argument("Opening output file " +
-                                        fasta.out_file.path + " failed.");
-        }
-        pout = &outfile;
-    }
-    std::ostream& out = *pout;
+    std::ostream* os = coati::io::set_ostream(fasta.out_file.path);
+    std::ostream& out = *os;
 
     for(size_t i = 0; i < fasta.size(); i++) {
         out << ">" << fasta.names[i] << std::endl;
