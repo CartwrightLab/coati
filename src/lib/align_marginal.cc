@@ -44,7 +44,7 @@ bool marg_alignment(coati::alignment_t& aln) {
     coati::utils::set_subst(aln);
 
     // set reference sequence as first sequence (in aln.data)
-    if(!aln.refs.empty() || aln.refn != 0) {
+    if(!aln.refs.empty() || aln.refn == 1) {
         order_ref(aln);
     }
 
@@ -107,9 +107,11 @@ void order_ref(coati::alignment_t& aln) {
     } else if(aln.data.names[1] == aln.refs) {
         std::swap(aln.data.names[0], aln.data.names[1]);
         std::swap(aln.data.seqs[0], aln.data.seqs[1]);
-    } else {
+    } else if(aln.refn == 1) {
         std::swap(aln.data.names[0], aln.data.names[1]);
         std::swap(aln.data.seqs[0], aln.data.seqs[1]);
+    } else {  // aln.refs was specified and doesn't match any seq names
+        throw std::invalid_argument("Name of reference sequence not found.");
     }
 }
 
@@ -293,6 +295,12 @@ TEST_CASE("marg_alignment") {
         aln.score = true;
 
         coati::data_t result(aln.data.out_file.path);
+
+        REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
+    }
+    SUBCASE("Name of reference not found") {
+        aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        aln.refs = "seq_name";
 
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
     }
