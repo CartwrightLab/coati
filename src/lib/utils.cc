@@ -92,8 +92,8 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
             ->check(CLI::PositiveNumber);
     }
     if(command == Command::ALIGNPAIR) {
-        CLI::Option* opt_ref = app.add_option("-r,--reference", args.aln.refs,
-                                              "Name of reference sequence");
+        auto* opt_ref = app.add_option("-r,--reference", args.aln.refs,
+                                       "Name of reference sequence");
         app.add_option("-R,--Reference", args.aln.refn,
                        "Position of reference sequence")
             ->check(CLI::Range(0, 1))
@@ -155,10 +155,11 @@ void set_cli_options_format(CLI::App& app, coati::args_t& args) {
     app.add_option("-c,--padding", args.format.padding,
                    "Padding char to format preserve phase")
         ->needs(phase);
-    app.add_option("-s,--cut-sequences", args.format.seqs,
-                   "Name of sequences to extract");
+    auto* cut_seq = app.add_option("-s,--cut-sequences", args.format.names,
+                                   "Name of sequences to extract");
     app.add_option("-x,--cut-position", args.format.pos,
-                   "Position of sequences to extract (1 based)");
+                   "Position of sequences to extract (1 based)")
+        ->excludes(cut_seq);
 }
 
 /**
