@@ -5,6 +5,7 @@ marg_sample
 ref_indel_alignment
 read_fasta
 write_fasta
+extract_seqs
 format_sequences
 insertion_flags
 merge_indels
