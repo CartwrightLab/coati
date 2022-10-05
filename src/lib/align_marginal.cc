@@ -554,6 +554,13 @@ TEST_CASE("marg_sample") {
         std::vector<std::string> lweight{"-3.46609"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, weight, lweight);
     }
+    SUBCASE("sample size 1 - deletion") {
+        std::vector<std::string> seq1{"CCCCCC"};
+        std::vector<std::string> seq2{"CCCC--"};
+        std::vector<std::string> weight{"0.856821"};
+        std::vector<std::string> lweight{"-0.154526"};
+        test("CCCCCC", "CCCC", seq1, seq2, weight, lweight);
+    }
     SUBCASE("sample size 3") {
         std::vector<std::string> seq1{"CC--CCCC", "CCCCCC--", "CCCCC--C"};
         std::vector<std::string> seq2{"CCCCCCCC", "CCCCCCCC", "CCCCCCCC"};

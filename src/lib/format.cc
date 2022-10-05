@@ -96,17 +96,22 @@ void extract_seqs(coati::format_t& format, coati::data_t& data) {
                 //  input
             }
         }
+        if(format.pos.empty()) {
+            throw std::invalid_argument("Names of seqs to extract not found.");
+        }
     }
 
     if(format.pos.size() > 0) {
+        const auto [min, max] =
+            std::minmax_element(format.pos.begin(), format.pos.end());
+        if(*min == 0 || *max > data.size()) {
+            throw std::invalid_argument(
+                "Positions of seqs to extract are of out range");
+        }
         for(auto pos : format.pos) {
             names.push_back(data.names[pos - 1]);
             seqs.push_back(data.seqs[pos - 1]);
         }
-    }
-    // if all sequences are removed, throw an error
-    if(data.names.empty()) {
-        throw std::invalid_argument("Sequences to extract not found.");
     }
     data.names = names;
     data.seqs = seqs;
@@ -135,9 +140,48 @@ TEST_CASE("extract_seqs") {
         test(format, data, expected);
     }
 
-    SUBCASE("Select one seq by pos") {}
-    SUBCASE("Remove all explicit - fail") {}
-    SUBCASE("Remove all names not found - fail") {}
+    SUBCASE("Select one seq by pos") {
+        coati::data_t data, expected;
+        data.names = {"A", "B"};
+        data.seqs = {"AAA", "CCC"};
+        coati::format_t format;
+        format.pos = {2};
+
+        expected.names = {"B"};
+        expected.seqs = {"CCC"};
+
+        test(format, data, expected);
+    }
+    SUBCASE("Names not found - fail") {
+        coati::data_t data, expected;
+        data.names = {"A", "B"};
+        data.seqs = {"AAA", "CCC"};
+
+        coati::format_t format;
+        format.names = {"C"};
+
+        CHECK_THROWS_AS(extract_seqs(format, data), std::invalid_argument);
+    }
+    SUBCASE("Positions out of range - fail") {
+        coati::data_t data, expected;
+        data.names = {"A", "B"};
+        data.seqs = {"AAA", "CCC"};
+
+        coati::format_t format;
+        format.pos = {5};
+
+        CHECK_THROWS_AS(extract_seqs(format, data), std::invalid_argument);
+    }
+    SUBCASE("Positions out of range - fail") {
+        coati::data_t data, expected;
+        data.names = {"A", "B"};
+        data.seqs = {"AAA", "CCC"};
+
+        coati::format_t format;
+        format.pos = {0};
+
+        CHECK_THROWS_AS(extract_seqs(format, data), std::invalid_argument);
+    }
 }
 // GCOVR_EXCL_STOP
 

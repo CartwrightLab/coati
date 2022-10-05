@@ -124,12 +124,20 @@ coati::Matrixf mg94_p(float br_len, float omega,
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("mg94_p") {
-    coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
+    SUBCASE("default") {
+        coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
-    for(int i = 0; i < 64; i++) {
-        for(int j = 0; j < 64; j++) {
-            CHECK_EQ(P(i, j), doctest::Approx(mg94P[i][j]));
+        for(int i = 0; i < 64; i++) {
+            for(int j = 0; j < 64; j++) {
+                CHECK_EQ(P(i, j), doctest::Approx(mg94P[i][j]));
+            }
         }
+    }
+    SUBCASE("invalid branch length - fail") {
+        CHECK_THROWS_AS(mg94_p(0.f, 0.2, {0.308, 0.185, 0.199, 0.308}),
+                        std::out_of_range);
+        CHECK_THROWS_AS(mg94_p(-0.02, 0.2, {0.308, 0.185, 0.199, 0.308}),
+                        std::out_of_range);
     }
 }
 // GCOVR_EXCL_STOP
