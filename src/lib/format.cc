@@ -37,6 +37,11 @@ namespace coati {
  *
  */
 int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
+    // if sequences to extract are specified do so
+    if(format.names.size() > 0 || format.pos.size() > 0) {
+        extract_seqs(format, aln.data);
+    }
+
     if(format.preserve_phase) {  // padd gaps to preserve phase
         if(format.padding == "-") {
             throw std::invalid_argument("Invalid padding character " +
@@ -62,33 +67,78 @@ int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
         }
     }
 
-    // if sequences to extract are specified do so
-    if(format.seqs.size() > 0 || format.pos.size() > 0) {
-        for(auto index : format.pos) {
-            format.seqs.emplace_back(aln.name(index - 1));
-        }
-
-        // only keep sequences that need to be extracted
-        for(auto i = aln.data.names.rbegin(), i2 = aln.data.seqs.rbegin();
-            i != aln.data.names.rend(); ++i, ++i2) {
-            // if sequence name is not found on extraction list, remove
-            if(std::find(begin(format.seqs), end(format.seqs), *i) ==
-               end(format.seqs)) {
-                aln.data.names.erase((i + 1).base());
-                aln.data.seqs.erase((i2 + 1).base());
-            }
-        }
-
-        // if all sequences are removed, throw an error
-        if(aln.data.names.empty()) {
-            throw std::invalid_argument("Sequences not found.");
-        }
-    }
-
     // output formatted sequences
     coati::io::write_output(aln.data);
     return EXIT_SUCCESS;
 }
+
+/**
+ * \brief Keep only sequences specified by position or by name.
+ *
+ * @param[in,out] format coati::format_t arguments for running coati-format.
+ * @param[in,out] data coati::data_t information about sequence data and
+ * paramaters.
+ */
+void extract_seqs(coati::format_t& format, coati::data_t& data) {
+    std::vector<std::string> names;
+    std::vector<std::string> seqs;
+    names.reserve(data.names.size());
+    seqs.reserve(data.seqs.size());
+
+    if(format.names.size() > 0) {
+        for(std::size_t i = 0; i < format.names.size(); ++i) {
+            auto it =
+                find(data.names.cbegin(), data.names.cend(), format.names[i]);
+            if(it != data.names.cend()) {
+                format.pos.push_back(it - data.names.cbegin() + 1);
+                // add +1 so that numbers are 1 indexed - consistent with user
+                //  input
+            }
+        }
+    }
+
+    if(format.pos.size() > 0) {
+        for(auto pos : format.pos) {
+            names.push_back(data.names[pos - 1]);
+            seqs.push_back(data.seqs[pos - 1]);
+        }
+    }
+    // if all sequences are removed, throw an error
+    if(data.names.empty()) {
+        throw std::invalid_argument("Sequences to extract not found.");
+    }
+    data.names = names;
+    data.seqs = seqs;
+}
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("extract_seqs") {
+    // NOLINTNEXTLINE(mis-unused-parameters)
+    auto test = [](coati::format_t& format, coati::data_t& data,
+                   const coati::data_t& expected) {
+        coati::extract_seqs(format, data);
+        CHECK_EQ(data.names, expected.names);
+        CHECK_EQ(data.seqs, expected.seqs);
+    };
+
+    SUBCASE("Flip two sequences by name") {
+        coati::data_t data, expected;
+        data.names = {"A", "B"};
+        data.seqs = {"AAA", "CCC"};
+        coati::format_t format;
+        format.names = {"B", "A"};
+
+        expected.names = {"B", "A"};
+        expected.seqs = {"CCC", "AAA"};
+
+        test(format, data, expected);
+    }
+
+    SUBCASE("Select one seq by pos") {}
+    SUBCASE("Remove all explicit - fail") {}
+    SUBCASE("Remove all names not found - fail") {}
+}
+// GCOVR_EXCL_STOP
 
 /// @private
 // GCOVR_EXCL_START
@@ -187,7 +237,7 @@ TEST_CASE("format_sequences") {
         args.format.preserve_phase = true;
         args.aln.data = coati::data_t("", {"Ancestor", "Descendant"},
                                       {"A-----------GT", "ACCCCCCCCCCCGT"});
-        args.format.seqs = {"Ancestor"};
+        args.format.names = {"Ancestor"};
         expected = coati::data_t("", {">Ancestor"}, {"A-----------?GT"});
         test_format_fasta(args, expected);
     }
@@ -201,12 +251,11 @@ TEST_CASE("format_sequences") {
                                  {"A--?GT", "A-C?GT"});
         test_format_fasta(args, expected);
     }
-    SUBCASE("phylip-extract-sequences-name-position") {
+    SUBCASE("phylip-extract-sequences-position") {
         args.format.preserve_phase = true;
         args.aln.data =
             coati::data_t("", {"Ancestor", "Descend-1", "Descend-2"},
                           {"A--GT", "ACCGT", "A-CGT"});
-        args.format.seqs = {"Ancestor"};
         args.format.pos = {1, 3};
         expected =
             coati::data_t("", {"Ancestor", "Descend-2"}, {"A--?GT", "A-C?GT"});
@@ -217,11 +266,10 @@ TEST_CASE("format_sequences") {
         args.format.padding = "$";
         args.aln.data =
             coati::data_t("", {"Ancestor", "Descend-1", "Descend-2"},
-                          {"A-GT", "ACGT", "AC-T"});
-        args.format.seqs = {"Ancestor"};
-        args.format.pos = {2};
+                          {"ACGT", "A-GT", "AC-T"});
+        args.format.pos = {2, 1};
         expected =
-            coati::data_t("", {"Ancestor", "Descend-1"}, {"A-$$GT", "AC$$GT"});
+            coati::data_t("", {"Descend-1", "Ancestor"}, {"A-$$GT", "AC$$GT"});
         test_format_phylip(args, expected);
     }
     SUBCASE("invalid-padding") {
@@ -233,7 +281,7 @@ TEST_CASE("format_sequences") {
     SUBCASE("sequences-not-found") {
         args.aln.data =
             coati::data_t("", {"Ancestor", "Descendant"}, {"AAA", "AAA"});
-        args.format.seqs = {"coati"};
+        args.format.names = {"coati"};
         REQUIRE_THROWS_AS(coati::format_sequences(args.format, args.aln),
                           std::invalid_argument);
     }

@@ -30,6 +30,7 @@
 namespace coati {
 
 int format_sequences(coati::format_t& format, coati::alignment_t& aln);
+void extract_seqs(coati::format_t& format, coati::data_t& data);
 
 }  // namespace coati
 
