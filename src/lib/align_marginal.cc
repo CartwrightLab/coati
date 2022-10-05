@@ -44,7 +44,7 @@ bool marg_alignment(coati::alignment_t& aln) {
     coati::utils::set_subst(aln);
 
     // set reference sequence as first sequence (in aln.data)
-    if(!aln.refs.empty() || aln.refn == 1) {
+    if(!aln.refs.empty() || aln.rev) {
         order_ref(aln);
     }
 
@@ -107,7 +107,7 @@ void order_ref(coati::alignment_t& aln) {
     } else if(aln.data.names[1] == aln.refs) {
         std::swap(aln.data.names[0], aln.data.names[1]);
         std::swap(aln.data.seqs[0], aln.data.seqs[1]);
-    } else if(aln.refn == 1) {
+    } else if(aln.rev) {
         std::swap(aln.data.names[0], aln.data.names[1]);
         std::swap(aln.data.seqs[0], aln.data.seqs[1]);
     } else {  // aln.refs was specified and doesn't match any seq names
@@ -224,7 +224,7 @@ TEST_CASE("marg_alignment") {
         aln.data = coati::data_t("", {"A", "B"}, {"GCGATTGCTGTT", "GCGACTGTT"});
         aln.model = "m-coati";
         aln.data.out_file = {{"test-marg_alignment-phylip.phy"}, {".phy"}};
-        aln.refn = 1;
+        aln.rev = true;
 
         expected = data_t("", {"B", "A"}, {"GCGA---CTGTT", "GCGATTGCTGTT"});
 

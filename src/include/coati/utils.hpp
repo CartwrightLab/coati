@@ -88,13 +88,12 @@ using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 using sequence_pair_t = std::vector<std::basic_string<unsigned char>>;
 
-enum struct Command { ALIGNPAIR, MSA, SAMPLE, FORMAT };
-
 int cod_distance(uint8_t cod1, uint8_t cod2);
 int cod_int(const std::string_view codon);
-void set_cli_options(CLI::App& app, coati::args_t& args,
-                     const coati::utils::Command& command);
-void set_cli_options_format(CLI::App& app, coati::args_t& args);
+void set_options_alignpair(CLI::App& app, coati::args_t& args);
+void set_options_msa(CLI::App& app, coati::args_t& args);
+void set_options_sample(CLI::App& app, coati::args_t& args);
+void set_options_format(CLI::App& app, coati::args_t& args);
 sequence_pair_t marginal_seq_encoding(const std::string_view anc,
                                       const std::string_view des);
 void set_subst(alignment_t& aln);

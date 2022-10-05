@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
 
     // Parse command line options
     CLI::App msa;
-    coati::utils::set_cli_options(msa, args, coati::utils::Command::MSA);
+    coati::utils::set_options_msa(msa, args);
     CLI11_PARSE(msa, argc, argv);
 
     // read input fasta file

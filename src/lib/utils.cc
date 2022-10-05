@@ -65,43 +65,29 @@ int cod_int(const std::string_view codon) {
 }
 
 /**
- * \brief Setup command line options
+ * \brief Setup command line options for coati-alignpair.
  *
  * @param[in] app CLI::App command line arguments parser from CLI11.
  * @param[in,out] args coati::args_t to store the input parameters.
- * @param[in] command std::string one of coati commands (i.e. alignpair or msa).
- *
  */
-void set_cli_options(CLI::App& app, coati::args_t& args,
-                     const Command& command) {
+void set_options_alignpair(CLI::App& app, coati::args_t& args) {
     app.add_option("input", args.aln.data.path,
                    "Input file (FASTA/PHYLIP/JSON accepted)")
         ->required();
-    if(command == Command::MSA) {
-        app.add_option("tree", args.aln.tree, "Newick phylogenetic tree")
-            ->required()
-            ->check(CLI::ExistingFile);
-        app.add_option("reference", args.aln.refs, "Reference sequence")
-            ->required();
-    }
     app.add_option("-m,--model", args.aln.model,
                    "Substitution model (coati ecm dna m-coati m-ecm)");
-    if(command == Command::ALIGNPAIR || command == Command::SAMPLE) {
-        app.add_option("-t,--time", args.aln.br_len,
-                       "Evolutionary time/branch length")
-            ->check(CLI::PositiveNumber);
-    }
-    if(command == Command::ALIGNPAIR) {
-        auto* opt_ref = app.add_option("-r,--reference", args.aln.refs,
-                                       "Name of reference sequence");
-        app.add_option("-R,--Reference", args.aln.refn,
-                       "Position of reference sequence")
-            ->check(CLI::Range(0, 1))
-            ->excludes(opt_ref);
-        app.add_option("-l,--weight", args.aln.weight_file,
-                       "Write alignment score to file");
-        app.add_flag("-s,--score", args.aln.score, "Score alignment");
-    }
+    app.add_option("-t,--time", args.aln.br_len,
+                   "Evolutionary time/branch length")
+        ->check(CLI::PositiveNumber);
+    auto* opt_ref =
+        app.add_flag("-r,--reference", args.aln.refs,
+                     "Name of reference sequence (1st seq by default)");
+    app.add_flag("-v,--reverse-ref", args.aln.rev,
+                 "Use second sequence as reference (1st seq by default)")
+        ->excludes(opt_ref);
+    app.add_option("-l,--weight", args.aln.weight_file,
+                   "Write alignment score to file");
+    app.add_flag("-s,--score", args.aln.score, "Score alignment");
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
     app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
         ->check(CLI::PositiveNumber);
@@ -126,15 +112,94 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
     app.add_option("-a,--ambiguous", args.aln.amb,
                    "Ambiguous nucleotides model", "AVG")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case));
-    if(command == Command::SAMPLE) {
-        // app.add_option("-T,--temperature", args.temperature, "Sampling
-        // temperature");
-        app.add_option("-n,--sample-size", args.sample.sample_size,
-                       "Sample size");
-        app.add_option("-d, --seed", args.sample.seeds,
-                       "Space separated list of seed(s) used for sampling");
-        //->expected(Nmin,Nmax);
-    }
+}
+
+/**
+ * \brief Setup command line options for coati-msa.
+ *
+ * @param[in] app CLI::App command line arguments parser from CLI11.
+ * @param[in,out] args coati::args_t to store the input parameters.
+ */
+void set_options_msa(CLI::App& app, coati::args_t& args) {
+    app.add_option("input", args.aln.data.path,
+                   "Input file (FASTA/PHYLIP/JSON accepted)")
+        ->required();
+    app.add_option("tree", args.aln.tree, "Newick phylogenetic tree")
+        ->required()
+        ->check(CLI::ExistingFile);
+    app.add_option("reference", args.aln.refs, "Name of reference sequence")
+        ->required();
+    app.add_option("-m,--model", args.aln.model,
+                   "Substitution model (coati ecm dna m-coati m-ecm)");
+    app.add_option("-o,--output", args.aln.output, "Alignment output file");
+    app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
+        ->check(CLI::PositiveNumber);
+    app.add_option("-e,--gap-extend", args.aln.gap.extend,
+                   "Gap extension score")
+        ->check(CLI::PositiveNumber);
+    app.add_option("-w,--omega", args.aln.omega,
+                   "Nonsynonymous-synonymous bias")
+        ->check(CLI::PositiveNumber);
+    app.add_option("-p,--pi", args.aln.pi, "Nucleotide frequencies (A C G T)")
+        ->expected(4);
+    app.add_option("-k,--gap-len", args.aln.gap.len, "Set gap unit size");
+    app.add_option("-x,--sigma", args.aln.sigma,
+                   "GTR sigma parameters (AC AG AT CG CT GT)")
+        ->expected(6);
+    // specify string->value mappings
+    std::map<std::string, coati::AmbiguousNucs> amb_map{
+        {"AVG", coati::AmbiguousNucs::AVG},
+        {"BEST", coati::AmbiguousNucs::BEST}};
+    // CheckedTransformer translates and checks whether the results are either
+    // in one of the strings or in one of the translations already
+    app.add_option("-a,--ambiguous", args.aln.amb,
+                   "Ambiguous nucleotides model", "AVG")
+        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case));
+}
+
+/**
+ * \brief Setup command line options for coati-sample.
+ *
+ * @param[in] app CLI::App command line arguments parser from CLI11.
+ * @param[in,out] args coati::args_t to store the input parameters.
+ */
+void set_options_sample(CLI::App& app, coati::args_t& args) {
+    app.add_option("input", args.aln.data.path,
+                   "Input file (FASTA/PHYLIP/JSON accepted)")
+        ->required();
+    app.add_option("-t,--time", args.aln.br_len,
+                   "Evolutionary time/branch length")
+        ->check(CLI::PositiveNumber);
+    app.add_option("-o,--output", args.aln.output, "Alignment output file");
+    app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
+        ->check(CLI::PositiveNumber);
+    app.add_option("-e,--gap-extend", args.aln.gap.extend,
+                   "Gap extension score")
+        ->check(CLI::PositiveNumber);
+    app.add_option("-w,--omega", args.aln.omega,
+                   "Nonsynonymous-synonymous bias")
+        ->check(CLI::PositiveNumber);
+    app.add_option("-p,--pi", args.aln.pi, "Nucleotide frequencies (A C G T)")
+        ->expected(4);
+    app.add_option("-k,--gap-len", args.aln.gap.len, "Set gap unit size");
+    app.add_option("-x,--sigma", args.aln.sigma,
+                   "GTR sigma parameters (AC AG AT CG CT GT)")
+        ->expected(6);
+    // specify string->value mappings
+    std::map<std::string, coati::AmbiguousNucs> amb_map{
+        {"AVG", coati::AmbiguousNucs::AVG},
+        {"BEST", coati::AmbiguousNucs::BEST}};
+    // CheckedTransformer translates and checks whether the results are
+    // either in one of the strings or in one of the translations already
+    app.add_option("-a,--ambiguous", args.aln.amb,
+                   "Ambiguous nucleotides model", "AVG")
+        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case));
+    // app.add_option("-T,--temperature", args.temperature, "Sampling
+    // temperature");
+    app.add_option("-n,--sample-size", args.sample.sample_size, "Sample size");
+    app.add_option("-s, --seed", args.sample.seeds,
+                   "Space separated list of seed(s) used for sampling");
+    //->expected(Nmin,Nmax);
 }
 
 /**
@@ -142,10 +207,9 @@ void set_cli_options(CLI::App& app, coati::args_t& args,
  *
  * @param[in] app CLI::App command line arguments parser from CLI11.
  * @param[in,out] args coati::args_t to store the input parameters.
- * @param[in] command std::string one of coati commands (i.e. alignpair or msa).
  *
  */
-void set_cli_options_format(CLI::App& app, coati::args_t& args) {
+void set_options_format(CLI::App& app, coati::args_t& args) {
     app.add_option("input", args.aln.data.path,
                    "Input file (FASTA/PHYLIP/JSON accepted)")
         ->required();
@@ -157,7 +221,7 @@ void set_cli_options_format(CLI::App& app, coati::args_t& args) {
         ->needs(phase);
     auto* cut_seq = app.add_option("-s,--cut-sequences", args.format.names,
                                    "Name of sequences to extract");
-    app.add_option("-x,--cut-position", args.format.pos,
+    app.add_option("-p,--cut-position", args.format.pos,
                    "Position of sequences to extract (1 based)")
         ->excludes(cut_seq);
 }
@@ -165,9 +229,9 @@ void set_cli_options_format(CLI::App& app, coati::args_t& args) {
 /**
  * \brief Encode two sequences as vector<unsigned char>
  *
- * Encode ancestor (ref) sequence as codon \& phase, descendant as nucleotide.
- *  ref: AAA \& position 0 -> 0, AAA \& 1 -> 1, ... , TTT \& 2 -> 191.
- *  des: A -> 0, C -> 1, G -> 2, T -> 3.
+ * Encode ancestor (ref) sequence as codon \& phase, descendant as
+ * nucleotide. ref: AAA \& position 0 -> 0, AAA \& 1 -> 1, ... , TTT \& 2 ->
+ * 191. des: A -> 0, C -> 1, G -> 2, T -> 3.
  *
  * @param[in] anc std::string sequence of ancestor (reference).
  * @param[in] des std::string sequence of descendant.
@@ -188,7 +252,8 @@ sequence_pair_t marginal_seq_encoding(const std::string_view anc,
             "Ambiguous nucleotides in reference sequence not supported.");
     }
 
-    // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... , TTT3->191
+    // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... ,
+    // TTT3->191
     for(size_t i = 0; i < anc.size() - 2; ++i) {
         auto c0 = static_cast<unsigned char>(
                       nt16_table[static_cast<unsigned char>(anc[i])])

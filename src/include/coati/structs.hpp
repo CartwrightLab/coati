@@ -107,7 +107,7 @@ class alignment_t {
                             0.308}; /*!< nucleotide frequencies */
     std::string tree{""};           /*!< path to input newick tree file */
     std::string refs{""};           /*!< name of reference sequence */
-    int refn{0};                    /*!< position of reference sequence */
+    bool rev{false};                /*!< use 2nd seq as reference */
     std::string rate{""}; /*!< path to csv input substitution matrix file */
     gap_t gap;            /*!< gap struct */
     std::vector<float_t> sigma{0.f, 0.f, 0.f,

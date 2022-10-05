@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
 
     // Parse command line options
     CLI::App format;
-    coati::utils::set_cli_options_format(format, args);
+    coati::utils::set_options_format(format, args);
     CLI11_PARSE(format, argc, argv);
 
     // if no input specified, use cin and json format as default

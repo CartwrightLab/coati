@@ -31,8 +31,7 @@ int main(int argc, char* argv[]) {
 
     // Parse command line options
     CLI::App alignpair;
-    coati::utils::set_cli_options(alignpair, args,
-                                  coati::utils::Command::SAMPLE);
+    coati::utils::set_options_sample(alignpair, args);
     CLI11_PARSE(alignpair, argc, argv);
 
     if(!args.aln.is_marginal()) {
