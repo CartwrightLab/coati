@@ -122,7 +122,10 @@ class alignment_t {
     /** \brief Return true if model selected is marginal (m-coati or m-ecm) */
     bool is_marginal() { return (model == "m-coati" || model == "m-ecm"); }
 
+    /** \brief Return sequence at position index. */
     std::string& seq(size_t index) { return data.seqs[index]; }
+
+    /** \brief Return name of sequence at position index. */
     std::string& name(size_t index) { return data.names[index]; }
 };
 
@@ -130,8 +133,8 @@ struct format_t {
    public:
     bool preserve_phase{false}; /*!< preserve phase for downstream analyses */
     std::string padding{"?"};   /*!< padding char to format preserve phase */
-    std::vector<std::string> seqs{}; /*!< seqs to extract - coati format*/
-    std::vector<size_t> pos{};
+    std::vector<std::string> names{}; /*!< names of seqs to extract */
+    std::vector<size_t> pos{};        /*!< position of seqs to extract */
 };
 
 struct sample_t {
