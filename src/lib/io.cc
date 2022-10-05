@@ -392,30 +392,30 @@ std::ostream* set_ostream(const std::string& path) {
     std::ostream* pout(nullptr);
     if(path.empty() || path == "-") {
         pout = &std::cout;
-        return std::move(pout);
+        return pout;
     }
 
-    std::ofstream* outfile = new std::ofstream(path);
+    auto* outfile = new std::ofstream(path);
     if(!outfile->is_open()) {
         throw std::invalid_argument("Opening output " + path + "file failed");
     }
     pout = outfile;
-    return std::move(pout);
+    return pout;
 }
 
 std::istream* set_istream(const std::string& path) {
     std::istream* pin(nullptr);
     if(path.empty() || path == "-") {
         pin = &std::cin;
-        return std::move(pin);
+        return pin;
     }
 
-    std::ifstream* infile = new std::ifstream(path);
+    auto* infile = new std::ifstream(path);
     if(!infile->is_open()) {
         throw std::invalid_argument("Opening input file " + path + " failed.");
     }
     pin = infile;
-    return std::move(pin);
+    return pin;
 }
 
 }  // namespace coati::io
