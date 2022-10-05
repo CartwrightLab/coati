@@ -90,7 +90,8 @@ void extract_seqs(coati::format_t& format, coati::data_t& data) {
             auto it =
                 find(data.names.cbegin(), data.names.cend(), format.names[i]);
             if(it != data.names.cend()) {
-                format.pos.push_back(it - data.names.cbegin() + 1);
+                format.pos.push_back(std::distance(data.names.cbegin(), it) +
+                                     1);
                 // add +1 so that numbers are 1 indexed - consistent with user
                 //  input
             }

@@ -402,13 +402,13 @@ size_t find_node(const tree_t& tree, const std::string_view name) {
     auto it = find_if(begin(tree), end(tree), [name](const node_t& node) {
         return node.label == name;
     });
-    size_t index = it - begin(tree);
 
     if(it == end(tree)) {
         throw std::invalid_argument("Node " + std::string(name) +
                                     " not found.");
     }
-    return index;
+
+    return std::distance(begin(tree), it);
 }
 
 /// @private
