@@ -35,18 +35,15 @@ int main(int argc, char* argv[]) {
     coati::utils::set_options_alignpair(alignpair, args);
     CLI11_PARSE(alignpair, argc, argv);
 
-    // read input data
-    args.aln.data = coati::io::read_input(args.aln);
-
-    if(args.aln.data.size() != 2) {
-        throw std::invalid_argument("Exactly two sequences required.");
+    try {
+        if(args.aln.is_marginal()) {
+            // alignment with marginal model by dynamic programming
+            return coati::marg_alignment(args.aln) ? 0 : 1;
+        }
+        // alignment with non-marginal model by FST composition
+        return coati::fst_alignment(args.aln) ? 0 : 1;
+    } catch(const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
     }
-
-    if(args.aln.is_marginal()) {
-        // alignment with marginal model by dynamic programming
-        return coati::marg_alignment(args.aln) ? 0 : 1;
-    }
-
-    // alignment with non-marginal model by FST composition
-    return coati::fst_alignment(args.aln) ? 0 : 1;
+    return EXIT_FAILURE;
 }

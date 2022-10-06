@@ -42,5 +42,9 @@ test('[pretest] Checking test list completeness', doctest_list_wrapper,
 fs = import('fs')
 tests = fs.read(test_list).strip().split('\n')
 foreach test_case : tests
-  test(f'[libcoati] @test_case@', doctest_exe, args : [f'--test-case=@test_case@'])
+  test(f'[libcoati] @test_case@',
+    doctest_exe,
+    args : [f'--test-case=@test_case@'],
+    is_parallel : false
+  )
 endforeach

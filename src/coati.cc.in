@@ -60,14 +60,9 @@ int main(int argc, char * const argv[]) {
     }
     new_argv.push_back(nullptr);
 
+    // transfer process to the executable
     int result{-1};
-    try {
-        // transfer process to the executable
-        result = ::execv(new_argv[0], new_argv.data());
-    } catch(std::exception &e) {
-        std::cerr << "ERROR: " << e.what() << std::endl;
-    }
-
+    result = ::execv(new_argv[0], new_argv.data());
     // execv only returns if there was an error.
     if(result != 0) {
         return EXIT_FAILURE;

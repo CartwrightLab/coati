@@ -33,13 +33,11 @@ int main(int argc, char* argv[]) {
     coati::utils::set_options_msa(msa, args);
     CLI11_PARSE(msa, argc, argv);
 
-    // read input fasta file
-    args.aln.data = coati::io::read_input(args.aln);
-
-    if(args.aln.data.size() < 3) {
-        throw std::invalid_argument(
-            "At least three sequences required. Exiting!");
+    try {
+        return coati::ref_indel_alignment(args.aln) ? EXIT_SUCCESS
+                                                    : EXIT_FAILURE;
+    } catch(const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
     }
-
-    return coati::ref_indel_alignment(args.aln) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return EXIT_FAILURE;
 }

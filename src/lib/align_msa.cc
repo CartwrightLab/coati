@@ -38,6 +38,12 @@ namespace coati {
 bool ref_indel_alignment(coati::alignment_t& input) {
     coati::alignment_t aln;
 
+    // read input data
+    input.data = coati::io::read_input(input);
+    if(input.data.size() < 3) {
+        throw std::invalid_argument("At least three sequences required.");
+    }
+
     aln.data.out_file = input.data.out_file;
 
     // read newick tree file
@@ -110,13 +116,17 @@ TEST_CASE("ref_indel_alignment") {
     outfile << "((((A:0.1,B:0.1):0.1,C:0.1):0.1,D:0.1):0.1,E:0.1);";
     outfile.close();
 
+    outfile.open("test-msa.fasta");
+    REQUIRE(outfile);
+    outfile << ">A\nTCATCG\n>B\nTCAGTCG\n>C\nTATCG\n>D\nTCACTCG\n>"
+               "E\nTCATC\n";
+    outfile.close();
+
     SUBCASE("m-coati model") {
         coati::alignment_t aln;
-        aln.data =
-            coati::data_t("", {"A", "B", "C", "D", "E"},
-                          {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"});
+        aln.data.path = "test-msa.fasta";
         aln.model = "m-coati";
-        aln.data.out_file = {{"test-mecm-msa.fasta"}, {".fasta"}};
+        aln.output = "test-mecm-msa.fasta";
         aln.tree = "tree-msa.newick";
         aln.refs = "A";
 
@@ -140,16 +150,14 @@ TEST_CASE("ref_indel_alignment") {
         infile >> s1 >> s2;
         CHECK_EQ(s1, ">E");
         CHECK_EQ(s2, "TCA--TC-");
-        CHECK(std::filesystem::remove(aln.data.out_file.path));
+        REQUIRE(std::filesystem::remove(aln.output));
     }
 
     SUBCASE("m-ecm model") {
         coati::alignment_t aln;
-        aln.data =
-            coati::data_t("", {"A", "B", "C", "D", "E"},
-                          {"TCATCG", "TCAGTCG", "TATCG", "TCACTCG", "TCATC"});
+        aln.data.path = "test-msa.fasta";
         aln.model = "m-ecm";
-        aln.data.out_file = {{"test-mecm-msa.fasta"}, {".fasta"}};
+        aln.output = "test-mecm-msa.fasta";
         aln.tree = "tree-msa.newick";
         aln.refs = "A";
 
@@ -173,10 +181,11 @@ TEST_CASE("ref_indel_alignment") {
         infile >> s1 >> s2;
         CHECK_EQ(s1, ">E");
         CHECK_EQ(s2, "TCA--TC-");
-        CHECK(std::filesystem::remove(aln.data.out_file.path));
+        REQUIRE(std::filesystem::remove(aln.output));
     }
 
-    CHECK(std::filesystem::remove("tree-msa.newick"));
+    REQUIRE(std::filesystem::remove("tree-msa.newick"));
+    REQUIRE(std::filesystem::remove("test-msa.fasta"));
 }
 // GCOVR_EXCL_STOP
 

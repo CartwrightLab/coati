@@ -38,8 +38,13 @@ int main(int argc, char* argv[]) {
         args.aln.data.path = "json:-";
     }
 
-    // read input data
-    args.aln.data = coati::io::read_input(args.aln);
+    try {
+        // read input data
+        args.aln.data = coati::io::read_input(args.aln);
 
-    return coati::format_sequences(args.format, args.aln);
+        return coati::format_sequences(args.format, args.aln);
+    } catch(const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
+    }
+    return EXIT_FAILURE;
 }

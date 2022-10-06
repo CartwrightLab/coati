@@ -35,15 +35,10 @@ int main(int argc, char* argv[]) {
     CLI11_PARSE(alignpair, argc, argv);
 
     if(!args.aln.is_marginal()) {
-        throw std::invalid_argument(
-            "Sampling only available with models m-coati or m-ecm.");
-    }
-
-    // read input data
-    args.aln.data = coati::io::read_input(args.aln);
-
-    if(args.aln.data.size() != 2) {
-        throw std::invalid_argument("Exactly two sequences required.");
+        std::cerr
+            << "ERROR: Sampling only available with models m-coati or m-ecm."
+            << std::endl;
+        return EXIT_FAILURE;
     }
 
     // Use user-specified seeds or generate a random seed sequence
@@ -54,7 +49,12 @@ int main(int argc, char* argv[]) {
                            args.sample.seeds.begin(), args.sample.seeds.end());
     rand.Seed(seeds);
 
-    coati::marg_sample(args.aln, args.sample.sample_size, rand);
+    try {
+        coati::marg_sample(args.aln, args.sample.sample_size, rand);
+    } catch(const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

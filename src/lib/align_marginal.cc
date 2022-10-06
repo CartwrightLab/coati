@@ -40,6 +40,12 @@ bool marg_alignment(coati::alignment_t& aln) {
     coati::Matrixf P(64, 64), p_marg;
     std::ofstream out_w;
 
+    // read input data
+    aln.data = coati::io::read_input(aln);
+    if(aln.data.size() != 2) {
+        throw std::invalid_argument("Exactly two sequences required.");
+    }
+
     // set substitution matrix according to model
     coati::utils::set_subst(aln);
 
@@ -78,9 +84,12 @@ bool marg_alignment(coati::alignment_t& aln) {
     try {
         coati::viterbi_mem(work, seq_pair[0], seq_pair[1], aln);
     } catch(const std::bad_alloc& e) {
-        std::cout << "Error: sequences to align exceed available memory."
+        std::cerr << "ERROR: sequences to align exceed available memory."
                   << std::endl;
         return EXIT_FAILURE;
+    } catch(const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
+        return false;
     }
     coati::traceback(work, anc, des, aln, aln.gap.len);
 
@@ -119,16 +128,17 @@ void order_ref(coati::alignment_t& aln) {
 // GCOVR_EXCL_START
 TEST_CASE("marg_alignment") {
     // NOLINTNEXTLINE(misc-unused-parameters)
-    auto test_fasta = [](alignment_t& aln, const data_t& expected) {
-        if(std::filesystem::exists(aln.data.out_file.path)) {
-            std::filesystem::remove(aln.data.out_file.path);
-        }
-        if(std::filesystem::exists(aln.weight_file)) {
-            std::filesystem::remove(aln.weight_file);
-        }
+    auto test_fasta = [](alignment_t& aln, const data_t& expected,
+                         const std::string file) {
+        std::ofstream out;
+        out.open(aln.data.path);
+        REQUIRE(out);
+        out << file;
+        out.close();
+
         REQUIRE(marg_alignment(aln));
 
-        std::ifstream infile(aln.data.out_file.path);
+        std::ifstream infile(aln.output);
         std::string s1, s2;
 
         infile >> s1 >> s2;
@@ -138,7 +148,7 @@ TEST_CASE("marg_alignment") {
         infile >> s1 >> s2;
         CHECK_EQ(s1, expected.names[1]);
         CHECK_EQ(s2, expected.seqs[1]);
-        CHECK(std::filesystem::remove(aln.data.out_file.path));
+        CHECK(std::filesystem::remove(aln.output));
 
         if(!aln.weight_file.empty()) {
             std::ifstream inweight(aln.weight_file);
@@ -146,22 +156,24 @@ TEST_CASE("marg_alignment") {
             inweight >> s;
             // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
             std::size_t start = s.find_last_of(',');
-            CHECK(std::filesystem::remove(aln.weight_file));
+            REQUIRE(std::filesystem::remove(aln.weight_file));
+            REQUIRE(std::filesystem::remove(aln.data.path));
             CHECK_EQ(std::stof(s.substr(start + 1)), expected.weight);
         }
     };
 
     // NOLINTNEXTLINE(misc-unused-parameters)
-    auto test_phylip = [](alignment_t& aln, const data_t& expected) {
-        if(std::filesystem::exists(aln.data.out_file.path)) {
-            std::filesystem::remove(aln.data.out_file.path);
-        }
-        if(std::filesystem::exists(aln.weight_file)) {
-            std::filesystem::remove(aln.weight_file);
-        }
+    auto test_phylip = [](alignment_t& aln, const data_t& expected,
+                          const std::string file) {
+        std::ofstream out;
+        out.open(aln.data.path);
+        REQUIRE(out);
+        out << file;
+        out.close();
+
         REQUIRE(marg_alignment(aln));
 
-        std::ifstream infile(aln.data.out_file.path);
+        std::ifstream infile(aln.output);
         std::string s1, s2;
 
         infile >> s1 >> s2;
@@ -175,134 +187,165 @@ TEST_CASE("marg_alignment") {
         infile >> s1 >> s2;
         CHECK_EQ(s1, expected.names[1]);
         CHECK_EQ(s2, expected.seqs[1]);
-        CHECK(std::filesystem::remove(aln.data.out_file.path));
+        REQUIRE(std::filesystem::remove(aln.output));
+        REQUIRE(std::filesystem::remove(aln.data.path));
     };
 
     alignment_t aln;
     data_t expected;
     SUBCASE("Alignment - output fasta") {
-        aln.data = data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n"};
+        aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
         aln.weight_file = "score.log";
-        aln.data.out_file = {{"test-marg_alignment-fasta.fasta"}, {".fasta"}};
+        aln.output = "test-marg_alignment-fasta.fasta";
 
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
         expected.weight = 1.51294f;
 
-        test_fasta(aln, expected);
+        test_fasta(aln, expected, file);
     }
     SUBCASE("Alignment - output fasta - use aln.refs") {
-        aln.data = data_t("", {"1", "2"}, {"CTATAGTG", "CTCTGGATAGTG"});
+        std::string file{">1\nCTATAGTG\n>2\nCTCTGGATAGTG\n"};
+        aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
-        aln.data.out_file = {{"test-marg_alignment-fasta.fasta"}, {".fasta"}};
+        aln.output = "test-marg_alignment-fasta.fasta";
         aln.refs = "2";
 
         expected = data_t("", {">2", ">1"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
 
-        test_fasta(aln, expected);
+        test_fasta(aln, expected, file);
     }
     SUBCASE("Alignment - output fasta - use aln.refs - no change") {
-        aln.data = data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n"};
+        aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
-        aln.data.out_file = {{"test-marg_alignment-fasta.fasta"}, {".fasta"}};
+        aln.output = "test-marg_alignment-fasta.fasta";
         aln.refs = "1";
 
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
 
-        test_fasta(aln, expected);
+        test_fasta(aln, expected, file);
     }
     SUBCASE("Alignment - output phylip") {
-        aln.data = coati::data_t("", {"1", "2"}, {"GCGACTGTT", "GCGATTGCTGTT"});
+        std::string file{">1\nGCGACTGTT\n>2\nGCGATTGCTGTT\n"};
+        aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
-        aln.data.out_file = {{"test-marg_alignment-phylip.phy"}, {".phy"}};
+        aln.output = "test-marg_alignment-phylip.phy";
 
         expected = data_t("", {"1", "2"}, {"GCGA---CTGTT", "GCGATTGCTGTT"});
 
-        test_phylip(aln, expected);
+        test_phylip(aln, expected, file);
     }
     SUBCASE("Alignment - output phylip - use aln.refn") {
-        aln.data = coati::data_t("", {"A", "B"}, {"GCGATTGCTGTT", "GCGACTGTT"});
+        std::string file{">A\nGCGATTGCTGTT\n>B\nGCGACTGTT\n"};
+        aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
-        aln.data.out_file = {{"test-marg_alignment-phylip.phy"}, {".phy"}};
+        aln.output = "test-marg_alignment-phylip.phy";
         aln.rev = true;
 
         expected = data_t("", {"B", "A"}, {"GCGA---CTGTT", "GCGATTGCTGTT"});
 
-        test_phylip(aln, expected);
+        test_phylip(aln, expected, file);
     }
     SUBCASE("Alignment 2 dels - output phylip") {
-        aln.data = coati::data_t("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"});
+        std::string file{">1\nACGTTAAGGGGT\n>2\nACGAAT\n"};
+        aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
-        aln.data.out_file = {{"test-marg_alignment-phylip2.phy"}, {".phy"}};
+        aln.output = "test-marg_alignment-phylip2.phy";
 
         expected = data_t("", {"1", "2"}, {"ACGTTAAGGGGT", "ACG--AA----T"});
 
-        test_phylip(aln, expected);
+        test_phylip(aln, expected, file);
     }
     SUBCASE("Alignment with gap length multiple of 3") {
-        aln.data = coati::data_t("", {"1", "2"}, {"ACGTTAAGGGGT", "ACGAAT"});
+        std::string file{">1\nACGTTAAGGGGT\n>2\nACGAAT\n"};
+        aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
-        aln.data.out_file = {{"test-marg_alignment-no-frameshifts.fa"},
-                             {".fa"}};
+        aln.output = "test-marg_alignment-no-frameshifts.fa";
         aln.gap.len = 3;
 
         expected =
             data_t("", {">1", ">2"}, {"ACG---TTAAGGGGT", "ACGAAT---------"});
 
-        test_fasta(aln, expected);
+        test_fasta(aln, expected, file);
     }
     SUBCASE("Alignment with ambiguous nucleotides") {
-        aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTR"});
+        std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
+        aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
         aln.weight_file = "score.log";
-        aln.data.out_file = {{"test-marg_alignment_ambiguous.fa"}, {".fa"}};
+        aln.output = "test-marg_alignment_ambiguous.fa";
 
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTR"});
         expected.weight = -1.03892f;  // AVG
         // expected.weight = 1.51294f;  // BEST
-        test_fasta(aln, expected);
+        test_fasta(aln, expected, file);
     }
     SUBCASE("Alignment with gap length multiple of 3 - fail") {
-        aln.data = coati::data_t("", {"1", "2"}, {"GCGATTGCTGT", "GCGACTGTT"});
+        std::ofstream out;
+        out.open("test-marg.fasta");
+        out << ">1\nGCGATTGCTGT\n>2\nGCGACTGTT\n";
+        out.close();
         aln.model = "m-coati";
-        aln.data.out_file = {{"test-marg_alignment-no-frameshifts-f.fasta"},
-                             {".fasta"}};
+        aln.data.path = "test-marg.fasta";
+        aln.output = "test-marg_alignment-no-frameshifts-f.fasta";
         aln.gap.len = 3;
 
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
+        CHECK(std::filesystem::remove("test-marg.fasta"));
     }
     SUBCASE("Length of descendant not multiple of gap.len") {
-        aln.data = coati::data_t("", {"A", "B"}, {"CTCGGA", "CTCGG"});
+        std::ofstream out;
+        out.open("test-marg.fasta");
+        out << ">A\nCTCGGA\n>B\nCTCGG\n";
+        out.close();
+        aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
         aln.gap.len = 3;
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
+        CHECK(std::filesystem::remove("test-marg.fasta"));
     }
     SUBCASE("Score alignment") {
-        aln.data =
-            coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
+        std::ofstream out;
+        out.open("test-marg.fasta");
+        out << ">1\nCTCTGGATAGTG\n>2\nCT----ATAGTG\n";
+        out.close();
+        aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
         aln.weight_file = "";
-        aln.data.out_file = {{"test-marg_alignment-score.fasta"}, {".fasta"}};
+        aln.output = "test-marg_alignment-score.fasta";
         aln.score = true;
 
         REQUIRE(marg_alignment(aln));
+        CHECK(std::filesystem::remove("test-marg.fasta"));
     }
     SUBCASE("Score alignment - fail") {
-        aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        std::ofstream out;
+        out.open("test-marg.fasta");
+        out << ">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n";
+        out.close();
+        aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
         aln.weight_file = "";
-        aln.data.out_file = {{"test-marg_alignment-score-f.fasta"}, {".fasta"}};
+        aln.output = "test-marg_alignment-score-f.fasta";
         aln.score = true;
 
-        coati::data_t result(aln.data.out_file.path);
+        coati::data_t result(aln.output);
 
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
+        CHECK(std::filesystem::remove("test-marg.fasta"));
     }
     SUBCASE("Name of reference not found") {
-        aln.data = coati::data_t("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
+        std::ofstream out;
+        out.open("test-marg.fasta");
+        out << ">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n";
+        out.close();
+        aln.data.path = "test-marg.fasta";
         aln.refs = "seq_name";
 
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
+        CHECK(std::filesystem::remove("test-marg.fasta"));
     }
 }
 // GCOVR_EXCL_STOP
@@ -440,6 +483,12 @@ TEST_CASE("alignment_score") {
 void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     coati::Matrixf P(64, 64), p_marg;
 
+    // read input data
+    aln.data = coati::io::read_input(aln);
+    if(aln.data.size() != 2) {
+        throw std::invalid_argument("Exactly two sequences required.");
+    }
+
     // set output pointer
     std::ostream* os = coati::io::set_ostream(aln.data.out_file.path);
     std::ostream& out = *os;
@@ -518,13 +567,18 @@ TEST_CASE("marg_sample") {
         rand.Seed(seed);
 
         coati::alignment_t aln;
-        aln.data = coati::data_t("", {"A", "B"}, {seq1, seq2});
-        aln.data.out_file = {{"test-marg_sample.json"}, {".json"}};
+        aln.data.path = "test-marg.fasta";
+        aln.output = "test-marg_sample.json";
+        std::ofstream out;
+        out.open(aln.data.path);
+        REQUIRE(out);
+        out << ">A\n" << seq1 << "\n>B\n" << seq2 << std::endl;
+        out.close();
 
         size_t reps{expected_s1.size()};
         coati::marg_sample(aln, reps, rand);
 
-        std::ifstream infile(aln.data.out_file.path);
+        std::ifstream infile(aln.output);
         REQUIRE(infile.good());
 
         check_line_eq(infile, "[");
@@ -544,7 +598,8 @@ TEST_CASE("marg_sample") {
         }
         check_line_eq(infile, "]");
         infile.close();
-        REQUIRE(std::filesystem::remove(aln.data.out_file.path));
+        REQUIRE(std::filesystem::remove(aln.output));
+        REQUIRE(std::filesystem::remove(aln.data.path));
     };
 
     SUBCASE("sample size 1") {
