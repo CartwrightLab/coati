@@ -71,38 +71,50 @@ int cod_int(const std::string_view codon) {
  * @param[in,out] args coati::args_t to store the input parameters.
  */
 void set_options_alignpair(CLI::App& app, coati::args_t& args) {
+    app.get_formatter()->column_width(35);
     app.add_option("input", args.aln.data.path,
                    "Input file (FASTA/PHYLIP/JSON accepted)")
         ->required();
     app.add_option("-m,--model", args.aln.model,
-                   "Substitution model (coati ecm dna m-coati m-ecm)");
+                   "Substitution model (coati ecm dna m-coati m-ecm)")
+        ->group("Model parameters");
     app.add_option("-t,--time", args.aln.br_len,
                    "Evolutionary time/branch length")
-        ->check(CLI::PositiveNumber);
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
     auto* opt_ref =
-        app.add_flag("-r,--reference", args.aln.refs,
-                     "Name of reference sequence (1st seq by default)");
+        app.add_flag("-r,--ref", args.aln.refs,
+                     "Name of reference sequence (default: 1st seq)")
+            ->group("Advanced options");
     app.add_flag("-v,--reverse-ref", args.aln.rev,
-                 "Use second sequence as reference (1st seq by default)")
-        ->excludes(opt_ref);
+                 "Use 2nd seq as reference (default: 1st seq)")
+        ->excludes(opt_ref)
+        ->group("Advanced options");
     app.add_option("-l,--weight", args.aln.weight_file,
                    "Write alignment score to file");
-    app.add_flag("-s,--score", args.aln.score, "Score alignment");
+    app.add_flag("-s,--score", args.aln.score,
+                 "Score input alignment and exit");
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
     app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
-        ->check(CLI::PositiveNumber);
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
     app.add_option("-e,--gap-extend", args.aln.gap.extend,
                    "Gap extension score")
-        ->check(CLI::PositiveNumber);
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
     app.add_option("-w,--omega", args.aln.omega,
                    "Nonsynonymous-synonymous bias")
-        ->check(CLI::PositiveNumber);
+        ->check(CLI::PositiveNumber)
+        ->group("Advanced options");
     app.add_option("-p,--pi", args.aln.pi, "Nucleotide frequencies (A C G T)")
-        ->expected(4);
-    app.add_option("-k,--gap-len", args.aln.gap.len, "Set gap unit size");
+        ->expected(4)
+        ->group("Advanced options");
+    app.add_option("-k,--gap-len", args.aln.gap.len, "Gap unit length")
+        ->group("Model parameters");
     app.add_option("-x,--sigma", args.aln.sigma,
                    "GTR sigma parameters (AC AG AT CG CT GT)")
-        ->expected(6);
+        ->expected(6)
+        ->group("Advanced options");
     // specify string->value mappings
     std::map<std::string, coati::AmbiguousNucs> amb_map{
         {"AVG", coati::AmbiguousNucs::AVG},
@@ -111,7 +123,8 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
     // in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
                    "Ambiguous nucleotides model", "AVG")
-        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case));
+        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
+        ->group("");
 }
 
 /**
@@ -121,6 +134,7 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
  * @param[in,out] args coati::args_t to store the input parameters.
  */
 void set_options_msa(CLI::App& app, coati::args_t& args) {
+    app.get_formatter()->column_width(35);
     app.add_option("input", args.aln.data.path,
                    "Input file (FASTA/PHYLIP/JSON accepted)")
         ->required();
@@ -130,22 +144,29 @@ void set_options_msa(CLI::App& app, coati::args_t& args) {
     app.add_option("reference", args.aln.refs, "Name of reference sequence")
         ->required();
     app.add_option("-m,--model", args.aln.model,
-                   "Substitution model (coati ecm dna m-coati m-ecm)");
+                   "Substitution model (coati ecm dna m-coati m-ecm)")
+        ->group("Model parameters");
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
     app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
-        ->check(CLI::PositiveNumber);
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
     app.add_option("-e,--gap-extend", args.aln.gap.extend,
                    "Gap extension score")
-        ->check(CLI::PositiveNumber);
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
     app.add_option("-w,--omega", args.aln.omega,
                    "Nonsynonymous-synonymous bias")
-        ->check(CLI::PositiveNumber);
+        ->check(CLI::PositiveNumber)
+        ->group("Advanced options");
     app.add_option("-p,--pi", args.aln.pi, "Nucleotide frequencies (A C G T)")
-        ->expected(4);
-    app.add_option("-k,--gap-len", args.aln.gap.len, "Set gap unit size");
+        ->expected(4)
+        ->group("Advanced options");
+    app.add_option("-k,--gap-len", args.aln.gap.len, "Gap unit length")
+        ->group("Model parameters");
     app.add_option("-x,--sigma", args.aln.sigma,
                    "GTR sigma parameters (AC AG AT CG CT GT)")
-        ->expected(6);
+        ->expected(6)
+        ->group("Advanced options");
     // specify string->value mappings
     std::map<std::string, coati::AmbiguousNucs> amb_map{
         {"AVG", coati::AmbiguousNucs::AVG},
@@ -154,7 +175,8 @@ void set_options_msa(CLI::App& app, coati::args_t& args) {
     // in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
                    "Ambiguous nucleotides model", "AVG")
-        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case));
+        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
+        ->group("");
 }
 
 /**
@@ -164,24 +186,31 @@ void set_options_msa(CLI::App& app, coati::args_t& args) {
  * @param[in,out] args coati::args_t to store the input parameters.
  */
 void set_options_sample(CLI::App& app, coati::args_t& args) {
+    app.get_formatter()->column_width(35);
     app.add_option("input", args.aln.data.path,
                    "Input file (FASTA/PHYLIP/JSON accepted)")
         ->required();
     app.add_option("-t,--time", args.aln.br_len,
                    "Evolutionary time/branch length")
-        ->check(CLI::PositiveNumber);
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
     app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
-        ->check(CLI::PositiveNumber);
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
     app.add_option("-e,--gap-extend", args.aln.gap.extend,
                    "Gap extension score")
-        ->check(CLI::PositiveNumber);
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
     app.add_option("-w,--omega", args.aln.omega,
                    "Nonsynonymous-synonymous bias")
-        ->check(CLI::PositiveNumber);
+        ->check(CLI::PositiveNumber)
+        ->group("Advanced options");
     app.add_option("-p,--pi", args.aln.pi, "Nucleotide frequencies (A C G T)")
-        ->expected(4);
-    app.add_option("-k,--gap-len", args.aln.gap.len, "Set gap unit size");
+        ->expected(4)
+        ->group("Advanced options");
+    app.add_option("-k,--gap-len", args.aln.gap.len, "Gap unit length")
+        ->group("Model parameters");
     app.add_option("-x,--sigma", args.aln.sigma,
                    "GTR sigma parameters (AC AG AT CG CT GT)")
         ->expected(6);
@@ -193,7 +222,8 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
     // either in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
                    "Ambiguous nucleotides model", "AVG")
-        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case));
+        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
+        ->group("");
     // app.add_option("-T,--temperature", args.temperature, "Sampling
     // temperature");
     app.add_option("-n,--sample-size", args.sample.sample_size, "Sample size");
@@ -210,6 +240,7 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
  *
  */
 void set_options_format(CLI::App& app, coati::args_t& args) {
+    app.get_formatter()->column_width(35);
     app.add_option("input", args.aln.data.path,
                    "Input file (FASTA/PHYLIP/JSON accepted)")
         ->required();
@@ -219,9 +250,9 @@ void set_options_format(CLI::App& app, coati::args_t& args) {
     app.add_option("-c,--padding", args.format.padding,
                    "Padding char to format preserve phase")
         ->needs(phase);
-    auto* cut_seq = app.add_option("-s,--cut-sequences", args.format.names,
+    auto* cut_seq = app.add_option("-s,--cut-seqs", args.format.names,
                                    "Name of sequences to extract");
-    app.add_option("-p,--cut-position", args.format.pos,
+    app.add_option("-x,--cut-pos", args.format.pos,
                    "Position of sequences to extract (1 based)")
         ->excludes(cut_seq);
 }
