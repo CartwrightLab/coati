@@ -36,7 +36,7 @@ namespace coati {
  */
 /* Initial msa by collapsing indels after pairwise aln with reference */
 bool ref_indel_alignment(coati::alignment_t& input) {
-    coati::alignment_t aln;
+    coati::data_t aligned;
 
     // read input data
     input.data = coati::io::read_input(input);
@@ -44,7 +44,7 @@ bool ref_indel_alignment(coati::alignment_t& input) {
         throw std::invalid_argument("At least three sequences required.");
     }
 
-    aln.data.out_file = input.data.out_file;
+    aligned.out_file = input.data.out_file;
 
     // read newick tree file
     std::string newick = coati::tree::read_newick(input.tree);
@@ -98,12 +98,12 @@ bool ref_indel_alignment(coati::alignment_t& input) {
         auto it = find(nodes_ins[root].names.begin(),
                        nodes_ins[root].names.end(), name);
         auto index = distance(nodes_ins[root].names.begin(), it);
-        aln.data.names.push_back(nodes_ins[root].names[index]);
-        aln.data.seqs.push_back(nodes_ins[root].sequences[index]);
+        aligned.names.push_back(nodes_ins[root].names[index]);
+        aligned.seqs.push_back(nodes_ins[root].sequences[index]);
     }
 
     // write alignment
-    coati::io::write_output(aln.data);
+    coati::io::write_output(aligned);
     return true;
 }
 
