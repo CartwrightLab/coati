@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 
     if(!args.aln.is_marginal()) {
         throw std::invalid_argument(
-            "Alignment model not currently implemented.");
+            "Sampling only available with models m-coati or m-ecm.");
     }
 
     // read input data

@@ -194,6 +194,9 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
                    "Evolutionary time/branch length")
         ->check(CLI::PositiveNumber)
         ->group("Model parameters");
+    app.add_option("-m,--model", args.aln.model,
+                   "Substitution model (coati ecm dna m-coati m-ecm)")
+        ->group("Model parameters");
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
     app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
         ->check(CLI::PositiveNumber)
@@ -213,7 +216,8 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
         ->group("Model parameters");
     app.add_option("-x,--sigma", args.aln.sigma,
                    "GTR sigma parameters (AC AG AT CG CT GT)")
-        ->expected(6);
+        ->expected(6)
+        ->group("Advanced options");
     // specify string->value mappings
     std::map<std::string, coati::AmbiguousNucs> amb_map{
         {"AVG", coati::AmbiguousNucs::AVG},
