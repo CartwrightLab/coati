@@ -23,6 +23,7 @@ doxygen = find_program('doxygen', required : false)
 if doxygen.found()
   doxy_conf = configuration_data()
   doxy_conf.set('DOXYGEN_INPUT', meson.project_source_root() + '/src')
+  doxy_conf.set('README', meson.project_source_root() + '/README.md')
   doxy_conf.set('DOXYGEN_OUTPUT', meson.current_build_dir())
 
   doxyfile = configure_file(
