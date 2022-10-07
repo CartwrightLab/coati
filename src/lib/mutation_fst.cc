@@ -32,6 +32,8 @@ namespace coati {
  * @param[in] br_len float branch length.
  * @param[in] omega float nonsynonymous-synonymous bias.
  * @param[in] pi std::vector<coati::float_t> nucleotide frequencies (A,C,G,T).
+ * @param[in] sigma std::vector<coati::float_t> transition probabilities for GTR
+ * substitution model.
  *
  * \return Muse and Gaut codon model FST (coati::VectorFstStdArc).
  */

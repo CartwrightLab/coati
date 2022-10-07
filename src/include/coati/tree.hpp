@@ -31,6 +31,10 @@
 
 namespace coati::tree {
 
+/**
+ * @brief Stores information about a tree node, used for msa.
+ *
+ */
 struct node_t {
     std::string label; /*!< node name */
     float length; /*!< branch length connecting node to most recent ancestor */

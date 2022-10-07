@@ -31,6 +31,10 @@ namespace coati {
 using Matrix64f = Eigen::Matrix<float, 64, 64>;
 using float_t = float;
 
+/**
+ * @brief Matrix class with custom constructors.
+ *
+ */
 template <class T>
 class Matrix {
    public:
@@ -112,7 +116,10 @@ class Matrix {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// template <class T>
+/**
+ * @brief Tensor class - multidimensional matrices.
+ *
+ */
 template <class T>
 class Tensor {
    public:

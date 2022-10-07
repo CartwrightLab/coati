@@ -353,7 +353,7 @@ TEST_CASE("marg_alignment") {
 /**
  * \brief Score alignment using marginal model.
  *
- * @param[in] args coati::args_t input parameters.
+ * @param[in] aln coati::alignment_t input parameters.
  * @param[in] p_marg coati::Matrixf substitution matrix.
  *
  * \return alignment score (float).

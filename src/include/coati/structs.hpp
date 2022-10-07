@@ -33,9 +33,13 @@ namespace coati {
 
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
+/**
+ * @brief Stores gap unit length and open/extend score cost.
+ *
+ */
 struct gap_t {
    public:
-    std::size_t len{1};                 /*!< unit size of gaps */
+    std::size_t len{1};                 /*!< unit length of gaps */
     float_t open{0.001};                /*!< gap opening score */
     float_t extend{1.0f - 1.0f / 6.0f}; /*!< gap extension score */
 
@@ -45,13 +49,20 @@ struct gap_t {
         : len{l}, open{o}, extend{e} {}
 };
 
-// extracts extension and filename from both file.foo and ext:file.foo
+/**
+ * @brief Extracts extension and filename from both file.foo and ext:file.foo
+ *
+ */
 struct file_type_t {
    public:
     std::string path;
     std::string type_ext;
 };
 
+/**
+ * @brief Store sequence information.
+ *
+ */
 class data_t {
    public:
     std::filesystem::path path;        /*!< path to input file */
@@ -97,6 +108,10 @@ class data_t {
 
 enum struct AmbiguousNucs { AVG, BEST };
 
+/**
+ * @brief Stores input and model parameters from an alignment.
+ *
+ */
 class alignment_t {
    public:
     coati::data_t data;           /*!< sequences */
@@ -129,6 +144,10 @@ class alignment_t {
     std::string& name(size_t index) { return data.names[index]; }
 };
 
+/**
+ * @brief Stores parameters for running coati format.
+ *
+ */
 struct format_t {
    public:
     bool preserve_phase{false}; /*!< preserve phase for downstream analyses */
@@ -137,12 +156,20 @@ struct format_t {
     std::vector<size_t> pos{};        /*!< position of seqs to extract */
 };
 
+/**
+ * @brief Stores parameters for running coati sample.
+ *
+ */
 struct sample_t {
     float_t temperature{1.0f}; /*!< temperature parameter for sampling */
     size_t sample_size{1};     /*!< sampling sample size */
     std::vector<std::string> seeds{{""}}; /*!< seeds for sampling */
 };
 
+/**
+ * @brief Stores all input values for any coati command.
+ *
+ */
 class args_t {
    public:
     coati::alignment_t aln; /*!< input data and alignment parameters */

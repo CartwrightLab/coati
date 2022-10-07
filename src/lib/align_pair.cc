@@ -129,6 +129,7 @@ void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
 /**
  * \brief Forward algorithm.
  *
+ * @param[in,out] work coati::align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
  * @param[in] b coati::seq_view_t encoded descendant sequence.
  * @param[in] aln coati::alignment_t alignment parameters.
@@ -141,6 +142,7 @@ void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
 /**
  * \brief Memory efficient Forward algorithm.
  *
+ * @param[in,out] work coati::align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
  * @param[in] b coati::seq_view_t encoded descendant sequence.
  * @param[in] aln coati::alignment_t alignment parameters.
@@ -156,6 +158,7 @@ void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
  * Gotoh-like algorithm for finding the best alignment of two sequences.
  *  Fill matrices using dynamic programming O(n*m).
  *
+ * @param[in,out] work coati::align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
  * @param[in] b coati::seq_view_t encoded descendant sequence.
  * @param[in] aln coati::alignment_t alignment parameters.
@@ -171,6 +174,7 @@ void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
  * Gotoh-like algorithm for finding the best alignment of two sequences.
  *  Fill matrices using dynamic programming O(n*m).
  *
+ * @param[in,out] work coati::align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
  * @param[in] b coati::seq_view_t encoded descendant sequence.
  * @param[in] aln coati::alignment_t alignment parameters.
@@ -307,7 +311,6 @@ std::pair<AlnState, float> sample_mdi(float log_mch, float log_del,
 /** \brief Sample from match and insertion.
  *
  * @param[in] log_mch float log match value.
- * @param[in] log_del float log deletion value.
  * @param[in] log_ins float log insertion value.
  * @param[in] p float random value.
  *

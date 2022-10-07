@@ -35,6 +35,8 @@ namespace coati {
  * @param[in] omega float nonsynonymous-synonymous bias.
  * @param[in] nuc_freqs std::vector<coati::float_t> nucleotide frequencies
  *  (A,C,G,T).
+ * @param[in] sigma std::vector<coati::float_t> transition probabilities for GTR
+ * substitution model.
  *
  * \return substitution P matrix (coati::Matrixf).
  */
@@ -148,8 +150,9 @@ TEST_CASE("mg94_p") {
  *
  * @param[in] P coati::Matrixf 64x64 codon substitution matrix.
  * @param[in] pi std::vector<coati::float_t> nucleotide frequencies (A,C,G,T).
+ * @param[in] amb
  *
- * \return marginal 192x4 substitution matrix (coati::Matrixf).
+ * @return marginal 192x4 substitution matrix (coati::Matrixf).
  */
 coati::Matrixf marginal_p(const coati::Matrixf& P,
                           const std::vector<coati::float_t>& pi,

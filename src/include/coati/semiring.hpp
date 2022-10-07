@@ -26,6 +26,15 @@
 #include "utils.hpp"
 
 namespace coati::semiring {
+// Define semiring types and their operations.
+
+/**
+ * @brief Linear semiring class.
+ *
+ * |         Set          | + | * | + neutral element | * neutral element |
+ * | Reals U {-INF, +INF} | + | * |         0         |         1         |
+ *
+ */
 class linear {
    public:
     static constexpr float plus(float x, float y) { return x + y; }
@@ -34,6 +43,13 @@ class linear {
     static constexpr float zero() { return 0.0f; }
     static constexpr float one() { return 1.0f; }
 };
+/**
+ * @brief Log semiring class.
+ *
+ * |         Set          |     +     | * | + neutral element | * neutral elem |
+ * | Reals U {-INF, +INF} | logSumExp | + |        +INF       |         0      |
+ *
+ */
 class log {
    public:
     static float plus(float x, float y) {
@@ -51,6 +67,13 @@ class log {
     static float from_linear_1mf(float x) { return std::log1pf(-x); }
     static float to_linear_1mf(float x) { return -std::expm1f(x); }
 };
+/**
+ * @brief Tropical semiring class.
+ *
+ * |         Set          |  +  | * | + neutral element | * neutral element |
+ * | Reals U {-INF, +INF} | max | + |        +INF       |         0      |
+ *
+ */
 class tropical {
    public:
     static constexpr float plus(float x, float y) { return std::max(x, y); }

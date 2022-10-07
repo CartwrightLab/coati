@@ -32,6 +32,10 @@
 namespace coati {
 using SparseVectorInt = Eigen::SparseVector<int, Eigen::RowMajor>;
 
+/**
+ * @brief Keep track of open and close insertions for msa.
+ *
+ */
 struct insertion_data_t {
     std::vector<std::string> sequences; /*!< sequences */
     std::vector<std::string> names;     /*!< sequence names */

@@ -28,7 +28,7 @@
 namespace coati {
 
 /**
- * \brief Pairwise alignment using FST composition.
+ * @brief Pairwise alignment using FST composition.
  *
  * Composition of indel and subsitution FSTs together with input sequences
  *  as FSAs. Alignment is found searching for shortest path in resulting

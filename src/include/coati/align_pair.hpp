@@ -39,7 +39,12 @@ using base_t = unsigned char;
 using seq_view_t = std::basic_string_view<base_t>;
 using stationary_vector_t = std::vector<float_t>;
 
-struct align_pair_work_t {
+/**
+ * @brief Stores matrices for all calculations in dynamic programming alignment.
+ *
+ */
+
+class align_pair_work_t {
    public:
     Matrixf mch;     /*!< match state */
     Matrixf del;     /*!< deletion state */
@@ -108,7 +113,11 @@ struct align_pair_work_t {
     }
 };
 
-struct align_pair_work_mem_t {
+/**
+ * @brief Stores matrices and temporary values in dynamic programming alignment.
+ *
+ */
+class align_pair_work_mem_t {
    public:
     Matrixf mch;           /*!< match state */
     Matrixf del;           /*!< deletion state */

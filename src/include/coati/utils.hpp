@@ -49,11 +49,12 @@
 #include "phylip.hpp"
 #include "structs.hpp"
 
-/* Table for converting a nucleotide character to 4-bit encoding
+/**
+ * @brief Table for converting a nucleotide character to 4-bit encoding.
  *
  * Following IUPAC nucleotide code
- * 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
- * A | C | G |T/U| R | Y | M | K | S | W | B  | D  | H  | V  | N  | -  |
+ * | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+ * | A | C | G |T/U| R | Y | M | K | S | W | B  | D  | H  | V  | N  | -  |
  *
  * R: purine       A or G
  * Y: pyrimidine   C or T/U
@@ -76,7 +77,9 @@ const uint8_t nt16_table[128] = {
     16, 16, 0,  10, 1,  11, 16, 16, 2,  12, 16, 16, 7,  16, 6,  14, 16, 16, 16,
     4,  8,  3,  3,  13, 9,  16, 5,  16, 16, 16, 16, 16};
 
-/* Table for looking up a codon ECM group */
+/**
+ * @brief Table for looking up a codon ECM group.
+ */
 const uint8_t amino_group_table[64] = {
     75, 78, 75, 78, 84, 84, 84, 84, 82, 83, 82, 83, 73, 73, 77, 73,
     81, 72, 81, 72, 80, 80, 80, 80, 82, 82, 82, 82, 76, 76, 76, 76,
