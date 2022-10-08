@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,9 @@
 #include "utils.hpp"
 
 namespace coati {
+// Pairwise alignment using FST composition
 bool fst_alignment(coati::alignment_t& aln);
+// Create evolution FST - combines mutation and indel models
+VectorFstStdArc evo_fst(const coati::alignment_t& aln);
 }  // namespace coati
 #endif

@@ -30,11 +30,13 @@ namespace coati {
 /**
  * @brief Pairwise alignment using FST composition.
  *
- * Composition of indel and subsitution FSTs together with input sequences
- *  as FSAs. Alignment is found searching for shortest path in resulting
- * FST.
+ * Convert input sequences as finite-state acceptors (FSA).
+ * Compose seq1 FST with evolution FST then with seq2 FST. Store in aln FST.
+ * Get alignment by finding shortest path on aln FST.
  *
  * @param[in] aln coati::alignment_t alignment information.
+ *
+ * @retval true OK
  */
 bool fst_alignment(coati::alignment_t& aln) {
     using fst::StdArc;
@@ -48,31 +50,13 @@ bool fst_alignment(coati::alignment_t& aln) {
     // set substitution matrix according to model
     coati::utils::set_subst(aln);
 
-    // get indel FST
-    VectorFstStdArc indel_fst = indel(aln.gap.open, aln.gap.extend, aln.pi);
-
-    // sort mutation and indel FSTs
-    VectorFstStdArc mutation_sort, indel_sort;
-    mutation_sort = fst::ArcSortFst<StdArc, fst::OLabelCompare<StdArc>>(
-        aln.subst_fst, fst::OLabelCompare<StdArc>());
-    indel_sort = fst::ArcSortFst<StdArc, fst::ILabelCompare<StdArc>>(
-        indel_fst, fst::ILabelCompare<StdArc>());
-
-    // compose mutation and indel FSTs
-    fst::ComposeFst<StdArc> coati_comp =
-        fst::ComposeFst<StdArc>(mutation_sort, indel_sort);
-
-    // optimize coati FST
-    VectorFstStdArc coati_fst;
-    coati_fst = optimize(VectorFstStdArc(coati_comp));
-
-    VectorFstStdArc coati_rmep;
-    coati_rmep = fst::RmEpsilonFst<StdArc>(coati_fst);  // epsilon removal
+    // create coati FST - combines mutation and indel models
+    VectorFstStdArc evolution = evo_fst(aln);
 
     // find alignment graph
     // 1. compose in_tape and coati FSTs
     fst::ComposeFst<StdArc> aln_inter =
-        fst::ComposeFst<StdArc>(aln.data.fsts[0], coati_rmep);
+        fst::ComposeFst<StdArc>(aln.data.fsts[0], evolution);
     // 2. sort intermediate composition
     VectorFstStdArc aln_inter_sort;
     aln_inter_sort = fst::ArcSortFst<StdArc, fst::OLabelCompare<StdArc>>(
@@ -81,16 +65,18 @@ bool fst_alignment(coati::alignment_t& aln) {
     VectorFstStdArc graph_fst;
     fst::Compose(aln_inter_sort, aln.data.fsts[1], &graph_fst);
 
+    // Options to find shortest path - option 3 is best:
+    //
     //  case 1: ComposeFst is time: O(v1 v2 d1 (log d2 + m2)), space O(v1 v2)
-    //			ShortestPath with ComposeFst (PDT) is time: O((V+E)^4),
+    //          ShortestPath with ComposeFst (PDT) is time: O((V+E)^4),
     //          space: O((V+E)^3)
     //          Then convert to VectorFst (FST) is time, space: O(e^(O(V+E)))
     //  case 2: ComposeFst is time: O(v1 v2 d1 (log d2 + m2)), space: O(v1 v2)
-    //			Convert ComposeFst (PDT) to VectorFst(FST) is time,
+    //          Convert ComposeFst (PDT) to VectorFst(FST) is time,
     //          space: O(e^(O(V+E)))
     //          Then ShortestPath with VectorFst is O(V log(V) + E)
     //  case 3: Compose is time: O(V1 V2 D1 (log D2 + M2)), space O(V1 V2 D1 M2)
-    //			Then ShortestPath with VectorFst is O(V log(V) + E)
+    //          Then ShortestPath with VectorFst is O(V log(V) + E)
 
     // find shortest path through graph
     VectorFstStdArc aln_path;
@@ -117,12 +103,46 @@ bool fst_alignment(coati::alignment_t& aln) {
     return true;
 }
 
+/**
+ * @brief Create evolution FST - combines mutation and indel models.
+ *
+ * Create substitution and indel FST models.
+ * Compose and optimize them to create coati FST.
+ *
+ * @param[in] aln coati::alignment_t raw substitution FST, nuc frequencies, and
+ * gap open/extend scores.
+ *
+ * @return evolution FST
+ */
+VectorFstStdArc evo_fst(const coati::alignment_t& aln) {
+    using fst::StdArc;
+    // get indel FST
+    VectorFstStdArc indel_fst = indel(aln.gap.open, aln.gap.extend, aln.pi);
+
+    // sort mutation and indel FSTs
+    VectorFstStdArc mutation_sort, indel_sort;
+    mutation_sort = fst::ArcSortFst<StdArc, fst::OLabelCompare<StdArc>>(
+        aln.subst_fst, fst::OLabelCompare<StdArc>());
+    indel_sort = fst::ArcSortFst<StdArc, fst::ILabelCompare<StdArc>>(
+        indel_fst, fst::ILabelCompare<StdArc>());
+
+    // compose mutation and indel FSTs
+    fst::ComposeFst<StdArc> evo_comp =
+        fst::ComposeFst<StdArc>(mutation_sort, indel_sort);
+
+    // optimize coati FST
+    VectorFstStdArc evo_fst;
+    evo_fst = optimize(VectorFstStdArc(evo_comp));
+
+    VectorFstStdArc evo_rmep;
+    evo_rmep = fst::RmEpsilonFst<StdArc>(evo_fst);  // epsilon removal
+
+    return evo_rmep;
+}
+
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("fst_alignment") {
-    std::vector<VectorFstStdArc> fsts;
-    VectorFstStdArc fsa0, fsa1;
-
     coati::alignment_t aln;
     aln.data.path = "test-fst.fasta";
 
@@ -148,7 +168,6 @@ TEST_CASE("fst_alignment") {
         infile >> s1 >> s2;
         CHECK_EQ(s1, ">2");
         CHECK_EQ(s2, "CT----ATAGTG");
-        // CHECK(std::filesystem::remove(aln.data.out_file.path));
 
         std::ifstream inweight(aln.weight_file);
         std::string s;
@@ -240,6 +259,15 @@ TEST_CASE("fst_alignment") {
         aln.output = "test-fst-alignment.fasta";
 
         REQUIRE_THROWS_AS(coati::utils::set_subst(aln), std::invalid_argument);
+    }
+    SUBCASE("Three sequences - fail") {
+        std::ofstream out;
+        out.open("test-fst.fasta");
+        REQUIRE(out);
+        out << ">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n>3\nCTATAGTGTG\n";
+        out.close();
+
+        REQUIRE_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
     }
 
     REQUIRE(std::filesystem::remove("test-fst.fasta"));
