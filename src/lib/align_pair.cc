@@ -27,6 +27,8 @@
 
 namespace coati {
 
+// Transition probabilities in COATi's model
+//
 // m -> m      (1-g)*(1-g)*P(b[j] | a[i])/P(b[j])
 // m -> d      (1-g)*g
 // m -> i      g
@@ -47,7 +49,10 @@ namespace coati {
 // gap_extend = log(e)
 
 /**
- * \brief Implementation of Forward algorithm.
+ * @brief Implementation of Forward algorithm.
+ *
+ * @tparam S semiring type - one of linear, log, or tropical.
+ * @tparam W align_pair_work_t type - 3 or 11 matrices.
  *
  * @param[in,out] work align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
@@ -127,7 +132,7 @@ void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
 }
 
 /**
- * \brief Forward algorithm.
+ * @brief Forward algorithm storing all state transition probabilities.
  *
  * @param[in,out] work coati::align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
@@ -140,7 +145,7 @@ void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
 }
 
 /**
- * \brief Memory efficient Forward algorithm.
+ * @brief Memory efficient Forward algorithm - uses only 3 matrices.
  *
  * @param[in,out] work coati::align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
@@ -153,9 +158,10 @@ void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
 }
 
 /**
- * \brief Dynamic programming of pairwise alignment.
+ * @brief Viterbi algorithm - used for pairwise alignment, stores all state
+ * transition probabilities.
  *
- * Gotoh-like algorithm for finding the best alignment of two sequences.
+ * @detail Gotoh-like algorithm for finding the best alignment of two sequences.
  *  Fill matrices using dynamic programming O(n*m).
  *
  * @param[in,out] work coati::align_pair_work_t dynamic programming matrices.
@@ -169,10 +175,10 @@ void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
 }
 
 /**
- * \brief Memory efficient dynamic programming of pairwise alignment.
+ * @brief Memory efficient Viterbi algorithm - pairwise alignment - 3 matrices.
  *
- * Gotoh-like algorithm for finding the best alignment of two sequences.
- *  Fill matrices using dynamic programming O(n*m).
+ * @details Gotoh-like algorithm for finding the best alignment of two
+ * sequences. Fill matrices using dynamic programming O(n*m).
  *
  * @param[in,out] work coati::align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.
@@ -186,8 +192,14 @@ void viterbi_mem(align_pair_work_mem_t &work, const seq_view_t &a,
 
 enum struct AlnState { MATCH, DELETION, INSERTION };
 
-/** \brief Index of max value between match, deletion, insertion coati::float_t
- * values in log space.*/
+/** @brief Index of max value between match, deletion, insertion.
+ *
+ * @param[in] mch coati::float_t value of match - in log space.
+ * @param[in] del coati::float_t value of deletion - in log space.
+ * @param[in] ins coati::float_t value of insertion - in log space.
+ *
+ * @retval AlnState alignment state - one of match, deletion, or insertion.
+ */
 AlnState max_mdi(float_t mch, float_t del, float_t ins) {
     auto i = AlnState::MATCH;
     float_t val = mch;
@@ -201,24 +213,30 @@ AlnState max_mdi(float_t mch, float_t del, float_t ins) {
     return i;
 }
 
-/** \brief Index of max value between match and insertion coati::float_t values
- * in log space.*/
+/** @brief Index of max value between match and insertion.
+ *
+ * @param[in] mch coati::float_t value of match - in log space.
+ * @param[in] ins coati::float_t value of insertion - in log space.
+ *
+ * @retval AlnState alignment state - one of match or insertion.
+ */
 AlnState max_mi(float_t mch, float_t ins) {
     return mch > ins ? AlnState::MATCH : AlnState::INSERTION;
 }
 
 /**
- * \brief Implementation of traceback algorithm.
+ * @brief Implementation of traceback algorithm.
  *
- * Trace back a set of filled matrices from coati::align_pair to retrieve
- *  the pairwise aligned sequences.
+ * @details Trace back a set of filled matrices from coati::align_pair to
+ * retrieve the pairwise aligned sequences. Starting from the last element
+ * (bottom right) retrieve path taken to obtain best score.
  *
  * @param[in] work coati::align_pair_work_mem_t filled dynamic programming
  * matrices.
  * @param[in] a std::string reference/ancestor sequence.
  * @param[in] b std::string descendant sequence.
  * @param[in,out] aln coati::alignment_t aligned sequences data.
- * @param[in] look_back std::size_t gap unit size.
+ * @param[in] look_back std::size_t gap unit length.
  *
  */
 void traceback(const align_pair_work_mem_t &work, const std::string &a,
@@ -275,14 +293,15 @@ void traceback(const align_pair_work_mem_t &work, const std::string &a,
     std::reverse(aln.seq(1).begin(), aln.seq(1).end());
 }
 
-/** \brief Sample from match, insertion, and deletion.
+/**
+ * @brief Sample from match, insertion, and deletion.
  *
  * @param[in] log_mch float log match value.
  * @param[in] log_del float log deletion value.
  * @param[in] log_ins float log insertion value.
  * @param[in] p float random value.
  *
- * \return std::pair of match, deletion, or insertion (AlnState) and value
+ * @return std::pair of match, deletion, or insertion (AlnState) and value
  * (float).
  */
 std::pair<AlnState, float> sample_mdi(float log_mch, float log_del,
@@ -308,13 +327,14 @@ std::pair<AlnState, float> sample_mdi(float log_mch, float log_del,
     return {ret, weight};
 }
 
-/** \brief Sample from match and insertion.
+/**
+ * @brief Sample from match and insertion.
  *
  * @param[in] log_mch float log match value.
  * @param[in] log_ins float log insertion value.
  * @param[in] p float random value.
  *
- * \return std::pair of match or insertion (AlnState) and value (float).
+ * @return std::pair of match or insertion (AlnState) and value (float).
  */
 
 std::pair<AlnState, float> sample_mi(float log_mch, float log_ins, float p) {
@@ -336,12 +356,12 @@ std::pair<AlnState, float> sample_mi(float log_mch, float log_ins, float p) {
 }
 
 /**
- * \brief Traceback with sampling.
+ * @brief Traceback with sampling.
  *
- * Get alignment from dynamic programming matrices with sampling (i.e. not
- * necessarily best alignment).
+ * @details Get alignment from dynamic programming matrices with sampling (i.e.
+ * not necessarily best alignment).
  *
- * @param[in,out] work coati::align_pair_work_t dynamic programming matrices.
+ * @param[in] work coati::align_pair_work_t dynamic programming matrices.
  * @param[in] a std::string ancestor (ref) sequence.
  * @param[in] b std::string descendant sequence.
  * @param[in,out] aln coati::alignment_t alignment object.

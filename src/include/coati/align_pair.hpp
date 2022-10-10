@@ -155,22 +155,26 @@ inline float_t maximum(float_t x, float_t y, float_t z) {
     return std::max(maximum(x, y), z);
 }
 
+// Implementation of Forward algorithm.
 template <class S, class W>
 void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
                   const alignment_t &aln);
-
+// Forward algorithm storing all state transition probabilities.
 void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
              const alignment_t &aln);
+// Memory efficient Forward algorithm - uses only 3 matrices.
 void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
                  const seq_view_t &b, const alignment_t &aln);
+// Viterbi algorithm - used for pairwise alignment, stores all state
 void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
              const alignment_t &aln);
+// Memory efficient Viterbi algorithm - pairwise alignment - 3 matrices.
 void viterbi_mem(align_pair_work_mem_t &work, const seq_view_t &a,
                  const seq_view_t &b, const alignment_t &aln);
-
+// Implementation of traceback algorithm.
 void traceback(const align_pair_work_mem_t &work, const std::string &a,
                const std::string &b, alignment_t &aln, size_t look_back);
-
+// Traceback with sampling.
 void sampleback(const align_pair_work_t &work, const std::string &a,
                 const std::string &b, alignment_t &aln, size_t look_back,
                 random_t &rand);
