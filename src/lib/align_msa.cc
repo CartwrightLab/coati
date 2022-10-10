@@ -27,14 +27,21 @@
 namespace coati {
 
 /**
- * \brief Pairwise alignment using dynamic programming and a marginal model.
+ * @brief Multiple sequence alignment using an iterative algorithm.
  *
- * Multiple sequence alignment by pairwise alignment reference with rest of
- *  sequences using coati::align_pair, then merging indels.
+ * Initial multiple sequence alignment (to be refined - in development)
+ * by collapsing indels along the tree after pairwise alignment with reference
+ * sequence.
  *
- * @param[in] input coati::alignment_t alignment parameters.
+ * @details Pairwise align all sequences with the refence. Then, starting with
+ * the closest pair of leafs the aligned sequences are merged (all in frame
+ * with the reference). Deletions are kept, insertions are merged when part
+ * of the same branch, kept sepparate otherwise even when contiguous.
+ *
+ * @param[in] input coati::alignment_t sequences to align and parameters.
+ *
+ * @retval true successful run.
  */
-/* Initial msa by collapsing indels after pairwise aln with reference */
 bool ref_indel_alignment(coati::alignment_t& input) {
     coati::data_t aligned;
 
@@ -64,12 +71,12 @@ bool ref_indel_alignment(coati::alignment_t& input) {
     // vector to store insertion_data_t for each node in tree
     coati::insertion_vector nodes_ins(tree.size());
 
-    // add insertion_data for REF
+    // initialize insertion_data for REF
     nodes_ins[ref_pos] = insertion_data_t(
         ref_seq, input.refs,
         SparseVectorInt(static_cast<Eigen::Index>(2 * ref_seq.length())));
 
-    // pairwise alignment for each leaf
+    // pairwise alignment of each leaf with reference and store insertion info.
     align_leafs(input, tree, ref_pos, ref_seq, nodes_ins);
 
     // get position of inodes in tree and set leafs as visited (true)
@@ -190,36 +197,36 @@ TEST_CASE("ref_indel_alignment") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Pairwise alignments of leafs with reference sequence.
+ * @brief Pairwise alignments of leafs with reference sequence.
  *
- * @param[in,out] input coati::alignment_t alignment data.
- * @param[in] tree coati::tree::tree_t.
+ * @details Pairwise align each leaf with the refence and store insertions
+ * (w.r.t. reference).
+ *
+ * @param[in,out] input coati::alignment_t sequences to align and parameters.
+ * @param[in] tree coati::tree::tree_t phylogenetic tree.
  * @param[in] ref_pos std::size_t position of reference seq in tree.
  * @param[in] ref_seq std::string reference sequence.
- * @param[in,out] nodes_ins coati::insertion_vector insertions information.
+ * @param[in,out] nodes_ins coati::insertion_vector position of insertions for
+ * each sequence.
  */
 void align_leafs(coati::alignment_t& input, const coati::tree::tree_t& tree,
                  std::size_t ref_pos, const std::string& ref_seq,
                  coati::insertion_vector& nodes_ins) {
     coati::alignment_t aln;
-    // find sequence of ref in input
-    std::vector<std::string> pair_seqs;
+    std::vector<std::string> pair_seqs(2);
 
-    pair_seqs.push_back(ref_seq);
-    pair_seqs.push_back(ref_seq);
+    pair_seqs[0] = ref_seq;
 
-    std::string node_seq;
     for(std::size_t node = 0; node < tree.size(); ++node) {
         // if node is a leaf and not the reference pairwise align w/ reference
         if(tree[node].is_leaf && (tree[node].label != input.refs)) {
-            float branch = distance_ref(tree, ref_pos, node);
-            node_seq = coati::tree::find_seq(tree[node].label, input.data);
+            // find branch length in tree (given by user) and sequence of node
+            input.br_len = distance_ref(tree, ref_pos, node);
+            pair_seqs[1] = coati::tree::find_seq(tree[node].label, input.data);
 
-            pair_seqs[1] = node_seq;
-
-            input.br_len = branch;
             coati::utils::set_subst(input);
 
+            // pairwise alignment of reference and leaf
             aln.data.seqs.clear();
             coati::utils::sequence_pair_t seq_pair =
                 coati::utils::marginal_seq_encoding(pair_seqs[0], pair_seqs[1]);
@@ -228,6 +235,7 @@ void align_leafs(coati::alignment_t& input, const coati::tree::tree_t& tree,
             coati::traceback(work, pair_seqs[0], pair_seqs[1], aln,
                              input.gap.len);
 
+            // store insertion positions and type (open by default)
             SparseVectorInt ins_vector(
                 static_cast<Eigen::Index>(2 * aln.data.seqs[1].length()));
             insertion_flags(aln.data.seqs[0], aln.data.seqs[1], ins_vector);
@@ -239,11 +247,19 @@ void align_leafs(coati::alignment_t& input, const coati::tree::tree_t& tree,
 }
 
 /**
- *  \brief Merge alignments starting from leafs until root.
+ * @brief Merge alignments starting from leafs until root.
+ *
+ * @details Merge insertion positions starting with closest nodes and going
+ * up the tree until arriving to the root. Insertions that are in the same
+ * position and the character inserted is the same are grouped. When, along the
+ * tree, an insertion(s) does not match the inserted nucleotide, these are
+ * considred closed and no more insertion can share the same position.
+ * This ensures events in different branches are not grouped together.
  *
  * @param[in,out] visited std::vetor<bool> nodes visited.
- * @param[in] tree coati::tree::tree_t.
- * @param[in,out] nodes_ins coati::insertion_vector insertions information.
+ * @param[in] tree coati::tree::tree_t phylogenetic tree.
+ * @param[in,out] nodes_ins coati::insertion_vector position and type of
+ * insertions.
  * @param[in] inode_indexes std::vector<std::size_t> index of internal nodes.
  */
 void merge_alignments(std::vector<bool>& visited,
@@ -252,7 +268,7 @@ void merge_alignments(std::vector<bool>& visited,
                       const std::vector<std::size_t>& inode_indexes) {
     // while not all nodes have been visited (any value in visited is false)
     while(any_of(visited.begin(), visited.end(), [](bool b) { return !b; })) {
-        for(auto inode_pos : inode_indexes) {  // for all inodes
+        for(auto inode_pos : inode_indexes) {  // for all internal nodes
             if(visited[inode_pos]) {
                 continue;
             }

@@ -31,10 +31,13 @@
 #include "utils.hpp"
 
 namespace coati {
+// Multiple sequence alignment using an iterative algorithm.
 bool ref_indel_alignment(coati::alignment_t& input);
+// Pairwise alignments of leafs with reference sequence.
 void align_leafs(coati::alignment_t& input, const coati::tree::tree_t& tree,
                  std::size_t ref_pos, const std::string& ref_seq,
                  coati::insertion_vector& nodes_ins);
+// Merge alignments starting from leafs until root.
 void merge_alignments(std::vector<bool>& visited,
                       const coati::tree::tree_t& tree,
                       coati::insertion_vector& nodes_ins,
