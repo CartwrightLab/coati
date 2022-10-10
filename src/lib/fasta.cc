@@ -58,6 +58,10 @@ coati::data_t read_fasta(const std::string& f_path, bool marginal) {
             }
             // Add name of sequence
             name = line.substr(1);
+            if(name.empty()) {
+                throw std::invalid_argument(
+                    "Input fasta file contains a sequence without a name.");
+            }
             fasta.names.push_back(name);
             content.clear();
         } else if(!name.empty()) {
@@ -100,7 +104,7 @@ TEST_CASE("read_fasta") {
         outfile.close();
 
         coati::data_t fasta = read_fasta(filename, true);
-        CHECK(std::filesystem::remove(fasta.path));
+        REQUIRE(std::filesystem::remove(fasta.path));
 
         CHECK_EQ(fasta.names[0], "1");
         CHECK_EQ(fasta.names[1], "2");
@@ -118,7 +122,7 @@ TEST_CASE("read_fasta") {
         outfile.close();
 
         coati::data_t fasta = read_fasta(filename, false);
-        CHECK(std::filesystem::remove(fasta.path.string()));
+        REQUIRE(std::filesystem::remove(fasta.path.string()));
 
         CHECK_EQ(fasta.seqs[0], "CTCTGGATAGTG");
         CHECK_EQ(fasta.seqs[1], "CTATAGTG");
@@ -140,6 +144,34 @@ TEST_CASE("read_fasta") {
                           std::invalid_argument);
         REQUIRE_THROWS_AS(read_fasta("test-9999999999.fasta", true),
                           std::invalid_argument);
+    }
+    SUBCASE("sequence before first name") {
+        std::string filename{"test-read-fasta.fasta"};
+        outfile.open(filename);
+        REQUIRE(outfile);
+        outfile << "CTCTGGATA" << std::endl;
+        outfile << ">1" << std::endl << "CTCTGGATAGTC" << std::endl;
+        outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
+        outfile.close();
+
+        coati::data_t fasta = read_fasta(filename, true);
+        REQUIRE(std::filesystem::remove(fasta.path));
+
+        CHECK_EQ(fasta.names[0], "1");
+        CHECK_EQ(fasta.names[1], "2");
+        CHECK_EQ(fasta.seqs[0], "CTCTGGATAGTC");
+        CHECK_EQ(fasta.seqs[1], "CTATAGTC");
+    }
+    SUBCASE("empty name - fail") {
+        std::string filename{"test-read-fasta.fasta"};
+        outfile.open(filename);
+        REQUIRE(outfile);
+        outfile << ">" << std::endl << "CTCTGGATAGTC" << std::endl;
+        outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
+        outfile.close();
+
+        CHECK_THROWS_AS(read_fasta(filename, true), std::invalid_argument);
+        REQUIRE(std::filesystem::remove(filename));
     }
 }
 // GCOVR_EXCL_STOP
