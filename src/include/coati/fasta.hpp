@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 
+#include "mutation_fst.hpp"
 #include "structs.hpp"
 #include "utils.hpp"
 
@@ -36,11 +37,11 @@ namespace coati {
 
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
+// Read fasta format file.
 coati::data_t read_fasta(const std::string& f_path, bool marginal);
+// Write alignment in fasta format.
 void write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln = {});
 
 }  // namespace coati
-
-#include "mutation_fst.hpp"
 
 #endif

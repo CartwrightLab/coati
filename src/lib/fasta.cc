@@ -27,12 +27,12 @@
 namespace coati {
 
 /**
- * \brief Read fasta format file.
+ * @brief Read fasta format file.
  *
  * @param[in] f_path std::string path to fasta file.
  * @param[in] marginal bool true if model is marginal.
  *
- * \return coati::data_t object with fasta information.
+ * @retval coati::data_t object with names and content of sequences.
  */
 coati::data_t read_fasta(const std::string& f_path, bool marginal) {
     coati::data_t fasta(f_path);
@@ -71,7 +71,7 @@ coati::data_t read_fasta(const std::string& f_path, bool marginal) {
             content += line;
         }
     }
-    if(!name.empty()) {  // Add last sequence FSA if needed
+    if(!name.empty()) {  // Add last sequence if needed
         fasta.seqs.push_back(content);
     }
 
@@ -177,9 +177,9 @@ TEST_CASE("read_fasta") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Write alignment in fasta format.
+ * @brief Write alignment in fasta format.
  *
- * @param[in] fasta data_t output path, names, and aligned sequences.
+ * @param[in] fasta coati::data_t output path, names, and aligned sequences.
  * @param[in] aln VectorFstStdArc FST with alignment (optional).
  */
 void write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
@@ -190,6 +190,7 @@ void write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
     std::ostream* os = coati::io::set_ostream(fasta.out_file.path);
     std::ostream& out = *os;
 
+    // for each aligned sequence write name and content (60 characters/line)
     for(size_t i = 0; i < fasta.size(); i++) {
         out << ">" << fasta.names[i] << std::endl;
         for(size_t j = 0; j < fasta.seqs[i].size(); j += 60) {
