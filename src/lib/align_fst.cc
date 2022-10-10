@@ -41,6 +41,11 @@ namespace coati {
 bool fst_alignment(coati::alignment_t& aln) {
     using fst::StdArc;
 
+    // scoring only works with marginal models
+    if(aln.score) {
+        throw std::invalid_argument("Scoring only works with marginal models.");
+    }
+
     // read input data
     aln.data = coati::io::read_input(aln);
     if(aln.data.size() != 2) {
@@ -258,7 +263,7 @@ TEST_CASE("fst_alignment") {
         aln.weight_file = "score.log";
         aln.output = "test-fst-alignment.fasta";
 
-        REQUIRE_THROWS_AS(coati::utils::set_subst(aln), std::invalid_argument);
+        CHECK_THROWS_AS(coati::utils::set_subst(aln), std::invalid_argument);
     }
     SUBCASE("Three sequences - fail") {
         std::ofstream out;
@@ -267,7 +272,11 @@ TEST_CASE("fst_alignment") {
         out << ">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n>3\nCTATAGTGTG\n";
         out.close();
 
-        REQUIRE_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
+        CHECK_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
+    }
+    SUBCASE("Scoring - fail") {
+        aln.score = true;
+        CHECK_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
     }
 
     REQUIRE(std::filesystem::remove("test-fst.fasta"));
