@@ -28,13 +28,14 @@
 namespace coati {
 
 /**
- * \brief Pairwise alignment using dynamic programming and a marginal model.
+ * @brief Pairwise alignment using dynamic programming and a marginal model.
  *
  * Alignment of two sequences via dynamic programming using an affine
- *  (geometrical) gap model and a marginal version of Muse and Gaut (1984)
- *  codon substitution model.
+ *  (geometrical) gap model and a marginal codon substitution model.
  *
- * @param[in] aln coati::alignment_t alignment information.
+ * @param[in,out] aln coati::alignment_t alignment information.
+ *
+ * @retval true successful run.
  */
 bool marg_alignment(coati::alignment_t& aln) {
     coati::Matrixf P(64, 64), p_marg;
@@ -54,19 +55,19 @@ bool marg_alignment(coati::alignment_t& aln) {
         order_ref(aln);
     }
 
-    // score alignment
+    // if -s or --score, score alignment and exit
     if(aln.score) {
         std::cout << alignment_score(aln, aln.subst_matrix) << std::endl;
         return true;
     }
 
-    // check that length of ref sequence is multiple of 3 and gap unit size
+    // check that length of ref sequence is multiple of 3 and gap unit length
     size_t len_a = aln.seq(0).length();
     if((len_a % 3 != 0) || (len_a % aln.gap.len != 0)) {
         throw std::invalid_argument(
             "Length of reference sequence must be multiple of 3.");
     }
-    // check that length of descendant sequence is multiple of gap unit size
+    // check that length of descendant sequence is multiple of gap unit length
     if(aln.seq(1).length() % aln.gap.len != 0) {
         throw std::invalid_argument(
             "Length of descendant sequence must be multiple of " +
@@ -106,17 +107,17 @@ bool marg_alignment(coati::alignment_t& aln) {
 }
 
 /**
- * \brief Reorder pair of input sequences so that reference is at position zero.
+ * @brief Reorder pair of input sequences so that reference is at position zero.
  *
  * @param[in,out] aln coati::alignment_t alignment data.
  */
 void order_ref(coati::alignment_t& aln) {
     if(aln.data.names[0] == aln.refs) {
         // already the first sequence: do nothing
-    } else if(aln.data.names[1] == aln.refs) {
+    } else if(aln.data.names[1] == aln.refs) {  // swap sequences
         std::swap(aln.data.names[0], aln.data.names[1]);
         std::swap(aln.data.seqs[0], aln.data.seqs[1]);
-    } else if(aln.rev) {
+    } else if(aln.rev) {  // swap sequences
         std::swap(aln.data.names[0], aln.data.names[1]);
         std::swap(aln.data.seqs[0], aln.data.seqs[1]);
     } else {  // aln.refs was specified and doesn't match any seq names
@@ -129,7 +130,7 @@ void order_ref(coati::alignment_t& aln) {
 TEST_CASE("marg_alignment") {
     // NOLINTNEXTLINE(misc-unused-parameters)
     auto test_fasta = [](alignment_t& aln, const data_t& expected,
-                         const std::string file) {
+                         const std::string& file) {
         std::ofstream out;
         out.open(aln.data.path);
         REQUIRE(out);
@@ -164,7 +165,7 @@ TEST_CASE("marg_alignment") {
 
     // NOLINTNEXTLINE(misc-unused-parameters)
     auto test_phylip = [](alignment_t& aln, const data_t& expected,
-                          const std::string file) {
+                          const std::string& file) {
         std::ofstream out;
         out.open(aln.data.path);
         REQUIRE(out);
@@ -351,12 +352,12 @@ TEST_CASE("marg_alignment") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Score alignment using marginal model.
+ * @brief Score alignment using marginal model.
  *
  * @param[in] aln coati::alignment_t input parameters.
  * @param[in] p_marg coati::Matrixf substitution matrix.
  *
- * \return alignment score (float).
+ * @retval float alignment score.
  */
 float alignment_score(const coati::alignment_t& aln,
                       const coati::Matrixf& p_marg) {
@@ -473,7 +474,7 @@ TEST_CASE("alignment_score") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Sample from a marginal alignment
+ * @brief Sample from a marginal alignment.
  *
  * @param[in,out] aln coati::alignment_t alignment data.
  * @param[in] sample_size size_t number of alignments to sample.
@@ -520,7 +521,7 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     coati::viterbi(work, seq_pair[0], seq_pair[1], aln);
 
     out << "[" << std::endl;
-
+    // sample and print as many aligments as required (sample_size)
     for(size_t i = 0; i < sample_size; ++i) {
         coati::sampleback(work, anc, des, aln, aln.gap.len, rand);
 
@@ -585,8 +586,8 @@ TEST_CASE("marg_sample") {
         for(size_t i = 0; i < reps; ++i) {
             check_line_eq(infile, "  {");
             check_line_eq(infile, "    \"aln\": {");
-            check_line_eq(infile, "      \"A\": \"" + expected_s1[i] + "\",");
-            check_line_eq(infile, "      \"B\": \"" + expected_s2[i] + "\"");
+            check_line_eq(infile, R"(      "A": ")" + expected_s1[i] + "\",");
+            check_line_eq(infile, R"(      "B": ")" + expected_s2[i] + "\"");
             check_line_eq(infile, "    },");
             check_line_eq(infile, "    \"weight\": " + weight[i] + ",");
             check_line_eq(infile, "    \"log_weight\": " + lweight[i]);
