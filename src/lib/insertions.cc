@@ -26,12 +26,14 @@
 
 namespace coati {
 /**
- * \brief Store open insertions in a sparse vector given two aligned sequences.
+ * @brief Store open insertions in a sparse vector given two aligned sequences.
  *
  * @param[in] ref std::string reference/ancestor sequence.
  * @param[in] seq std::string descendant sequence.
  * @param[in, out] insertions_vector coati::SparseVectorInt vector to store open
  *  insertion positions.
+ *
+ * @retval true if run was successful, false otherwise.
  */
 bool insertion_flags(const std::string_view ref, const std::string_view seq,
                      SparseVectorInt& insertions_vector) {
@@ -71,27 +73,28 @@ TEST_CASE("insertion_flags") {
 }
 // GCOVR_EXCL_STOP
 
-/* Collapse insertions between two sequences after pairwise alignment w/ REF */
 /**
- * \brief Collapse insertions between two sequences.
+ * @brief Collapse insertions between two sequences.
  *
- * Collapse insertions between two descendant sequences, respectively pairwise
- *  aligned to ref sequence. If an insertion is closed, gaps are added to other
- *  sequences. However, if an insertion is open it is matched with all other
- *  open insertions with same nucleotide, then insertion is closed. Unless all
- *  other sequences have open insertions, in which case they remain as such.
+ * @details Collapse insertions between two descendant sequences, respectively
+ * pairwise aligned to ref sequence. If an insertion is closed, gaps are added
+ * to other sequences. However, if there are multiple open insertions with same
+ * nucleotide, then the insertion is closed. Unless all other sequences have
+ * open insertions, in which case they remain as open.
  *
  * @param[in] ins_data coati::insertion_vector vector with sequences and
  *  insertions to be merged.
  * @param[in,out] merged_data insertion_data_t names, sequences, and positions
  *  of merged insertions.
  */
-bool merge_indels(coati::insertion_vector& ins_data,
+void merge_indels(coati::insertion_vector& ins_data,
                   insertion_data_t& merged_data) {
     // SparseVectorInt is expected to be of 2*length(seq) so that
     //   after insertions being merged there is no index out of range/bounds
 
-    if(ins_data.size() < 2) return false;
+    if(ins_data.size() < 2) {
+        throw std::runtime_error("Merging indels of only 1 sequence.");
+    }
 
     // count total number of insertion flags to process
     uint64_t num_gaps = 0, processed_gaps = 0;
@@ -122,7 +125,7 @@ bool merge_indels(coati::insertion_vector& ins_data,
         pos++;
     }
     // populate output variable with results
-    //  first sequences and names
+    // first sequences and names
     for(auto dat : ins_data) {
         for(std::size_t i = 0; i < dat.sequences.size(); i++) {
             merged_data.sequences.push_back(dat.sequences[i]);
@@ -131,27 +134,25 @@ bool merge_indels(coati::insertion_vector& ins_data,
     }
     // insertions vector should be the same for all of them, so pick one
     merged_data.insertions = ins_data[0].insertions;
-
-    return true;
 }
 
 /**
- * \brief Add closed insertions to other sequences.
+ * @brief Add closed insertions to other sequences.
  *
  * @param[in,out] ins_data coati::insertion_vector insertion data.
  * @param[in] pos std::size_t current position in alignment/sequence.
  *
- * return number of gaps processed.
+ * @retval uint64_t number of gaps processed.
  */
 uint64_t add_closed_ins(coati::insertion_vector& ins_data, std::size_t pos) {
     uint64_t processed_gaps{0};
     // foreach set of seqs
     for(std::size_t seq = 0; seq < ins_data.size(); seq++) {
-        if(ins_data[seq].insertions.coeffRef(static_cast<int64_t>(pos)) ==
-           99) {                            // insertion is closed
+        // if insertion is closed add a gap to the rest of sequences
+        if(ins_data[seq].insertions.coeffRef(static_cast<int64_t>(pos)) == 99) {
             add_gap(ins_data, {seq}, pos);  // add gaps to rest of seqs
             seq--;  // start over checking for closed gaps
-            pos++;  // move to next pos to not count ins added in this iter
+            pos++;  // move to next pos to not count ins added in this iteration
             processed_gaps++;
         }
     }
@@ -159,36 +160,44 @@ uint64_t add_closed_ins(coati::insertion_vector& ins_data, std::size_t pos) {
 }
 
 /**
- * \brief Check if all sequences have an open insertion at a given position.
+ * @brief Check if all sequences have an open insertion at a given position.
+ *
+ * @details Check if all sequences at a given position have an open insertion
+ * and the inserted nucleotide is the same.
  *
  * @param[in,out] ins_data coati::insertion_vector insertion data.
  * @param[in] pos std::size_t current position in alignment/sequence.
+ *
+ * @retval true if run is successful, false otherwise.
  */
 bool check_all_open(coati::insertion_vector& ins_data, std::size_t pos) {
-    bool all_open = true;
     char nuc = '0';
     for(auto& seq : ins_data) {  // foreach set of sequences
         if(pos > seq.sequences[0].length()) {
-            all_open = false;
-            break;
+            // if position is out of bounds return false
+            return false;
         }
         if(nuc == '0') {
+            // on the first check assign nucleotide
             nuc = seq.sequences[0][pos];
         }
         if((seq.insertions.coeffRef(static_cast<int64_t>(pos)) != 111) ||
            (seq.sequences[0][pos] != nuc)) {
-            all_open = false;
+            // if position is not open or nucleotide is different, return false
+            return false;
         }
     }
-
-    return all_open;
+    return true;
 }
 
 /**
- * \brief Find open insertions with same character at a given position.
+ * @brief Find open insertions with same nucleotide at a given position.
  *
  * @param[in,out] ins_data coati::insertion_vector insertion data.
  * @param[in] pos std::size_t current position in alignment/sequence.
+ *
+ * @retval std::vector<std::size_t> indexes of sequences with open insertion
+ * and same nucleotide.
  */
 std::vector<std::size_t> find_open_ins(coati::insertion_vector& ins_data,
                                        std::size_t pos) {
@@ -197,15 +206,18 @@ std::vector<std::size_t> find_open_ins(coati::insertion_vector& ins_data,
     // foreach set of seqs
     for(std::size_t seq = 0; seq < ins_data.size(); seq++) {
         if(ins_data[seq].insertions.coeffRef(static_cast<int64_t>(pos)) ==
-           111) {
+           111) {  // if position is open
             if(pos > ins_data[seq].sequences[0].length()) {
+                // if position is over length of sequence skip
                 continue;
             }
             if(nuc == '0') {
+                // first time assign nucleotide and add sequence index
                 nuc = ins_data[seq].sequences[0][pos];
                 indexes.push_back(seq);
             } else {
                 if(ins_data[seq].sequences[0][pos] == nuc) {
+                    // if nucleotide is the same, add to list
                     indexes.push_back(seq);
                 }
             }
@@ -230,7 +242,7 @@ TEST_CASE("merge_indels") {
 
         coati::insertion_vector ins_data{dataA, dataB};
 
-        REQUIRE(merge_indels(ins_data, results));
+        merge_indels(ins_data, results);
 
         CHECK_EQ(results.sequences[0], "TCA-TCG");
         CHECK_EQ(results.sequences[1], "TCAGTCG");
@@ -254,7 +266,7 @@ TEST_CASE("merge_indels") {
 
         coati::insertion_vector ins_data{dataABC, dataD};
 
-        REQUIRE(merge_indels(ins_data, results));
+        merge_indels(ins_data, results);
 
         CHECK_EQ(results.sequences[0], "TCA--TCG");
         CHECK_EQ(results.sequences[1], "TCAG-TCG");
@@ -281,7 +293,7 @@ TEST_CASE("merge_indels") {
 
         coati::insertion_vector ins_data{dataABC, dataD};
 
-        REQUIRE(merge_indels(ins_data, results));
+        merge_indels(ins_data, results);
 
         CHECK_EQ(results.sequences[0], "TCA--TCG");
         CHECK_EQ(results.sequences[1], "TCAG-TCG");
@@ -304,7 +316,7 @@ TEST_CASE("merge_indels") {
 
         coati::insertion_vector ins_data{dataA, dataB};
 
-        REQUIRE(merge_indels(ins_data, results));
+        merge_indels(ins_data, results);
 
         CHECK_EQ(results.sequences[0], "TCAC-TCG");
         CHECK_EQ(results.sequences[1], "TCA-GTCG");
@@ -329,7 +341,7 @@ TEST_CASE("merge_indels") {
 
         coati::insertion_vector ins_data{dataH, dataG, dataC};
 
-        REQUIRE(merge_indels(ins_data, results));
+        merge_indels(ins_data, results);
 
         CHECK_EQ(results.sequences[0],
                  "AAATTCCAACAACATAAACAAATCTGA---------------------");
@@ -358,7 +370,7 @@ TEST_CASE("merge_indels") {
         insertion_data_t dataB("CTACGTGCAT", "B", insB);
         coati::insertion_vector ins_data{dataA, dataB};
 
-        REQUIRE(merge_indels(ins_data, results));
+        merge_indels(ins_data, results);
 
         CHECK_EQ(results.sequences[0], "CT---TGCAT");
         CHECK_EQ(results.sequences[1], "CTACGTGCAT");
@@ -367,11 +379,23 @@ TEST_CASE("merge_indels") {
         CHECK_EQ(results.insertions.coeffRef(4), 99);   // closed gap
         CHECK_EQ(results.insertions.coeffRef(7), 111);  // open gap
     }
+
+    SUBCASE("One sequences - fail") {
+        SparseVectorInt insA(34);
+
+        insA.insert(4) = 111;  // open gap
+
+        insertion_data_t results;
+        insertion_data_t dataA("CTTGCAT", "A", insA);
+        coati::insertion_vector ins_data{dataA};
+
+        CHECK_THROWS_AS(merge_indels(ins_data, results), std::runtime_error);
+    }
 }
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Add closed gaps to sequences and insertion vectors.
+ * @brief Add closed gaps to sequences and insertion vectors.
  *
  * @param[in,out] ins_data coati::insertion_vector sequences and insertion
  *  positions and type.
@@ -386,8 +410,8 @@ void add_gap(coati::insertion_vector& ins_data,
     std::vector<int> aux(ins_data.size());
     iota(begin(aux), end(aux), 0);
 
-    set_difference(aux.begin(), aux.end(), seq_indexes.begin(),
-                   seq_indexes.end(), inserter(add, add.begin()));
+    std::set_difference(aux.begin(), aux.end(), seq_indexes.begin(),
+                        seq_indexes.end(), inserter(add, add.begin()));
 
     // make sure insertion is closed
     for(auto seq : seq_indexes) {

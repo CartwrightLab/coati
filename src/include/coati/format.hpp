@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,9 @@
 
 namespace coati {
 
+// Format and manage sequences.
 int format_sequences(coati::format_t& format, coati::alignment_t& aln);
+// Keep only sequences specified by position or by name.
 void extract_seqs(coati::format_t& format, coati::data_t& data);
 
 }  // namespace coati

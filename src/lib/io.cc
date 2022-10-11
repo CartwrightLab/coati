@@ -27,15 +27,15 @@
 namespace coati::io {
 
 /**
- * \brief Read substitution rate matrix from a CSV file
+ * @brief Read substitution rate matrix from a CSV file
  *
- * Read from file a branch length and a codon substitution rate matrix.
+ * @details Read from file a branch length and a codon substitution rate matrix.
  *  File is expected to have 4067 lines; 1 with branch length and 4096 with
  *  the following structure: codon,codon,value (e.g. AAA,AAA,0.0015).
  *
  * @param[in] file std::string path to input file.
  *
- * \return codon substitution matrix (coati::Matrixf).
+ * @retval coati::Matrixf codon substitution matrix.
  */
 coati::Matrixf parse_matrix_csv(const std::string& file) {
     float br_len{NAN};
@@ -53,6 +53,7 @@ coati::Matrixf parse_matrix_csv(const std::string& file) {
     std::vector<std::string> vec{"", "", ""};
     int count = 0;
 
+    // fill the Q matrix (instantaneous substitution rate matrix)
     while(std::getline(input, line)) {
         std::stringstream ss(line);
         getline(ss, vec[0], ',');
@@ -65,6 +66,7 @@ coati::Matrixf parse_matrix_csv(const std::string& file) {
 
     input.close();
 
+    // if file had a different number of lines that it should (64*64=4096)
     if(count != 4096) {
         throw std::invalid_argument(
             "Error reading substitution rate CSV file. Exiting!");
@@ -73,9 +75,7 @@ coati::Matrixf parse_matrix_csv(const std::string& file) {
     Q = Q * br_len;
     Q = Q.exp();
 
-    coati::Matrix<coati::float_t> P(64, 64, Q);
-
-    return P;
+    return coati::Matrixf(64, 64, Q);
 }
 
 /// @private
@@ -167,11 +167,11 @@ TEST_CASE("parse_matrix_csv") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Read sequences and names for any supported format.
+ * @brief Read sequences and names in any supported format.
  *
  * @param[in] aln coati::alignment_t alignment information.
  *
- * \return coati::data_t object.
+ * @retval coati::data_t names and content of sequences.
  */
 coati::data_t read_input(alignment_t& aln) {
     if(aln.output.empty()) {  // default output: json format & stdout
@@ -199,6 +199,7 @@ coati::data_t read_input(alignment_t& aln) {
     if(aln.data.path.empty()) {
         throw std::invalid_argument("Input path is empty.");
     }
+    // if not supported format found
     throw std::invalid_argument("Invalid input " + aln.data.path.string() +
                                 ".");
 }
@@ -275,7 +276,7 @@ TEST_CASE("read_input") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Write sequences and names in any suppported format.
+ * @brief Write sequences and names in any suppported format.
  *
  * @param[in] data coati::data_t sequences, names, fsts, and weight information.
  * @param[in] aln_path coati::VectorFstStdArc FST object with alignment.
@@ -289,8 +290,9 @@ void write_output(coati::data_t& data, const coati::VectorFstStdArc& aln_path) {
     } else if(data.out_file.type_ext == ".json") {
         write_json(data, aln_path);
     } else {
-        throw std::invalid_argument("Invalid output " + data.out_file.path +
-                                    ".");
+        // not supported output format
+        throw std::invalid_argument("Invalid output format" +
+                                    data.out_file.path + ".");
     }
 }
 
@@ -388,10 +390,17 @@ TEST_CASE("write_output") {
 }
 // GCOVR_EXCL_STOP
 
+/**
+ * @brief Setup ostream to write to file or stdout.
+ *
+ * @param[in] path std::string path to file (empty or '-' if stdout).
+ *
+ * @retval std::ostream ostream object.
+ */
 std::ostream* set_ostream(const std::string& path) {
     std::ostream* pout(nullptr);
     if(path.empty() || path == "-") {
-        pout = &std::cout;
+        pout = &std::cout;  // write to stdout
         return pout;
     }
 
@@ -403,10 +412,17 @@ std::ostream* set_ostream(const std::string& path) {
     return pout;
 }
 
+/**
+ * @brief Setup istream to read from file or from stdin.
+ *
+ * @param[in] std::string path to file (empty or '-' if stdin').
+ *
+ * @retval std::istream istream object.
+ */
 std::istream* set_istream(const std::string& path) {
     std::istream* pin(nullptr);
     if(path.empty() || path == "-") {
-        pin = &std::cin;
+        pin = &std::cin;  // read from stdin
         return pin;
     }
 

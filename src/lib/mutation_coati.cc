@@ -26,10 +26,11 @@
 
 namespace coati {
 /**
- * \brief Create Muse \& Gaut (1994) substitution matrix.
+ * @brief Create Muse \& Gaut (1994) substitution matrix.
  *
- * Given a branch length, create a 64x64 codon substitution P matrix based on
- *  Muse \& Gaut model. Using nucleotide substitution rates from Yang (1994).
+ * @details Given a branch length, create a 64x64 codon substitution P matrix
+ * based on Muse \& Gaut model. Using either nucleotide substitution rates from
+ * Yang (1994) or the General Time Reversible (GTR) model from Tavaré (1986).
  *
  * @param[in] br_len float branch length.
  * @param[in] omega float nonsynonymous-synonymous bias.
@@ -38,11 +39,12 @@ namespace coati {
  * @param[in] sigma std::vector<coati::float_t> transition probabilities for GTR
  * substitution model.
  *
- * \return substitution P matrix (coati::Matrixf).
+ * @retval coati::Matrixf substitution P matrix.
  */
 coati::Matrixf mg94_p(float br_len, float omega,
                       const std::vector<coati::float_t>& nuc_freqs,
                       const std::vector<coati::float_t>& sigma) {
+    using coati::utils::get_nuc;
     if(br_len <= 0) {
         throw std::out_of_range("Branch length must be positive.");
     }
@@ -66,22 +68,22 @@ coati::Matrixf mg94_p(float br_len, float omega,
     float Pi[64];
     float w{NAN}, d = 0.0f;
     int x = 0, y = 0;
-    uint8_t first_cod_mask = 48, second_cod_mask = 12, third_cod_mask = 3;
 
     // construct transition matrix
     for(uint8_t i = 0; i < 64; i++) {
-        // (codon & 48) >> 4 = nt16_table encoding of first codon nucleotide
-        // (codon & 12) >> 2 = nt16_table encoding of second codon nucleotide
-        // (codon & 03) = nt16_table encoding of third codon nucleotide
-        // e.g. 00 00 11 10 = 00 A T G = codon "ATG"
-        // (00001110 & 48) >> 4 = (00001110 & 00110000) >> 4 = 00000000 >> 4 = 0
-        // (A) (00001110 & 12) >> 2 = (00001110 & 00001100) >> 2 = 00001100 >> 2
-        // = 3 (T)
-        // (00001110 & 03) 		= (00001110 & 00000011) 	 =
-        // 00000010 = 2 (G)
+        Pi[i] = nuc_freqs[get_nuc(i, 0)] * nuc_freqs[get_nuc(i, 1)] *
+                nuc_freqs[get_nuc(i, 2)];
+        /* Codon frequency by multiplying nucleotide frequencies.
+         *  Accessing nucleotide frequencies using the following:
+         * (codon & 48) >> 4 = nt16_table encoding of first codon nucleotide
+         * (codon & 12) >> 2 = nt16_table encoding of second codon nucleotide
+         * (codon & 03) = nt16_table encoding of third codon nucleotide
+         * e.g. 00 11 10 = A T G = codon "ATG" (note: omitting first 2 bits)
+         * (001110 & 48) >> 4 =(001110 & 00110000) >> 4 = 000000 >> 4 = 0 (A)
+         * (001110 & 12) >> 2 = (001110 & 001100) >> 2  = 001100 >> 2 = 3 (T)
+         * (001110 & 03)      = (001110 & 000011)       = 00000010    = 2 (G)
+         */
 
-        Pi[i] = nuc_freqs[((i & 48) >> 4)] * nuc_freqs[((i & 12) >> 2)] *
-                nuc_freqs[(i & 3)];
         float rowSum = 0.0;
         for(uint8_t j = 0; j < 64; j++) {
             if(i == j) {
@@ -92,16 +94,16 @@ coati::Matrixf mg94_p(float br_len, float omega,
                 w = ((amino_group_table[i] == amino_group_table[j]) ? 1
                                                                     : omega);
 
-                // split into cases to avoid use of pow (speed-up)
-                if((i & first_cod_mask) != (j & first_cod_mask)) {
-                    x = (i & first_cod_mask) >> 4;
-                    y = (j & first_cod_mask) >> 4;
-                } else if((i & second_cod_mask) != (j & second_cod_mask)) {
-                    x = (i & second_cod_mask) >> 2;
-                    y = (j & second_cod_mask) >> 2;
-                } else if((i & third_cod_mask) != (j & third_cod_mask)) {
-                    x = i & third_cod_mask;
-                    y = j & third_cod_mask;
+                // x,y = positions of two nucleotides involved in substitution
+                if(get_nuc(i, 0) != get_nuc(j, 0)) {
+                    x = get_nuc(i, 0);
+                    y = get_nuc(j, 0);
+                } else if(get_nuc(i, 1) != get_nuc(j, 1)) {
+                    x = get_nuc(i, 1);
+                    y = get_nuc(j, 1);
+                } else if(get_nuc(i, 2) != get_nuc(j, 2)) {
+                    x = get_nuc(i, 2);
+                    y = get_nuc(j, 2);
                 }
 
                 Q(i, j) = w * nuc_q(x, y);
@@ -118,9 +120,7 @@ coati::Matrixf mg94_p(float br_len, float omega,
     Q = Q * br_len;
     Q = Q.exp();
 
-    coati::Matrixf P(64, 64, Q);
-
-    return P;
+    return coati::Matrixf(64, 64, Q);
 }
 
 /// @private
@@ -145,18 +145,25 @@ TEST_CASE("mg94_p") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Create marginal 192x4 substitution P matrix give a 64x64
- *  substitution matrix.
+ * @brief Create marginal 192x15 substitution P matrix.
+ *
+ * @details Give a 64x64 codon substitution matrix, marginalized by codon,
+ * phase, and nucleotide (i.e. P(nuc | codon, phase), where phase = {0,1,2}).
+ * Dimensions are 64 codons * 3 phases * 15 nucleotides = 192x15.
+ *  note: 15 nucleotides defined in IUPAC code
+ *        https://www.bioinformatics.org/sms/iupac.html.
  *
  * @param[in] P coati::Matrixf 64x64 codon substitution matrix.
  * @param[in] pi std::vector<coati::float_t> nucleotide frequencies (A,C,G,T).
- * @param[in] amb
+ * @param[in] amb coati::AmbiguousNucs how to calculate probabilities for
+ * ambiguous nucleotides.
  *
- * @return marginal 192x4 substitution matrix (coati::Matrixf).
+ * @retval coati::Matrixf marginal 192x4 substitution matrix.
  */
 coati::Matrixf marginal_p(const coati::Matrixf& P,
                           const std::vector<coati::float_t>& pi,
                           const coati::AmbiguousNucs amb) {
+    using coati::utils::get_nuc;
     float marg{NAN};
 
     coati::Matrixf p(192, 15);
@@ -166,21 +173,21 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
             // position 0
             marg = 0.0;
             for(uint8_t i = 0; i < 64; i++) {
-                marg += (((i & 48) >> 4) == nuc ? P(cod, i) : 0.0f);
+                marg += (get_nuc(i, 0) == nuc ? P(cod, i) : 0.0f);
             }
             p(cod * 3, nuc) = ::logf(marg / pi[nuc]);
 
             // position 1
             marg = 0.0;
             for(uint8_t i = 0; i < 64; i++) {
-                marg += (((i & 12) >> 2) == nuc ? P(cod, i) : 0.0f);
+                marg += (get_nuc(i, 1) == nuc ? P(cod, i) : 0.0f);
             }
             p(cod * 3 + 1, nuc) = ::logf(marg / pi[nuc]);
 
             // position 2
             marg = 0.0;
             for(uint8_t i = 0; i < 64; i++) {
-                marg += ((i & 3) == nuc ? P(cod, i) : 0.0f);
+                marg += (get_nuc(i, 2) == nuc ? P(cod, i) : 0.0f);
             }
             p(cod * 3 + 2, nuc) = ::logf(marg / pi[nuc]);
         }
@@ -215,6 +222,15 @@ TEST_CASE("marginal_p") {
 }
 // GCOVR_EXCL_STOP
 
+/**
+ * @brief Probabilities for ambiguous nucs in marginal model using averages.
+ *
+ * @details The probability for each nucleotide is calculated by averaging over
+ * all possibilities (e.g. N = avg(A, C, G, T); R = avg(A, G)).
+ *
+ * @param[in,out] coati::Matrixf marginal substitution matrix.
+ *
+ */
 void ambiguous_avg_p(coati::Matrixf& p) {
     size_t row{0};
     for(int cod = 0; cod < 64; cod++) {
@@ -237,6 +253,15 @@ void ambiguous_avg_p(coati::Matrixf& p) {
     }
 }
 
+/**
+ * @brief Probabilities for ambiguous nucs in marginal model taking best prob.
+ *
+ * @details The probability for each nucleotide is calculated by taking the best
+ * (highest) of all possibilities (e.g. N = max(A, C, G, T); R = max(A, G)).
+ *
+ * @param[in,out] coati::Matrixf marginal substitution matrix.
+ *
+ */
 void ambiguous_best_p(coati::Matrixf& p) {
     size_t row{0};
     for(int cod = 0; cod < 64; cod++) {
@@ -270,13 +295,13 @@ void ambiguous_best_p(coati::Matrixf& p) {
 }
 
 /**
- * \brief Create GTR subsitution model matrix.
+ * @brief Create GTR substitution model matrix.
  *
  * @param[in] pi std::vector<coati::float_t> nucleotide frequencies.
  * @param[in] sigma std::vector<coati::float_t> sigma parameters (6) for GTR
  * model.
  *
- * \return GTR Q matrix
+ * @retval coati::Matrixf GTR Q matrix.
  */
 coati::Matrixf gtr_q(const std::vector<coati::float_t>& pi,
                      const std::vector<coati::float_t>& sigma) {

@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -34,15 +34,20 @@
 #include "utils.hpp"
 
 namespace coati {
+// Create Muse \& Gaut (1994) substitution matrix.
 coati::Matrixf mg94_p(coati::float_t br_len, coati::float_t omega,
                       const std::vector<coati::float_t>& nuc_freqs,
                       const std::vector<coati::float_t>& sigma = {0, 0, 0, 0, 0,
                                                                   0});
+// Create marginal 192x4 substitution P matrix.
 coati::Matrixf marginal_p(const coati::Matrixf& P,
                           const std::vector<coati::float_t>& pi,
                           const coati::AmbiguousNucs amb);
+// Probabilities for ambiguous nucs in marginal model using averages.
 void ambiguous_avg_p(coati::Matrixf& p);
+// Probabilities for ambiguous nucs in marginal model taking best prob.
 void ambiguous_best_p(coati::Matrixf& p);
+// Create GTR substitution model matrix.
 coati::Matrixf gtr_q(const std::vector<coati::float_t>& nuc_freqs,
                      const std::vector<coati::float_t>& sigma);
 }  // namespace coati

@@ -27,14 +27,16 @@
 namespace coati {
 
 /**
- * \brief Format sequences according to user input.
+ * @brief Format and manage sequences.
  *
- * Format input sequences to format specified by user (FASTA, PHYLIP, JSON)
- *  and add padding to preserve ancestor phase if required.
+ * @details Format input sequences to user specified format (FASTA, PHYLIP,
+ * JSON), add padding to preserve ancestor phase, extract and/or reorder
+ * sequences.
  *
  * @param[in,out] format coati::format_t format arguments.
  * @param[in,out] aln coati::alignment_t alignment arguments.
  *
+ * @retval int EXIT_SUCCESS (0) if no errors.
  */
 int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
     // if sequences to extract are specified do so
@@ -42,19 +44,20 @@ int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
         extract_seqs(format, aln.data);
     }
 
-    if(format.preserve_phase) {  // padd gaps to preserve phase
-        if(format.padding == "-") {
+    if(format.preserve_phase) {      // padd gaps to preserve phase
+        if(format.padding == "-") {  // padding char cannot be same as gap char
             throw std::invalid_argument("Invalid padding character " +
                                         format.padding + " .");
         }
-        auto pos = aln.seq(0).find('-');
+        auto pos = aln.seq(0).find('-');  // find first gap (insertion)
         while(pos != std::string::npos) {
             size_t len{0};
-            while(aln.seq(0)[pos] == '-') {
+            while(aln.seq(0)[pos] == '-') {  // go to end of gap
                 pos++;
                 len++;
             }
             len = len % 3;
+            // add 1 or 2 padding chars so that next codon starts in frame
             for(size_t i = 0; i < aln.data.size(); i++) {
                 switch(len) {
                 case 1:
@@ -63,7 +66,7 @@ int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
                     aln.seq(i).insert(pos, format.padding, 0, len);
                 }
             }
-            pos = aln.seq(0).find('-', pos++);
+            pos = aln.seq(0).find('-', pos++);  // find next gap (insertion)
         }
     }
 
@@ -73,7 +76,11 @@ int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
 }
 
 /**
- * \brief Keep only sequences specified by position or by name.
+ * @brief Keep only sequences specified by position or by name.
+ *
+ * @details Remove all sequences that are not specified and reorder them if
+ * necessary. Sequence to extract can be specified by either position or name,
+ * but not both simultaneously.
  *
  * @param[in,out] format coati::format_t arguments for running coati-format.
  * @param[in,out] data coati::data_t information about sequence data and
@@ -85,29 +92,32 @@ void extract_seqs(coati::format_t& format, coati::data_t& data) {
     names.reserve(data.names.size());
     seqs.reserve(data.seqs.size());
 
+    // if specified by name
     if(format.names.size() > 0) {
         for(std::size_t i = 0; i < format.names.size(); ++i) {
             auto it =
                 find(data.names.cbegin(), data.names.cend(), format.names[i]);
             if(it != data.names.cend()) {
+                // add +1 so that pos are consistent with user input (1 indexed)
                 format.pos.push_back(std::distance(data.names.cbegin(), it) +
                                      1);
-                // add +1 so that numbers are 1 indexed - consistent with user
-                //  input
+            } else {  // sequence not found
+                throw std::invalid_argument("Sequence " + format.names[i] +
+                                            " not found.");
             }
-        }
-        if(format.pos.empty()) {
-            throw std::invalid_argument("Names of seqs to extract not found.");
         }
     }
 
+    // if specified by position and extract reorder when specified by name
     if(format.pos.size() > 0) {
+        // check that positions of sequence are valid (not out of bounds)
         const auto [min, max] =
-            std::minmax_element(format.pos.begin(), format.pos.end());
+            std::minmax_element(format.pos.cbegin(), format.pos.cend());
         if(*min == 0 || *max > data.size()) {
             throw std::invalid_argument(
                 "Positions of seqs to extract are of out range");
         }
+        // extract sequences and their names
         for(auto pos : format.pos) {
             names.push_back(data.names[pos - 1]);
             seqs.push_back(data.seqs[pos - 1]);
@@ -119,14 +129,13 @@ void extract_seqs(coati::format_t& format, coati::data_t& data) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("extract_seqs") {
-    // NOLINTNEXTLINE(mis-unused-parameters)
     auto test = [](coati::format_t& format, coati::data_t& data,
+                   // NOLINTNEXTLINE(misc-unused-parameters)
                    const coati::data_t& expected) {
         coati::extract_seqs(format, data);
         CHECK_EQ(data.names, expected.names);
         CHECK_EQ(data.seqs, expected.seqs);
     };
-
     SUBCASE("Flip two sequences by name") {
         coati::data_t data, expected;
         data.names = {"A", "B"};
@@ -139,7 +148,6 @@ TEST_CASE("extract_seqs") {
 
         test(format, data, expected);
     }
-
     SUBCASE("Select one seq by pos") {
         coati::data_t data, expected;
         data.names = {"A", "B"};
@@ -151,6 +159,15 @@ TEST_CASE("extract_seqs") {
         expected.seqs = {"CCC"};
 
         test(format, data, expected);
+    }
+    SUBCASE("Select two seqs: one found, one not - fail") {
+        coati::data_t data, expected;
+        data.names = {"A", "B", "C"};
+        data.seqs = {"AAA", "GGG", "CCC"};
+        coati::format_t format;
+        format.names = {"C", "D"};
+
+        CHECK_THROWS_AS(extract_seqs(format, data), std::invalid_argument);
     }
     SUBCASE("Names not found - fail") {
         coati::data_t data, expected;

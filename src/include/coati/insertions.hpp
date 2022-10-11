@@ -55,14 +55,20 @@ struct insertion_data_t {
 
 using insertion_vector = std::vector<insertion_data_t>;
 
+// Store open insertions in a sparse vector given two aligned sequences.
 bool insertion_flags(const std::string_view ref, const std::string_view seq,
                      SparseVectorInt& insertions_vector);
-bool merge_indels(coati::insertion_vector& ins_data,
+// Collapse insertions between two sequences.
+void merge_indels(coati::insertion_vector& ins_data,
                   insertion_data_t& merged_data);
+// Add closed insertions to other sequences.
 uint64_t add_closed_ins(coati::insertion_vector& ins_data, std::size_t pos);
+// Check if all sequences have an open insertion at a given position.
 bool check_all_open(coati::insertion_vector& ins_data, std::size_t pos);
+// Find open insertions with same character at a given position.
 std::vector<std::size_t> find_open_ins(coati::insertion_vector& ins_data,
                                        std::size_t pos);
+// Add closed gaps to sequences and insertion vectors.
 void add_gap(coati::insertion_vector& ins_data,
              const std::vector<std::size_t>& seq_indexes, std::size_t pos);
 }  // namespace coati

@@ -28,7 +28,7 @@ namespace coati {
 using json_t = nlohmann::json;
 
 /**
- * \brief Convert coati::data_t to json format.
+ * @brief Convert coati::data_t to json format.
  *
  * @param[in,out] j nlohmann::json json object.
  * @param[in] data coati::data_t object.
@@ -39,7 +39,7 @@ void to_json(json_t& j, const data_t& data) {
 }
 
 /**
- * \brief Create coati::data_t object from json input.
+ * @brief Create coati::data_t object from json input.
  *
  * @param[in,out] data coati::data_t object.
  * @param[in] j nlohmann::json json object.
@@ -52,12 +52,12 @@ void from_json(const json_t& j, data_t& data) {
 }
 
 /**
- * \brief Read json file.
+ * @brief Read json file.
  *
  * @param[in] f_path std::string path to input file.
  * @param[in] marginal bool true if model is marginal so that FSA are created.
  *
- * \return coati::data_t object.
+ * @retval coati::data_t content and names of sequences.
  */
 coati::data_t read_json(const std::string& f_path, bool marginal) {
     coati::data_t json(f_path);
@@ -143,20 +143,21 @@ TEST_CASE("read-json") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Write content of coati::data_t to json format.
+ * @brief Write content of coati::data_t to json format.
  *
  * @param[in] json coati::data_t object.
  * @param[in] aln coati::VectorFstStdArc FST with alignment path.
  *
  */
 void write_json(coati::data_t& json, const VectorFstStdArc& aln) {
-    if(aln.NumStates() > 0) {  // if FST alignment
+    if(aln.NumStates() > 0) {  // if FST alignment, convert to strings
         coati::utils::fst_to_seqs(json, aln);
     }
     // set output pointer
     std::ostream* os = coati::io::set_ostream(json.out_file.path);
     std::ostream& out = *os;
 
+    // implicit conversion of data_t to json using `to_json`
     json_t out_json = json;
 
     out << out_json << std::endl;
