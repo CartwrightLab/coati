@@ -233,15 +233,15 @@ TEST_CASE("read_input") {
         outfile.open(filename);
         REQUIRE(outfile);
         outfile << "2 12" << std::endl;
-        outfile << "1\tCTCTGGATAGTC" << std::endl;
-        outfile << "2\tCTCTGGATAGTC" << std::endl;
+        outfile << "test-sequeCTCTGGATAGTC" << std::endl;
+        outfile << "2         CTCTGGATAGTC" << std::endl;
         outfile.close();
 
         aln.data.path = filename;
         coati::data_t phylip = read_input(aln);
         CHECK(std::filesystem::remove(filename));
 
-        CHECK_EQ(phylip.names[0], "1");
+        CHECK_EQ(phylip.names[0], "test-seque");
         CHECK_EQ(phylip.names[1], "2");
         CHECK_EQ(phylip.seqs[0], "CTCTGGATAGTC");
         CHECK_EQ(phylip.seqs[1], "CTCTGGATAGTC");
@@ -267,10 +267,10 @@ TEST_CASE("read_input") {
     SUBCASE("ext") {
         std::string filename("test-read-input.ext");
         aln.data.path = filename;
-        REQUIRE_THROWS_AS(read_input(aln), std::invalid_argument);
+        CHECK_THROWS_AS(read_input(aln), std::invalid_argument);
     }
     SUBCASE("empty") {
-        REQUIRE_THROWS_AS(read_input(aln), std::invalid_argument);
+        CHECK_THROWS_AS(read_input(aln), std::invalid_argument);
     }
 }
 // GCOVR_EXCL_STOP
@@ -339,26 +339,19 @@ TEST_CASE("write_output") {
         write_output(data);
 
         std::ifstream infile(data.out_file.path);
-        std::string s1, s2;
-        infile >> s1 >> s2;
-        CHECK_EQ(s1, "2");
-        CHECK_EQ(s2, "104");
-        infile >> s1 >> s2;
-        CHECK_EQ(s1, "anc");
+        std::string s;
+        getline(infile, s);
+        CHECK_EQ(s, "2 104");
+        getline(infile, s);
         CHECK_EQ(
-            s2,
-            "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
-            "ACGTACGTACGTACGTACGTACGTA");
-        infile >> s1 >> s2;
-        CHECK_EQ(s1, "des");
+            s, "anc       ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC");
+        getline(infile, s);
         CHECK_EQ(
-            s2,
-            "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT"
-            "ACGTACGTACGTACGTACGTACGTA");
-        // infile >> s1;  // blank line
-        infile >> s1 >> s2;
-        CHECK_EQ(s1, "CGTACGTACGTTTTT");
-        CHECK_EQ(s2, "CGTACGTACGTTTTT");
+            s, "des       ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC");
+        getline(infile, s);  // empty line
+        getline(infile, s);
+        CHECK_EQ(s, "GTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
+        CHECK_EQ(s, "GTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
         CHECK(std::filesystem::remove("test-write-output-phylip.phy"));
     }
 

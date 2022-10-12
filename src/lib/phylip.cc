@@ -24,16 +24,14 @@
 
 #include <coati/phylip.hpp>
 
-constexpr std::size_t PRINT_SIZE = 100;
-
 namespace coati {
 /**
- * \brief Read phylip format file and create FSAs.
+ * @brief Read phylip format file.
  *
  * @param[in] f_path std::string path to input file.
- * @param[in] marginal bool true if marginal model.
+ * @param[in] marginal bool true if marginal model (if false create FSAs).
  *
- * \return file path, names, and sequences (data_t).
+ * @retval coati::data_t file path, names, and sequences.
  */
 coati::data_t read_phylip(const std::string& f_path, bool marginal) {
     coati::data_t phylip(f_path);
@@ -47,13 +45,10 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
     std::string line;
 
     // get number of sequences and length
-    getline(in, line);
-    std::vector<std::string> unsplitted;
-    boost::trim_if(line, boost::is_any_of("\t "));
-    boost::split(unsplitted, line, boost::is_any_of("\t "),
-                 boost::token_compress_on);
-    n_seqs = std::stoi(unsplitted[0]);
-    len_seqs = std::stoi(unsplitted[1]);
+    in >> line;
+    n_seqs = std::stoi(line);
+    in >> line;
+    len_seqs = std::stoi(line);
 
     // reserve space for sequences
     phylip.names.resize(n_seqs);
@@ -67,10 +62,12 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
         if(line.empty()) {
             getline(in, line);
         }
-        boost::split(unsplitted, line, boost::is_any_of("\t "),
-                     boost::token_compress_on);
-        phylip.names[i] = unsplitted[0];
-        phylip.seqs[i] = unsplitted[1];
+        std::string name{line.substr(0, 10)};
+        name.erase(remove_if(name.begin(), name.end(), ::isspace), name.end());
+        phylip.names[i] = name;
+        std::string seq{line.substr(10, line.length())};
+        seq.erase(remove_if(seq.begin(), seq.end(), ::isspace), seq.end());
+        phylip.seqs[i] = seq;
     }
 
     size_t count{0};
@@ -111,23 +108,26 @@ TEST_CASE("read_phylip") {
         std::string filename{"test-read-phylip-fst.phy"};
         outfile.open(filename);
         REQUIRE(outfile);
-        outfile << " 2\t100" << std::endl << std::endl;
-        outfile << "1\t"
-                << "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATA"
-                   "GCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGG"
+        outfile << " 2 100" << std::endl;
+        outfile << "VeryLongNa"
+                   "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATA"
+                   "G"
                 << std::endl;
-        outfile << "2 \t"
-                << "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
-                   "ACTATACTATACTATACTATACTATACTATACTATAC"
+        outfile << "2         "
+                   "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
+                   "A"
+                << std::endl
                 << std::endl;
-        outfile << std::endl;  // blank line
-        outfile << "ATAG" << std::endl;
-        outfile << "TATA" << std::endl;
+        outfile << "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAG" << std::endl;
+        outfile << "CTATACTATACTATACTATACTATACTATACTATACTATA" << std::endl;
+        outfile << std::endl;
         outfile.close();
 
         coati::data_t phylip = read_phylip(filename, false);
-        CHECK(std::filesystem::remove(phylip.path.string()));
+        REQUIRE(std::filesystem::remove(phylip.path.string()));
 
+        CHECK_EQ(phylip.names[0], "VeryLongNa");
+        CHECK_EQ(phylip.names[1], "2");
         CHECK_EQ(
             phylip.seqs[0],
             "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCT"
@@ -150,22 +150,23 @@ TEST_CASE("read_phylip") {
         std::string filename{"test-read-phylip.phy"};
         outfile.open(filename);
         REQUIRE(outfile);
-        outfile << "2\t100" << std::endl;
-        outfile << "1\t  "
-                << "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATA"
-                   "GCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGG"
+        outfile << "2 100" << std::endl;
+        outfile << "1         "
+                   "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATA"
+                   "G"
                 << std::endl;
-        outfile << "2\t"
-                << "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
-                   "ACTATACTATACTATACTATACTATACTATACTATAC"
+        outfile << "2         "
+                   "CTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTATACTAT"
+                   "A"
+                << std::endl
                 << std::endl;
-        outfile << std::endl;  // blank line
-        outfile << "ATAG" << std::endl;
-        outfile << "TATA" << std::endl;
+        outfile << "CTCTGGATAGCTCTGGATAGCTCTGGATAGCTCTGGATAG" << std::endl;
+        outfile << "CTATACTATACTATACTATACTATACTATACTATACTATA" << std::endl;
+        outfile << std::endl;
         outfile.close();
 
         coati::data_t phylip = read_phylip(filename, true);
-        CHECK(std::filesystem::remove(phylip.path.string()));
+        REQUIRE(std::filesystem::remove(phylip.path.string()));
 
         CHECK_EQ(
             phylip.seqs[0],
@@ -190,7 +191,7 @@ TEST_CASE("read_phylip") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Write alignment in PHYLIP format
+ * @brief Write alignment in PHYLIP format.
  *
  * @param[in] phylip coati::data_t path, names, and sequences.
  * @param[in] aln fst::VectorFst<fst::StdArc> aligned sequences in FST form.
@@ -203,19 +204,23 @@ void write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
     std::ostream* os = coati::io::set_ostream(phylip.out_file.path);
     std::ostream& out = *os;
 
-    // write aligned sequences to file
+    // write number of sequences and length
     out << phylip.size() << " " << phylip.seqs[0].length() << std::endl;
-    size_t i = PRINT_SIZE - 11;
+
+    // write aligned sequences to file
+    size_t i = 50;
     for(size_t j = 0; j < phylip.size(); j++) {
+        // write first 10 chars of name or name + spaces to fill up to 10 chars
         std::string seq_name = phylip.names[j].substr(0, 10);
-        out << seq_name << std::string(10 - seq_name.length(), ' ') << " "
-            << phylip.seqs[j].substr(0, i) << std::endl;
+        seq_name.append(10 - seq_name.length(), ' ');
+        out << seq_name << phylip.seqs[j].substr(0, i) << std::endl;
     }
     out << std::endl;
 
-    for(; i < phylip.seqs[0].length(); i += PRINT_SIZE) {
+    // write rest of the sequences 60 characters per line
+    for(; i < phylip.seqs[0].length(); i += 60) {
         for(size_t j = 0; j < phylip.size(); j++) {
-            out << phylip.seqs[j].substr(i, PRINT_SIZE) << std::endl;
+            out << phylip.seqs[j].substr(i, 60) << std::endl;
         }
         out << std::endl;
     }
@@ -232,19 +237,16 @@ TEST_CASE("write_phylip") {
         write_phylip(phylip);
 
         std::ifstream infile("test-write-phylip.phy");
-        std::string s1, s2;
+        std::string s1;
 
-        infile >> s1 >> s2;
-        CHECK_EQ(s1.compare("2"), 0);
-        CHECK_EQ(s2.compare("12"), 0);
+        getline(infile, s1);
+        CHECK_EQ(s1, "2 12");
 
-        infile >> s1 >> s2;
-        CHECK_EQ(s1.compare("tx_1"), 0);
-        CHECK_EQ(s2.compare("CTCTGGATAGTG"), 0);
+        getline(infile, s1);
+        CHECK_EQ(s1, "tx_1      CTCTGGATAGTG");
 
-        infile >> s1 >> s2;
-        CHECK_EQ(s1.compare("taxa_2"), 0);
-        CHECK_EQ(s2.compare("CT----ATAGTG"), 0);
+        getline(infile, s1);
+        CHECK_EQ(s1, "taxa_2    CT----ATAGTG");
 
         CHECK(std::filesystem::remove("test-write-phylip.phy"));
     }
@@ -261,30 +263,23 @@ TEST_CASE("write_phylip") {
         write_phylip(phylip);
 
         std::ifstream infile("test-write-phylip-long.phy");
-        std::string s1, s2;
+        std::string s1;
 
-        infile >> s1 >> s2;
-        CHECK_EQ(s1.compare("2"), 0);
-        CHECK_EQ(s2.compare("100"), 0);
-
-        infile >> s1 >> s2;
-        CHECK_EQ(s1.compare("1"), 0);
+        getline(infile, s1);
+        CHECK_EQ(s1, "2 100");
+        getline(infile, s1);
         CHECK_EQ(
-            s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                       "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
-            0);
-
-        infile >> s1 >> s2;
-        CHECK_EQ(s1.compare("2"), 0);
+            s1, "1         AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        getline(infile, s1);
         CHECK_EQ(
-            s2.compare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                       "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
-            0);
-        infile >> s1 >> s2;
-        CHECK_EQ(s1.compare("AAAAAAAAAAA"), 0);
-        CHECK_EQ(s2.compare("AAAAAAAAAAA"), 0);
+            s1, "2         AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        getline(infile, s1);  // empty line
+        getline(infile, s1);
+        CHECK_EQ(s1, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        getline(infile, s1);
+        CHECK_EQ(s1, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 
-        CHECK(std::filesystem::remove("test-write-phylip-long.phy"));
+        REQUIRE(std::filesystem::remove("test-write-phylip-long.phy"));
     }
     SUBCASE("fst") {
         coati::data_t phylip("", {"1", "2"});
@@ -301,19 +296,16 @@ TEST_CASE("write_phylip") {
 
         write_phylip(phylip, fst_write);
         std::ifstream infile("test-write-phylip.phy");
-        std::string s1, s2;
+        std::string s1;
 
-        infile >> s1 >> s2;
-        CHECK_EQ(s1.compare("2"), 0);
-        CHECK_EQ(s2.compare("4"), 0);
+        getline(infile, s1);
+        CHECK_EQ(s1, "2 4");
 
-        infile >> s1 >> s2;
-        CHECK_EQ(s1.compare("1"), 0);
-        CHECK_EQ(s2.compare("CT-A"), 0);
+        getline(infile, s1);
+        CHECK_EQ(s1, "1         CT-A");
 
-        infile >> s1 >> s2;
-        CHECK_EQ(s1.compare("2"), 0);
-        CHECK_EQ(s2.compare("CTC-"), 0);
+        getline(infile, s1);
+        CHECK_EQ(s1, "2         CTC-");
 
         CHECK(std::filesystem::remove("test-write-phylip.phy"));
     }

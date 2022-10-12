@@ -29,7 +29,9 @@
 #include "coati/utils.hpp"
 
 namespace coati {
+// Read phylip format file.
 coati::data_t read_phylip(const std::string& f_path, bool marginal);
+// Write alignment in PHYLIP format.
 void write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln = {});
 }  // namespace coati
 #endif
