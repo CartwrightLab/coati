@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,9 +30,13 @@
 namespace coati {
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
+// Calculate number of transitions and transversion between two codons.
 void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);
+// Transition-transverison bias function.
 float k(uint8_t c1, uint8_t c2, int model = 0, float kappa = 2.5);
+// Create Empirical Codon Model substitution P matrix.
 coati::Matrixf ecm_p(float br_len, float omega);
+// Create Empirical Codon Model (Kosiol et al. 2007) FST.
 VectorFstStdArc ecm(float br_len, float omega);
 }  // namespace coati
 #endif

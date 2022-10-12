@@ -107,6 +107,8 @@ file_type_t extract_file_type(std::string path);
 
 void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln);
 
+uint8_t get_nuc(uint8_t cod, int pos);
+
 // calculate log(1+exp(x))
 // https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
 static inline float_t log1p_exp(float_t x) {

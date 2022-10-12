@@ -42,9 +42,9 @@ namespace coati::utils {
 int cod_distance(uint8_t cod1, uint8_t cod2) {
     int distance = 0;
 
-    distance += (((cod1 & 48) >> 4) == ((cod2 & 48) >> 4) ? 0 : 1);
-    distance += (((cod1 & 12) >> 2) == ((cod2 & 12) >> 2) ? 0 : 1);
-    distance += ((cod1 & 3) == (cod2 & 3) ? 0 : 1);
+    for(int i = 0; i < 3; ++i) {
+        distance += (get_nuc(cod1, i) == get_nuc(cod2, i) ? 0 : 1);
+    }
 
     return distance;
 }
@@ -60,6 +60,13 @@ int cod_int(const std::string_view codon) {
     unsigned char pos0 = codon[0];
     unsigned char pos1 = codon[1];
     unsigned char pos2 = codon[2];
+
+    // check that REF/ancestor doesnt have ambiguous nucs
+    auto pos = codon.find_first_not_of("ACGTUacgtu");
+    if(pos != std::string::npos) {
+        throw std::invalid_argument(
+            "Ambiguous nucleotides in reference sequence not supported.");
+    }
 
     return (nt16_table[pos0] << 4) | (nt16_table[pos1] << 2) | nt16_table[pos2];
 }
@@ -280,27 +287,10 @@ sequence_pair_t marginal_seq_encoding(const std::string_view anc,
     ret[0].reserve(anc.length());
     ret[1].reserve(des.length());
 
-    // check that REF/ancestor doesnt have ambiguous nucs
-    auto pos = anc.find_first_not_of("ACGTU");
-    if(pos != std::string::npos) {
-        throw std::invalid_argument(
-            "Ambiguous nucleotides in reference sequence not supported.");
-    }
-
     // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... ,
     // TTT3->191
-    for(size_t i = 0; i < anc.size() - 2; ++i) {
-        auto c0 = static_cast<unsigned char>(
-                      nt16_table[static_cast<unsigned char>(anc[i])])
-                  << 4;
-        i++;
-        auto c1 = static_cast<unsigned char>(
-                      nt16_table[static_cast<unsigned char>(anc[i])])
-                  << 2;
-        i++;
-        auto c2 = static_cast<unsigned char>(
-            nt16_table[static_cast<unsigned char>(anc[i])]);
-        auto cod = (c0 | c1 | c2) * 3;
+    for(size_t i = 0; i < anc.size() - 2; i += 3) {
+        auto cod = cod_int(anc.substr(i, i + 2)) * 3;
         ret[0].push_back(cod);
         ret[0].push_back(cod + 1);
         ret[0].push_back(cod + 2);
@@ -475,5 +465,39 @@ void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln) {
     boost::replace_all(data.seqs[0], "<eps>", "-");
     boost::replace_all(data.seqs[1], "<eps>", "-");
 }
+
+/**
+ * @brief Get nucleotide from codon.
+ *
+ * @param[in] cod uint8_t codon.
+ * @param[in] pos int position in codon = {0, 1, 2}.
+ *
+ * @retval uint8_t nucleotide (A = 0, C = 1, G = 2, T = 3).
+ *
+ */
+uint8_t get_nuc(uint8_t cod, int pos) {
+    std::vector<uint8_t> cod_mask = {48, 12, 3};
+    std::vector<uint8_t> shift = {4, 2, 0};
+
+    return ((cod & cod_mask[pos]) >> shift[pos]);
+}
+
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("get_nuc") {
+    std::vector<uint8_t> nucs{0, 1, 2, 3};
+    for(const auto& n1 : nucs) {  // NOLINT(clang-diagnostic-unused-variable)
+        // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
+        for(const auto& n2 : nucs) {
+            // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
+            for(const auto& n3 : nucs) {
+                CHECK_EQ(get_nuc(16 * n1 + 4 * n2 + n3, 0), n1);
+                CHECK_EQ(get_nuc(16 * n1 + 4 * n2 + n3, 1), n2);
+                CHECK_EQ(get_nuc(16 * n1 + 4 * n2 + n3, 2), n3);
+            }
+        }
+    }
+}
+// GCOVR_EXCL_STOP
 
 }  // namespace coati::utils

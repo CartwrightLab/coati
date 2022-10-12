@@ -136,8 +136,9 @@ VectorFstStdArc evo_fst(const coati::alignment_t& aln) {
         fst::ComposeFst<StdArc>(mutation_sort, indel_sort);
 
     // optimize coati FST
-    VectorFstStdArc evo_fst;
-    evo_fst = optimize(VectorFstStdArc(evo_comp));
+    VectorFstStdArc evo_fst, tmp;
+    tmp = VectorFstStdArc(evo_comp);
+    evo_fst = optimize(tmp);
 
     VectorFstStdArc evo_rmep;
     evo_rmep = fst::RmEpsilonFst<StdArc>(evo_fst);  // epsilon removal
