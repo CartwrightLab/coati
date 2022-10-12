@@ -43,8 +43,8 @@ static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args
         args.aln.data = coati::io::read_input(args.aln);
 
         // set ouput path and sequences names
-        args.aln.data.path = args.aln.data.path.stem();
-        args.aln.data.path += std::filesystem::path(".phy");
+        args.aln.output = args.aln.data.path.stem();
+        args.aln.output += std::filesystem::path(".phy");
         args.aln.data.names = args.aln.data.names;
 
         // set substitution matrix
@@ -58,7 +58,7 @@ static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args
         state.SetIterationTime(elapsed_time.count());
     }
 
-    std::filesystem::remove(args.aln.data.path);
+    std::filesystem::remove(args.aln.output);
 }
 
 /* marginal alignment with different length fasta files */
@@ -102,8 +102,8 @@ static void BM_fst_alignment(benchmark::State& state, ExtraArgs&&... extra_args)
         args.aln.data = coati::io::read_input(args.aln);
 
         // set output path and sequences names
-        args.aln.data.path = args.aln.data.path.stem();
-        args.aln.data.path += std::filesystem::path(".phy");
+        args.aln.output = args.aln.data.path.stem();
+        args.aln.output += std::filesystem::path(".phy");
         args.aln.data.names = args.aln.data.names;
 
 
@@ -118,7 +118,7 @@ static void BM_fst_alignment(benchmark::State& state, ExtraArgs&&... extra_args)
         state.SetIterationTime(elapsed_time.count());
     }
 
-    std::filesystem::remove(args.aln.data.path);
+    std::filesystem::remove(args.aln.output);
 }
 
 BENCHMARK_CAPTURE(BM_fst_alignment, bm_156, std::string("@bm_data@/benchmark_156.fasta"))

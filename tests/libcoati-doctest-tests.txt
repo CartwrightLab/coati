@@ -33,5 +33,6 @@ reroot
 distance_ref
 marginal_seq_encoding
 extract_file_type
+get_nuc
 version_number_check_equal
 version_integer
