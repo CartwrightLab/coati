@@ -120,7 +120,7 @@ coati::Matrixf mg94_p(float br_len, float omega,
     Q = Q * br_len;
     Q = Q.exp();
 
-    return coati::Matrixf(64, 64, Q);
+    return {64, 64, Q};
 }
 
 /// @private
@@ -228,7 +228,7 @@ TEST_CASE("marginal_p") {
  * @details The probability for each nucleotide is calculated by averaging over
  * all possibilities (e.g. N = avg(A, C, G, T); R = avg(A, G)).
  *
- * @param[in,out] coati::Matrixf marginal substitution matrix.
+ * @param[in,out] p coati::Matrixf marginal substitution matrix.
  *
  */
 void ambiguous_avg_p(coati::Matrixf& p) {
@@ -259,7 +259,7 @@ void ambiguous_avg_p(coati::Matrixf& p) {
  * @details The probability for each nucleotide is calculated by taking the best
  * (highest) of all possibilities (e.g. N = max(A, C, G, T); R = max(A, G)).
  *
- * @param[in,out] coati::Matrixf marginal substitution matrix.
+ * @param[in,out] p coati::Matrixf marginal substitution matrix.
  *
  */
 void ambiguous_best_p(coati::Matrixf& p) {

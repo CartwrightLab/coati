@@ -161,8 +161,8 @@ void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
  * @brief Viterbi algorithm - used for pairwise alignment, stores all state
  * transition probabilities.
  *
- * @detail Gotoh-like algorithm for finding the best alignment of two sequences.
- *  Fill matrices using dynamic programming O(n*m).
+ * @details Gotoh-like algorithm for finding the best alignment of two
+ * sequences. Fill matrices using dynamic programming O(n*m).
  *
  * @param[in,out] work coati::align_pair_work_t dynamic programming matrices.
  * @param[in] a coati::seq_view_t encoded reference/ancestor sequence.

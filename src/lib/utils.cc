@@ -37,7 +37,7 @@ namespace coati::utils {
  * @param[in] cod1 uint8_t encoded codon.
  * @param[in] cod2 uint8_t encoded codon.
  *
- * @reval int hamming distance between two codons.
+ * @retval int hamming distance between two codons.
  */
 int cod_distance(uint8_t cod1, uint8_t cod2) {
     int distance = 0;

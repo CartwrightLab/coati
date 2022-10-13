@@ -75,7 +75,7 @@ coati::Matrixf parse_matrix_csv(const std::string& file) {
     Q = Q * br_len;
     Q = Q.exp();
 
-    return coati::Matrixf(64, 64, Q);
+    return {64, 64, Q};
 }
 
 /// @private
@@ -408,7 +408,7 @@ std::ostream* set_ostream(const std::string& path) {
 /**
  * @brief Setup istream to read from file or from stdin.
  *
- * @param[in] std::string path to file (empty or '-' if stdin').
+ * @param[in] path std::string path to file (empty or '-' if stdin').
  *
  * @retval std::istream istream object.
  */
