@@ -91,22 +91,29 @@ using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 using sequence_pair_t = std::vector<std::basic_string<unsigned char>>;
 
+// Hamming distance between two codons.
 int cod_distance(uint8_t cod1, uint8_t cod2);
+// Get a codon's position in the codon list (AAA->0, AAAC->1 .. TTT->63).
 int cod_int(const std::string_view codon);
+// Setup command line options for coati-alignpair.
 void set_options_alignpair(CLI::App& app, coati::args_t& args);
+// Setup command line options for coati-msa.
 void set_options_msa(CLI::App& app, coati::args_t& args);
+// Setup command line options for coati-sample.
 void set_options_sample(CLI::App& app, coati::args_t& args);
+// Setup command line options for coati format.
 void set_options_format(CLI::App& app, coati::args_t& args);
+// Encode two sequences as vector<unsigned char>.
 sequence_pair_t marginal_seq_encoding(const std::string_view anc,
                                       const std::string_view des);
+// Set subtitution matrix or FST according to model.
 void set_subst(alignment_t& aln);
-
-// returns {.ext, file.foo}
+// Extract file type from path. Returns {.ext, file.foo}.
 // trims whitespace as well
 file_type_t extract_file_type(std::string path);
-
+// Convert alignment FST to std::string sequences.
 void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln);
-
+// Get nucleotide from codon.
 uint8_t get_nuc(uint8_t cod, int pos);
 
 // calculate log(1+exp(x))

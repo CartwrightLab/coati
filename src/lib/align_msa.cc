@@ -191,6 +191,70 @@ TEST_CASE("ref_indel_alignment") {
         REQUIRE(std::filesystem::remove(aln.output));
     }
 
+    SUBCASE("Less than 3 sequences - fail") {
+        std::ofstream outfile;
+        outfile.open("tree-msa.newick");
+        REQUIRE(outfile);
+        outfile << "(A:0.1,B:0.1);\n";
+        outfile.close();
+
+        outfile.open("test-msa.fasta");
+        REQUIRE(outfile);
+        outfile << ">A\nTCATCG\n>B\nTCAGTCG\n";
+        outfile.close();
+
+        coati::alignment_t aln;
+        aln.data.path = "test-msa.fasta";
+        aln.tree = "tree-msa.newick";
+        aln.refs = "A";
+
+        CHECK_THROWS_AS(ref_indel_alignment(aln), std::invalid_argument);
+    }
+
+    SUBCASE("More complex tree") {
+        std::ofstream outfile;
+        coati::alignment_t aln;
+        outfile.open("tree-msa.newick");
+        REQUIRE(outfile);
+        outfile << "((A:0.1,B:0.1):0.1,(C:0.1,(D:0.1,E:0.1):0.1):0.1,F:0.1);\n";
+        outfile.close();
+
+        outfile.open("test-msa.fasta");
+        REQUIRE(outfile);
+        outfile << ">A\nTCATCG\n>B\nTCAGTCG\n>C\nTATCG\n>D\nTCACTCG\n>"
+                   "E\nTCATC\n>F\nTCATCG";
+        outfile.close();
+
+        aln.data.path = "test-msa.fasta";
+        aln.tree = "tree-msa.newick";
+        aln.refs = "A";
+        aln.output = "test-fst-complex-tree.fa";
+        REQUIRE(ref_indel_alignment(aln));
+
+        std::ifstream infile(aln.data.out_file.path);
+        std::string s1, s2;
+
+        infile >> s1 >> s2;
+        CHECK_EQ(s1, ">A");
+        CHECK_EQ(s2, "TCA--TCG");
+        infile >> s1 >> s2;
+        CHECK_EQ(s1, ">B");
+        CHECK_EQ(s2, "TCA-GTCG");
+        infile >> s1 >> s2;
+        CHECK_EQ(s1, ">C");
+        CHECK_EQ(s2, "T-A--TCG");
+        infile >> s1 >> s2;
+        CHECK_EQ(s1, ">D");
+        CHECK_EQ(s2, "TCAC-TCG");
+        infile >> s1 >> s2;
+        CHECK_EQ(s1, ">E");
+        CHECK_EQ(s2, "TCA--TC-");
+        infile >> s1 >> s2;
+        CHECK_EQ(s1, ">F");
+        CHECK_EQ(s2, "TCA--TCG");
+        REQUIRE(std::filesystem::remove(aln.output));
+    }
+
     REQUIRE(std::filesystem::remove("tree-msa.newick"));
     REQUIRE(std::filesystem::remove("test-msa.fasta"));
 }
@@ -272,16 +336,10 @@ void merge_alignments(std::vector<bool>& visited,
             if(visited[inode_pos]) {
                 continue;
             }
-            bool all_children_visited = true;  // assume children are visited
-            // if any children is not visited set to false
+            // if any children is not visited, skip & come back when all are
             if(std::any_of(tree[inode_pos].children.begin(),
                            tree[inode_pos].children.end(),
                            [visited](int c) { return !visited[c]; })) {
-                all_children_visited = false;
-            }
-
-            // if not all children are visited, skip & come back when all are
-            if(!all_children_visited) {
                 continue;
             }
 

@@ -26,7 +26,6 @@ indel
 read_phylip
 write_phylip
 parse_newick
-aln_order
 find_seq
 find_node
 reroot

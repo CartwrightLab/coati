@@ -30,14 +30,14 @@
 namespace coati::utils {
 
 /**
- * \brief Hamming distance between two codons
+ * @brief Hamming distance between two codons.
  *
- * Number of positions in which the two codons are different.
+ * @details Number of positions in which the two codons are different.
  *
  * @param[in] cod1 uint8_t encoded codon.
  * @param[in] cod2 uint8_t encoded codon.
  *
- * \return hamming distance between two codons (int).
+ * @reval int hamming distance between two codons.
  */
 int cod_distance(uint8_t cod1, uint8_t cod2) {
     int distance = 0;
@@ -50,11 +50,17 @@ int cod_distance(uint8_t cod1, uint8_t cod2) {
 }
 
 /**
- * \brief Cast codon to position in codon list (AAA->0, AAAC->1 ... TTT->63)
+ * @brief Get a codon's position in the codon list (AAA->0, AAAC->1 .. TTT->63).
+ *
+ * @details Each nucleotide is converted to its position in nucleotide list
+ * (A = 0, C = 1, G = 2, T = 3). Then we apply the following:
+ * Given cod = nuc0 nuc1 nuc2,
+ * position = nuc0 * 2^4 + nuc1 * 2^2 + nuc2
+ * Algorithm performs this in bit operations.
  *
  * @param[in] codon std::string codon.
  *
- * \return encoded codon as its position in codon list.
+ * @retval int encoded codon as its position in codon list.
  */
 int cod_int(const std::string_view codon) {
     unsigned char pos0 = codon[0];
@@ -72,7 +78,7 @@ int cod_int(const std::string_view codon) {
 }
 
 /**
- * \brief Setup command line options for coati-alignpair.
+ * @brief Setup command line options for coati-alignpair.
  *
  * @param[in] app CLI::App command line arguments parser from CLI11.
  * @param[in,out] args coati::args_t to store the input parameters.
@@ -135,7 +141,7 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
 }
 
 /**
- * \brief Setup command line options for coati-msa.
+ * @brief Setup command line options for coati-msa.
  *
  * @param[in] app CLI::App command line arguments parser from CLI11.
  * @param[in,out] args coati::args_t to store the input parameters.
@@ -187,7 +193,7 @@ void set_options_msa(CLI::App& app, coati::args_t& args) {
 }
 
 /**
- * \brief Setup command line options for coati-sample.
+ * @brief Setup command line options for coati-sample.
  *
  * @param[in] app CLI::App command line arguments parser from CLI11.
  * @param[in,out] args coati::args_t to store the input parameters.
@@ -240,11 +246,10 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
     app.add_option("-n,--sample-size", args.sample.sample_size, "Sample size");
     app.add_option("-s, --seed", args.sample.seeds,
                    "Space separated list of seed(s) used for sampling");
-    //->expected(Nmin,Nmax);
 }
 
 /**
- * \brief Setup command line options for coati format.
+ * @brief Setup command line options for coati format.
  *
  * @param[in] app CLI::App command line arguments parser from CLI11.
  * @param[in,out] args coati::args_t to store the input parameters.
@@ -269,17 +274,17 @@ void set_options_format(CLI::App& app, coati::args_t& args) {
 }
 
 /**
- * \brief Encode two sequences as vector<unsigned char>
+ * @brief Encode two sequences as vector<unsigned char>.
  *
- * Encode ancestor (ref) sequence as codon \& phase, descendant as
+ * @details Encode ancestor (ref) sequence as codon \& phase, descendant as
  * nucleotide. ref: AAA \& position 0 -> 0, AAA \& 1 -> 1, ... , TTT \& 2 ->
  * 191. des: A -> 0, C -> 1, G -> 2, T -> 3.
  *
  * @param[in] anc std::string sequence of ancestor (reference).
  * @param[in] des std::string sequence of descendant.
  *
- * \return two sequences (ancestor \& descendant) encoded
- *  (coati::sequence_pair_t).
+ * @return coati::sequence_pair_t two sequences (ancestor \& descendant)
+ * encoded.
  */
 sequence_pair_t marginal_seq_encoding(const std::string_view anc,
                                       const std::string_view des) {
@@ -349,9 +354,10 @@ TEST_CASE("marginal_seq_encoding") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Set subtitution matrix or FST according to model
+ * @brief Set subtitution matrix or FST according to model.
  *
- * @param[in,out] aln coati::alignment_t alignment information.
+ * @param[in,out] aln coati::alignment_t alignment information containing model
+ * and substitution matrix/FST.
  */
 void set_subst(alignment_t& aln) {
     Matrixf P(64, 64);
@@ -379,14 +385,14 @@ void set_subst(alignment_t& aln) {
 }
 
 /**
- * \brief Extract file type from path.
+ * @brief Extract file type from path.
  *
- * Extracts extension and filename from both file.ext and ext:file.foo
+ * @details Extracts extension and filename from both file.ext and ext:file.foo.
  * Trims whitespace as well.
  *
  * @param[in] path std::string path to input file.
  *
- * \return coati::file_type_t object containing the path and extension.
+ * @retval coati::file_type_t object containing the path and extension.
  */
 file_type_t extract_file_type(std::string path) {
     constexpr auto npos = std::string::npos;
@@ -438,7 +444,7 @@ TEST_CASE("extract_file_type") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Convert alignment FST to std::string sequences.
+ * @brief Convert alignment FST to std::string sequences.
  *
  * @param[in] data coati::data_t sequences, names, fst, weight information.
  * @param[in] aln coati::alignment_t alignment object.

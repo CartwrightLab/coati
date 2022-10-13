@@ -108,11 +108,11 @@ BOOST_SPIRIT_DEFINE(tree);  // NOLINT(performance-unnecessary-value-param)
 namespace coati::tree {
 
 /**
- * \brief Read newick format file.
+ * @brief Read tree in newick format file.
  *
  * @param[in] tree_file std::string path to newick file.
  *
- * return std::string content of newick file
+ * @retval std::string content of newick file.
  */
 std::string read_newick(const std::string& tree_file) {
     std::ifstream input(tree_file);  // open input stream
@@ -132,13 +132,13 @@ std::string read_newick(const std::string& tree_file) {
 }
 
 /**
- * \brief Parse newick format tree.
+ * @brief Parse newick format tree.
  *
- * NOTE: quotation marks on labels not supported.
+ * @details NOTE: quotation marks on labels not supported.
  *
  * @param[in] content std::string tree in newick format.
  *
- * return tree_t parsed tree.
+ * @retval coati::tree_t parsed tree.
  */
 tree_t parse_newick(std::string& content) {
     // remove tabs \t ,new lines \n, and spaces
@@ -205,171 +205,22 @@ TEST_CASE("parse_newick") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Determine order of leafs for progressive alignment
- *
- * Determine order of leafs in which they should be aligned. List of <int,float>
- * pairs as index in tree and branch length.
- *
- * @param[in] tree coati::tree::tree_t parsed newick tree.
- *
- * return list of tree leafs in order in which they should be aligned.
- */
-std::vector<std::pair<int, float>> aln_order(tree_t& tree) {
-    // Part1: find closest pair of leafs
-    std::vector<std::pair<int, float>> order_list = find_closest_pair(tree);
-
-    // Part2: determine order of remaining leafs
-    std::vector<int> visited(tree.size(), false);  // list of visited nodes
-
-    visited[order_list[0].first] = visited[order_list[1].first] = true;
-    std::size_t ancestor = tree[order_list.back().first].parent;
-    float branch = 0;
-
-    // while not all nodes have been visited (any value in visitied is false)
-    while(any_of(visited.begin(), visited.end(), [](bool b) { return !b; })) {
-        // find leafs
-        for(std::size_t i = 0; i < tree[ancestor].children.size(); i++) {
-            // if children is not visited and it's leaf, visit
-            if(!visited[tree[ancestor].children[i]] &&
-               tree[tree[ancestor].children[i]].is_leaf) {
-                visited[tree[ancestor].children[i]] = true;
-
-                order_list.emplace_back(
-                    tree[ancestor].children[i],
-                    tree[tree[ancestor].children[i]].length + branch);
-                branch = 0;
-            }
-        }
-
-        // if any children is inode (not visited on foor lop above) go down that
-        // branch
-        if(any_of(tree[ancestor].children.begin(),
-                  tree[ancestor].children.end(),
-                  [&visited](int c) { return !visited[c]; })) {
-            // look for !visited and inode within ancestor's children
-            auto node =
-                find_if(begin(tree[ancestor].children),
-                        end(tree[ancestor].children), [&visited, tree](int i) {
-                            return !visited[i] && !tree[i].is_leaf;
-                        });
-
-            // if so, go down that branch
-            if(node != end(tree[ancestor].children)) {
-                ancestor = *node;
-                visited[*node] = true;
-                branch += tree[ancestor].length;
-            }
-
-        } else {  // else mark ancestor as visited & move to its parent
-            visited[ancestor] = true;
-            branch += tree[ancestor].length;
-            ancestor = tree[ancestor].parent;
-        }
-    }
-
-    return order_list;
-}
-
-/**
- * \brief Find closest pair of leafs in tree.
- *
- * @param[in] tree coati::tree::tree_t.
- *
- * return vector with first two leafs to align.
- */
-
-std::vector<std::pair<int, float>> find_closest_pair(tree_t& tree) {
-    for(std::size_t i = 1; i < tree.size(); i++) {  // fill list of children
-        tree[tree[i].parent].children.push_back(i);
-    }
-
-    std::pair<int, int> closest_pair;
-    float d = FLT_MAX;
-
-    for(std::size_t i = 0; i < tree.size(); i++) {  // for each node in tree
-        if(tree[i].children.empty()) continue;      // if no descendants skip
-        for(std::size_t j = 0; j < tree[i].children.size() - 1;
-            j++) {  // look for closest pair
-            for(std::size_t k = j + 1; k < tree[i].children.size(); k++) {
-                // if both nodes aren't children skip
-                if(!(tree[tree[i].children[j]].is_leaf &&
-                     tree[tree[i].children[k]].is_leaf)) {
-                    continue;
-                }
-                // if distance between nodes is < d, update closest pair & d
-                if(tree[tree[i].children[j]].length +
-                       tree[tree[i].children[k]].length <
-                   d) {
-                    d = tree[tree[i].children[j]].length +
-                        tree[tree[i].children[k]].length;
-                    closest_pair = std::make_pair(tree[i].children[j],
-                                                  tree[i].children[k]);
-                }
-            }
-        }
-    }
-
-    std::vector<std::pair<int, float>> order_list;
-    order_list.emplace_back(closest_pair.first, 0);
-    order_list.emplace_back(
-        closest_pair.second,
-        tree[closest_pair.first].length + tree[closest_pair.second].length);
-
-    return order_list;
-}
-
-/// @private
-// GCOVR_EXCL_START
-TEST_CASE("aln_order") {
-    tree_t tree;
-    // tree: "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"
-
-    tree.emplace_back("", 0, false, 0);
-    tree.emplace_back("B_b", 6, true, 0);
-    tree.emplace_back("Ancestor", 5, false, 0);
-    tree.emplace_back("A-a", 5, true, 2);
-    tree.emplace_back("C/c", 3, true, 2);
-    tree.emplace_back("E.e", 4, true, 2);
-    tree.emplace_back("D%", 11, true, 0);
-
-    std::vector<std::pair<int, float>> order_list = aln_order(tree);
-    REQUIRE_EQ(order_list.size(), 5);
-    CHECK_EQ(order_list[0].first, 4);
-    CHECK_EQ(order_list[0].second, 0);
-    CHECK_EQ(order_list[1].first, 5);
-    CHECK_EQ(order_list[1].second, 7);
-    CHECK_EQ(order_list[2].first, 3);
-    CHECK_EQ(order_list[2].second, 5);
-    CHECK_EQ(order_list[3].first, 1);
-    CHECK_EQ(order_list[3].second, 11);
-    CHECK_EQ(order_list[4].first, 6);
-    CHECK_EQ(order_list[4].second, 11);
-}
-// GCOVR_EXCL_STOP
-
-/**
- * \brief Find sequence in data_t given its name
+ * @brief Find sequence in data_t given its name.
  *
  * @param[in] name std::string sequence name.
  * @param[in] f coati::data_t names and sequences.
  *
- * \return sequence.
+ * @retval std::string sequence content.
  */
 std::string find_seq(const std::string_view name, const coati::data_t& f) {
-    std::string seq;
-    for(std::size_t i = 0; i < f.names.size(); i++) {
-        if(f.names[i].compare(name) == 0) {
-            seq = f.seqs[i];
-            break;
-        }
-    }
+    const auto seq = std::find(f.names.cbegin(), f.names.cend(), name);
 
-    if(seq.empty()) {
+    if(seq == f.names.cend()) {
         throw std::invalid_argument("Sequence " + std::string(name) +
                                     " not found.");
     }
 
-    return seq;
+    return f.seqs[std::distance(f.names.cbegin(), seq)];
 }
 
 /// @private
@@ -380,23 +231,23 @@ TEST_CASE("find_seq") {
     coati::data_t fasta("", {"A", "B", "C"}, {"ACGT", "CGTA", "GTAC"});
 
     sequence = find_seq("A", fasta);
-    CHECK_EQ(sequence.compare("ACGT"), 0);
+    CHECK_EQ(sequence, "ACGT");
     sequence = find_seq("B", fasta);
-    CHECK_EQ(sequence.compare("CGTA"), 0);
+    CHECK_EQ(sequence, "CGTA");
     sequence = find_seq("C", fasta);
-    CHECK_EQ(sequence.compare("GTAC"), 0);
+    CHECK_EQ(sequence, "GTAC");
     // fails, Z is not found -> seq is empty
-    REQUIRE_THROWS_AS(find_seq("Z", fasta), std::invalid_argument);
+    CHECK_THROWS_AS(find_seq("Z", fasta), std::invalid_argument);
 }
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Find node in tree given its name
+ * @brief Find position of node in tree given its name.
  *
  * @param[in] tree coati::tree:tree_t phylogenetic tree.
  * @param[in] name std::string node name.
  *
- * \return index of node.
+ * @retval std::size_t index of node in tree.
  */
 size_t find_node(const tree_t& tree, const std::string_view name) {
     auto it = find_if(begin(tree), end(tree), [name](const node_t& node) {
@@ -433,21 +284,25 @@ TEST_CASE("find_node") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Re-root tree given an outgroup (leaf node)
+ * @brief Re-root tree.
  *
- * @param[in,out] tree coati::tree:tree_t phylogenetic tree re-rooted [out].
- * @param[in] outgroup std::string outgroup to be the new root.
+ * @details Given the name of a leaf node, re-root the tree to set the node as
+ * the outgroup.
+ *
+ * @param[in,out] tree coati::tree:tree_t phylogenetic tree re-rooted.
+ * @param[in] nroot_name std::string node to be the new outgroup.
  */
-void reroot(tree_t& tree, const std::string_view outgroup) {
-    // find outgroup node
-    std::size_t ref = find_node(tree, outgroup);
+void reroot(tree_t& tree, const std::string_view nroot_name) {
+    // find new root node
+    std::size_t ref = find_node(tree, nroot_name);
 
     // find list of ancestors from newroot to current root
     std::vector<std::size_t> ancestors;
     std::size_t newroot = tree[ref].parent;
     std::size_t node = newroot;
 
-    // while not current root (current root has itself as parent)
+    // look for current root by going up the tree
+    // current root has itself as parent
     while(tree[node].parent != node) {
         ancestors.push_back(node);
         node = tree[node].parent;
@@ -455,7 +310,7 @@ void reroot(tree_t& tree, const std::string_view outgroup) {
     // add current root
     ancestors.push_back(node);
 
-    // for each inode in ancestors switch the order of parent -> descendant
+    // for each inode in ancestors swap the order of parent -> descendant
     for(auto i = ancestors.size() - 1; i > 0; i--) {
         tree[ancestors[i]].parent = ancestors[i - 1];
         tree[ancestors[i]].length = tree[ancestors[i - 1]].length;
@@ -534,15 +389,16 @@ TEST_CASE("reroot") {
 // GCOVR_EXCL_STOP
 
 /**
- * \brief Find distance from REF to node.
+ * @brief Find distance from reference to node.
  *
- * Tree is assumed to be rerooted.
+ * @details Note: tree is assumed to be re-rooted. Therefore distance is node to
+ * root + root to ref (outgroup).
  *
  * @param[in] tree coati::tree::tree_t phylogenetic tree.
  * @param[in] ref std::size_t index of reference sequence in tree.
  * @param[in] node std::size_t index of node in tree.
  *
- * \return distance from reference sequence to node (float).
+ * @retval float distance from reference sequence to node.
  */
 float distance_ref(const tree_t& tree, std::size_t ref, std::size_t node) {
     float distance = 0;

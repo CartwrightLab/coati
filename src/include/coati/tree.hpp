@@ -51,13 +51,17 @@ struct node_t {
 
 using tree_t = std::vector<node_t>;
 
+// Read tree in newick format file.
 std::string read_newick(const std::string& tree_file);
+// Parse newick format tree.
 tree_t parse_newick(std::string& content);
-std::vector<std::pair<int, float>> aln_order(tree_t& tree);
-std::vector<std::pair<int, float>> find_closest_pair(tree_t& tree);
+// Find sequence in data_t given its name.
 std::string find_seq(const std::string_view name, const coati::data_t& f);
+// Find position of node in tree given its name.
 size_t find_node(const tree_t& tree, const std::string_view name);
+// Re-root tree.
 void reroot(tree_t& tree, const std::string_view label);
+// Find distance from reference to node.
 float distance_ref(const tree_t& tree, size_t ref, size_t node);
 }  // namespace coati::tree
 #endif
