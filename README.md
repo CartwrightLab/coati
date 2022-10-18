@@ -1,4 +1,6 @@
-# COATi - Codon-Aware Multiple Sequence Alignments [![github-actions](https://github.com/CartwrightLab/coati/actions/workflows/meson.yml/badge.svg?branch=master)](https://github.com/CartwrightLab/coati/actions/workflows/meson.yml) [![codecov](https://codecov.io/gh/CartwrightLab/coati/branch/master/graph/badge.svg)](https://codecov.io/gh/CartwrightLab/coati)
+[![github-actions](https://github.com/CartwrightLab/coati/actions/workflows/meson.yml/badge.svg?branch=master)](https://github.com/CartwrightLab/coati/actions/workflows/meson.yml) [![codecov](https://codecov.io/gh/CartwrightLab/coati/branch/master/graph/badge.svg)](https://codecov.io/gh/CartwrightLab/coati)
+
+# COATi - Codon-Aware Multiple Sequence Alignments
 
 A statistical pairwise and multiple (in development) sequence aligner that is
 robust to artifacts, incorporates codon models, and supports complex indels.
@@ -7,6 +9,7 @@ robust to artifacts, incorporates codon models, and supports complex indels.
 * [Installation](#installation)
 * [`alignpair` - Pairwise alignment](#alignpair)
 * [`sample` - Sample alignments](#sample)
+* [`genseed` - Generate a random seed](#genseed)
 * [`format` - Utility command to format sequences](#format)
 * [`msa` - Multiple sequence aligner](#msa)
 * [Input/output syntax details](#input-output-syntax)
@@ -143,10 +146,17 @@ coati sample sampledata/example-003.fasta -n 100 -o ex3_100.json
 coati sample sampledata/example-003.fasta -n 50 -s random42
 ```
 
+## genseed
+
+Generate a random seed. Usage:
+
+```bash
+coati genseed
+```
+
 ## format
 
-Convert between sequence formats, extract specific sequences, and/or reorder
-sequences.
+Convert between formats, extract and/or reorder sequences.
 Accepted format are FASTA, PHYLIP, and JSON formats.
 Output can be piped to other commands.
 
