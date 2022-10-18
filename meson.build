@@ -22,7 +22,7 @@
 #  COdon-aware Alignment Transducer Project Configuration
 # Init Project
 project('COATI', 'cpp',
-	version : '0.1.9000',
+	version : '1.0.0',
 	license : 'MIT',
 	meson_version : '>=0.58.0',
 	default_options: [ 'buildtype=debugoptimized', 'cpp_std=c++17' ])

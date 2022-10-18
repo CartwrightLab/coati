@@ -36,10 +36,11 @@ const char libexec_dir[] = "@prefix@/@libexecdir@";
 int main(int argc, char *const argv[]) {
     COATI_VERB_RUNTIME_CHECK_VERSION_NUMBER_OR_RETURN();
 
-    std::vector<std::string> com{"help",   "alignpair", "msa",
+    std::vector<std::string> com{"help",   "version",   "alignpair", "msa",
                                  "sample", "genseed",   "format"};
     std::vector<std::string> desc{
         "      - display this message",
+        "   - version information",
         " - pairwise alignment of nucleotide sequences",
         "       - multiple sequence alignment  of nucleotide sequences",
         "    - align two sequences and sample alignments",
