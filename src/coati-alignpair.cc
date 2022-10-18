@@ -31,7 +31,8 @@ int main(int argc, char* argv[]) {
     coati::args_t args;
 
     // Parse command line options
-    CLI::App alignpair;
+    CLI::App alignpair{
+        "coati alignpair - pairwise alignment of nucleotide sequences\n"};
     coati::utils::set_options_alignpair(alignpair, args);
     CLI11_PARSE(alignpair, argc, argv);
 

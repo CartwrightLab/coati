@@ -29,7 +29,8 @@ int main(int argc, char* argv[]) {
     coati::args_t args;
 
     // Parse command line options
-    CLI::App msa;
+    CLI::App msa{
+        "coati msa - multiple sequence alignment of nucleotide sequences\n"};
     coati::utils::set_options_msa(msa, args);
     CLI11_PARSE(msa, argc, argv);
 

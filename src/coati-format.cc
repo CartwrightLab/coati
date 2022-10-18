@@ -29,7 +29,9 @@ int main(int argc, char* argv[]) {
     coati::args_t args;
 
     // Parse command line options
-    CLI::App format;
+    CLI::App format{
+        "coati format - convert between formats, extract and/or reoder "
+        "sequences\n"};
     coati::utils::set_options_format(format, args);
     CLI11_PARSE(format, argc, argv);
 
