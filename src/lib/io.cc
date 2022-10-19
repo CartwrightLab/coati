@@ -120,7 +120,7 @@ TEST_CASE("parse_matrix_csv") {
                 CHECK_EQ(P(i, j), doctest::Approx(P_test(i, j)));
             }
         }
-        CHECK(std::filesystem::remove("test-marg-matrix.csv"));
+        REQUIRE(std::filesystem::remove("test-marg-matrix.csv"));
     }
     SUBCASE("error opening file") {
         CHECK_THROWS_AS(parse_matrix_csv(""), std::invalid_argument);

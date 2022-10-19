@@ -123,8 +123,8 @@ class alignment_t {
     std::string tree{""};           /*!< path to input newick tree file */
     std::string refs{""};           /*!< name of reference sequence */
     bool rev{false};                /*!< use 2nd seq as reference */
-    std::string rate{""}; /*!< path to csv input substitution matrix file */
-    gap_t gap;            /*!< gap struct */
+    std::string rate{""};           /*!< path to csv input subst matrix file */
+    gap_t gap;                      /*!< gap struct */
     std::vector<float_t> sigma{0.f, 0.f, 0.f,
                                0.f, 0.f, 0.f}; /*!< GTR sigma parameters */
     Matrixf subst_matrix;                      /*!< substitution matrix */
@@ -135,7 +135,9 @@ class alignment_t {
     AmbiguousNucs amb = AmbiguousNucs::AVG;
 
     /** \brief Return true if model selected is marginal (m-coati or m-ecm) */
-    bool is_marginal() { return (model == "m-coati" || model == "m-ecm"); }
+    bool is_marginal() {
+        return (model == "m-coati" || model == "m-ecm" || !rate.empty());
+    }
 
     /** \brief Return sequence at position index. */
     std::string& seq(size_t index) { return data.seqs[index]; }

@@ -88,9 +88,14 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
     app.add_option("input", args.aln.data.path,
                    "Input file (FASTA/PHYLIP/JSON accepted)")
         ->required();
-    app.add_option("-m,--model", args.aln.model,
-                   "Substitution model (coati ecm dna m-coati m-ecm)")
-        ->group("Model parameters");
+    auto* opt_m =
+        app.add_option("-m,--model", args.aln.model,
+                       "Substitution model (coati ecm dna m-coati m-ecm)")
+            ->group("Model parameters");
+    app.add_option("--sub", args.aln.rate,
+                   "File with branch lengths and codon subst matrix")
+        ->excludes(opt_m)
+        ->group("Advanced options");
     app.add_option("-t,--time", args.aln.br_len,
                    "Evolutionary time/branch length")
         ->check(CLI::PositiveNumber)
@@ -99,7 +104,7 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
         app.add_option("-r,--ref", args.aln.refs,
                        "Name of reference sequence (default: 1st seq)")
             ->group("Advanced options");
-    app.add_flag("-v,--reverse-ref", args.aln.rev,
+    app.add_flag("-v,--rev-ref", args.aln.rev,
                  "Use 2nd seq as reference (default: 1st seq)")
         ->excludes(opt_ref)
         ->group("Advanced options");
@@ -301,9 +306,14 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
                    "Evolutionary time/branch length")
         ->check(CLI::PositiveNumber)
         ->group("Model parameters");
-    app.add_option("-m,--model", args.aln.model,
-                   "Substitution model (coati ecm dna m-coati m-ecm)")
-        ->group("Model parameters");
+    auto* opt_m =
+        app.add_option("-m,--model", args.aln.model,
+                       "Substitution model (coati ecm dna m-coati m-ecm)")
+            ->group("Model parameters");
+    app.add_option("--sub", args.aln.rate,
+                   "File with branch lengths and codon subst matrix")
+        ->excludes(opt_m)
+        ->group("Advanced options");
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
     app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
         ->check(CLI::PositiveNumber)

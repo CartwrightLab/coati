@@ -58,6 +58,8 @@ Insertion always precede deletions when contiguous to eliminate equivalent
 alignments.
 
 ```
+coati alignpair - pairwise alignment of nucleotide sequences
+
 Usage: coati alignpair [OPTIONS] input
 
 Positionals:
@@ -71,7 +73,7 @@ Options:
 
 
 Model parameters:
-  -m,--model TEXT                  Substitution model (coati ecm dna m-coati m-ecm)
+  -m,--model TEXT Excludes: --sub  Substitution model (coati ecm dna m-coati m-ecm)
   -t,--time FLOAT:POSITIVE         Evolutionary time/branch length
   -g,--gap-open FLOAT:POSITIVE     Gap opening score
   -e,--gap-extend FLOAT:POSITIVE   Gap extension score
@@ -79,11 +81,14 @@ Model parameters:
 
 
 Advanced options:
-  -r,--ref Excludes: --reverse-ref Name of reference sequence (default: 1st seq)
-  -v,--reverse-ref Excludes: --ref Use 2nd seq as reference (default: 1st seq)
+  --sub TEXT Excludes: --model     File with branch lengths and codon subst matrix
+  -r,--ref TEXT Excludes: --rev-ref
+                                   Name of reference sequence (default: 1st seq)
+  -v,--rev-ref Excludes: --ref     Use 2nd seq as reference (default: 1st seq)
   -w,--omega FLOAT:POSITIVE        Nonsynonymous-synonymous bias
   -p,--pi FLOAT x 4                Nucleotide frequencies (A C G T)
   -x,--sigma FLOAT x 6             GTR sigma parameters (AC AG AT CG CT GT)
+
 ```
 
 ### Sample runs
@@ -111,6 +116,8 @@ Output is always in json format ([see input output syntax](#input-output-syntax)
 and provides a weight and log weight of each pairwise alignment sampled.
 
 ```
+coati sample - align two sequences and sample alignments
+
 Usage: coati sample [OPTIONS] input
 
 Positionals:
@@ -125,12 +132,14 @@ Options:
 
 Model parameters:
   -t,--time FLOAT:POSITIVE         Evolutionary time/branch length
+  -m,--model TEXT Excludes: --sub  Substitution model (coati ecm dna m-coati m-ecm)
   -g,--gap-open FLOAT:POSITIVE     Gap opening score
   -e,--gap-extend FLOAT:POSITIVE   Gap extension score
   -k,--gap-len UINT                Gap unit length
 
 
 Advanced options:
+  --sub TEXT Excludes: --model     File with branch lengths and codon subst matrix
   -w,--omega FLOAT:POSITIVE        Nonsynonymous-synonymous bias
   -p,--pi FLOAT x 4                Nucleotide frequencies (A C G T)
   -x,--sigma FLOAT x 6             GTR sigma parameters (AC AG AT CG CT GT)
@@ -164,6 +173,8 @@ Additionaly, `coati format` can adjust sequences aligned with `coati alignpair`
 or `coati msa` to be used with downstream analyses and maintain our model
 assumption that the reference is always in frame.
 ```
+coati format - convert between formats, extract and/or reoder sequences
+
 Usage: coati format [OPTIONS] input
 
 Positionals:
@@ -200,6 +211,8 @@ coati alignpair sampledata/example-003.fasta | coati format json:- -p -c '?'
 Multiple sequence alignment (still in development).
 
 ```
+coati msa - multiple sequence alignment of nucleotide sequences
+
 Usage: coati msa [OPTIONS] input tree reference
 
 Positionals:

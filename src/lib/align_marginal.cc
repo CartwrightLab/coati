@@ -149,7 +149,8 @@ TEST_CASE("marg_alignment") {
         infile >> s1 >> s2;
         CHECK_EQ(s1, expected.names[1]);
         CHECK_EQ(s2, expected.seqs[1]);
-        CHECK(std::filesystem::remove(aln.output));
+        REQUIRE(std::filesystem::remove(aln.output));
+        REQUIRE(std::filesystem::remove(aln.data.path));
 
         if(!aln.weight_file.empty()) {
             std::ifstream inweight(aln.weight_file);
@@ -158,7 +159,6 @@ TEST_CASE("marg_alignment") {
             // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
             std::size_t start = s.find_last_of(',');
             REQUIRE(std::filesystem::remove(aln.weight_file));
-            REQUIRE(std::filesystem::remove(aln.data.path));
             CHECK_EQ(std::stof(s.substr(start + 1)), expected.weight);
         }
     };
@@ -347,6 +347,48 @@ TEST_CASE("marg_alignment") {
 
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
         CHECK(std::filesystem::remove("test-marg.fasta"));
+    }
+    SUBCASE("User-provided codon substitution matrix") {
+        std::ofstream outfile;
+        coati::Matrix<coati::float_t> P(
+            mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
+
+        const std::vector<std::string> codons = {
+            "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT",
+            "AGA", "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT",
+            "CAA", "CAC", "CAG", "CAT", "CCA", "CCC", "CCG", "CCT",
+            "CGA", "CGC", "CGG", "CGT", "CTA", "CTC", "CTG", "CTT",
+            "GAA", "GAC", "GAG", "GAT", "GCA", "GCC", "GCG", "GCT",
+            "GGA", "GGC", "GGG", "GGT", "GTA", "GTC", "GTG", "GTT",
+            "TAA", "TAC", "TAG", "TAT", "TCA", "TCC", "TCG", "TCT",
+            "TGA", "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT"};
+
+        outfile.open("test-marg-matrix.csv");
+        REQUIRE(outfile);
+
+        float Q[4096]{0.0f};
+        for(auto i = 0; i < 640; i++) {
+            Q[mg94_indexes[i]] = mg94Q[i];
+        }
+
+        outfile << "0.0133" << std::endl;  // branch length
+        for(auto i = 0; i < 64; i++) {
+            for(auto j = 0; j < 64; j++) {
+                outfile << codons[i] << "," << codons[j] << "," << Q[i * 64 + j]
+                        << std::endl;
+            }
+        }
+
+        outfile.close();
+        std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n"};
+        aln.data.path = "test-marg.fasta";
+        aln.rate = "test-marg-matrix.csv";
+        aln.output = "test-marg_alignment-fasta.fasta";
+
+        expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
+
+        test_fasta(aln, expected, file);
+        REQUIRE(std::filesystem::remove("test-marg-matrix.csv"));
     }
 }
 // GCOVR_EXCL_STOP
