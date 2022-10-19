@@ -131,6 +131,36 @@ std::string read_newick(const std::string& tree_file) {
     return content;
 }
 
+/// private
+// GCOVR_EXCL_START
+TEST_CASE("read_newick") {
+    SUBCASE("default") {
+        std::ofstream outfile;
+        outfile.open("tree.newick");
+        REQUIRE(outfile);
+        outfile << "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0);\n";
+        outfile.close();
+
+        CHECK_EQ(read_newick("tree.newick"),
+                 "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0);\n");
+        REQUIRE(std::filesystem::remove("tree.newick"));
+    }
+    SUBCASE("empty file - fail") {
+        std::ofstream outfile;
+        outfile.open("tree.newick");
+        REQUIRE(outfile);
+        outfile << "";
+        outfile.close();
+
+        CHECK_THROWS_AS(read_newick("tree.newick"), std::invalid_argument);
+        REQUIRE(std::filesystem::remove("tree.newick"));
+    }
+    SUBCASE("file not found - fail") {
+        CHECK_THROWS_AS(read_newick("tree.newick"), std::invalid_argument);
+    }
+}
+// GCOVR_EXCL_STOP
+
 /**
  * @brief Parse newick format tree.
  *
@@ -163,44 +193,50 @@ tree_t parse_newick(std::string& content) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("parse_newick") {
-    std::string stree{
-        "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"};
-    tree_t tree = parse_newick(stree);
-    REQUIRE_EQ(tree.size(), 7);
+    SUBCASE("default") {
+        std::string stree{
+            "(B_b:6.0,(A-a:5.0,C/c:3.0,E.e:4.0)Ancestor:5.0,D%:11.0);"};
+        tree_t tree = parse_newick(stree);
+        REQUIRE_EQ(tree.size(), 7);
 
-    CHECK_EQ(tree[0].length, 0);
-    CHECK_EQ(tree[0].is_leaf, false);
-    CHECK_EQ(tree[0].parent, 0);
+        CHECK_EQ(tree[0].length, 0);
+        CHECK_EQ(tree[0].is_leaf, false);
+        CHECK_EQ(tree[0].parent, 0);
 
-    CHECK_EQ(tree[1].label.compare("B_b"), 0);
-    CHECK_EQ(tree[1].length, 6);
-    CHECK_EQ(tree[1].is_leaf, true);
-    CHECK_EQ(tree[1].parent, 0);
+        CHECK_EQ(tree[1].label.compare("B_b"), 0);
+        CHECK_EQ(tree[1].length, 6);
+        CHECK_EQ(tree[1].is_leaf, true);
+        CHECK_EQ(tree[1].parent, 0);
 
-    CHECK_EQ(tree[2].label.compare("Ancestor"), 0);
-    CHECK_EQ(tree[2].length, 5);
-    CHECK_EQ(tree[2].is_leaf, false);
-    CHECK_EQ(tree[2].parent, 0);
+        CHECK_EQ(tree[2].label.compare("Ancestor"), 0);
+        CHECK_EQ(tree[2].length, 5);
+        CHECK_EQ(tree[2].is_leaf, false);
+        CHECK_EQ(tree[2].parent, 0);
 
-    CHECK_EQ(tree[3].label.compare("A-a"), 0);
-    CHECK_EQ(tree[3].length, 5);
-    CHECK_EQ(tree[3].is_leaf, true);
-    CHECK_EQ(tree[3].parent, 2);
+        CHECK_EQ(tree[3].label.compare("A-a"), 0);
+        CHECK_EQ(tree[3].length, 5);
+        CHECK_EQ(tree[3].is_leaf, true);
+        CHECK_EQ(tree[3].parent, 2);
 
-    CHECK_EQ(tree[4].label.compare("C/c"), 0);
-    CHECK_EQ(tree[4].length, 3);
-    CHECK_EQ(tree[4].is_leaf, true);
-    CHECK_EQ(tree[4].parent, 2);
+        CHECK_EQ(tree[4].label.compare("C/c"), 0);
+        CHECK_EQ(tree[4].length, 3);
+        CHECK_EQ(tree[4].is_leaf, true);
+        CHECK_EQ(tree[4].parent, 2);
 
-    CHECK_EQ(tree[5].label.compare("E.e"), 0);
-    CHECK_EQ(tree[5].length, 4);
-    CHECK_EQ(tree[5].is_leaf, true);
-    CHECK_EQ(tree[5].parent, 2);
+        CHECK_EQ(tree[5].label.compare("E.e"), 0);
+        CHECK_EQ(tree[5].length, 4);
+        CHECK_EQ(tree[5].is_leaf, true);
+        CHECK_EQ(tree[5].parent, 2);
 
-    CHECK_EQ(tree[6].label.compare("D%"), 0);
-    CHECK_EQ(tree[6].length, 11);
-    CHECK_EQ(tree[6].is_leaf, true);
-    CHECK_EQ(tree[6].parent, 0);
+        CHECK_EQ(tree[6].label.compare("D%"), 0);
+        CHECK_EQ(tree[6].length, 11);
+        CHECK_EQ(tree[6].is_leaf, true);
+        CHECK_EQ(tree[6].parent, 0);
+    }
+    SUBCASE("empty tree - fail") {
+        std::string tree{""};
+        CHECK_THROWS_AS(parse_newick(tree), std::runtime_error);
+    }
 }
 // GCOVR_EXCL_STOP
 

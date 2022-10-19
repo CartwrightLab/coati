@@ -63,7 +63,7 @@ bool marg_alignment(coati::alignment_t& aln) {
 
     // check that length of ref sequence is multiple of 3 and gap unit length
     size_t len_a = aln.seq(0).length();
-    if((len_a % 3 != 0) || (len_a % aln.gap.len != 0)) {
+    if(len_a % 3 != 0 || len_a % aln.gap.len != 0) {
         throw std::invalid_argument(
             "Length of reference sequence must be multiple of 3.");
     }
@@ -271,7 +271,7 @@ TEST_CASE("marg_alignment") {
 
         test_fasta(aln, expected, file);
     }
-    SUBCASE("Alignment with ambiguous nucleotides") {
+    SUBCASE("Alignment with ambiguous nucleotides - AVG") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
         aln.data.path = "test-marg.fasta";
         aln.model = "m-coati";
@@ -280,7 +280,18 @@ TEST_CASE("marg_alignment") {
 
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTR"});
         expected.weight = -1.03892f;  // AVG
-        // expected.weight = 1.51294f;  // BEST
+        test_fasta(aln, expected, file);
+    }
+    SUBCASE("Alignment with ambiguous nucleotides - BEST") {
+        std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
+        aln.data.path = "test-marg.fasta";
+        aln.model = "m-coati";
+        aln.weight_file = "score.log";
+        aln.output = "test-marg_alignment_ambiguous.fa";
+        aln.amb = coati::AmbiguousNucs::BEST;
+
+        expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTR"});
+        expected.weight = 1.51294f;  // BEST
         test_fasta(aln, expected, file);
     }
     SUBCASE("Alignment with gap length multiple of 3 - fail") {
@@ -389,6 +400,22 @@ TEST_CASE("marg_alignment") {
 
         test_fasta(aln, expected, file);
         REQUIRE(std::filesystem::remove("test-marg-matrix.csv"));
+    }
+    SUBCASE("Numb of sequences != 2 - fail") {
+        aln.data.path = "test-marg.fasta";
+        std::ofstream out;
+        out.open(aln.data.path);
+        REQUIRE(out);
+        out << ">1\nCTCTGGATAGTG\n";
+        out.close();
+        CHECK_THROWS_AS(marg_alignment(aln), std::invalid_argument);
+
+        out.open(aln.data.path);
+        REQUIRE(out);
+        out << ">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n>3\nCTCTGGGTG\n";
+        out.close();
+        CHECK_THROWS_AS(marg_alignment(aln), std::invalid_argument);
+        REQUIRE(std::filesystem::remove("test-marg.fasta"));
     }
 }
 // GCOVR_EXCL_STOP
@@ -538,7 +565,7 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
 
     // check that length of ref sequence is multiple of 3 and gap unit size
     size_t len_a = aln.seq(0).length();
-    if((len_a % 3 != 0) || (len_a % aln.gap.len != 0)) {
+    if(len_a % 3 != 0 || len_a % aln.gap.len != 0) {
         throw std::invalid_argument(
             "Length of reference sequence must be multiple of 3.");
     }
@@ -669,22 +696,50 @@ TEST_CASE("marg_sample") {
     SUBCASE("length of reference not multiple of 3") {
         coati::random_t rand;
         coati::alignment_t aln;
-        aln.data = coati::data_t("", {"A", "B"}, {"C", "CCC"});
+        aln.data.path = "marg-sample.fasta";
+        std::ofstream outfile;
+        outfile.open(aln.data.path);
+        REQUIRE(outfile);
+        outfile << ">seq1\nAC\n>seq2\nACG\n";
+        outfile.close();
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
+        REQUIRE(std::filesystem::remove(aln.data.path));
     }
     SUBCASE("length of descendant no multiple of gap len") {
         coati::random_t rand;
         coati::alignment_t aln;
-        aln.data = coati::data_t("", {"A", "B"}, {"CCC", "CCCC"});
+        aln.data.path = "marg-sample.fasta";
         aln.gap.len = 3;
-        std::vector<std::string> seq1, seq2, weight, lweight;
+        std::ofstream outfile;
+        outfile.open(aln.data.path);
+        REQUIRE(outfile);
+        outfile << ">A\nCCC\n>B\nCCCC\n";
+        outfile.close();
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
+        REQUIRE(std::filesystem::remove(aln.data.path));
     }
     SUBCASE("error opening output file") {
         coati::random_t rand;
         coati::alignment_t aln;
         aln.data.out_file = {{"."}, {".fasta"}};
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
+    }
+    SUBCASE("Number of seqs  != 2") {
+        coati::random_t rand;
+        coati::alignment_t aln;
+        aln.data.path = "marg-sample.fasta";
+        std::ofstream outfile;
+        outfile.open(aln.data.path);
+        REQUIRE(outfile);
+        outfile << ">A\nCCC\n";
+        outfile.close();
+        CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
+        outfile.open(aln.data.path);
+        REQUIRE(outfile);
+        outfile << ">A\nCCC\n>B\nCCC\n>C\nCCC\n";
+        outfile.close();
+        CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
+        REQUIRE(std::filesystem::remove(aln.data.path));
     }
 }
 // GCOVR_EXCL_STOP

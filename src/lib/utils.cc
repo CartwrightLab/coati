@@ -152,7 +152,7 @@ TEST_CASE("parse_arguments_alignpair") {
     CLI::App alnpair;
     coati::utils::set_options_alignpair(alnpair, args);
 
-    std::vector<char*> argv;
+    std::vector<const char*> argv;
     std::vector<std::string> cli_args = {
         "alignpair", "test.fasta", "-m",    "coati",      "-t",    "0.2",
         "-r",        "A",          "-l",    "weight.log", "-s",    "-o",
@@ -160,8 +160,9 @@ TEST_CASE("parse_arguments_alignpair") {
         "0.21",      "-p",         "0.15",  "0.35",       "0.35",  "0.15",
         "-k",        "3",          "-x",    "0.1",        "0.1",   "0.1",
         "0.1",       "0.1",        "0.1",   "-a",         "AVG"};
+    argv.reserve(cli_args.size() + 1);
     for(auto& arg : cli_args) {
-        argv.push_back((char*)arg.c_str());
+        argv.push_back(arg.c_str());
     }
     argv.push_back(nullptr);
     alnpair.parse(static_cast<int>(argv.size() - 1), argv.data());
@@ -254,7 +255,7 @@ TEST_CASE("parse_arguments_msa") {
     outfile << "((A:0.1,B:0.1):0.1);" << std::endl;
     outfile.close();
 
-    std::vector<char*> argv;
+    std::vector<const char*> argv;
     std::vector<std::string> cli_args = {
         "msa",         "test.fasta", "tree.newick",  "seqA",
         "--model",     "ecm",        "--output",     "out.phy",
@@ -264,8 +265,9 @@ TEST_CASE("parse_arguments_msa") {
         "3",           "--sigma",    "0.1",          "0.1",
         "0.1",         "0.1",        "0.1",          "0.1",
         "--ambiguous", "BEST"};
+    argv.reserve(cli_args.size() + 1);
     for(auto& arg : cli_args) {
-        argv.push_back((char*)arg.c_str());
+        argv.push_back(arg.c_str());
     }
     argv.push_back(nullptr);
     msa.parse(static_cast<int>(argv.size() - 1), argv.data());
@@ -359,7 +361,7 @@ TEST_CASE("parse_arguments_sample") {
     CLI::App sample;
     coati::utils::set_options_sample(sample, args);
 
-    std::vector<char*> argv;
+    std::vector<const char*> argv;
     std::vector<std::string> cli_args = {
         "sample",      "test.fasta", "-t",           "0.2001",
         "--model",     "m-ecm",      "--output",     "out.phy",
@@ -370,8 +372,9 @@ TEST_CASE("parse_arguments_sample") {
         "0.1",         "0.1",        "0.1",          "0.1",
         "--ambiguous", "BEST",       "-n",           "10",
         "-s",          "42"};
+    argv.reserve(cli_args.size() + 1);
     for(auto& arg : cli_args) {
-        argv.push_back((char*)arg.c_str());
+        argv.push_back(arg.c_str());
     }
     argv.push_back(nullptr);
     sample.parse(static_cast<int>(argv.size() - 1), argv.data());
@@ -429,12 +432,13 @@ TEST_CASE("parse_arguments_format") {
     CLI::App format;
     coati::utils::set_options_format(format, args);
 
-    std::vector<char*> argv;
+    std::vector<const char*> argv;
     std::vector<std::string> cli_args = {
         "sample", "test.fasta", "--output", "out.phy", "-p",
         "-c",     "$",          "-s",       "name1",   "name2"};
+    argv.reserve(cli_args.size() + 1);
     for(auto& arg : cli_args) {
-        argv.push_back((char*)arg.c_str());
+        argv.push_back(arg.c_str());
     }
     argv.push_back(nullptr);
     format.parse(static_cast<int>(argv.size() - 1), argv.data());

@@ -25,6 +25,7 @@ dna
 indel
 read_phylip
 write_phylip
+read_newick
 parse_newick
 find_seq
 find_node

@@ -101,7 +101,7 @@ coati::Matrixf mg94_p(float br_len, float omega,
                 } else if(get_nuc(i, 1) != get_nuc(j, 1)) {
                     x = get_nuc(i, 1);
                     y = get_nuc(j, 1);
-                } else if(get_nuc(i, 2) != get_nuc(j, 2)) {
+                } else {
                     x = get_nuc(i, 2);
                     y = get_nuc(j, 2);
                 }
