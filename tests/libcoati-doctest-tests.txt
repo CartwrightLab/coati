@@ -30,6 +30,10 @@ find_seq
 find_node
 reroot
 distance_ref
+parse_arguments_alignpair
+parse_arguments_msa
+parse_arguments_sample
+parse_arguments_format
 marginal_seq_encoding
 extract_file_type
 get_nuc

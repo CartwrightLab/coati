@@ -96,8 +96,8 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
         ->check(CLI::PositiveNumber)
         ->group("Model parameters");
     auto* opt_ref =
-        app.add_flag("-r,--ref", args.aln.refs,
-                     "Name of reference sequence (default: 1st seq)")
+        app.add_option("-r,--ref", args.aln.refs,
+                       "Name of reference sequence (default: 1st seq)")
             ->group("Advanced options");
     app.add_flag("-v,--reverse-ref", args.aln.rev,
                  "Use 2nd seq as reference (default: 1st seq)")
@@ -139,6 +139,49 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
 }
+
+/// private
+// GCOVR_EXCL_START
+TEST_CASE("parse_arguments_alignpair") {
+    coati::args_t args;
+    CLI::App alnpair;
+    coati::utils::set_options_alignpair(alnpair, args);
+
+    std::vector<char*> argv;
+    std::vector<std::string> cli_args = {
+        "alignpair", "test.fasta", "-m",    "coati",      "-t",    "0.2",
+        "-r",        "A",          "-l",    "weight.log", "-s",    "-o",
+        "out.phy",   "-g",         "0.015", "-e",         "0.009", "-w",
+        "0.21",      "-p",         "0.15",  "0.35",       "0.35",  "0.15",
+        "-k",        "3",          "-x",    "0.1",        "0.1",   "0.1",
+        "0.1",       "0.1",        "0.1",   "-a",         "AVG"};
+    for(auto& arg : cli_args) {
+        argv.push_back((char*)arg.c_str());
+    }
+    argv.push_back(nullptr);
+    alnpair.parse(static_cast<int>(argv.size() - 1), argv.data());
+
+    CHECK_EQ(args.aln.data.path, "test.fasta");
+    CHECK_EQ(args.aln.model, "coati");
+    CHECK_EQ(args.aln.br_len, 0.2f);
+    CHECK_EQ(args.aln.refs, "A");
+    CHECK_EQ(args.aln.weight_file, "weight.log");
+    CHECK(args.aln.score);
+    CHECK_EQ(args.aln.output, "out.phy");
+    CHECK_EQ(args.aln.gap.open, 0.015f);
+    CHECK_EQ(args.aln.gap.extend, 0.009f);
+    CHECK_EQ(args.aln.omega, 0.21f);
+    CHECK_EQ(args.aln.pi[0], 0.15f);
+    CHECK_EQ(args.aln.pi[1], 0.35f);
+    CHECK_EQ(args.aln.pi[2], 0.35f);
+    CHECK_EQ(args.aln.pi[3], 0.15f);
+    CHECK_EQ(args.aln.gap.len, 3);
+    for(size_t i = 0; i < 6; ++i) {
+        CHECK_EQ(args.aln.sigma[i], 0.1f);
+    }
+    CHECK_EQ(args.aln.amb, coati::AmbiguousNucs::AVG);
+}
+// GCOVR_EXCL_STOP
 
 /**
  * @brief Setup command line options for coati-msa.
@@ -191,6 +234,57 @@ void set_options_msa(CLI::App& app, coati::args_t& args) {
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
 }
+
+/// private
+// GCOVR_EXCL_START
+TEST_CASE("parse_arguments_msa") {
+    coati::args_t args;
+    CLI::App msa;
+    coati::utils::set_options_msa(msa, args);
+
+    // create tree.newick since function checks for it to be an existing file
+    std::ofstream outfile;
+    outfile.open("tree.newick");
+    REQUIRE(outfile);
+    outfile << "((A:0.1,B:0.1):0.1);" << std::endl;
+    outfile.close();
+
+    std::vector<char*> argv;
+    std::vector<std::string> cli_args = {
+        "msa",         "test.fasta", "tree.newick",  "seqA",
+        "--model",     "ecm",        "--output",     "out.phy",
+        "--gap-open",  "0.015",      "--gap-extend", "0.009",
+        "--omega",     "0.21",       "--pi",         "0.15",
+        "0.35",        "0.35",       "0.15",         "--gap-len",
+        "3",           "--sigma",    "0.1",          "0.1",
+        "0.1",         "0.1",        "0.1",          "0.1",
+        "--ambiguous", "BEST"};
+    for(auto& arg : cli_args) {
+        argv.push_back((char*)arg.c_str());
+    }
+    argv.push_back(nullptr);
+    msa.parse(static_cast<int>(argv.size() - 1), argv.data());
+
+    CHECK_EQ(args.aln.data.path, "test.fasta");
+    CHECK_EQ(args.aln.tree, "tree.newick");
+    CHECK_EQ(args.aln.refs, "seqA");
+    CHECK_EQ(args.aln.model, "ecm");
+    CHECK_EQ(args.aln.output, "out.phy");
+    CHECK_EQ(args.aln.gap.open, 0.015f);
+    CHECK_EQ(args.aln.gap.extend, 0.009f);
+    CHECK_EQ(args.aln.omega, 0.21f);
+    CHECK_EQ(args.aln.pi[0], 0.15f);
+    CHECK_EQ(args.aln.pi[1], 0.35f);
+    CHECK_EQ(args.aln.pi[2], 0.35f);
+    CHECK_EQ(args.aln.pi[3], 0.15f);
+    CHECK_EQ(args.aln.gap.len, 3);
+    for(size_t i = 0; i < 6; ++i) {
+        CHECK_EQ(args.aln.sigma[i], 0.1f);
+    }
+    CHECK_EQ(args.aln.amb, coati::AmbiguousNucs::BEST);
+    REQUIRE(std::filesystem::remove("tree.newick"));
+}
+// GCOVR_EXCL_STOP
 
 /**
  * @brief Setup command line options for coati-sample.
@@ -248,6 +342,51 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
                    "Space separated list of seed(s) used for sampling");
 }
 
+/// private
+// GCOVR_EXCL_START
+TEST_CASE("parse_arguments_sample") {
+    coati::args_t args;
+    CLI::App sample;
+    coati::utils::set_options_sample(sample, args);
+
+    std::vector<char*> argv;
+    std::vector<std::string> cli_args = {
+        "sample",      "test.fasta", "-t",           "0.2001",
+        "--model",     "m-ecm",      "--output",     "out.phy",
+        "--gap-open",  "0.015",      "--gap-extend", "0.009",
+        "--omega",     "0.21",       "--pi",         "0.15",
+        "0.35",        "0.35",       "0.15",         "--gap-len",
+        "3",           "--sigma",    "0.1",          "0.1",
+        "0.1",         "0.1",        "0.1",          "0.1",
+        "--ambiguous", "BEST",       "-n",           "10",
+        "-s",          "42"};
+    for(auto& arg : cli_args) {
+        argv.push_back((char*)arg.c_str());
+    }
+    argv.push_back(nullptr);
+    sample.parse(static_cast<int>(argv.size() - 1), argv.data());
+
+    CHECK_EQ(args.aln.data.path, "test.fasta");
+    CHECK_EQ(args.aln.br_len, 0.2001f);
+    CHECK_EQ(args.aln.model, "m-ecm");
+    CHECK_EQ(args.aln.output, "out.phy");
+    CHECK_EQ(args.aln.gap.open, 0.015f);
+    CHECK_EQ(args.aln.gap.extend, 0.009f);
+    CHECK_EQ(args.aln.omega, 0.21f);
+    CHECK_EQ(args.aln.pi[0], 0.15f);
+    CHECK_EQ(args.aln.pi[1], 0.35f);
+    CHECK_EQ(args.aln.pi[2], 0.35f);
+    CHECK_EQ(args.aln.pi[3], 0.15f);
+    CHECK_EQ(args.aln.gap.len, 3);
+    for(size_t i = 0; i < 6; ++i) {
+        CHECK_EQ(args.aln.sigma[i], 0.1f);
+    }
+    CHECK_EQ(args.aln.amb, coati::AmbiguousNucs::BEST);
+    CHECK_EQ(args.sample.sample_size, 10);
+    CHECK_EQ(args.sample.seeds[0], "42");
+}
+// GCOVR_EXCL_STOP
+
 /**
  * @brief Setup command line options for coati format.
  *
@@ -272,6 +411,33 @@ void set_options_format(CLI::App& app, coati::args_t& args) {
                    "Position of sequences to extract (1 based)")
         ->excludes(cut_seq);
 }
+
+/// private
+// GCOVR_EXCL_START
+TEST_CASE("parse_arguments_format") {
+    coati::args_t args;
+    CLI::App format;
+    coati::utils::set_options_format(format, args);
+
+    std::vector<char*> argv;
+    std::vector<std::string> cli_args = {
+        "sample", "test.fasta", "--output", "out.phy", "-p",
+        "-c",     "$",          "-s",       "name1",   "name2"};
+    for(auto& arg : cli_args) {
+        argv.push_back((char*)arg.c_str());
+    }
+    argv.push_back(nullptr);
+    format.parse(static_cast<int>(argv.size() - 1), argv.data());
+
+    CHECK_EQ(args.aln.data.path, "test.fasta");
+    CHECK_EQ(args.aln.output, "out.phy");
+    CHECK(args.format.preserve_phase);
+    CHECK_EQ(args.format.padding, "$");
+    CHECK_EQ(args.format.names.size(), 2);
+    CHECK_EQ(args.format.names[0], "name1");
+    CHECK_EQ(args.format.names[1], "name2");
+}
+// GCOVR_EXCL_STOP
 
 /**
  * @brief Encode two sequences as vector<unsigned char>.
