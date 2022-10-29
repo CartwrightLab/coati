@@ -180,19 +180,34 @@ coati::data_t read_input(alignment_t& aln) {
     coati::data_t input_data;
     coati::file_type_t in_type = coati::utils::extract_file_type(aln.data.path);
 
+    // set input stream pointer
+    std::istream* pin(nullptr);
+    std::ifstream infile;
+    if(aln.data.path.empty() || aln.data.path == "-") {
+        pin = &std::cin;
+    } else {
+        infile.open(aln.data.path);
+        if(!infile) {
+            throw std::invalid_argument("Opening input file " +
+                                        aln.data.path.string() + " failed.");
+        }
+        pin = &infile;
+    }
+    std::istream& in = *pin;
+
     // call reader depending on file type
     if(in_type.type_ext == ".fa" || in_type.type_ext == ".fasta") {
-        input_data = read_fasta(aln.data.path, aln.is_marginal());
+        input_data = read_fasta(in, aln.is_marginal());
         input_data.out_file = coati::utils::extract_file_type(aln.output);
         return input_data;
     }
     if(in_type.type_ext == ".phy") {
-        input_data = read_phylip(aln.data.path, aln.is_marginal());
+        input_data = read_phylip(in, aln.is_marginal());
         input_data.out_file = coati::utils::extract_file_type(aln.output);
         return input_data;
     }
     if(in_type.type_ext == ".json") {
-        input_data = read_json(aln.data.path, aln.is_marginal());
+        input_data = read_json(in, aln.is_marginal());
         input_data.out_file = coati::utils::extract_file_type(aln.output);
         return input_data;
     }
@@ -266,6 +281,12 @@ TEST_CASE("read_input") {
     }
     SUBCASE("ext") {
         std::string filename("test-read-input.ext");
+        outfile.open(filename);
+        REQUIRE(outfile);
+        outfile << "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
+                   "[\"CTCTGGATAGTC\",\"CTCTGGATAGTC\"]}}"
+                << std::endl;
+        outfile.close();
         aln.data.path = filename;
         CHECK_THROWS_AS(read_input(aln), std::invalid_argument);
     }
@@ -283,12 +304,24 @@ TEST_CASE("read_input") {
  */
 void write_output(coati::data_t& data, const coati::VectorFstStdArc& aln_path) {
     // call writer depending on file type
+
+    // set output stream pointer
+    std::ostream* pout(nullptr);
+    std::ofstream outfile;
+    if(data.out_file.path.empty() || data.out_file.path == "-") {
+        pout = &std::cout;
+    } else {
+        outfile.open(data.out_file.path);
+        pout = &outfile;
+    }
+    std::ostream& out = *pout;
+
     if(data.out_file.type_ext == ".fa" || data.out_file.type_ext == ".fasta") {
-        write_fasta(data, aln_path);
+        write_fasta(data, out, aln_path);
     } else if(data.out_file.type_ext == ".phy") {
-        write_phylip(data, aln_path);
+        write_phylip(data, out, aln_path);
     } else if(data.out_file.type_ext == ".json") {
-        write_json(data, aln_path);
+        write_json(data, out, aln_path);
     } else {
         // not supported output format
         throw std::invalid_argument("Invalid output format" +
@@ -329,7 +362,7 @@ TEST_CASE("write_output") {
             s, "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT");
         infile >> s;
         CHECK_EQ(s, "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
-        CHECK(std::filesystem::remove("test-write-output-fasta.fasta"));
+        REQUIRE(std::filesystem::remove("test-write-output-fasta.fasta"));
     }
 
     SUBCASE("phylip") {
@@ -352,7 +385,7 @@ TEST_CASE("write_output") {
         getline(infile, s);
         CHECK_EQ(s, "GTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
         CHECK_EQ(s, "GTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT");
-        CHECK(std::filesystem::remove("test-write-output-phylip.phy"));
+        REQUIRE(std::filesystem::remove("test-write-output-phylip.phy"));
     }
 
     SUBCASE("json") {
@@ -371,7 +404,7 @@ TEST_CASE("write_output") {
             "CGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\","
             "\"ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC"
             "GTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\"]}}");
-        CHECK(std::filesystem::remove("test-write-output-phylip.json"));
+        REQUIRE(std::filesystem::remove("test-write-output-phylip.json"));
     }
 
     SUBCASE("ext") {
@@ -379,52 +412,8 @@ TEST_CASE("write_output") {
         data.out_file.path = "test-write-output-ext.ext";
         data.out_file.type_ext = ".ext";
         REQUIRE_THROWS_AS(write_output(data), std::invalid_argument);
+        REQUIRE(std::filesystem::remove("test-write-output-ext.ext"));
     }
 }
 // GCOVR_EXCL_STOP
-
-/**
- * @brief Setup ostream to write to file or stdout.
- *
- * @param[in] path std::string path to file (empty or '-' if stdout).
- *
- * @retval std::ostream ostream object.
- */
-std::ostream* set_ostream(const std::string& path) {
-    std::ostream* pout(nullptr);
-    if(path.empty() || path == "-") {
-        pout = &std::cout;  // write to stdout
-        return pout;
-    }
-
-    auto* outfile = new std::ofstream(path);
-    if(!outfile->is_open()) {
-        throw std::invalid_argument("Opening output " + path + "file failed");
-    }
-    pout = outfile;
-    return pout;
-}
-
-/**
- * @brief Setup istream to read from file or from stdin.
- *
- * @param[in] path std::string path to file (empty or '-' if stdin').
- *
- * @retval std::istream istream object.
- */
-std::istream* set_istream(const std::string& path) {
-    std::istream* pin(nullptr);
-    if(path.empty() || path == "-") {
-        pin = &std::cin;  // read from stdin
-        return pin;
-    }
-
-    auto* infile = new std::ifstream(path);
-    if(!infile->is_open()) {
-        throw std::invalid_argument("Opening input file " + path + " failed.");
-    }
-    pin = infile;
-    return pin;
-}
-
 }  // namespace coati::io

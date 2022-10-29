@@ -54,18 +54,13 @@ void from_json(const json_t& j, data_t& data) {
 /**
  * @brief Read json file.
  *
- * @param[in] f_path std::string path to input file.
+ * @param[in] in std::istream input stream pointing to stdin or file.
  * @param[in] marginal bool true if model is marginal so that FSA are created.
  *
  * @retval coati::data_t content and names of sequences.
  */
-coati::data_t read_json(const std::string& f_path, bool marginal) {
-    coati::data_t json(f_path);
-
-    // set input pointer and file type
-    coati::file_type_t in_type = coati::utils::extract_file_type(f_path);
-    std::istream* is = coati::io::set_istream(in_type.path);
-    std::istream& in = *is;
+coati::data_t read_json(std::istream& in, bool marginal) {
+    coati::data_t json;
 
     // read and convert json format to data_t
     json_t in_json;
@@ -76,8 +71,8 @@ coati::data_t read_json(const std::string& f_path, bool marginal) {
         for(size_t i = 0; i < json.seqs.size(); i++) {
             VectorFstStdArc accept;  // create FSA with sequence
             if(!acceptor(json.seqs[i], accept)) {
-                throw std::runtime_error("Creating acceptor from " + f_path +
-                                         " failed. Exiting!");
+                throw std::runtime_error(
+                    "Creating acceptor from input json file failed. Exiting!");
             }
             json.fsts.push_back(accept);  // Add FSA
         }
@@ -88,11 +83,12 @@ coati::data_t read_json(const std::string& f_path, bool marginal) {
 
 /// @private
 // GCOVR_EXCL_START
-TEST_CASE("read-json") {
+TEST_CASE("read_json") {
     std::ofstream outfile;
+    std::ifstream in;
+    std::string filename{"test-read-json.json"};
 
     SUBCASE("test-read-json-marg.json") {
-        std::string filename{"test-read-json-marg.json"};
         outfile.open(filename);
         REQUIRE(outfile);
         outfile << "{\"data\":{\"names\" : [\"anc\",\"des\"], \"seqs\" : "
@@ -100,8 +96,10 @@ TEST_CASE("read-json") {
                 << std::endl;
         outfile.close();
 
-        coati::data_t json = read_json(filename, true);
-        CHECK(std::filesystem::remove(json.path));
+        in.open(filename);
+        REQUIRE(in);
+        coati::data_t json = read_json(in, true);
+        REQUIRE(std::filesystem::remove(filename));
 
         CHECK_EQ(json.names[0], "anc");
         CHECK_EQ(json.names[1], "des");
@@ -109,7 +107,6 @@ TEST_CASE("read-json") {
         CHECK_EQ(json.seqs[1], "CTATAGTC");
     }
     SUBCASE("test-read-json-fst.json") {
-        std::string filename{"test-read-json-fst.json"};
         outfile.open(filename);
         REQUIRE(outfile);
         outfile << "{\"data\":{\"names\" : [\"anc\",\"des\"], \"seqs\" : "
@@ -117,8 +114,10 @@ TEST_CASE("read-json") {
                 << std::endl;
         outfile.close();
 
-        coati::data_t json = read_json(filename, false);
-        CHECK(std::filesystem::remove(json.path));
+        in.open(filename);
+        REQUIRE(in);
+        coati::data_t json = read_json(in, false);
+        REQUIRE(std::filesystem::remove(filename));
 
         CHECK_EQ(json.names[0], "anc");
         CHECK_EQ(json.names[1], "des");
@@ -134,11 +133,6 @@ TEST_CASE("read-json") {
             CHECK_EQ(json.fsts[0].NumArcs(i), 1);
         }
     }
-    SUBCASE("invalid input argument") {
-        std::string filename{"test-read-json.json"};
-        CHECK_THROWS_AS(coati::read_json(filename, true),
-                        std::invalid_argument);
-    }
 }
 // GCOVR_EXCL_STOP
 
@@ -146,16 +140,15 @@ TEST_CASE("read-json") {
  * @brief Write content of coati::data_t to json format.
  *
  * @param[in] json coati::data_t object.
+ * @param[in] out std::ostream output stream pointing to stdout or file.
  * @param[in] aln coati::VectorFstStdArc FST with alignment path.
  *
  */
-void write_json(coati::data_t& json, const VectorFstStdArc& aln) {
+void write_json(coati::data_t& json, std::ostream& out,
+                const VectorFstStdArc& aln) {
     if(aln.NumStates() > 0) {  // if FST alignment, convert to strings
         coati::utils::fst_to_seqs(json, aln);
     }
-    // set output pointer
-    std::ostream* os = coati::io::set_ostream(json.out_file.path);
-    std::ostream& out = *os;
 
     // implicit conversion of data_t to json using `to_json`
     json_t out_json = json;
@@ -166,24 +159,28 @@ void write_json(coati::data_t& json, const VectorFstStdArc& aln) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("write-json") {
-    SUBCASE("test-write-json-marg.json") {
+    std::ofstream outfile;
+    std::string filename{"test-write-json.json"};
+    outfile.open(filename);
+    REQUIRE(outfile);
+    std::ostream& out = outfile;
+
+    SUBCASE("marginal") {
         coati::data_t json("", {"a", "b"},
                            {"ATGTCTTCTCACAAGACT", "ATGTCTTCTCACAAGACT"});
-        json.out_file.path = "test-write-json-marg.json";
 
-        write_json(json);
+        write_json(json, out);
 
-        std::ifstream infile("test-write-json-marg.json");
+        std::ifstream infile(filename);
         std::string s1;
         infile >> s1;
         CHECK_EQ(s1,
                  "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
                  "[\"ATGTCTTCTCACAAGACT\",\"ATGTCTTCTCACAAGACT\"]}}");
-        CHECK(std::filesystem::remove(json.out_file.path));
+        REQUIRE(std::filesystem::remove(filename));
     }
-    SUBCASE("test-write-json-fst.json") {
+    SUBCASE("FST") {
         coati::data_t json("", {"a", "b"}, {"CT-A", "CTC-"});
-        json.out_file.path = "test-write-json-fst.json";
 
         VectorFstStdArc fst_write;
         fst_write.AddState();
@@ -194,15 +191,15 @@ TEST_CASE("write-json") {
         add_arc(fst_write, 3, 4, 1, 0);  // A -> -
         fst_write.SetFinal(4, 0.0);
 
-        write_json(json, fst_write);
+        write_json(json, out, fst_write);
 
-        std::ifstream infile(json.out_file.path);
+        std::ifstream infile(filename);
         std::string s1;
         infile >> s1;
         CHECK_EQ(s1,
                  "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
                  "[\"CT-A\",\"CTC-\"]}}");
-        CHECK(std::filesystem::remove(json.out_file.path));
+        REQUIRE(std::filesystem::remove(filename));
     }
 }
 // GCOVR_EXCL_STOP

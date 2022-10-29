@@ -13,7 +13,7 @@ add_gap
 parse_matrix_csv
 read_input
 write_output
-read-json
+read_json
 write-json
 mg94_p
 marginal_p

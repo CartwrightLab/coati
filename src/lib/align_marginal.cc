@@ -150,7 +150,7 @@ TEST_CASE("marg_alignment") {
         CHECK_EQ(s1, expected.names[1]);
         CHECK_EQ(s2, expected.seqs[1]);
         REQUIRE(std::filesystem::remove(aln.output));
-        REQUIRE(std::filesystem::remove(aln.data.path));
+        REQUIRE(std::filesystem::remove("test-marg.fasta"));
 
         if(!aln.weight_file.empty()) {
             std::ifstream inweight(aln.weight_file);
@@ -189,7 +189,7 @@ TEST_CASE("marg_alignment") {
         CHECK_EQ(s1, expected.names[1]);
         CHECK_EQ(s2, expected.seqs[1]);
         REQUIRE(std::filesystem::remove(aln.output));
-        REQUIRE(std::filesystem::remove(aln.data.path));
+        REQUIRE(std::filesystem::remove("test-marg.fasta"));
     };
 
     alignment_t aln;
@@ -410,7 +410,7 @@ TEST_CASE("marg_alignment") {
         out.close();
         CHECK_THROWS_AS(marg_alignment(aln), std::invalid_argument);
 
-        out.open(aln.data.path);
+        out.open("test-marg.fasta");
         REQUIRE(out);
         out << ">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n>3\nCTCTGGGTG\n";
         out.close();
@@ -560,8 +560,19 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     }
 
     // set output pointer
-    std::ostream* os = coati::io::set_ostream(aln.data.out_file.path);
-    std::ostream& out = *os;
+    std::ostream* pout(nullptr);
+    std::ofstream outfile;
+    if(aln.data.out_file.path.empty() || aln.data.out_file.path == "-") {
+        pout = &std::cout;
+    } else {
+        outfile.open(aln.data.out_file.path);
+        if(!outfile) {
+            throw std::invalid_argument("Opening output file " +
+                                        aln.data.out_file.path + " failed.");
+        }
+        pout = &outfile;
+    }
+    std::ostream& out = *pout;
 
     // check that length of ref sequence is multiple of 3 and gap unit size
     size_t len_a = aln.seq(0).length();
@@ -669,7 +680,7 @@ TEST_CASE("marg_sample") {
         check_line_eq(infile, "]");
         infile.close();
         REQUIRE(std::filesystem::remove(aln.output));
-        REQUIRE(std::filesystem::remove(aln.data.path));
+        REQUIRE(std::filesystem::remove("test-marg.fasta"));
     };
 
     SUBCASE("sample size 1") {
@@ -703,7 +714,7 @@ TEST_CASE("marg_sample") {
         outfile << ">seq1\nAC\n>seq2\nACG\n";
         outfile.close();
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
-        REQUIRE(std::filesystem::remove(aln.data.path));
+        REQUIRE(std::filesystem::remove("marg-sample.fasta"));
     }
     SUBCASE("length of descendant no multiple of gap len") {
         coati::random_t rand;
@@ -716,7 +727,7 @@ TEST_CASE("marg_sample") {
         outfile << ">A\nCCC\n>B\nCCCC\n";
         outfile.close();
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
-        REQUIRE(std::filesystem::remove(aln.data.path));
+        REQUIRE(std::filesystem::remove("marg-sample.fasta"));
     }
     SUBCASE("error opening output file") {
         coati::random_t rand;
@@ -734,12 +745,12 @@ TEST_CASE("marg_sample") {
         outfile << ">A\nCCC\n";
         outfile.close();
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
-        outfile.open(aln.data.path);
+        outfile.open("marg-sample.fasta");
         REQUIRE(outfile);
         outfile << ">A\nCCC\n>B\nCCC\n>C\nCCC\n";
         outfile.close();
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
-        REQUIRE(std::filesystem::remove(aln.data.path));
+        REQUIRE(std::filesystem::remove("marg-sample.fasta"));
     }
 }
 // GCOVR_EXCL_STOP

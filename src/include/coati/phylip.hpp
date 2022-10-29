@@ -30,8 +30,9 @@
 
 namespace coati {
 // Read phylip format file.
-coati::data_t read_phylip(const std::string& f_path, bool marginal);
+coati::data_t read_phylip(std::istream& in, bool marginal);
 // Write alignment in PHYLIP format.
-void write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln = {});
+void write_phylip(coati::data_t& phylip, std::ostream& out,
+                  const VectorFstStdArc& aln = {});
 }  // namespace coati
 #endif

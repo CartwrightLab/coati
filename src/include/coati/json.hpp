@@ -34,9 +34,10 @@ void to_json(nlohmann::json& j, const alignment_t& aln);
 // Create coati::data_t object from json input.
 void from_json(const nlohmann::json& j, alignment_t& aln);
 // Read json file.
-coati::data_t read_json(const std::string& f_path, bool marginal);
+coati::data_t read_json(std::istream& in, bool marginal);
 // Write content of coati::data_t to json format.
-void write_json(coati::data_t& json, const VectorFstStdArc& aln = {});
+void write_json(coati::data_t& json, std::ostream& out,
+                const VectorFstStdArc& aln = {});
 }  // namespace coati
 
 #endif

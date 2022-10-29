@@ -47,10 +47,6 @@ coati::Matrixf parse_matrix_csv(const std::string& file);
 coati::data_t read_input(coati::alignment_t& aln);
 // Write sequences and names in any suppported format.
 void write_output(coati::data_t& data, const coati::VectorFstStdArc& aln = {});
-// Setup ostream to write to file or stdout.
-std::ostream* set_ostream(const std::string& path);
-// Setup istream to read from file or from stdin.
-std::istream* set_istream(const std::string& path);
 
 }  // namespace coati::io
 #endif

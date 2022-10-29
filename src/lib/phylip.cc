@@ -28,18 +28,13 @@ namespace coati {
 /**
  * @brief Read phylip format file.
  *
- * @param[in] f_path std::string path to input file.
+ * @param[in] in std::istream input stream pointing to stdin or file.
  * @param[in] marginal bool true if marginal model (if false create FSAs).
  *
  * @retval coati::data_t file path, names, and sequences.
  */
-coati::data_t read_phylip(const std::string& f_path, bool marginal) {
-    coati::data_t phylip(f_path);
-
-    // set input pointer and file type
-    coati::file_type_t in_type = coati::utils::extract_file_type(f_path);
-    std::istream* is = coati::io::set_istream(in_type.path);
-    std::istream& in = *is;
+coati::data_t read_phylip(std::istream& in, bool marginal) {
+    coati::data_t phylip;
 
     int n_seqs{0}, len_seqs{0};
     std::string line;
@@ -89,8 +84,9 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
         for(int i = 0; i < n_seqs; i++) {
             VectorFstStdArc accept;  // create FSA with sequence
             if(!acceptor(phylip.seqs[i], accept)) {
-                throw std::runtime_error("Creating acceptor from " + f_path +
-                                         " failed. Exiting!");
+                throw std::runtime_error(
+                    "Creating acceptor from input phylip file failed. "
+                    "Exiting!");
             }
             phylip.fsts[i] = accept;  // Add FSA
         }
@@ -103,9 +99,10 @@ coati::data_t read_phylip(const std::string& f_path, bool marginal) {
 // GCOVR_EXCL_START
 TEST_CASE("read_phylip") {
     std::ofstream outfile;
+    std::ifstream in;
+    std::string filename{"test-read-phylip.phy"};
 
     SUBCASE("Read test-read-phylip-fst.phy") {
-        std::string filename{"test-read-phylip-fst.phy"};
         outfile.open(filename);
         REQUIRE(outfile);
         outfile << " 2 100" << std::endl;
@@ -123,8 +120,10 @@ TEST_CASE("read_phylip") {
         outfile << std::endl;
         outfile.close();
 
-        coati::data_t phylip = read_phylip(filename, false);
-        REQUIRE(std::filesystem::remove(phylip.path.string()));
+        in.open(filename);
+        REQUIRE(in);
+        coati::data_t phylip = read_phylip(in, false);
+        REQUIRE(std::filesystem::remove(filename));
 
         CHECK_EQ(phylip.names[0], "VeryLongNa");
         CHECK_EQ(phylip.names[1], "2");
@@ -147,7 +146,6 @@ TEST_CASE("read_phylip") {
     }
 
     SUBCASE("Read test-read-phylip.phy") {
-        std::string filename{"test-read-phylip.phy"};
         outfile.open(filename);
         REQUIRE(outfile);
         outfile << "2 100" << std::endl;
@@ -165,8 +163,10 @@ TEST_CASE("read_phylip") {
         outfile << std::endl;
         outfile.close();
 
-        coati::data_t phylip = read_phylip(filename, true);
-        REQUIRE(std::filesystem::remove(phylip.path.string()));
+        in.open(filename);
+        REQUIRE(in);
+        coati::data_t phylip = read_phylip(in, true);
+        REQUIRE(std::filesystem::remove(filename));
 
         CHECK_EQ(
             phylip.seqs[0],
@@ -180,13 +180,6 @@ TEST_CASE("read_phylip") {
         CHECK_EQ(phylip.names[0], "1");
         CHECK_EQ(phylip.names[1], "2");
     }
-
-    SUBCASE("Error opening phylip") {
-        REQUIRE_THROWS_AS(read_phylip("test-9999999999.phy", false),
-                          std::invalid_argument);
-        REQUIRE_THROWS_AS(read_phylip("test-9999999999.phy", true),
-                          std::invalid_argument);
-    }
 }
 // GCOVR_EXCL_STOP
 
@@ -194,15 +187,14 @@ TEST_CASE("read_phylip") {
  * @brief Write alignment in PHYLIP format.
  *
  * @param[in] phylip coati::data_t path, names, and sequences.
+ * @param[in] out std::ostream output stream pointing to stdout or file.
  * @param[in] aln fst::VectorFst<fst::StdArc> aligned sequences in FST form.
  */
-void write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
+void write_phylip(coati::data_t& phylip, std::ostream& out,
+                  const VectorFstStdArc& aln) {
     if(aln.NumStates() > 1) {
         coati::utils::fst_to_seqs(phylip, aln);
     }
-    // set output pointer
-    std::ostream* os = coati::io::set_ostream(phylip.out_file.path);
-    std::ostream& out = *os;
 
     // write number of sequences and length
     out << phylip.size() << " " << phylip.seqs[0].length() << std::endl;
@@ -229,14 +221,19 @@ void write_phylip(coati::data_t& phylip, const VectorFstStdArc& aln) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("write_phylip") {
+    std::ofstream outfile;
+    std::string filename{"test-write-phylip.phy"};
+    outfile.open(filename);
+    REQUIRE(outfile);
+    std::ostream& out = outfile;
+
     SUBCASE("Short sequences") {
         coati::data_t phylip("", {"tx_1", "taxa_2"},
                              {"CTCTGGATAGTG", "CT----ATAGTG"});
-        phylip.out_file = {{"test-write-phylip.phy"}, {"phy"}};
 
-        write_phylip(phylip);
+        write_phylip(phylip, out);
 
-        std::ifstream infile("test-write-phylip.phy");
+        std::ifstream infile(filename);
         std::string s1;
 
         getline(infile, s1);
@@ -248,7 +245,7 @@ TEST_CASE("write_phylip") {
         getline(infile, s1);
         CHECK_EQ(s1, "taxa_2    CT----ATAGTG");
 
-        CHECK(std::filesystem::remove("test-write-phylip.phy"));
+        REQUIRE(std::filesystem::remove(filename));
     }
 
     SUBCASE("Multi-line sequences") {
@@ -259,10 +256,9 @@ TEST_CASE("write_phylip") {
              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"});
 
-        phylip.out_file = {{"test-write-phylip-long.phy"}, {"phy"}};
-        write_phylip(phylip);
+        write_phylip(phylip, out);
 
-        std::ifstream infile("test-write-phylip-long.phy");
+        std::ifstream infile(filename);
         std::string s1;
 
         getline(infile, s1);
@@ -279,11 +275,10 @@ TEST_CASE("write_phylip") {
         getline(infile, s1);
         CHECK_EQ(s1, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 
-        REQUIRE(std::filesystem::remove("test-write-phylip-long.phy"));
+        REQUIRE(std::filesystem::remove(filename));
     }
     SUBCASE("fst") {
         coati::data_t phylip("", {"1", "2"});
-        phylip.out_file = {{"test-write-phylip.phy"}, {"phy"}};
 
         VectorFstStdArc fst_write;
         fst_write.AddState();
@@ -294,8 +289,8 @@ TEST_CASE("write_phylip") {
         add_arc(fst_write, 3, 4, 1, 0);  // A -> -
         fst_write.SetFinal(4, 0.0);
 
-        write_phylip(phylip, fst_write);
-        std::ifstream infile("test-write-phylip.phy");
+        write_phylip(phylip, out, fst_write);
+        std::ifstream infile(filename);
         std::string s1;
 
         getline(infile, s1);
@@ -307,7 +302,7 @@ TEST_CASE("write_phylip") {
         getline(infile, s1);
         CHECK_EQ(s1, "2         CTC-");
 
-        CHECK(std::filesystem::remove("test-write-phylip.phy"));
+        REQUIRE(std::filesystem::remove(filename));
     }
 }
 // GCOVR_EXCL_STOP

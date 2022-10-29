@@ -29,18 +29,13 @@ namespace coati {
 /**
  * @brief Read fasta format file.
  *
- * @param[in] f_path std::string path to fasta file.
+ * @param[in] in std::istream input stream pointing to stdin or file.
  * @param[in] marginal bool true if model is marginal.
  *
  * @retval coati::data_t object with names and content of sequences.
  */
-coati::data_t read_fasta(const std::string& f_path, bool marginal) {
-    coati::data_t fasta(f_path);
-
-    // set input pointer and file type
-    coati::file_type_t in_type = coati::utils::extract_file_type(f_path);
-    std::istream* is = coati::io::set_istream(in_type.path);
-    std::istream& in = *is;
+coati::data_t read_fasta(std::istream& in, bool marginal) {
+    coati::data_t fasta;
 
     std::string line, name, content;
     while(in.good()) {
@@ -79,8 +74,8 @@ coati::data_t read_fasta(const std::string& f_path, bool marginal) {
         for(size_t i = 0; i < fasta.seqs.size(); i++) {
             VectorFstStdArc accept;  // create FSA with sequence
             if(!acceptor(fasta.seqs[i], accept)) {
-                throw std::runtime_error("Creating acceptor from " + f_path +
-                                         " failed. Exiting!");
+                throw std::runtime_error(
+                    "Creating acceptor from input fasta file failed. Exiting!");
             }
             fasta.fsts.push_back(accept);  // Add FSA
         }
@@ -93,9 +88,10 @@ coati::data_t read_fasta(const std::string& f_path, bool marginal) {
 // GCOVR_EXCL_START
 TEST_CASE("read_fasta") {
     std::ofstream outfile;
+    std::ifstream in;
+    std::string filename{"test-read-fasta.fasta"};
 
     SUBCASE("Read test-read-fasta.fasta") {
-        std::string filename{"test-read-fasta.fasta"};
         outfile.open(filename);
         REQUIRE(outfile);
         outfile << "; comment line" << std::endl;
@@ -103,8 +99,10 @@ TEST_CASE("read_fasta") {
         outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
         outfile.close();
 
-        coati::data_t fasta = read_fasta(filename, true);
-        REQUIRE(std::filesystem::remove(fasta.path));
+        in.open(filename);
+        REQUIRE(in);
+        coati::data_t fasta = read_fasta(in, true);
+        REQUIRE(std::filesystem::remove(filename));
 
         CHECK_EQ(fasta.names[0], "1");
         CHECK_EQ(fasta.names[1], "2");
@@ -113,7 +111,6 @@ TEST_CASE("read_fasta") {
     }
 
     SUBCASE("Read test-read-fasta-fst.fasta") {
-        std::string filename{"test-read-fasta-fst.fasta"};
         outfile.open(filename);
         REQUIRE(outfile);
         outfile << "; comment line" << std::endl;
@@ -121,8 +118,10 @@ TEST_CASE("read_fasta") {
         outfile << ">2" << std::endl << "CTATAGTG" << std::endl;
         outfile.close();
 
-        coati::data_t fasta = read_fasta(filename, false);
-        REQUIRE(std::filesystem::remove(fasta.path.string()));
+        in.open(filename);
+        REQUIRE(in);
+        coati::data_t fasta = read_fasta(in, false);
+        REQUIRE(std::filesystem::remove(filename));
 
         CHECK_EQ(fasta.seqs[0], "CTCTGGATAGTG");
         CHECK_EQ(fasta.seqs[1], "CTATAGTG");
@@ -139,14 +138,7 @@ TEST_CASE("read_fasta") {
         }
     }
 
-    SUBCASE("Error opening fasta") {
-        REQUIRE_THROWS_AS(read_fasta("test-9999999999.fasta", false),
-                          std::invalid_argument);
-        REQUIRE_THROWS_AS(read_fasta("test-9999999999.fasta", true),
-                          std::invalid_argument);
-    }
     SUBCASE("sequence before first name") {
-        std::string filename{"test-read-fasta.fasta"};
         outfile.open(filename);
         REQUIRE(outfile);
         outfile << "CTCTGGATA" << std::endl;
@@ -154,8 +146,10 @@ TEST_CASE("read_fasta") {
         outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
         outfile.close();
 
-        coati::data_t fasta = read_fasta(filename, true);
-        REQUIRE(std::filesystem::remove(fasta.path));
+        in.open(filename);
+        REQUIRE(in);
+        coati::data_t fasta = read_fasta(in, true);
+        REQUIRE(std::filesystem::remove(filename));
 
         CHECK_EQ(fasta.names[0], "1");
         CHECK_EQ(fasta.names[1], "2");
@@ -163,14 +157,15 @@ TEST_CASE("read_fasta") {
         CHECK_EQ(fasta.seqs[1], "CTATAGTC");
     }
     SUBCASE("empty name - fail") {
-        std::string filename{"test-read-fasta.fasta"};
         outfile.open(filename);
         REQUIRE(outfile);
         outfile << ">" << std::endl << "CTCTGGATAGTC" << std::endl;
         outfile << ">2" << std::endl << "CTATAGTC" << std::endl;
         outfile.close();
 
-        CHECK_THROWS_AS(read_fasta(filename, true), std::invalid_argument);
+        in.open(filename);
+        REQUIRE(in);
+        CHECK_THROWS_AS(read_fasta(in, true), std::invalid_argument);
         REQUIRE(std::filesystem::remove(filename));
     }
 }
@@ -180,15 +175,14 @@ TEST_CASE("read_fasta") {
  * @brief Write alignment in fasta format.
  *
  * @param[in] fasta coati::data_t output path, names, and aligned sequences.
+ * @param[in] out std::ostream output stream pointing to stdout or file.
  * @param[in] aln VectorFstStdArc FST with alignment (optional).
  */
-void write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
+void write_fasta(coati::data_t& fasta, std::ostream& out,
+                 const VectorFstStdArc& aln) {
     if(aln.NumStates() > 0) {  // if FST alignment
         coati::utils::fst_to_seqs(fasta, aln);
     }
-    // set output pointer
-    std::ostream* os = coati::io::set_ostream(fasta.out_file.path);
-    std::ostream& out = *os;
 
     // for each aligned sequence write name and content (60 characters/line)
     for(size_t i = 0; i < fasta.size(); i++) {
@@ -202,13 +196,18 @@ void write_fasta(coati::data_t& fasta, const VectorFstStdArc& aln) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("write_fasta") {
+    std::ofstream outfile;
+    std::string filename{"test-write-fasta.fasta"};
+    outfile.open(filename);
+    REQUIRE(outfile);
+    std::ostream& out = outfile;
+
     SUBCASE("marginal") {
         coati::data_t fasta("", {"1", "2"}, {"CTCTGGATAGTG", "CTATAGTG"});
-        fasta.out_file.path = "test-write-fasta.fasta";
 
-        write_fasta(fasta);
+        write_fasta(fasta, out);
 
-        std::ifstream infile("test-write-fasta.fasta");
+        std::ifstream infile(filename);
         std::string s1;
         infile >> s1;
         CHECK_EQ(s1.compare(">1"), 0);
@@ -218,11 +217,10 @@ TEST_CASE("write_fasta") {
         CHECK_EQ(s1.compare(">2"), 0);
         infile >> s1;
         CHECK_EQ(s1.compare("CTATAGTG"), 0);
-        CHECK(std::filesystem::remove("test-write-fasta.fasta"));
+        REQUIRE(std::filesystem::remove(filename));
     }
     SUBCASE("fst") {
         coati::data_t fasta("", {"1", "2"});
-        fasta.out_file.path = "test-write-fasta-fst.fasta";
 
         VectorFstStdArc fst_write;
         fst_write.AddState();
@@ -233,9 +231,9 @@ TEST_CASE("write_fasta") {
         add_arc(fst_write, 3, 4, 1, 0);  // A -> -
         fst_write.SetFinal(4, 0.0);
 
-        write_fasta(fasta, fst_write);
+        write_fasta(fasta, out, fst_write);
 
-        std::ifstream infile("test-write-fasta-fst.fasta");
+        std::ifstream infile(filename);
         std::string s1;
         infile >> s1;
         CHECK_EQ(s1.compare(">1"), 0);
@@ -245,11 +243,12 @@ TEST_CASE("write_fasta") {
         CHECK_EQ(s1.compare(">2"), 0);
         infile >> s1;
         CHECK_EQ(s1.compare("CTC-"), 0);
-        CHECK(std::filesystem::remove("test-write-fasta-fst.fasta"));
+        REQUIRE(std::filesystem::remove(filename));
     }
     SUBCASE("data_t size fails - diff number of names and seqs") {
         coati::data_t fasta("", {"1", "2", "3"}, {"CTC", "CTA"});
-        CHECK_THROWS_AS(write_fasta(fasta), std::invalid_argument);
+        CHECK_THROWS_AS(write_fasta(fasta, out), std::invalid_argument);
+        REQUIRE(std::filesystem::remove(filename));
     }
 }
 // GCOVR_EXCL_STOP
