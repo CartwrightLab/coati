@@ -300,12 +300,10 @@ void align_leafs(coati::alignment_t& input, const coati::tree::tree_t& tree,
                              input.gap.len);
 
             // store insertion positions and type (open by default)
-            SparseVectorInt ins_vector(
-                static_cast<Eigen::Index>(2 * aln.data.seqs[1].length()));
-            insertion_flags(aln.data.seqs[0], aln.data.seqs[1], ins_vector);
+            SparseVectorInt ins = insertion_flags(aln.seq(0), aln.seq(1));
 
-            nodes_ins[node] = insertion_data_t(aln.data.seqs[1],
-                                               tree[node].label, ins_vector);
+            nodes_ins[node] =
+                insertion_data_t(aln.data.seqs[1], tree[node].label, ins);
         }
     }
 }

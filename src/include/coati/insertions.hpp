@@ -56,8 +56,8 @@ struct insertion_data_t {
 using insertion_vector = std::vector<insertion_data_t>;
 
 // Store open insertions in a sparse vector given two aligned sequences.
-bool insertion_flags(const std::string_view ref, const std::string_view seq,
-                     SparseVectorInt& insertions_vector);
+SparseVectorInt insertion_flags(const std::string_view ref,
+                                const std::string_view seq);
 // Collapse insertions between two sequences.
 void merge_indels(coati::insertion_vector& ins_data,
                   insertion_data_t& merged_data);

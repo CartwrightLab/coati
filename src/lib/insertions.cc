@@ -35,37 +35,40 @@ namespace coati {
  *
  * @retval true if run was successful, false otherwise.
  */
-bool insertion_flags(const std::string_view ref, const std::string_view seq,
-                     SparseVectorInt& insertions_vector) {
+SparseVectorInt insertion_flags(const std::string_view ref,
+                                const std::string_view seq) {
+    SparseVectorInt insertions(static_cast<Eigen::Index>(2 * seq.length()));
+
     if(ref.length() != seq.length()) {
-        return false;  // return if length is diff
+        throw std::runtime_error(
+            "Opening insertion flags failed, length of sequences is "
+            "different.");  // return if length is diff
     }
 
     if(ref.find('-') == std::string::npos) {
-        return true;  // return if no insertions
+        return insertions;
     }
 
     for(std::size_t i = 0; i < ref.length(); i++) {
         if(ref[i] == '-') {
-            insertions_vector.coeffRef(static_cast<int64_t>(i)) =
-                111;  // 'o' (open) in ASCII dec value
+            insertions.insert(static_cast<int64_t>(i)) = 111;
+            // 111 is 'o' (open) in ASCII dec value
         }
     }
 
-    return true;
+    return insertions;
 }
 
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("insertion_flags") {
-    SparseVectorInt insertions(7);
-
     SUBCASE("Different length - fail") {
-        REQUIRE_FALSE(insertion_flags("TCA-TC", "TCAGTCG", insertions));
+        CHECK_THROWS_AS(insertion_flags("TCA-TC", "TCAGTCG"),
+                        std::runtime_error);
     }
 
     SUBCASE("Two insertions") {
-        REQUIRE(insertion_flags("TCA-TC-", "TCAGTCG", insertions));
+        SparseVectorInt insertions = insertion_flags("TCA-TC-", "TCAGTCG");
         CHECK_EQ(insertions.nonZeros(), 2);
         CHECK_EQ(insertions.coeffRef(3), 'o');
         CHECK_EQ(insertions.coeffRef(6), 111);
