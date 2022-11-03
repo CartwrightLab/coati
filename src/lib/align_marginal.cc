@@ -410,6 +410,7 @@ TEST_CASE("marg_alignment") {
         out.close();
         CHECK_THROWS_AS(marg_alignment(aln), std::invalid_argument);
 
+        aln.data.path = "test-marg.fasta";
         out.open("test-marg.fasta");
         REQUIRE(out);
         out << ">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n>3\nCTCTGGGTG\n";
@@ -732,6 +733,7 @@ TEST_CASE("marg_sample") {
     SUBCASE("error opening output file") {
         coati::random_t rand;
         coati::alignment_t aln;
+        aln.data.path = "marg-sample.fasta";
         aln.data.out_file = {{"."}, {".fasta"}};
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
     }
@@ -745,6 +747,7 @@ TEST_CASE("marg_sample") {
         outfile << ">A\nCCC\n";
         outfile.close();
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
+        aln.data.path = "marg-sample.fasta";
         outfile.open("marg-sample.fasta");
         REQUIRE(outfile);
         outfile << ">A\nCCC\n>B\nCCC\n>C\nCCC\n";

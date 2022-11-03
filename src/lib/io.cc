@@ -177,13 +177,17 @@ coati::data_t read_input(alignment_t& aln) {
     if(aln.output.empty()) {  // default output: json format & stdout
         aln.output = "json:-";
     }
+    if(aln.data.path.empty()) {  // default input: json format & stdin
+        std::cout << "aln.data.path is empty" << std::endl;
+        aln.data.path = "json:-";
+    }
     coati::data_t input_data;
     coati::file_type_t in_type = coati::utils::extract_file_type(aln.data.path);
 
     // set input stream pointer
     std::istream* pin(nullptr);
     std::ifstream infile;
-    if(aln.data.path.empty() || aln.data.path == "-") {
+    if(in_type.path.empty() || in_type.path == "-") {
         pin = &std::cin;
     } else {
         infile.open(aln.data.path);
@@ -211,9 +215,6 @@ coati::data_t read_input(alignment_t& aln) {
         input_data.out_file = coati::utils::extract_file_type(aln.output);
         return input_data;
     }
-    if(aln.data.path.empty()) {
-        throw std::invalid_argument("Input path is empty.");
-    }
     // if not supported format found
     throw std::invalid_argument("Invalid input " + aln.data.path.string() +
                                 ".");
@@ -236,7 +237,7 @@ TEST_CASE("read_input") {
 
         aln.data.path = filename;
         coati::data_t fasta = read_input(aln);
-        CHECK(std::filesystem::remove(filename));
+        REQUIRE(std::filesystem::remove(filename));
 
         CHECK_EQ(fasta.names[0], "1");
         CHECK_EQ(fasta.names[1], "2");
@@ -254,7 +255,7 @@ TEST_CASE("read_input") {
 
         aln.data.path = filename;
         coati::data_t phylip = read_input(aln);
-        CHECK(std::filesystem::remove(filename));
+        REQUIRE(std::filesystem::remove(filename));
 
         CHECK_EQ(phylip.names[0], "test-seque");
         CHECK_EQ(phylip.names[1], "2");
@@ -272,7 +273,7 @@ TEST_CASE("read_input") {
 
         aln.data.path = filename;
         coati::data_t json = read_input(aln);
-        CHECK(std::filesystem::remove(filename));
+        REQUIRE(std::filesystem::remove(filename));
 
         CHECK_EQ(json.names[0], "a");
         CHECK_EQ(json.names[1], "b");
@@ -289,8 +290,10 @@ TEST_CASE("read_input") {
         outfile.close();
         aln.data.path = filename;
         CHECK_THROWS_AS(read_input(aln), std::invalid_argument);
+        REQUIRE(std::filesystem::remove(filename));
     }
-    SUBCASE("empty") {
+    SUBCASE("input file not found - fail") {
+        aln.data.path = "test-read.json";
         CHECK_THROWS_AS(read_input(aln), std::invalid_argument);
     }
 }
