@@ -38,17 +38,11 @@ static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args
 
     for(auto _ : state) {
         auto start = std::chrono::high_resolution_clock::now();
-        // read fasta
-        args.aln.data.path = fasta;
-        args.aln.data = coati::io::read_input(args.aln);
-
-        // set ouput path and sequences names
-        args.aln.output = args.aln.data.path.stem();
-        args.aln.output += std::filesystem::path(".phy");
-        args.aln.data.names = args.aln.data.names;
 
         // set substitution matrix
         coati::utils::set_subst(args.aln);
+
+        args.aln.data.path = fasta;
 
         // pairwise alignment and report time elapsed
         coati::marg_alignment(args.aln);
@@ -97,18 +91,10 @@ static void BM_fst_alignment(benchmark::State& state, ExtraArgs&&... extra_args)
         // set model to coati
         args.aln.model = "coati";
 
-        // read fasta
-        args.aln.data.path = fasta;
-        args.aln.data = coati::io::read_input(args.aln);
-
-        // set output path and sequences names
-        args.aln.output = args.aln.data.path.stem();
-        args.aln.output += std::filesystem::path(".phy");
-        args.aln.data.names = args.aln.data.names;
-
-
         // set substitution matrix
         coati::utils::set_subst(args.aln);
+
+        args.aln.data.path = fasta;
 
         // pairwise alignment via FST composition and report time elapsed
         coati::fst_alignment(args.aln);
