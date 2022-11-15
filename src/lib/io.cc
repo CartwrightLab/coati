@@ -202,22 +202,18 @@ coati::data_t read_input(alignment_t& aln) {
     // call reader depending on file type
     if(in_type.type_ext == ".fa" || in_type.type_ext == ".fasta") {
         input_data = read_fasta(in, aln.is_marginal());
-        input_data.out_file = coati::utils::extract_file_type(aln.output);
-        return input_data;
-    }
-    if(in_type.type_ext == ".phy") {
+    } else if(in_type.type_ext == ".phy") {
         input_data = read_phylip(in, aln.is_marginal());
-        input_data.out_file = coati::utils::extract_file_type(aln.output);
-        return input_data;
-    }
-    if(in_type.type_ext == ".json") {
+    } else if(in_type.type_ext == ".json") {
         input_data = read_json(in, aln.is_marginal());
-        input_data.out_file = coati::utils::extract_file_type(aln.output);
-        return input_data;
+    } else {
+        // if not supported format found
+        throw std::invalid_argument("Invalid input " + aln.data.path.string() +
+                                    ".");
     }
-    // if not supported format found
-    throw std::invalid_argument("Invalid input " + aln.data.path.string() +
-                                ".");
+    input_data.path = aln.data.path;
+    input_data.out_file = coati::utils::extract_file_type(aln.output);
+    return input_data;
 }
 
 /// @private

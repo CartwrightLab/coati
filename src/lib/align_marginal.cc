@@ -96,8 +96,8 @@ bool marg_alignment(coati::alignment_t& aln) {
 
     if(!aln.weight_file.empty()) {  // save weight and filename
         out_w.open(aln.weight_file, std::ios::app | std::ios::out);
-        out_w << aln.data.path << "," << aln.model << "," << aln.data.weight
-              << std::endl;
+        out_w << aln.data.path.string() << "," << aln.model << ","
+              << aln.data.weight << std::endl;
         out_w.close();
     }
 
@@ -158,8 +158,9 @@ TEST_CASE("marg_alignment") {
             inweight >> s;
             // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
             std::size_t start = s.find_last_of(',');
-            REQUIRE(std::filesystem::remove(aln.weight_file));
             CHECK_EQ(std::stof(s.substr(start + 1)), expected.weight);
+            CHECK_EQ(s.substr(0, start), "test-marg.fasta,m-coati");
+            REQUIRE(std::filesystem::remove(aln.weight_file));
         }
     };
 

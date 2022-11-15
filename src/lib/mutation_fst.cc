@@ -178,11 +178,11 @@ TEST_CASE("dna") {
  *                  -------------------------
  *                  |     del extension     |
  *         deletion (4) <-------> (5)       |
- *                  ^             |         |
- *  start           |            \/         \/
- *   (0) --------> (3) ------->  (6) ----> (7) end
- *    |             ^
- *   \/             |
+ *                  ^              |        |
+ *  start           |             \/        \/
+ *   (0) --------> (3) ------->  (6)       (7) end
+ *    |             ^ \                      ^
+ *   \/             |  ----------------------┘
  *   (1) <-------> (2)
  * insertion    ins extension
  *
@@ -194,51 +194,48 @@ TEST_CASE("dna") {
  */
 VectorFstStdArc indel(float gap_open, float gap_extend,
                       const std::vector<float>& pi) {
-    float deletion = gap_open, insertion = gap_open;
-    float deletion_ext = gap_extend, insertion_ext = gap_extend;
-    float nuc_freqs[4] = {pi[0], pi[1], pi[2], pi[3]};
-
     VectorFstStdArc indel_fst;
+    int start = 0, insertion = 1, deletion = 4, match = 6, end = 7;
 
     // Add state 0 and make it the start state
     indel_fst.AddState();
-    indel_fst.SetStart(0);
+    indel_fst.SetStart(start);
 
     // Insertion
-    add_arc(indel_fst, 0, 1, 0, 0, insertion);  // 0 as ilabel/olabel is <eps>
-    add_arc(indel_fst, 0, 3, 0, 0, 1.0f - insertion);
+    add_arc(indel_fst, start, insertion, 0, 0, gap_open);  // label 0 is <eps>
+    add_arc(indel_fst, start, 3, 0, 0, 1.0f - gap_open);
 
     for(int i = 0; i < 4; i++) {
-        add_arc(indel_fst, 1, 2, 0, i + 1, nuc_freqs[i]);
+        add_arc(indel_fst, insertion, 2, 0, i + 1, pi[i]);
     }
 
-    add_arc(indel_fst, 1, 2, 0, 5);  // 5 as ilabel/olabel is N
-    add_arc(indel_fst, 2, 1, 0, 0, insertion_ext);
-    add_arc(indel_fst, 2, 3, 0, 0, 1.0f - insertion_ext);
+    add_arc(indel_fst, insertion, 2, 0, 5);  // 5 as ilabel/olabel is N
+    add_arc(indel_fst, 2, insertion, 0, 0, gap_extend);
+    add_arc(indel_fst, 2, 3, 0, 0, 1.0f - gap_extend);
 
     // Deletion
-    add_arc(indel_fst, 3, 4, 0, 0, deletion);
-    add_arc(indel_fst, 3, 6, 0, 0, 1.0f - deletion);
+    add_arc(indel_fst, 3, deletion, 0, 0, gap_open);
+    add_arc(indel_fst, 3, match, 0, 0, 1.0f - gap_open);
 
     for(int i = 0; i < 4; i++) {
-        add_arc(indel_fst, 4, 5, i + 1);
+        add_arc(indel_fst, deletion, 5, i + 1);
     }
 
-    add_arc(indel_fst, 4, 7);
-
-    add_arc(indel_fst, 5, 4, 0, 0, deletion_ext);
-    add_arc(indel_fst, 5, 6, 0, 0, 1.0f - deletion_ext);
+    add_arc(indel_fst, 5, deletion, 0, 0, gap_extend);
+    add_arc(indel_fst, 5, match, 0, 0, 1.0f - gap_extend);
 
     // Matches
     for(int i = 0; i < 4; i++) {
-        add_arc(indel_fst, 6, 0, i + 1, i + 1);
-        add_arc(indel_fst, 6, 0, i + 1, 5);
+        add_arc(indel_fst, match, start, i + 1, i + 1);
+        add_arc(indel_fst, match, start, i + 1, 5);
     }
 
-    add_arc(indel_fst, 6, 7);
+    // End probabilities
+    add_arc(indel_fst, 3, end);  // match/ins to end
+    add_arc(indel_fst, 5, end);  // del to end
 
     // Set final state & optimize
-    indel_fst.SetFinal(7, 0.0);
+    indel_fst.SetFinal(end, 0.0);
 
     VectorFstStdArc indel_rmep;
     indel_rmep = fst::RmEpsilonFst<fst::StdArc>(indel_fst);  // epsilon removal

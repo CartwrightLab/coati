@@ -52,6 +52,11 @@ bool fst_alignment(coati::alignment_t& aln) {
         throw std::invalid_argument("Exactly two sequences required.");
     }
 
+    if(aln.seq(0).length() % 3 != 0) {
+        throw std::invalid_argument(
+            "Length of reference sequence must be multiple of 3.");
+    }
+
     // set substitution matrix according to model
     coati::utils::set_subst(aln);
 
@@ -95,8 +100,8 @@ bool fst_alignment(coati::alignment_t& aln) {
         fst::ShortestDistance(aln_path, &distance);
         // append weight and fasta file name info in file
         out_w.open(aln.weight_file, std::ios::app | std::ios::out);
-        out_w << aln.data.path << "," << aln.model << "," << distance[0]
-              << std::endl;
+        out_w << aln.data.path.string() << "," << aln.model << ","
+              << distance[0] << std::endl;
         out_w.close();
     }
 
@@ -180,7 +185,7 @@ TEST_CASE("fst_alignment") {
         inweight >> s;
         REQUIRE(std::filesystem::remove(aln.weight_file));
         REQUIRE(std::filesystem::remove(aln.output));
-        CHECK_EQ(s.substr(s.length() - 7), "9.31397");
+        CHECK_EQ(s, "test-fst.fasta,coati,9.31297");
     }
 
     SUBCASE("coati model, output phylip") {
@@ -230,7 +235,7 @@ TEST_CASE("fst_alignment") {
         std::string s;
         inweight >> s;
         REQUIRE(std::filesystem::remove(aln.weight_file));
-        CHECK_EQ(s.substr(s.length() - 7), "9.31994");
+        CHECK_EQ(s, "test-fst.fasta,dna,9.31894");
     }
 
     SUBCASE("ecm model") {
@@ -256,7 +261,7 @@ TEST_CASE("fst_alignment") {
         std::string s;
         inweight >> s;
         REQUIRE(std::filesystem::remove(aln.weight_file));
-        CHECK_EQ(s.substr(s.length() - 7), "9.31388");
+        CHECK_EQ(s, "test-fst.fasta,ecm,9.31288");
     }
 
     SUBCASE("Unknown model") {
@@ -277,6 +282,15 @@ TEST_CASE("fst_alignment") {
     }
     SUBCASE("Scoring - fail") {
         aln.score = true;
+        CHECK_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
+    }
+    SUBCASE("Length of ref not multiple of 3 - fail") {
+        std::ofstream out;
+        out.open("test-fst.fasta");
+        REQUIRE(out);
+        out << ">1\nCTCTGGATAGT\n>2\nCTATAGTG\n";
+        out.close();
+
         CHECK_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
     }
 
