@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
 
     if(!args.aln.is_marginal()) {
         std::cerr
-            << "ERROR: Sampling only available with models m-coati or m-ecm."
+            << "ERROR: Sampling only available with models marginal or m-ecm."
             << std::endl;
         return EXIT_FAILURE;
     }

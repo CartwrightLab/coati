@@ -246,7 +246,6 @@ VectorFstStdArc indel(float gap_open, float gap_extend,
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("indel") {
-    std::string model = "m-coati";
     VectorFstStdArc indel_model(
         indel(0.001, 1.f - 1.f / 6.f, {0.308, 0.185, 0.199, 0.308}));
 

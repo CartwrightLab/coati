@@ -159,7 +159,7 @@ TEST_CASE("marg_alignment") {
             // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
             std::size_t start = s.find_last_of(',');
             CHECK_EQ(std::stof(s.substr(start + 1)), expected.weight);
-            CHECK_EQ(s.substr(0, start), "test-marg.fasta,m-coati");
+            CHECK_EQ(s.substr(0, start), "test-marg.fasta,marginal");
             REQUIRE(std::filesystem::remove(aln.weight_file));
         }
     };
@@ -198,7 +198,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output fasta") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.weight_file = "score.log";
         aln.output = "test-marg_alignment-fasta.fasta";
 
@@ -210,7 +210,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output fasta - use aln.refs") {
         std::string file{">1\nCTATAGTG\n>2\nCTCTGGATAGTG\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.output = "test-marg_alignment-fasta.fasta";
         aln.refs = "2";
 
@@ -221,7 +221,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output fasta - use aln.refs - no change") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.output = "test-marg_alignment-fasta.fasta";
         aln.refs = "1";
 
@@ -232,7 +232,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output phylip") {
         std::string file{">1\nGCGACTGTT\n>2\nGCGATTGCTGTT\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.output = "test-marg_alignment-phylip.phy";
 
         expected = data_t("", {"1", "2"}, {"GCGA---CTGTT", "GCGATTGCTGTT"});
@@ -242,7 +242,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output phylip - use aln.refn") {
         std::string file{">A\nGCGATTGCTGTT\n>B\nGCGACTGTT\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.output = "test-marg_alignment-phylip.phy";
         aln.rev = true;
 
@@ -253,7 +253,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment 2 dels - output phylip") {
         std::string file{">1\nACGTTAAGGGGT\n>2\nACGAAT\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.output = "test-marg_alignment-phylip2.phy";
 
         expected = data_t("", {"1", "2"}, {"ACGTTAAGGGGT", "ACG--AA----T"});
@@ -263,7 +263,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment with gap length multiple of 3") {
         std::string file{">1\nACGTTAAGGGGT\n>2\nACGAAT\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.output = "test-marg_alignment-no-frameshifts.fa";
         aln.gap.len = 3;
 
@@ -275,7 +275,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment with ambiguous nucleotides - AVG") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.weight_file = "score.log";
         aln.output = "test-marg_alignment_ambiguous.fa";
 
@@ -286,7 +286,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment with ambiguous nucleotides - BEST") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.weight_file = "score.log";
         aln.output = "test-marg_alignment_ambiguous.fa";
         aln.amb = coati::AmbiguousNucs::BEST;
@@ -300,7 +300,7 @@ TEST_CASE("marg_alignment") {
         out.open("test-marg.fasta");
         out << ">1\nGCGATTGCTGT\n>2\nGCGACTGTT\n";
         out.close();
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.data.path = "test-marg.fasta";
         aln.output = "test-marg_alignment-no-frameshifts-f.fasta";
         aln.gap.len = 3;
@@ -314,7 +314,7 @@ TEST_CASE("marg_alignment") {
         out << ">A\nCTCGGA\n>B\nCTCGG\n";
         out.close();
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.gap.len = 3;
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
         CHECK(std::filesystem::remove("test-marg.fasta"));
@@ -325,7 +325,7 @@ TEST_CASE("marg_alignment") {
         out << ">1\nCTCTGGATAGTG\n>2\nCT----ATAGTG\n";
         out.close();
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.weight_file = "";
         aln.output = "test-marg_alignment-score.fasta";
         aln.score = true;
@@ -339,7 +339,7 @@ TEST_CASE("marg_alignment") {
         out << ">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n";
         out.close();
         aln.data.path = "test-marg.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.weight_file = "";
         aln.output = "test-marg_alignment-score-f.fasta";
         aln.score = true;

@@ -47,10 +47,10 @@ Pairwise alignment of nucleotide sequences via composition of finite-state
 transducers (FSTs) or using Gotoh's algorithm.
 Substitution models available:
 
-  - coati: Muse and Gaut codon model using finite-state transducers.
+  - fst: Muse and Gaut codon model using finite-state transducers.
   - ecm: empirical codon model using FSTs.
   - dna: dna model resulting of marginalizing Muse and Gaut's model using FSTs.
-  - m-coati: marginal Muse and Gaut using Gotoh's algorithm.
+  - marginal: marginal Muse and Gaut using Gotoh's algorithm.
   - m-ecm: marginal empirical codon model using Gotoh's algorithm.
 
 Indel model allows gaps of any length at any position.
@@ -73,7 +73,7 @@ Options:
 
 
 Model parameters:
-  -m,--model TEXT Excludes: --sub  Substitution model (coati ecm dna m-coati m-ecm)
+  -m,--model TEXT Excludes: --sub  Substitution model (fst ecm dna marginal m-ecm)
   -t,--time FLOAT:POSITIVE         Evolutionary time/branch length
   -g,--gap-open FLOAT:POSITIVE     Gap opening score
   -e,--gap-extend FLOAT:POSITIVE   Gap extension score
@@ -94,7 +94,7 @@ Advanced options:
 ### Sample runs
 
 ```bash
-#Align file example-001.fasta with m-coati model (default) and output in JSON
+#Align file example-001.fasta with marginal model (default) and output in JSON
 format (default)
 coati alignpair sampledata/example-001.fasta
 
@@ -226,7 +226,7 @@ Options:
 
 
 Model parameters:
-  -m,--model TEXT                  Substitution model (coati ecm dna m-coati m-ecm)
+  -m,--model TEXT                  Substitution model (m-coati m-ecm)
   -g,--gap-open FLOAT:POSITIVE     Gap opening score
   -e,--gap-extend FLOAT:POSITIVE   Gap extension score
   -k,--gap-len UINT                Gap unit length

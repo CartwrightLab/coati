@@ -114,10 +114,10 @@ enum struct AmbiguousNucs { AVG, BEST };
  */
 class alignment_t {
    public:
-    coati::data_t data;           /*!< sequences */
-    std::string model{"m-coati"}; /*!< substitution model */
-    float_t br_len{0.0133};       /*!< branch length */
-    float_t omega{0.2};           /*!< nonsynonymous-synonymous bias */
+    coati::data_t data;            /*!< sequences */
+    std::string model{"marginal"}; /*!< substitution model */
+    float_t br_len{0.0133};        /*!< branch length */
+    float_t omega{0.2};            /*!< nonsynonymous-synonymous bias */
     std::vector<float_t> pi{0.308, 0.185, 0.199,
                             0.308}; /*!< nucleotide frequencies */
     std::string tree{""};           /*!< path to input newick tree file */
@@ -134,9 +134,9 @@ class alignment_t {
     bool score{false}; /*!< if true an input alignment is scored */
     AmbiguousNucs amb = AmbiguousNucs::AVG;
 
-    /** \brief Return true if model selected is marginal (m-coati or m-ecm) */
+    /** \brief Return true if model selected is marginal (marginal or m-ecm) */
     bool is_marginal() {
-        return (model == "m-coati" || model == "m-ecm" || !rate.empty());
+        return (model == "marginal" || model == "m-ecm" || !rate.empty());
     }
 
     /** \brief Return sequence at position index. */

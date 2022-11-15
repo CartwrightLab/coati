@@ -45,6 +45,10 @@ namespace coati {
 bool ref_indel_alignment(coati::alignment_t& input) {
     coati::data_t aligned;
 
+    if(!input.is_marginal()) {
+        throw std::invalid_argument("MSA only supports marginal models.");
+    }
+
     // read input data
     input.data = coati::io::read_input(input);
     if(input.data.size() < 3) {
@@ -129,10 +133,10 @@ TEST_CASE("ref_indel_alignment") {
                "E\nTCATC\n";
     outfile.close();
 
-    SUBCASE("m-coati model") {
+    SUBCASE("marginal model") {
         coati::alignment_t aln;
         aln.data.path = "test-msa.fasta";
-        aln.model = "m-coati";
+        aln.model = "marginal";
         aln.output = "test-mecm-msa.fasta";
         aln.tree = "tree-msa.newick";
         aln.refs = "A";
@@ -253,6 +257,12 @@ TEST_CASE("ref_indel_alignment") {
         CHECK_EQ(s1, ">F");
         CHECK_EQ(s2, "TCA--TCG");
         REQUIRE(std::filesystem::remove(aln.output));
+    }
+    SUBCASE("not marginal model - fail") {
+        coati::alignment_t aln;
+        aln.model = "fst";
+
+        CHECK_THROWS_AS(ref_indel_alignment(aln), std::invalid_argument);
     }
 
     REQUIRE(std::filesystem::remove("tree-msa.newick"));
