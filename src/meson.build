@@ -44,12 +44,19 @@ eigen_dep = dependency('eigen3',
 )
 
 boost_dep = dependency('boost',
-	version : '>=1.47.0',
-	required : true)
+	version : '>=1.67.0',
+	required : true
+)
+
+json_dep = dependency('json',
+  fallback : ['json', 'nlohmann_json_dep'],
+  version : '>=3.2.0',
+  required : true
+)
 
 subdir('lib')
 
-progs=['alignpair', 'genseed', 'msa', 'version', 'sample']
+progs=['alignpair', 'genseed', 'msa', 'version', 'sample', 'format']
 
 foreach p : progs
   exe = executable('coati-@0@'.format(p), ['coati-@0@.cc'.format(p), version_file],

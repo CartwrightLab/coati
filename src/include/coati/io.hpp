@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,33 @@
 # SOFTWARE.
 */
 
-#ifndef ALIGN_HPP
-#define ALIGN_HPP
+#ifndef IO_HPP
+#define IO_HPP
 
 #include <fst/fstlib.h>
 
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <string>
 #include <vector>
 
-#include "io.hpp"
-#include "mutation_ecm.hpp"
-#include "utils.hpp"
+#include "fasta.hpp"
+#include "json.hpp"
+#include "matrix.hpp"
+#include "mg94q.tcc"
+#include "mutation_coati.hpp"
+#include "phylip.hpp"
+#include "structs.hpp"
 
-namespace coati {
-// Pairwise alignment using FST composition
-bool fst_alignment(coati::alignment_t& aln);
-// Create evolution FST - combines mutation and indel models
-VectorFstStdArc evo_fst(const coati::alignment_t& aln);
-}  // namespace coati
+namespace coati::io {
+
+// Read substitution rate matrix from a CSV file
+coati::Matrixf parse_matrix_csv(const std::string& file);
+// Read sequences and names in any supported format.
+coati::data_t read_input(coati::alignment_t& aln);
+// Write sequences and names in any suppported format.
+void write_output(coati::data_t& data, const coati::VectorFstStdArc& aln = {});
+
+}  // namespace coati::io
 #endif

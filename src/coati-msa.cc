@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,38 +23,22 @@
 #include <CLI11.hpp>
 #include <coati/align_msa.hpp>
 #include <coati/fasta.hpp>
-#include <regex>
+#include <coati/io.hpp>
 
 int main(int argc, char* argv[]) {
-    coati::utils::args_t args;
+    coati::args_t args;
 
     // Parse command line options
-    CLI::App msa;
-    coati::utils::set_cli_options(msa, args, "msa");
+    CLI::App msa{
+        "coati msa - multiple sequence alignment of nucleotide sequences\n"};
+    coati::utils::set_options_msa(msa, args);
     CLI11_PARSE(msa, argc, argv);
 
-    // if no output is specified save in current dir in PHYLIP format
-    if(args.output.empty()) {
-        args.output =
-            std::filesystem::path(args.fasta.path).stem().string() + ".phy";
-    } else {  // check format is valid (phylip/fasta)
-        const std::string extension =
-            std::filesystem::path(args.output).extension();
-        const std::regex valid_ext("[.phy,.fasta.fa]");
-        if(!std::regex_match(extension, valid_ext)) {
-            throw std::invalid_argument(
-                "Output file format is invalid. Phylip and fasta files "
-                "supported.");
-        }
+    try {
+        return coati::ref_indel_alignment(args.aln) ? EXIT_SUCCESS
+                                                    : EXIT_FAILURE;
+    } catch(const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
     }
-
-    // read input fasta file
-    args.fasta = coati::read_fasta(args.fasta.path.string());
-
-    if(args.fasta.size() < 3) {
-        throw std::invalid_argument(
-            "At least three sequences required. Exiting!");
-    }
-
-    return coati::ref_indel_alignment(args);
+    return EXIT_FAILURE;
 }

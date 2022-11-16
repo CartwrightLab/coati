@@ -1,5 +1,6 @@
 /*
 # Copyright (c) 2020 Reed A. Cartwright <reed@cartwright.ht>
+# Copyright (c) 2022 Juan J. García Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,24 +23,39 @@
 
 #include <unistd.h>
 
+#include <algorithm>
+#include <coati/coati.hpp>
 #include <cstdlib>
 #include <cstring>
 #include <vector>
-
-#include <coati/coati.hpp>
 
 #include "@source_dir@/verb.hpp"
 
 const char libexec_dir[] = "@prefix@/@libexecdir@";
 
-int main(int argc, char * const argv[]) {
+int main(int argc, char *const argv[]) {
     COATI_VERB_RUNTIME_CHECK_VERSION_NUMBER_OR_RETURN();
 
-    if((argc < 2) || (strcmp(argv[1],"help") == 0)) {
-		std::cout << "Usage:   coati command [options]" << std::endl << std::endl;
-		std::cout << "Commands available:   help"<< std::endl;
-		std::cout << "                      alignpair" << std::endl;
-		std::cout << "                      msa" << std::endl;
+    std::vector<std::string> com{"help",   "version",   "alignpair", "msa",
+                                 "sample", "genseed",   "format"};
+    std::vector<std::string> desc{
+        "      - display this message",
+        "   - version information",
+        " - pairwise alignment of nucleotide sequences",
+        "       - multiple sequence alignment  of nucleotide sequences",
+        "    - align two sequences and sample alignments",
+        "   - generate a random seed",
+        "    - convert between formats, extract and/or reorder sequences"};
+
+    if((argc < 2) || (strcmp(argv[1], "help") == 0) ||
+       (std::find(com.begin(), com.end(), std::string(argv[1])) == com.end())) {
+        std::cout << "Usage:   coati command [options]" << std::endl
+                  << std::endl;
+        std::cout << "Commands available:  " << com[0] << desc[0] << std::endl;
+        for(size_t i = 1; i < com.size(); ++i) {
+            std::cout << "                     " << com[i] << desc[i]
+                      << std::endl;
+        }
         return EXIT_SUCCESS;
     }
 
@@ -52,7 +68,7 @@ int main(int argc, char * const argv[]) {
     // construct new argument vector
     std::vector<char *> new_argv{};
     new_argv.push_back(exe_path.data());
-    for(int i=2;i<argc;++i) {
+    for(int i = 2; i < argc; ++i) {
         new_argv.push_back(argv[i]);
     }
     new_argv.push_back(nullptr);

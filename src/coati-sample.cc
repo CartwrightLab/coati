@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,42 +20,42 @@
 # SOFTWARE.
 */
 
-#include <fst/fstlib.h>
-
 #include <CLI11.hpp>
 #include <coati/align_fst.hpp>
 #include <coati/align_marginal.hpp>
-#include <coati/fasta.hpp>
+#include <coati/io.hpp>
 #include <coati/utils.hpp>
 
 int main(int argc, char* argv[]) {
-    coati::utils::args_t args;
+    coati::args_t args;
 
     // Parse command line options
-    CLI::App alignpair;
-    coati::utils::set_cli_options(alignpair, args, "sample");
+    CLI::App alignpair{
+        "coati sample - align two sequences and sample alignments\n"};
+    coati::utils::set_options_sample(alignpair, args);
     CLI11_PARSE(alignpair, argc, argv);
 
-    coati::utils::alignment_t aln;
-    coati::utils::set_subst(args, aln);
-
-    if(!aln.is_marginal()) {
-        throw std::invalid_argument("Alignment model not currently implemented.");
+    if(!args.aln.is_marginal()) {
+        std::cerr
+            << "ERROR: Sampling only available with models marginal or m-ecm."
+            << std::endl;
+        return EXIT_FAILURE;
     }
 
-    args.fasta = coati::read_fasta(args.fasta.path.string());
-    aln.fasta.path = args.output;
-    aln.fasta.names = args.fasta.names;
-
-    if(args.fasta.size() != 2) {
-        throw std::invalid_argument("Exactly two sequences required.");
-    }
-
+    // Use user-specified seeds or generate a random seed sequence
     coati::random_t rand;
-    auto seeds = fragmites::random::auto_seed_seq();
+    auto seeds = args.sample.seeds.empty()
+                     ? fragmites::random::auto_seed_seq()
+                     : fragmites::random::string_seed_seq(
+                           args.sample.seeds.begin(), args.sample.seeds.end());
     rand.Seed(seeds);
 
-    coati::marg_sample(args, aln, rand);
+    try {
+        coati::marg_sample(args.aln, args.sample.sample_size, rand);
+    } catch(const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

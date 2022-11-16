@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,11 +25,16 @@
 
 #include <algorithm>
 #include <boost/spirit/home/x3.hpp>
+#include <string_view>
 
 #include "utils.hpp"
 
 namespace coati::tree {
 
+/**
+ * @brief Stores information about a tree node, used for msa.
+ *
+ */
 struct node_t {
     std::string label; /*!< node name */
     float length; /*!< branch length connecting node to most recent ancestor */
@@ -46,12 +51,17 @@ struct node_t {
 
 using tree_t = std::vector<node_t>;
 
-bool read_newick(const std::string& tree_file, std::string& content);
-int parse_newick(std::string content, tree_t& guide_tree);
-int aln_order(tree_t& tree, std::vector<std::pair<int, float>>& order_list);
-bool find_seq(const std::string& name, coati::fasta_t& f, std::string& seq);
-bool find_node(tree_t& tree, const std::string& name, size_t& ID);
-bool reroot(tree_t& tree, const std::string& label);
+// Read tree in newick format file.
+std::string read_newick(const std::string& tree_file);
+// Parse newick format tree.
+tree_t parse_newick(std::string& content);
+// Find sequence in data_t given its name.
+std::string find_seq(const std::string_view name, const coati::data_t& f);
+// Find position of node in tree given its name.
+size_t find_node(const tree_t& tree, const std::string_view name);
+// Re-root tree.
+void reroot(tree_t& tree, const std::string_view label);
+// Find distance from reference to node.
 float distance_ref(const tree_t& tree, size_t ref, size_t node);
 }  // namespace coati::tree
 #endif

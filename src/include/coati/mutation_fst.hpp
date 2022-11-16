@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,8 @@
 #include <fst/fstlib.h>
 
 #include <string>
+#include <string_view>
 
-#include "fasta.hpp"
 #include "matrix.hpp"
 #include "utils.hpp"
 
@@ -35,16 +35,23 @@ namespace coati {
 
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
+// Create Muse and Gaut codon model FST.
 VectorFstStdArc mg94(float br_len, float omega,
-                     const std::vector<coati::float_t>& pi);
-VectorFstStdArc nuc2pos();
+                     const std::vector<coati::float_t>& pi,
+                     const std::vector<coati::float_t>& sigma = {0, 0, 0, 0, 0,
+                                                                 0});
+// Create dna marginal Muse and Gaut codon model FST.
 VectorFstStdArc dna(float br_len, float omega,
                     const std::vector<coati::float_t>& pi);
+// Create affine gap indel model FST.
 VectorFstStdArc indel(float gap_open, float gap_extend,
                       const std::vector<float>& pi);
+// Add arc to FST.
 void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel = 0,
              int olabel = 0, float weight = 1.0);
-bool acceptor(std::string content, VectorFstStdArc& accept);
-VectorFstStdArc optimize(VectorFstStdArc fst_raw);
+// Create FSA (acceptor) from a sequence.
+bool acceptor(const std::string_view content, VectorFstStdArc& accept);
+// Optimize FST: remove epsilons, determinize, and minimize.
+VectorFstStdArc optimize(VectorFstStdArc& fst_raw);
 }  // namespace coati
 #endif

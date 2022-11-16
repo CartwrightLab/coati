@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,66 +24,74 @@
 
 #include <coati/mutation_ecm.hpp>
 
-/* nonsynonymous-synonymous bias (\omega) */
-// const float omega = 0.2;  // github.com/reedacartwright/toycoati
-// const float kappa = 2.5;  // Kosiol et al. 2007, supplemental material
-
 namespace coati {
 
 /**
- * \brief Calculate number of transitions and transversion between two codons.
+ * @brief Calculate number of transitions and transversion between two codons.
+ *
+ * @details Calculate number of ts and tv between two codons one position at a
+ * time. Nucleotides are encoded as unsigned ints - A=0, C=1, G=2, T=3. If both
+ * are odd (C,T) then it's at transversion, otherwhise (even - A,G) it's a
+ * transition.
  *
  * @param[in] c1 uint8_t encoded codon (AAA=0,...,TTT=63).
  * @param[in] c2 uint8_t encoded codon.
  * @param[in,out] nts int number of transitions.
  * @param[in,out] ntv int number of transversions.
+ *
  */
 void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv) {
+    using coati::utils::get_nuc;
     nts = ntv = 0;
-    if(c1 == c2) return;
-    for(int i = 0; i < 3; i++) {
-        uint8_t nt1 =
-            ((c1 & static_cast<uint8_t>(48 / pow(4, i))) >> (4 - 2 * i));
-        uint8_t nt2 =
-            ((c2 & static_cast<uint8_t>(48 / pow(4, i))) >> (4 - 2 * i));
+    if(c1 == c2) {
+        return;  // if same codon, 0 ts & 0 tv - return
+    }
 
-        if(nt1 == nt2) continue;
+    for(int i = 0; i < 3; i++) {
+        uint8_t nt1 = coati::utils::get_nuc(c1, i);
+        uint8_t nt2 = coati::utils::get_nuc(c2, i);
+
+        if(nt1 == nt2) {
+            continue;  // if same nuc, 0 ts & 0 tv - go to next nuc
+        }
         ((nt1 % 2 == nt2 % 2) ? nts : ntv) += 1;
     }
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("nts_ntv") {
     int nts = 0, ntv = 0;
 
     nts_ntv(0, 0, nts, ntv);  // AAA -> AAA
-    CHECK(nts == 0);
-    CHECK(ntv == 0);
+    CHECK_EQ(nts, 0);
+    CHECK_EQ(ntv, 0);
 
     nts_ntv(0, 1, nts, ntv);  // AAA -> AAC
-    CHECK(nts == 0);
-    CHECK(ntv == 1);
+    CHECK_EQ(nts, 0);
+    CHECK_EQ(ntv, 1);
 
     nts_ntv(39, 60, nts, ntv);  // GCT -> TTA
-    CHECK(nts == 1);
-    CHECK(ntv == 2);
+    CHECK_EQ(nts, 1);
+    CHECK_EQ(ntv, 2);
 
     nts_ntv(21, 42, nts, ntv);  // CCC -> GGG
-    CHECK(nts == 0);
-    CHECK(ntv == 3);
+    CHECK_EQ(nts, 0);
+    CHECK_EQ(ntv, 3);
 
     nts_ntv(42, 0, nts, ntv);  // GGG -> AAA
-    CHECK(nts == 3);
-    CHECK(ntv == 0);
+    CHECK_EQ(nts, 3);
+    CHECK_EQ(ntv, 0);
 }
+// GCOVR_EXCL_STOP
 
 /**
- * \brief Transition-transverison bias function.
+ * @brief Transition-transverison bias function.
  *
- * Used in the empirical codon model (ECM), k represents the the relative
- *  strength of the transitions-transversion bias, modeled as a function that
- *  depends on the number of transitions and transversion between two codons.
- * More information here https://doi.org/10.1093/molbev/msm064.
+ * @details Used in the empirical codon model (ECM), k represents the the
+ * relative strength of the transitions-transversion bias, modeled as a function
+ * that depends on the number of transitions and transversion between two
+ * codons. More information here https://doi.org/10.1093/molbev/msm064.
  *
  * @param[in] c1 uint8_t encoded codon (AAA=0, ... , TTT=63)
  * @param[in] c2 uint8_t encoded codon.
@@ -91,7 +99,7 @@ TEST_CASE("nts_ntv") {
  * @param[in] kappa float measure relative to the value implicit in
  *  exchangeabilities.
  *
- * \return relative strength of transition-transversion bias (float).
+ * @retval float relative strength of transition-transversion bias.
  */
 float k(uint8_t c1, uint8_t c2, int model, float kappa) {
     int nts = 0, ntv = 0;
@@ -111,28 +119,30 @@ float k(uint8_t c1, uint8_t c2, int model, float kappa) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("k") {
-    CHECK(k(0, 0, 0) == 1);         // AAA -> AAA, ECM+f+omega
-    CHECK(k(32, 0, 0) == 1);        // GAA -> CTC, ECM+f+omega
-    CHECK(k(47, 38) == 1);          // GTT -> GCT, ECM+f+omega
-    CHECK(k(22, 19) == 1);          // CCG -> CAT, ECM+f+omega
-    CHECK(k(0, 42, 1) == 15.625);   // AAA -> GGG, ECM+F+omega+1k(ts)
-    CHECK(k(32, 29, 1) == 1);       // GAA -> CTC, ECM+F+omega+1k(ts)
-    CHECK(k(47, 38, 1) == 2.5);     // GTT -> GCT, ECM+F+omega+1k(ts)
-    CHECK(k(21, 51, 1) == 6.25);    // CCC -> TAT, ECM+F+omega+1k(ts)
-    CHECK(k(0, 0, 2) == 1);         // AAA -> AAA, ECM+F+omega+1k(tv)
-    CHECK(k(32, 29, 2) == 15.625);  // GAA -> CTC, ECM+F+omega+1k(tv)
-    CHECK(k(47, 38, 2) == 2.5);     // GTT -> GCT, ECM+F+omega+1k(tv)
-    CHECK(k(22, 19, 2) == 6.25);    // CCG -> CAT, ECM+F+omega+1k(tv)
+    CHECK_EQ(k(0, 0, 0), 1);         // AAA -> AAA, ECM+f+omega
+    CHECK_EQ(k(32, 0, 0), 1);        // GAA -> CTC, ECM+f+omega
+    CHECK_EQ(k(47, 38), 1);          // GTT -> GCT, ECM+f+omega
+    CHECK_EQ(k(22, 19), 1);          // CCG -> CAT, ECM+f+omega
+    CHECK_EQ(k(0, 42, 1), 15.625);   // AAA -> GGG, ECM+F+omega+1k(ts)
+    CHECK_EQ(k(32, 29, 1), 1);       // GAA -> CTC, ECM+F+omega+1k(ts)
+    CHECK_EQ(k(47, 38, 1), 2.5);     // GTT -> GCT, ECM+F+omega+1k(ts)
+    CHECK_EQ(k(21, 51, 1), 6.25);    // CCC -> TAT, ECM+F+omega+1k(ts)
+    CHECK_EQ(k(0, 0, 2), 1);         // AAA -> AAA, ECM+F+omega+1k(tv)
+    CHECK_EQ(k(32, 29, 2), 15.625);  // GAA -> CTC, ECM+F+omega+1k(tv)
+    CHECK_EQ(k(47, 38, 2), 2.5);     // GTT -> GCT, ECM+F+omega+1k(tv)
+    CHECK_EQ(k(22, 19, 2), 6.25);    // CCG -> CAT, ECM+F+omega+1k(tv)
 }
+// GCOVR_EXCL_STOP
 
 /**
- * \brief Create Empirical Codon Model substitution P matrix
+ * @brief Create Empirical Codon Model substitution P matrix.
  *
  * @param[in] br_len float brach length.
  * @param[in] omega float nonsynonymous-synonymous bias.
  *
- * \return empirical codon model substitution P matrix (coati::Matrixf).
+ * @retval coati::Matrixf empirical codon model substitution P matrix.
  */
 coati::Matrixf ecm_p(float br_len, float omega) {
     if(br_len <= 0) {
@@ -146,14 +156,16 @@ coati::Matrixf ecm_p(float br_len, float omega) {
     for(uint8_t i = 0; i < 64; i++) {
         float rowSum = 0.0;
         for(uint8_t j = 0; j < 64; j++) {
-            // check if codons i or j are stop codons
+            // if codons i or j are stop codons value is zero (default)
             if(i == j || amino_group_table[i] == '*' ||
                amino_group_table[j] == '*') {
                 continue;
             }
             if(amino_group_table[i] == amino_group_table[j]) {
+                // same aminoacid group
                 Q(i, j) = exchang[i][j] * ecm_pi[j] * k(i, j, 0);
-            } else {  // amino_group_table[i] != amino_group_table[j]{
+            } else {
+                // different aminoacid group
                 Q(i, j) = exchang[i][j] * ecm_pi[j] * k(i, j, 0) * omega;
             }
             rowSum += Q(i, j);
@@ -175,15 +187,16 @@ coati::Matrixf ecm_p(float br_len, float omega) {
 }
 
 /**
- * \brief Create Empirical Codon Model (Kosiol et al. 2007) FST
+ * @brief Create Empirical Codon Model (Kosiol et al. 2007) FST.
  *
  * @param[in] br_len float branch length;
  * @param[in] omega float nonsynonymous-synonymous bias.
  *
- * \return empirical codon model FST (coati::VectorFstStdArc).
+ * @retval coati::VectorFstStdArc empirical codon model FST.
  */
 VectorFstStdArc ecm(float br_len, float omega) {
     coati::Matrixf P = ecm_p(br_len, omega);
+    using coati::utils::get_nuc;
 
     // Add state 0 and make it the start state
     VectorFstStdArc ecm;
@@ -193,10 +206,9 @@ VectorFstStdArc ecm(float br_len, float omega) {
     int r = 1;
     for(uint8_t i = 0; i < 64; i++) {
         for(uint8_t j = 0; j < 64; j++) {
-            add_arc(ecm, 0, r, ((i & 48) >> 4) + 1, ((j & 48) >> 4) + 1,
-                    P(i, j));
-            add_arc(ecm, r, r + 1, ((i & 12) >> 2) + 1, ((j & 12) >> 2) + 1);
-            add_arc(ecm, r + 1, 0, (i & 3) + 1, (j & 3) + 1);
+            add_arc(ecm, 0, r, get_nuc(i, 0) + 1, get_nuc(i, 0) + 1, P(i, j));
+            add_arc(ecm, r, r + 1, get_nuc(i, 1) + 1, get_nuc(j, 1) + 1);
+            add_arc(ecm, r + 1, 0, get_nuc(i, 2) + 1, get_nuc(j, 2) + 1);
             r = r + 2;
         }
     }

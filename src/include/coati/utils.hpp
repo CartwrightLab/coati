@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -33,32 +33,53 @@
 #include <iostream>
 #include <regex>
 #include <string>
+#include <string_view>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
 
 #include "dna_syms.hpp"
 #include "fasta.hpp"
+#include "io.hpp"
+#include "json.hpp"
 #include "matrix.hpp"
 #include "mg94q.tcc"
 #include "mutation_coati.hpp"
 #include "mutation_ecm.hpp"
 #include "mutation_fst.hpp"
+#include "phylip.hpp"
+#include "structs.hpp"
 
-/* Table for converting a nucleotide character to 2-bit encoding */
-const uint8_t nt4_table[256] = {
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 4, 1, 4, 4, 4, 2,
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-    4, 0, 4, 1, 4, 4, 4, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4,
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+/**
+ * @brief Table for converting a nucleotide character to 4-bit encoding.
+ *
+ * Following IUPAC nucleotide code
+ * | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+ * | A | C | G |T/U| R | Y | M | K | S | W | B  | D  | H  | V  | N  | -  |
+ *
+ * R: purine       A or G
+ * Y: pyrimidine   C or T/U
+ * M: amino group  A or C
+ * K: keto group   G or T/U
+ * S: strong inter C or G
+ * W: weak interac A or T/U
+ * B: not A        C or G or T/U
+ * D: not C        A or G or T/U
+ * H: not G        A or C or T/U
+ * V: not T        A or C or G
+ * N: any          A or C or G or T/U
+ */
+const uint8_t nt16_table[128] = {
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 15, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 0,  10, 1,  11, 16, 16, 2,  12, 16, 16, 7,
+    16, 6,  14, 16, 16, 16, 4,  8,  3,  3,  13, 9,  16, 5,  16, 16, 16, 16, 16,
+    16, 16, 0,  10, 1,  11, 16, 16, 2,  12, 16, 16, 7,  16, 6,  14, 16, 16, 16,
+    4,  8,  3,  3,  13, 9,  16, 5,  16, 16, 16, 16, 16};
 
-/* Table for looking up a codon ECM group */
+/**
+ * @brief Table for looking up a codon ECM group.
+ */
 const uint8_t amino_group_table[64] = {
     75, 78, 75, 78, 84, 84, 84, 84, 82, 83, 82, 83, 73, 73, 77, 73,
     81, 72, 81, 72, 80, 80, 80, 80, 82, 82, 82, 82, 76, 76, 76, 76,
@@ -70,131 +91,53 @@ using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 using sequence_pair_t = std::vector<std::basic_string<unsigned char>>;
 
-struct gap_t {
-    std::size_t len{1};              /*!< unit size of gaps */
-    float_t open{0.001};             /*!< gap opening score */
-    float_t extend{1.0f - 1.0f / 6.0f}; /*!< gap extension score */
-
-    gap_t() = default;
-    explicit gap_t(std::size_t l, float_t o = 0.001,
-                   float_t e = 1.0f - 1.0f / 6.0f)
-        : len{l}, open{o}, extend{e} {}
-};
-
-struct args_t {
-    coati::fasta_t fasta;         /*!< fasta struct */
-    std::string model{"m-coati"}; /*!< substitution model */
-    std::string weight_file{""};  /*!< file to output alignment weight */
-    std::filesystem::path output; /*!< path to alignment output file */
-    bool score{false};            /*!< if true an input alignment is scored */
-    std::string tree{""};         /*!< path to input newick tree file */
-    std::string ref{""};          /*!< name of reference sequence */
-    std::string rate{""};   /*!< path to csv input substitution matrix file */
-    gap_t gap;              /*!< gap struct */
-    float_t br_len{0.0133}; /*!< branch length */
-    float_t omega{0.2};     /*!< nonsynonymous-synonymous bias */
-    std::vector<float_t> pi{0.308, 0.185, 0.199,
-                            0.308}; /*!< nucleotide frequencies */
-    float_t temperature{1.0f};
-    size_t sample_size{1};
-
-    // args_t() = default;
-    // args_t(const std::string& f, const std::vector<std::string>& n,
-    //        const std::vector<std::string>& s, std::string m = "m-coati",
-    //        std::string weight = "", std::filesystem::path out = "",
-    //        bool sc = false, std::string tr = "", std::string re = "",
-    //        std::string ra = "", size_t gl = 1, float_t go = 0.001,
-    //        float_t ge = 1.f - 1.f / 6.f, float_t br = 0.0133, float_t w = 0.2f,
-    //        std::vector<float> p = {0.308, 0.185, 0.199, 0.308})
-    //     : fasta{coati::fasta_t(f, n, s)},
-    //       model{std::move(m)},
-    //       weight_file{std::move(weight)},
-    //       output{std::move(out)},
-    //       score{sc},
-    //       tree{std::move(tr)},
-    //       ref{std::move(re)},
-    //       rate{std::move(ra)},
-    //       gap{gap_t(gl, go, ge)},
-    //       br_len{br},
-    //       omega{w},
-    //       pi{std::move(p)} {}
-};
-
-coati::Matrixf parse_matrix_csv(const std::string& file);
-
-struct alignment_t {
-    coati::fasta_t fasta;              /*!< fasta struct */
-    float_t weight{0.0};               /*!< alignment weight */
-    std::filesystem::path weight_file; /*!< file to output alignment weight */
-    std::string model{""};             /*!< substitution model */
-    Matrixf subst_matrix;              /*!< substitution matrix */
-    VectorFstStdArc subst_fst;         /*!< substitution FST */
-    std::vector<VectorFstStdArc> seqs = {}; /*!< sequences as FSTs */
-
-    alignment_t() = default;
-    // NOLINTNEXTLINE(misc-unused-parameters)
-    alignment_t(const std::filesystem::path& f,
-                const std::vector<std::string>& n,
-                // NOLINTNEXTLINE(misc-unused-parameters)
-                const std::vector<std::string>& s, float_t w,
-                std::filesystem::path w_f, std::string m, Matrixf p,
-                VectorFstStdArc fst, std::vector<VectorFstStdArc> ss)
-        : fasta{coati::fasta_t(f, n, s)},
-          weight{w},
-          weight_file{std::move(w_f)},
-          model{std::move(m)},
-          subst_matrix{std::move(p)},
-          subst_fst{std::move(fst)},
-          seqs{std::move(ss)} {}
-
-    /** \brief Return true if model selected is marginal (m-coati or m-ecm) */
-    bool is_marginal() {
-        return (model.compare("m-coati") == 0 || model.compare("m-ecm") == 0);
-    }
-};
-
+// Hamming distance between two codons.
 int cod_distance(uint8_t cod1, uint8_t cod2);
-int cod_int(const std::string& codon);
-void set_cli_options(CLI::App& app, coati::utils::args_t& args,
-                     const std::string& command);
-sequence_pair_t marginal_seq_encoding(const std::string& anc,
-                                      const std::string& des);
-void set_subst(args_t& args, alignment_t& aln);
-
-
-// extracts extension and filename from both file.foo and ext:file.foo
-struct file_type_t {
-    std::string path;
-    std::string type_ext;
-};
-
-// returns {.ext, file.foo}
+// Get a codon's position in the codon list (AAA->0, AAAC->1 .. TTT->63).
+int cod_int(const std::string_view codon);
+// Setup command line options for coati-alignpair.
+void set_options_alignpair(CLI::App& app, coati::args_t& args);
+// Setup command line options for coati-msa.
+void set_options_msa(CLI::App& app, coati::args_t& args);
+// Setup command line options for coati-sample.
+void set_options_sample(CLI::App& app, coati::args_t& args);
+// Setup command line options for coati format.
+void set_options_format(CLI::App& app, coati::args_t& args);
+// Encode two sequences as vector<unsigned char>.
+sequence_pair_t marginal_seq_encoding(const std::string_view anc,
+                                      const std::string_view des);
+// Set subtitution matrix or FST according to model.
+void set_subst(alignment_t& aln);
+// Extract file type from path. Returns {.ext, file.foo}.
 // trims whitespace as well
 file_type_t extract_file_type(std::string path);
-
+// Convert alignment FST to std::string sequences.
+void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln);
+// Get nucleotide from codon.
+uint8_t get_nuc(uint8_t cod, int pos);
 
 // calculate log(1+exp(x))
 // https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
-inline
-float_t log1p_exp(float_t x) {
-    if( x <= -37.0f ) {
+static inline float_t log1p_exp(float_t x) {
+    if(x <= -37.0f) {
         return std::exp(x);
-    } else if ( x <= 18.0f ) {
-        return std::log1p(std::exp(x));
-    } else if( x <= 33.3f ) {
-        return x + std::exp(-x);
-    } else {
-        return x;
     }
+    if(x <= 18.0f) {
+        return std::log1p(std::exp(x));
+    }
+    if(x <= 33.3f) {
+        return x + std::exp(-x);
+    }
+    return x;
 }
 // calculate log(exp(a)+exp(b))
 // Let x = max(a,b)
 // Let y = -abs(a-b)
-//  log(exp(a)+exp(b)) = m+log(1+exp(y))
-inline
-float_t log_sum_exp(float_t a, float_t b) {
-    float_t x = std::max(a,b);
-    float_t y = -std::fabs(a-b);
+//  log(exp(a)+exp(b)) = x+log(1+exp(y))
+// NOLINTNEXTLINE(clang-diagnostic-unused-function)
+static inline float_t log_sum_exp(float_t a, float_t b) {
+    float_t x = std::max(a, b);
+    float_t y = -std::fabs(a - b);
     return x + log1p_exp(y);
 }
 

@@ -20,7 +20,10 @@
             "@source_dir@/src/{stamp}.cpp",
             "@source_dir@/src/lib/",
             "@source_dir@/src/"
-        ]
+        ],
+		"ClangFormat": {
+			"format_on_save": true
+		}
 	},
     "SublimeLinter": {
         "linters":
@@ -40,28 +43,16 @@
 	"build_systems":
 	[
 		{
-			"name": "@project_name@ - all",
-			"cmd": ["meson", "compile", "-C", "${project_path}", "all"],
+			"name": "@project_name@ - default",
+			"cmd": ["meson", "compile", "-C", "@build_dir@"],
 			"working_dir": "${project_path}",
 			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$"
 		},
 		{
 			"name": "@project_name@ - test",
-			"cmd": ["meson", "compile", "-C", "${project_path}", "test"],
+			"cmd": ["meson", "test", "-C", "@build_dir@"],
 			"working_dir": "${project_path}",
 			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$"
-		},
-        {
-            "name": "@project_name@ - clean",
-            "cmd": ["meson", "compile", "-C", "${project_path}", "clean"],
-            "working_dir": "${project_path}",
-            "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$"
-        },
-        {
-            "name": "@project_name@ - check_all",
-            "cmd": ["meson", "compile", "-C", "${project_path}", "check_all"],
-            "working_dir": "${project_path}",
-            "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$"
-        },
+		}
     ]
 }

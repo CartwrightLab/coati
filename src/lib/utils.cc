@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,290 +22,558 @@
 
 #include <doctest/doctest.h>
 
+#include <boost/algorithm/string/trim.hpp>
 #include <climits>
 #include <coati/utils.hpp>
-
-#include <boost/algorithm/string/trim.hpp>
 #include <filesystem>
 
 namespace coati::utils {
 
 /**
- * \brief Hamming distance between two codons
+ * @brief Hamming distance between two codons.
  *
- * Number of positions in which the two codons are different.
+ * @details Number of positions in which the two codons are different.
  *
  * @param[in] cod1 uint8_t encoded codon.
  * @param[in] cod2 uint8_t encoded codon.
  *
- * \return hamming distance between two codons (int).
+ * @retval int hamming distance between two codons.
  */
 int cod_distance(uint8_t cod1, uint8_t cod2) {
     int distance = 0;
 
-    distance += (((cod1 & 48) >> 4) == ((cod2 & 48) >> 4) ? 0 : 1);
-    distance += (((cod1 & 12) >> 2) == ((cod2 & 12) >> 2) ? 0 : 1);
-    distance += ((cod1 & 3) == (cod2 & 3) ? 0 : 1);
+    for(int i = 0; i < 3; ++i) {
+        distance += (get_nuc(cod1, i) == get_nuc(cod2, i) ? 0 : 1);
+    }
 
     return distance;
 }
 
 /**
- * \brief Cast codon to position in codon list (AAA->0, AAAC->1 ... TTT->63)
+ * @brief Get a codon's position in the codon list (AAA->0, AAAC->1 .. TTT->63).
+ *
+ * @details Each nucleotide is converted to its position in nucleotide list
+ * (A = 0, C = 1, G = 2, T = 3). Then we apply the following:
+ * Given cod = nuc0 nuc1 nuc2,
+ * position = nuc0 * 2^4 + nuc1 * 2^2 + nuc2
+ * Algorithm performs this in bit operations.
  *
  * @param[in] codon std::string codon.
  *
- * \return encoded codon as its position in codon list.
+ * @retval int encoded codon as its position in codon list.
  */
-int cod_int(const std::string& codon) {
+int cod_int(const std::string_view codon) {
     unsigned char pos0 = codon[0];
     unsigned char pos1 = codon[1];
     unsigned char pos2 = codon[2];
 
-    return (nt4_table[pos0] << 4) | (nt4_table[pos1] << 2) | nt4_table[pos2];
-}
-
-/**
- * \brief Read substitution rate matrix from a CSV file
- *
- * Read from file a branch length and a codon substitution rate matrix.
- *  File is expected to have 4067 lines; 1 with branch length and 4096 with
- *  the following structure: codon,codon,value (e.g. AAA,AAA,0.0015).
- *
- * @param[in] file std::string path to input file.
- *
- * \return codon substitution matrix (coati::Matrixf).
- */
-coati::Matrixf parse_matrix_csv(const std::string& file) {
-    float br_len{NAN};
-    Matrix64f Q;
-    std::ifstream input(file);
-    if(!input.good()) {
-        throw std::invalid_argument("Error opening file " + file + ".");
-    }
-
-    std::string line;
-    // Read branch length
-    getline(input, line);
-    br_len = stof(line);
-
-    std::vector<std::string> vec{"", "", ""};
-    int count = 0;
-
-    while(std::getline(input, line)) {
-        std::stringstream ss(line);
-        getline(ss, vec[0], ',');
-        getline(ss, vec[1], ',');
-        getline(ss, vec[2], ',');
-        Q(cod_int(vec[0]), cod_int(vec[1])) = stof(vec[2]);
-        count++;
-    }
-
-    input.close();
-
-    if(count != 4096) {
+    // check that REF/ancestor doesnt have ambiguous nucs
+    auto pos = codon.find_first_not_of("ACGTUacgtu");
+    if(pos != std::string::npos) {
         throw std::invalid_argument(
-            "Error reading substitution rate CSV file. Exiting!");
+            "Ambiguous nucleotides in reference sequence not supported.");
     }
 
-    Q = Q * br_len;
-    Q = Q.exp();
-
-    coati::Matrix<coati::float_t> P(64, 64, Q);
-
-    return P;
-}
-
-/// @private
-TEST_CASE("parse_matrix_csv") {
-    std::ofstream outfile;
-    coati::Matrix<coati::float_t> P(
-        mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
-
-    const std::vector<std::string> codons = {
-        "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC",
-        "AGG", "AGT", "ATA", "ATC", "ATG", "ATT", "CAA", "CAC", "CAG", "CAT",
-        "CCA", "CCC", "CCG", "CCT", "CGA", "CGC", "CGG", "CGT", "CTA", "CTC",
-        "CTG", "CTT", "GAA", "GAC", "GAG", "GAT", "GCA", "GCC", "GCG", "GCT",
-        "GGA", "GGC", "GGG", "GGT", "GTA", "GTC", "GTG", "GTT", "TAA", "TAC",
-        "TAG", "TAT", "TCA", "TCC", "TCG", "TCT", "TGA", "TGC", "TGG", "TGT",
-        "TTA", "TTC", "TTG", "TTT"};
-
-    outfile.open("test-marg-matrix.csv");
-    REQUIRE(outfile);
-
-    float Q[4096]{0.0f};
-    for(auto i = 0; i < 640; i++) {
-        Q[mg94_indexes[i]] = mg94Q[i];
-    }
-
-    outfile << "0.0133" << std::endl;  // branch length
-    for(auto i = 0; i < 64; i++) {
-        for(auto j = 0; j < 64; j++) {
-            outfile << codons[i] << "," << codons[j] << "," << Q[i * 64 + j]
-                    << std::endl;
-        }
-    }
-
-    outfile.close();
-    coati::Matrix<coati::float_t> P_test(
-        parse_matrix_csv("test-marg-matrix.csv"));
-    for(auto i = 0; i < 64; i++) {
-        for(auto j = 0; j < 64; j++) {
-            CHECK(P(i, j) == doctest::Approx(P_test(i, j)));
-        }
-    }
-    CHECK(std::filesystem::remove("test-marg-matrix.csv"));
+    return (nt16_table[pos0] << 4) | (nt16_table[pos1] << 2) | nt16_table[pos2];
 }
 
 /**
- * \brief Setup command line options
+ * @brief Setup command line options for coati-alignpair.
  *
  * @param[in] app CLI::App command line arguments parser from CLI11.
- * @param[in,out] args coati::utils::args_t to store the input parameters.
- * @param[in] command std::string one of coati commands (i.e. alignpair or msa).
- *
+ * @param[in,out] args coati::args_t to store the input parameters.
  */
-void set_cli_options(CLI::App& app, coati::utils::args_t& args,
-                     const std::string& command) {
-    // Add new options/flags
-    app.add_option("fasta", args.fasta.path, "Fasta file path")
-        ->required()
-        ->check(CLI::ExistingFile);
-    if(command == "msa") {
-        app.add_option("tree", args.tree, "Newick phylogenetic tree")
-            ->required()
-            ->check(CLI::ExistingFile);
-        app.add_option("reference", args.ref, "Reference sequence")->required();
-    }
-    app.add_option("-m,--model", args.model, "Substitution model");
-    if(command == "alignpair" || command == "sample") {
-        app.add_option("-t,--time", args.br_len,
-                       "Evolutionary time/branch length")
-            ->check(CLI::PositiveNumber);
-    }
-    if(command == "alignpair") {
-        app.add_option("-l,--weight", args.weight_file,
-                       "Write alignment score to file");
-        app.add_flag("-s,--score", args.score, "Score alignment");
-    }
-    app.add_option("-o,--output", args.output, "Alignment output file");
-    app.add_option("-g,--gap-open", args.gap.open, "Gap opening score")
-        ->check(CLI::PositiveNumber);
-    app.add_option("-e,--gap-extend", args.gap.extend, "Gap extension score")
-        ->check(CLI::PositiveNumber);
-    app.add_option("-w,--omega", args.omega, "Nonsynonymous-synonymous bias")
-        ->check(CLI::PositiveNumber);
-    app.add_option("-p,--pi", args.pi, "Nucleotide frequencies (A C G T)")
-        ->expected(4);
-    app.add_option("-k,--gap-len", args.gap.len, "Set gap unit size");
-    if(command == "sample") {
-        //app.add_option("-T,--temperature", args.temperature, "Sampling temperature");
-        app.add_option("-n,--sample-size", args.sample_size, "Sample size");
-    }
+void set_options_alignpair(CLI::App& app, coati::args_t& args) {
+    app.get_formatter()->column_width(35);
+    app.add_option("input", args.aln.data.path,
+                   "Input file (FASTA/PHYLIP/JSON accepted)")
+        ->required();
+    auto* opt_m =
+        app.add_option("-m,--model", args.aln.model,
+                       "Substitution model (fst ecm dna marginal m-ecm)")
+            ->group("Model parameters");
+    app.add_option("--sub", args.aln.rate,
+                   "File with branch lengths and codon subst matrix")
+        ->excludes(opt_m)
+        ->group("Advanced options");
+    app.add_option("-t,--time", args.aln.br_len,
+                   "Evolutionary time/branch length")
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
+    auto* opt_ref =
+        app.add_option("-r,--ref", args.aln.refs,
+                       "Name of reference sequence (default: 1st seq)")
+            ->group("Advanced options");
+    app.add_flag("-v,--rev-ref", args.aln.rev,
+                 "Use 2nd seq as reference (default: 1st seq)")
+        ->excludes(opt_ref)
+        ->group("Advanced options");
+    app.add_option("-l,--weight", args.aln.weight_file,
+                   "Write alignment score to file");
+    app.add_flag("-s,--score", args.aln.score,
+                 "Score input alignment and exit");
+    app.add_option("-o,--output", args.aln.output, "Alignment output file");
+    app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
+    app.add_option("-e,--gap-extend", args.aln.gap.extend,
+                   "Gap extension score")
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
+    app.add_option("-w,--omega", args.aln.omega,
+                   "Nonsynonymous-synonymous bias")
+        ->check(CLI::PositiveNumber)
+        ->group("Advanced options");
+    app.add_option("-p,--pi", args.aln.pi, "Nucleotide frequencies (A C G T)")
+        ->expected(4)
+        ->group("Advanced options");
+    app.add_option("-k,--gap-len", args.aln.gap.len, "Gap unit length")
+        ->group("Model parameters");
+    app.add_option("-x,--sigma", args.aln.sigma,
+                   "GTR sigma parameters (AC AG AT CG CT GT)")
+        ->expected(6)
+        ->group("Advanced options");
+    // specify string->value mappings
+    std::map<std::string, coati::AmbiguousNucs> amb_map{
+        {"AVG", coati::AmbiguousNucs::AVG},
+        {"BEST", coati::AmbiguousNucs::BEST}};
+    // CheckedTransformer translates and checks whether the results are either
+    // in one of the strings or in one of the translations already
+    app.add_option("-a,--ambiguous", args.aln.amb,
+                   "Ambiguous nucleotides model", "AVG")
+        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
+        ->group("");
 }
 
+/// private
+// GCOVR_EXCL_START
+TEST_CASE("parse_arguments_alignpair") {
+    coati::args_t args;
+    CLI::App alnpair;
+    coati::utils::set_options_alignpair(alnpair, args);
+
+    std::vector<const char*> argv;
+    std::vector<std::string> cli_args = {
+        "alignpair", "test.fasta", "-m",    "fst",        "-t",    "0.2",
+        "-r",        "A",          "-l",    "weight.log", "-s",    "-o",
+        "out.phy",   "-g",         "0.015", "-e",         "0.009", "-w",
+        "0.21",      "-p",         "0.15",  "0.35",       "0.35",  "0.15",
+        "-k",        "3",          "-x",    "0.1",        "0.1",   "0.1",
+        "0.1",       "0.1",        "0.1",   "-a",         "AVG"};
+    argv.reserve(cli_args.size() + 1);
+    for(auto& arg : cli_args) {
+        argv.push_back(arg.c_str());
+    }
+    argv.push_back(nullptr);
+    alnpair.parse(static_cast<int>(argv.size() - 1), argv.data());
+
+    CHECK_EQ(args.aln.data.path, "test.fasta");
+    CHECK_EQ(args.aln.model, "fst");
+    CHECK_EQ(args.aln.br_len, 0.2f);
+    CHECK_EQ(args.aln.refs, "A");
+    CHECK_EQ(args.aln.weight_file, "weight.log");
+    CHECK(args.aln.score);
+    CHECK_EQ(args.aln.output, "out.phy");
+    CHECK_EQ(args.aln.gap.open, 0.015f);
+    CHECK_EQ(args.aln.gap.extend, 0.009f);
+    CHECK_EQ(args.aln.omega, 0.21f);
+    CHECK_EQ(args.aln.pi[0], 0.15f);
+    CHECK_EQ(args.aln.pi[1], 0.35f);
+    CHECK_EQ(args.aln.pi[2], 0.35f);
+    CHECK_EQ(args.aln.pi[3], 0.15f);
+    CHECK_EQ(args.aln.gap.len, 3);
+    for(size_t i = 0; i < 6; ++i) {
+        CHECK_EQ(args.aln.sigma[i], 0.1f);
+    }
+    CHECK_EQ(args.aln.amb, coati::AmbiguousNucs::AVG);
+}
+// GCOVR_EXCL_STOP
+
 /**
- * \brief Encode two sequences as vector<unsigned char>
+ * @brief Setup command line options for coati-msa.
  *
- * Encode ancestor (ref) sequence as codon \& phase, descendant as nucleotide.
- *  ref: AAA \& position 0 -> 0, AAA \& 1 -> 1, ... , TTT \& 3 -> 191.
- *  des: A -> 0, C -> 1, G -> 2, T -> 3.
+ * @param[in] app CLI::App command line arguments parser from CLI11.
+ * @param[in,out] args coati::args_t to store the input parameters.
+ */
+void set_options_msa(CLI::App& app, coati::args_t& args) {
+    app.get_formatter()->column_width(35);
+    app.add_option("input", args.aln.data.path,
+                   "Input file (FASTA/PHYLIP/JSON accepted)")
+        ->required();
+    app.add_option("tree", args.aln.tree, "Newick phylogenetic tree")
+        ->required()
+        ->check(CLI::ExistingFile);
+    app.add_option("reference", args.aln.refs, "Name of reference sequence")
+        ->required();
+    app.add_option("-m,--model", args.aln.model,
+                   "Substitution model (marginal m-ecm)")
+        ->group("Model parameters");
+    app.add_option("-o,--output", args.aln.output, "Alignment output file");
+    app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
+    app.add_option("-e,--gap-extend", args.aln.gap.extend,
+                   "Gap extension score")
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
+    app.add_option("-w,--omega", args.aln.omega,
+                   "Nonsynonymous-synonymous bias")
+        ->check(CLI::PositiveNumber)
+        ->group("Advanced options");
+    app.add_option("-p,--pi", args.aln.pi, "Nucleotide frequencies (A C G T)")
+        ->expected(4)
+        ->group("Advanced options");
+    app.add_option("-k,--gap-len", args.aln.gap.len, "Gap unit length")
+        ->group("Model parameters");
+    app.add_option("-x,--sigma", args.aln.sigma,
+                   "GTR sigma parameters (AC AG AT CG CT GT)")
+        ->expected(6)
+        ->group("Advanced options");
+    // specify string->value mappings
+    std::map<std::string, coati::AmbiguousNucs> amb_map{
+        {"AVG", coati::AmbiguousNucs::AVG},
+        {"BEST", coati::AmbiguousNucs::BEST}};
+    // CheckedTransformer translates and checks whether the results are either
+    // in one of the strings or in one of the translations already
+    app.add_option("-a,--ambiguous", args.aln.amb,
+                   "Ambiguous nucleotides model", "AVG")
+        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
+        ->group("");
+}
+
+/// private
+// GCOVR_EXCL_START
+TEST_CASE("parse_arguments_msa") {
+    coati::args_t args;
+    CLI::App msa;
+    coati::utils::set_options_msa(msa, args);
+
+    // create tree.newick since function checks for it to be an existing file
+    std::ofstream outfile;
+    outfile.open("tree.newick");
+    REQUIRE(outfile);
+    outfile << "((A:0.1,B:0.1):0.1);" << std::endl;
+    outfile.close();
+
+    std::vector<const char*> argv;
+    std::vector<std::string> cli_args = {
+        "msa",         "test.fasta", "tree.newick",  "seqA",
+        "--model",     "ecm",        "--output",     "out.phy",
+        "--gap-open",  "0.015",      "--gap-extend", "0.009",
+        "--omega",     "0.21",       "--pi",         "0.15",
+        "0.35",        "0.35",       "0.15",         "--gap-len",
+        "3",           "--sigma",    "0.1",          "0.1",
+        "0.1",         "0.1",        "0.1",          "0.1",
+        "--ambiguous", "BEST"};
+    argv.reserve(cli_args.size() + 1);
+    for(auto& arg : cli_args) {
+        argv.push_back(arg.c_str());
+    }
+    argv.push_back(nullptr);
+    msa.parse(static_cast<int>(argv.size() - 1), argv.data());
+
+    CHECK_EQ(args.aln.data.path, "test.fasta");
+    CHECK_EQ(args.aln.tree, "tree.newick");
+    CHECK_EQ(args.aln.refs, "seqA");
+    CHECK_EQ(args.aln.model, "ecm");
+    CHECK_EQ(args.aln.output, "out.phy");
+    CHECK_EQ(args.aln.gap.open, 0.015f);
+    CHECK_EQ(args.aln.gap.extend, 0.009f);
+    CHECK_EQ(args.aln.omega, 0.21f);
+    CHECK_EQ(args.aln.pi[0], 0.15f);
+    CHECK_EQ(args.aln.pi[1], 0.35f);
+    CHECK_EQ(args.aln.pi[2], 0.35f);
+    CHECK_EQ(args.aln.pi[3], 0.15f);
+    CHECK_EQ(args.aln.gap.len, 3);
+    for(size_t i = 0; i < 6; ++i) {
+        CHECK_EQ(args.aln.sigma[i], 0.1f);
+    }
+    CHECK_EQ(args.aln.amb, coati::AmbiguousNucs::BEST);
+    REQUIRE(std::filesystem::remove("tree.newick"));
+}
+// GCOVR_EXCL_STOP
+
+/**
+ * @brief Setup command line options for coati-sample.
+ *
+ * @param[in] app CLI::App command line arguments parser from CLI11.
+ * @param[in,out] args coati::args_t to store the input parameters.
+ */
+void set_options_sample(CLI::App& app, coati::args_t& args) {
+    app.get_formatter()->column_width(35);
+    app.add_option("input", args.aln.data.path,
+                   "Input file (FASTA/PHYLIP/JSON accepted)")
+        ->required();
+    app.add_option("-t,--time", args.aln.br_len,
+                   "Evolutionary time/branch length")
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
+    auto* opt_m =
+        app.add_option("-m,--model", args.aln.model,
+                       "Substitution model (coati ecm dna marginal m-ecm)")
+            ->group("Model parameters");
+    app.add_option("--sub", args.aln.rate,
+                   "File with branch lengths and codon subst matrix")
+        ->excludes(opt_m)
+        ->group("Advanced options");
+    app.add_option("-o,--output", args.aln.output, "Alignment output file");
+    app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
+    app.add_option("-e,--gap-extend", args.aln.gap.extend,
+                   "Gap extension score")
+        ->check(CLI::PositiveNumber)
+        ->group("Model parameters");
+    app.add_option("-w,--omega", args.aln.omega,
+                   "Nonsynonymous-synonymous bias")
+        ->check(CLI::PositiveNumber)
+        ->group("Advanced options");
+    app.add_option("-p,--pi", args.aln.pi, "Nucleotide frequencies (A C G T)")
+        ->expected(4)
+        ->group("Advanced options");
+    app.add_option("-k,--gap-len", args.aln.gap.len, "Gap unit length")
+        ->group("Model parameters");
+    app.add_option("-x,--sigma", args.aln.sigma,
+                   "GTR sigma parameters (AC AG AT CG CT GT)")
+        ->expected(6)
+        ->group("Advanced options");
+    // specify string->value mappings
+    std::map<std::string, coati::AmbiguousNucs> amb_map{
+        {"AVG", coati::AmbiguousNucs::AVG},
+        {"BEST", coati::AmbiguousNucs::BEST}};
+    // CheckedTransformer translates and checks whether the results are
+    // either in one of the strings or in one of the translations already
+    app.add_option("-a,--ambiguous", args.aln.amb,
+                   "Ambiguous nucleotides model", "AVG")
+        ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
+        ->group("");
+    // app.add_option("-T,--temperature", args.temperature, "Sampling
+    // temperature");
+    app.add_option("-n,--sample-size", args.sample.sample_size, "Sample size");
+    app.add_option("-s, --seed", args.sample.seeds,
+                   "Space separated list of seed(s) used for sampling");
+}
+
+/// private
+// GCOVR_EXCL_START
+TEST_CASE("parse_arguments_sample") {
+    coati::args_t args;
+    CLI::App sample;
+    coati::utils::set_options_sample(sample, args);
+
+    std::vector<const char*> argv;
+    std::vector<std::string> cli_args = {
+        "sample",      "test.fasta", "-t",           "0.2001",
+        "--model",     "m-ecm",      "--output",     "out.phy",
+        "--gap-open",  "0.015",      "--gap-extend", "0.009",
+        "--omega",     "0.21",       "--pi",         "0.15",
+        "0.35",        "0.35",       "0.15",         "--gap-len",
+        "3",           "--sigma",    "0.1",          "0.1",
+        "0.1",         "0.1",        "0.1",          "0.1",
+        "--ambiguous", "BEST",       "-n",           "10",
+        "-s",          "42"};
+    argv.reserve(cli_args.size() + 1);
+    for(auto& arg : cli_args) {
+        argv.push_back(arg.c_str());
+    }
+    argv.push_back(nullptr);
+    sample.parse(static_cast<int>(argv.size() - 1), argv.data());
+
+    CHECK_EQ(args.aln.data.path, "test.fasta");
+    CHECK_EQ(args.aln.br_len, 0.2001f);
+    CHECK_EQ(args.aln.model, "m-ecm");
+    CHECK_EQ(args.aln.output, "out.phy");
+    CHECK_EQ(args.aln.gap.open, 0.015f);
+    CHECK_EQ(args.aln.gap.extend, 0.009f);
+    CHECK_EQ(args.aln.omega, 0.21f);
+    CHECK_EQ(args.aln.pi[0], 0.15f);
+    CHECK_EQ(args.aln.pi[1], 0.35f);
+    CHECK_EQ(args.aln.pi[2], 0.35f);
+    CHECK_EQ(args.aln.pi[3], 0.15f);
+    CHECK_EQ(args.aln.gap.len, 3);
+    for(size_t i = 0; i < 6; ++i) {
+        CHECK_EQ(args.aln.sigma[i], 0.1f);
+    }
+    CHECK_EQ(args.aln.amb, coati::AmbiguousNucs::BEST);
+    CHECK_EQ(args.sample.sample_size, 10);
+    CHECK_EQ(args.sample.seeds[0], "42");
+}
+// GCOVR_EXCL_STOP
+
+/**
+ * @brief Setup command line options for coati format.
+ *
+ * @param[in] app CLI::App command line arguments parser from CLI11.
+ * @param[in,out] args coati::args_t to store the input parameters.
+ *
+ */
+void set_options_format(CLI::App& app, coati::args_t& args) {
+    app.get_formatter()->column_width(35);
+    app.add_option("input", args.aln.data.path,
+                   "Input file (FASTA/PHYLIP/JSON accepted)")
+        ->required();
+    app.add_option("-o,--output", args.aln.output, "Alignment output file");
+    auto* phase = app.add_flag("-p,--preserve-phase",
+                               args.format.preserve_phase, "Preserve phase");
+    app.add_option("-c,--padding", args.format.padding,
+                   "Padding char to format preserve phase")
+        ->needs(phase);
+    auto* cut_seq = app.add_option("-s,--cut-seqs", args.format.names,
+                                   "Name of sequences to extract");
+    app.add_option("-x,--cut-pos", args.format.pos,
+                   "Position of sequences to extract (1 based)")
+        ->excludes(cut_seq);
+}
+
+/// private
+// GCOVR_EXCL_START
+TEST_CASE("parse_arguments_format") {
+    coati::args_t args;
+    CLI::App format;
+    coati::utils::set_options_format(format, args);
+
+    std::vector<const char*> argv;
+    std::vector<std::string> cli_args = {
+        "sample", "test.fasta", "--output", "out.phy", "-p",
+        "-c",     "$",          "-s",       "name1",   "name2"};
+    argv.reserve(cli_args.size() + 1);
+    for(auto& arg : cli_args) {
+        argv.push_back(arg.c_str());
+    }
+    argv.push_back(nullptr);
+    format.parse(static_cast<int>(argv.size() - 1), argv.data());
+
+    CHECK_EQ(args.aln.data.path, "test.fasta");
+    CHECK_EQ(args.aln.output, "out.phy");
+    CHECK(args.format.preserve_phase);
+    CHECK_EQ(args.format.padding, "$");
+    CHECK_EQ(args.format.names.size(), 2);
+    CHECK_EQ(args.format.names[0], "name1");
+    CHECK_EQ(args.format.names[1], "name2");
+}
+// GCOVR_EXCL_STOP
+
+/**
+ * @brief Encode two sequences as vector<unsigned char>.
+ *
+ * @details Encode ancestor (ref) sequence as codon \& phase, descendant as
+ * nucleotide. ref: AAA \& position 0 -> 0, AAA \& 1 -> 1, ... , TTT \& 2 ->
+ * 191. des: A -> 0, C -> 1, G -> 2, T -> 3.
  *
  * @param[in] anc std::string sequence of ancestor (reference).
  * @param[in] des std::string sequence of descendant.
  *
- * \return two sequences (ancestor \& descendant) encoded
- *  (coati::sequence_pair_t).
+ * @return coati::sequence_pair_t two sequences (ancestor \& descendant)
+ * encoded.
  */
-sequence_pair_t marginal_seq_encoding(const std::string& anc,
-                                      const std::string& des) {
+sequence_pair_t marginal_seq_encoding(const std::string_view anc,
+                                      const std::string_view des) {
     sequence_pair_t ret(2);
     ret[0].reserve(anc.length());
     ret[1].reserve(des.length());
 
-    // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... , TTT3->191
-    for(auto it = anc.cbegin(); it != anc.cend(); it++) {
-        auto c0 = static_cast<unsigned char>(
-                      nt4_table[static_cast<unsigned char>(*it)])
-                  << 4;
-        it++;
-        auto c1 = static_cast<unsigned char>(
-                      nt4_table[static_cast<unsigned char>(*it)])
-                  << 2;
-        it++;
-        auto c2 = static_cast<unsigned char>(
-            nt4_table[static_cast<unsigned char>(*it)]);
-        auto cod = (c0 | c1 | c2) * 3;
+    // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... ,
+    // TTT3->191
+    for(size_t i = 0; i < anc.size() - 2; i += 3) {
+        auto cod = cod_int(anc.substr(i, i + 2)) * 3;
         ret[0].push_back(cod);
         ret[0].push_back(cod + 1);
         ret[0].push_back(cod + 2);
     }
 
-    //  using nt4_table that converts A->0, C->1, G->2, T->3
+    //  using nt16_table that converts A->0, C->1, G->2, T->3
     for(auto nuc : des) {
-        ret[1].push_back(nt4_table[static_cast<unsigned char>(nuc)]);
+        ret[1].push_back(nt16_table[static_cast<unsigned char>(nuc)]);
     }
 
     return ret;
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("marginal_seq_encoding") {
-    std::string anc = "AAAGGGTTT", des = "ACGT-";
+    std::string anc = "AAAGGGTTTCCC", des = "ACGTRYMKSWBDHVN-";
     auto result = marginal_seq_encoding(anc, des);
 
-    CHECK(result[0][0] == static_cast<unsigned char>(0));
-    CHECK(result[0][1] == static_cast<unsigned char>(1));
-    CHECK(result[0][2] == static_cast<unsigned char>(2));
-    CHECK(result[0][3] == static_cast<unsigned char>(126));
-    CHECK(result[0][4] == static_cast<unsigned char>(127));
-    CHECK(result[0][5] == static_cast<unsigned char>(128));
-    CHECK(result[0][6] == static_cast<unsigned char>(189));
-    CHECK(result[0][7] == static_cast<unsigned char>(190));
-    CHECK(result[0][8] == static_cast<unsigned char>(191));
-    CHECK(result[1][0] == static_cast<unsigned char>(0));
-    CHECK(result[1][1] == static_cast<unsigned char>(1));
-    CHECK(result[1][2] == static_cast<unsigned char>(2));
-    CHECK(result[1][3] == static_cast<unsigned char>(3));
-    CHECK(result[1][4] == static_cast<unsigned char>(4));
+    CHECK_EQ(result[0][0], static_cast<unsigned char>(0));
+    CHECK_EQ(result[0][1], static_cast<unsigned char>(1));
+    CHECK_EQ(result[0][2], static_cast<unsigned char>(2));
+    CHECK_EQ(result[0][3], static_cast<unsigned char>(126));
+    CHECK_EQ(result[0][4], static_cast<unsigned char>(127));
+    CHECK_EQ(result[0][5], static_cast<unsigned char>(128));
+    CHECK_EQ(result[0][6], static_cast<unsigned char>(189));
+    CHECK_EQ(result[0][7], static_cast<unsigned char>(190));
+    CHECK_EQ(result[0][8], static_cast<unsigned char>(191));
+    CHECK_EQ(result[0][9], static_cast<unsigned char>(63));
+    CHECK_EQ(result[0][10], static_cast<unsigned char>(64));
+    CHECK_EQ(result[0][11], static_cast<unsigned char>(65));
+    CHECK_EQ(result[1][0], static_cast<unsigned char>(0));
+    CHECK_EQ(result[1][1], static_cast<unsigned char>(1));
+    CHECK_EQ(result[1][2], static_cast<unsigned char>(2));
+    CHECK_EQ(result[1][3], static_cast<unsigned char>(3));
+    CHECK_EQ(result[1][4], static_cast<unsigned char>(4));
+    CHECK_EQ(result[1][5], static_cast<unsigned char>(5));
+    CHECK_EQ(result[1][6], static_cast<unsigned char>(6));
+    CHECK_EQ(result[1][7], static_cast<unsigned char>(7));
+    CHECK_EQ(result[1][8], static_cast<unsigned char>(8));
+    CHECK_EQ(result[1][9], static_cast<unsigned char>(9));
+    CHECK_EQ(result[1][10], static_cast<unsigned char>(10));
+    CHECK_EQ(result[1][11], static_cast<unsigned char>(11));
+    CHECK_EQ(result[1][12], static_cast<unsigned char>(12));
+    CHECK_EQ(result[1][13], static_cast<unsigned char>(13));
+    CHECK_EQ(result[1][14], static_cast<unsigned char>(14));
+    CHECK_EQ(result[1][15], static_cast<unsigned char>(15));
+
+    anc = "AAACCCGGN";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
+    anc = "AAACCCGGR";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
+    anc = "YAACCCGGG";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
 }
+// GCOVR_EXCL_STOP
 
 /**
- * \brief Set subtitution matrix or FST according to model
+ * @brief Set subtitution matrix or FST according to model.
  *
- * @param[in,out] args coati::utils::args_t input arguments.
- * @param[in,out] aln coati::alignment_t alignment information.
+ * @param[in,out] aln coati::alignment_t alignment information containing model
+ * and substitution matrix/FST.
  */
-void set_subst(args_t& args, alignment_t& aln) {
+void set_subst(alignment_t& aln) {
     Matrixf P(64, 64);
 
-    if(!args.rate.empty()) {
+    if(!aln.rate.empty()) {
         aln.model = "user_marg_model";
-        P = parse_matrix_csv(args.rate);
-        aln.subst_matrix = marginal_p(P, args.pi);
-    } else if(args.model.compare("m-ecm") == 0) {
-        P = ecm_p(args.br_len, args.omega);
-        aln.subst_matrix = marginal_p(P, args.pi);
-    } else if(args.model.compare("m-coati") == 0) {  // m-coati
-        P = mg94_p(args.br_len, args.omega, args.pi);
-        aln.subst_matrix = marginal_p(P, args.pi);
-    } else if(args.model.compare("coati") == 0) {
-        aln.subst_fst = mg94(args.br_len, args.omega, args.pi);
-    } else if(args.model.compare("dna") == 0) {
-        aln.subst_fst = dna(args.br_len, args.omega, args.pi);
-    } else if(args.model.compare("ecm") == 0) {
-        aln.subst_fst = ecm(args.br_len, args.omega);
-        args.pi = {0.2676350, 0.2357727, 0.2539630, 0.2426323};
+        P = coati::io::parse_matrix_csv(aln.rate);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
+    } else if(aln.model.compare("m-ecm") == 0) {
+        P = ecm_p(aln.br_len, aln.omega);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
+    } else if(aln.model.compare("marginal") == 0) {  // marginal
+        P = mg94_p(aln.br_len, aln.omega, aln.pi);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
+    } else if(aln.model.compare("coati") == 0) {
+        aln.subst_fst = mg94(aln.br_len, aln.omega, aln.pi);
+    } else if(aln.model.compare("dna") == 0) {
+        aln.subst_fst = dna(aln.br_len, aln.omega, aln.pi);
+    } else if(aln.model.compare("ecm") == 0) {
+        aln.subst_fst = ecm(aln.br_len, aln.omega);
+        aln.pi = {0.2676350, 0.2357727, 0.2539630, 0.2426323};
     } else {
         throw std::invalid_argument("Mutation model unknown.");
     }
-
-    aln.model = args.model;
 }
 
-// extracts extension and filename from both file.ext and ext:file.foo
-// trims whitespace as well
+/**
+ * @brief Extract file type from path.
+ *
+ * @details Extracts extension and filename from both file.ext and ext:file.foo.
+ * Trims whitespace as well.
+ *
+ * @param[in] path std::string path to input file.
+ *
+ * @retval coati::file_type_t object containing the path and extension.
+ */
 file_type_t extract_file_type(std::string path) {
     constexpr auto npos = std::string::npos;
 
@@ -315,8 +583,8 @@ file_type_t extract_file_type(std::string path) {
     // Format ext:path
     auto colon = path.find_first_of(':');
     if(colon != npos && colon > 1) {
-        auto filepath = path.substr(colon+1);
-        auto ext = "." + path.substr(0,colon);
+        auto filepath = path.substr(colon + 1);
+        auto ext = "." + path.substr(0, colon);
         return {std::move(filepath), std::move(ext)};
     }
     std::filesystem::path fpath{path};
@@ -324,12 +592,14 @@ file_type_t extract_file_type(std::string path) {
 }
 
 /// @private
+// GCOVR_EXCL_START
 TEST_CASE("extract_file_type") {
-    auto test = [](std::string filename, file_type_t expected) {
+    // NOLINTNEXTLINE(misc-unused-parameters)
+    auto test = [](std::string filename, const file_type_t& expected) {
         CAPTURE(filename);
-        auto test = extract_file_type(filename);
-        CHECK(test.path == expected.path);
-        CHECK(test.type_ext == expected.type_ext);
+        auto test = extract_file_type(std::move(filename));
+        CHECK_EQ(test.path, expected.path);
+        CHECK_EQ(test.type_ext, expected.type_ext);
     };
 
     test("foo.bar", {"foo.bar", ".bar"});
@@ -340,7 +610,7 @@ TEST_CASE("extract_file_type") {
     test("my:.foo.bar", {".foo.bar", ".my"});
     test(".foo.bar", {".foo.bar", ".bar"});
     test("", {"", ""});
-    test(std::string{}, {{},{}});
+    test(std::string{}, {{}, {}});
     test("foo:-", {"-", ".foo"});
     test("foo:bar", {"bar", ".foo"});
     test("bar:", {"", ".bar"});
@@ -349,7 +619,71 @@ TEST_CASE("extract_file_type") {
     test(" \f\n\r\t\vfoo.bar \f\n\r\t\v", {"foo.bar", ".bar"});
     test(" \f\n\r\t\vmy:foo.bar \f\n\r\t\v", {"foo.bar", ".my"});
     test(" \f\n\r\t\v.bar \f\n\r\t\v", {".bar", ""});
-    test(" \f\n\r\t\v", {{},{}});
+    test(" \f\n\r\t\v", {{}, {}});
 }
+// GCOVR_EXCL_STOP
+
+/**
+ * @brief Convert alignment FST to std::string sequences.
+ *
+ * @param[in] data coati::data_t sequences, names, fst, weight information.
+ * @param[in] aln coati::alignment_t alignment object.
+ */
+void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln) {
+    fst::SymbolTable symbols;
+    fill_symbol_table(symbols);
+
+    std::string seq1, seq2;
+    fst::StateIterator<fst::StdFst> siter(aln);  // FST state iterator
+    for(int i = 0; i < aln.NumStates() - 1; siter.Next(), i++) {
+        fst::ArcIteratorData<fst::StdArc> info;
+        aln.InitArcIterator(siter.Value(), &info);
+        seq1.append(symbols.Find(info.arcs[0].ilabel));
+        seq2.append(symbols.Find(info.arcs[0].olabel));
+    }
+
+    data.seqs.clear();
+    data.seqs.resize(2);
+    data.seqs[0] = seq1;
+    data.seqs[1] = seq2;
+
+    // map all epsilons (<eps>) to gaps (-)
+    boost::replace_all(data.seqs[0], "<eps>", "-");
+    boost::replace_all(data.seqs[1], "<eps>", "-");
+}
+
+/**
+ * @brief Get nucleotide from codon.
+ *
+ * @param[in] cod uint8_t codon.
+ * @param[in] pos int position in codon = {0, 1, 2}.
+ *
+ * @retval uint8_t nucleotide (A = 0, C = 1, G = 2, T = 3).
+ *
+ */
+uint8_t get_nuc(uint8_t cod, int pos) {
+    std::vector<uint8_t> cod_mask = {48, 12, 3};
+    std::vector<uint8_t> shift = {4, 2, 0};
+
+    return ((cod & cod_mask[pos]) >> shift[pos]);
+}
+
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("get_nuc") {
+    std::vector<uint8_t> nucs{0, 1, 2, 3};
+    for(const auto& n1 : nucs) {  // NOLINT(clang-diagnostic-unused-variable)
+        // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
+        for(const auto& n2 : nucs) {
+            // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
+            for(const auto& n3 : nucs) {
+                CHECK_EQ(get_nuc(16 * n1 + 4 * n2 + n3, 0), n1);
+                CHECK_EQ(get_nuc(16 * n1 + 4 * n2 + n3, 1), n2);
+                CHECK_EQ(get_nuc(16 * n1 + 4 * n2 + n3, 2), n3);
+            }
+        }
+    }
+}
+// GCOVR_EXCL_STOP
 
 }  // namespace coati::utils

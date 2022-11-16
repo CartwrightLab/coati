@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,24 @@
 # SOFTWARE.
 */
 
-#ifndef ALIGN_HPP
-#define ALIGN_HPP
+#ifndef JSON_HPP
+#define JSON_HPP
 
-#include <fst/fstlib.h>
+#include <nlohmann/json.hpp>
 
-#include <vector>
-
-#include "io.hpp"
-#include "mutation_ecm.hpp"
+#include "structs.hpp"
 #include "utils.hpp"
 
 namespace coati {
-// Pairwise alignment using FST composition
-bool fst_alignment(coati::alignment_t& aln);
-// Create evolution FST - combines mutation and indel models
-VectorFstStdArc evo_fst(const coati::alignment_t& aln);
+// Convert coati::data_t to json format.
+void to_json(nlohmann::json& j, const alignment_t& aln);
+// Create coati::data_t object from json input.
+void from_json(const nlohmann::json& j, alignment_t& aln);
+// Read json file.
+coati::data_t read_json(std::istream& in, bool marginal);
+// Write content of coati::data_t to json format.
+void write_json(coati::data_t& json, std::ostream& out,
+                const VectorFstStdArc& aln = {});
 }  // namespace coati
+
 #endif

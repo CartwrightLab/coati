@@ -23,6 +23,7 @@ doxygen = find_program('doxygen', required : false)
 if doxygen.found()
   doxy_conf = configuration_data()
   doxy_conf.set('DOXYGEN_INPUT', meson.project_source_root() + '/src')
+  doxy_conf.set('README', meson.project_source_root() + '/README.md')
   doxy_conf.set('DOXYGEN_OUTPUT', meson.current_build_dir())
 
   doxyfile = configure_file(
@@ -34,7 +35,8 @@ if doxygen.found()
 
   custom_target('doc',
     command : [doxygen, doxyfile],
-    output : ['html']
+    output : ['html'],
+    build_by_default : false
   )
 else
   message('Documentation disabled, doxygen not found')

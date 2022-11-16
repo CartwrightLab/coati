@@ -31,12 +31,16 @@ namespace coati {
 using Matrix64f = Eigen::Matrix<float, 64, 64>;
 using float_t = float;
 
+/**
+ * @brief Matrix class with custom constructors.
+ *
+ */
 template <class T>
 class Matrix {
    public:
     Matrix() = default;
     Matrix(std::size_t rows, std::size_t cols, T value = static_cast<T>(0))
-        : rows_(rows), cols_(cols), data_(rows*cols, value) { }
+        : rows_(rows), cols_(cols), data_(rows * cols, value) {}
     Matrix(std::size_t rows, std::size_t cols, Matrix64f& eigen_m)
         : rows_(rows), cols_(cols) {
         Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m(
@@ -47,13 +51,29 @@ class Matrix {
         }
     }
     // copy constructor
-    Matrix(const Matrix &) = default;
+    Matrix(const Matrix&) = default;
     // move constructor
-    Matrix(Matrix &&) = default;
+    Matrix(Matrix&&) noexcept = default;
     // assignment operator
-    Matrix & operator=(const Matrix &) = default;
+    Matrix& operator=(const Matrix&) = default;
     // move assignment operator
-    Matrix & operator=(Matrix &&) = default;
+    Matrix& operator=(Matrix&&) noexcept = default;
+
+    Matrix(std::initializer_list<std::initializer_list<T>> init_list)
+        : rows_(init_list.size()), cols_(init_list.begin()->size()) {
+        data_.resize(rows_ * cols_);
+
+        size_t i = 0, j = 0;
+        for(const auto& row : init_list) {
+            for(const auto& val : row) {
+                data_[i * cols_ + j] = val;
+                j++;
+            }
+            i++;
+            j = 0;
+        }
+    }
+
     // destructor
     ~Matrix() = default;
 
@@ -86,8 +106,8 @@ class Matrix {
         data_.assign(data_.size(), value);
     }
 
-    std::size_t rows() const { return rows_; }
-    std::size_t cols() const { return cols_; }
+    [[nodiscard]] std::size_t rows() const { return rows_; }
+    [[nodiscard]] std::size_t cols() const { return cols_; }
 
    private:
     std::size_t rows_{0}, cols_{0};
@@ -96,7 +116,10 @@ class Matrix {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// template <class T>
+/**
+ * @brief Tensor class - multidimensional matrices.
+ *
+ */
 template <class T>
 class Tensor {
    public:

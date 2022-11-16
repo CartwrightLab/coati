@@ -22,7 +22,7 @@
 #  COdon-aware Alignment Transducer Project Configuration
 # Init Project
 project('COATI', 'cpp',
-	version : '0.1.9000',
+	version : '1.0.0',
 	license : 'MIT',
 	meson_version : '>=0.58.0',
 	default_options: [ 'buildtype=debugoptimized', 'cpp_std=c++17' ])
@@ -31,15 +31,13 @@ subdir('contrib')
 subdir('src')
 subdir('tests')
 subdir('doc')
-
-if(get_option('dev_benchmark').enabled())
-	subdir('benchmark')
-endif
+subdir('benchmark')
 
 configure_file(input : 'coati.sublime-project.in',
   output : 'coati.sublime-project',
 	configuration : {
 	  'source_dir' : meson.project_source_root(),
-		'project_name' : meson.project_name()
+		'project_name' : meson.project_name(),
+		'build_dir' : meson.project_build_root()
 	}
 )

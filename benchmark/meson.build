@@ -20,8 +20,9 @@
 
 gbenchmark_dep = dependency('google-benchmark',
   fallback : ['google-benchmark', 'google_benchmark_dep'],
-	version : '>=1.5.2',
-	required : get_option('dev_benchmark'))
+	version : '>=1.6.0',
+	required : false
+)
 
 bm_src = configure_file(
   input : 'benchmark_main.cc.in',
@@ -36,7 +37,7 @@ benchmark_exe = executable('all_benchmarks',
   meson.project_build_root()+'/benchmark/benchmark_main.cc',
   include_directories : inc,
   dependencies : [gbenchmark_dep, libcoati_deps],
-  link_with : [libcoati]
+  link_with : [libcoati],
   build_by_default : false
 )
 
@@ -54,15 +55,40 @@ benchmark('[pretest] Checking benchmark list completeness',
   priority : 1000
 )
 
+if build_machine.system() == 'darwin'
+  # MacOS
+  time_exe = find_program('gtime', required : false)
+else
+  # other OS
+  time_exe = find_program('time', required : false)
+endif
+
 fs = import('fs')
 benchmarks = fs.read(benchmark_list).strip().split('\n')
-foreach benchmark_case : benchmarks
-  benchmark(f'[libcoati] @benchmark_case@', benchmark_exe,
-    args : [
-      f'--benchmark_filter=@benchmark_case@',
-      f'--benchmark_out=@benchmark_case@.json'.replace('/','_'),
-      '--benchmark_out_format=json'
-    ],
-    timeout : 600
-  )
-endforeach
+
+if time_exe.found()
+  foreach benchmark_case : benchmarks
+    benchmark(f'[libcoati] @benchmark_case@', time_exe,
+      args : [
+        '-f=\'%C\\t%M\'','-a', '-o', 'memory.tsv',
+        benchmark_exe.full_path(),
+        f'--benchmark_filter=@benchmark_case@',
+        f'--benchmark_out=@benchmark_case@.json'.replace('/','_'),
+        '--benchmark_out_format=json'
+        ],
+      timeout : 600
+    )
+  endforeach
+else
+  warning('Error configuring memory benchmarking, only speed enabled.')
+  foreach benchmark_case : benchmarks
+    benchmark(f'[libcoati] @benchmark_case@', benchmark_exe,
+      args : [
+        f'--benchmark_filter=@benchmark_case@',
+        f'--benchmark_out=@benchmark_case@.json'.replace('/','_'),
+        '--benchmark_out_format=json'
+        ],
+      timeout : 600
+    )
+  endforeach
+  endif

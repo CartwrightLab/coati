@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,10 +26,13 @@
 #include <fstream>
 #include <string>
 
-#include "coati/fasta.hpp"
+#include "coati/utils.hpp"
 
 namespace coati {
-bool write_phylip(const coati::fasta_t& fasta);
-bool write_phylip(const VectorFstStdArc& aln, coati::fasta_t& fasta);
+// Read phylip format file.
+coati::data_t read_phylip(std::istream& in, bool marginal);
+// Write alignment in PHYLIP format.
+void write_phylip(coati::data_t& phylip, std::ostream& out,
+                  const VectorFstStdArc& aln = {});
 }  // namespace coati
 #endif

@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2020-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,33 @@
 # SOFTWARE.
 */
 
-#ifndef ALIGN_HPP
-#define ALIGN_HPP
+#include <CLI11.hpp>
+#include <coati/format.hpp>
+#include <coati/io.hpp>
+#include <coati/utils.hpp>
 
-#include <fst/fstlib.h>
+int main(int argc, char* argv[]) {
+    coati::args_t args;
 
-#include <vector>
+    // Parse command line options
+    CLI::App format{
+        "coati format - convert between formats, extract and/or reoder "
+        "sequences\n"};
+    coati::utils::set_options_format(format, args);
+    CLI11_PARSE(format, argc, argv);
 
-#include "io.hpp"
-#include "mutation_ecm.hpp"
-#include "utils.hpp"
+    // if no input specified, use cin and json format as default
+    if(args.aln.data.path.empty()) {
+        args.aln.data.path = "json:-";
+    }
 
-namespace coati {
-// Pairwise alignment using FST composition
-bool fst_alignment(coati::alignment_t& aln);
-// Create evolution FST - combines mutation and indel models
-VectorFstStdArc evo_fst(const coati::alignment_t& aln);
-}  // namespace coati
-#endif
+    try {
+        // read input data
+        args.aln.data = coati::io::read_input(args.aln);
+
+        return coati::format_sequences(args.format, args.aln);
+    } catch(const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
+    }
+    return EXIT_FAILURE;
+}

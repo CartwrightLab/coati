@@ -25,9 +25,11 @@
 
 #include <cmath>
 #include <limits>
+#include <random.hpp>
 #include <string_view>
 
-#include <random.hpp>
+#include "semiring.hpp"
+#include "structs.hpp"
 #include "utils.hpp"
 
 namespace coati {
@@ -37,7 +39,13 @@ using base_t = unsigned char;
 using seq_view_t = std::basic_string_view<base_t>;
 using stationary_vector_t = std::vector<float_t>;
 
-struct align_pair_work_t {
+/**
+ * @brief Stores matrices for all calculations in dynamic programming alignment.
+ *
+ */
+
+class align_pair_work_t {
+   public:
     Matrixf mch;     /*!< match state */
     Matrixf del;     /*!< deletion state */
     Matrixf ins;     /*!< insertion state */
@@ -49,6 +57,16 @@ struct align_pair_work_t {
     Matrixf ins_mch; /*!< ins to mch state */
     Matrixf ins_del; /*!< ins to del state */
     Matrixf ins_ins; /*!< ins to ins state */
+
+    float_t subst{0.0f};   /*!< substitution tmp value*/
+    float_t mch2mch{0.0f}; /*!< match to match tmp value */
+    float_t mch2del{0.0f}; /*!< match to del tmp value */
+    float_t mch2ins{0.0f}; /*!< match to ins tmp value */
+    float_t del2mch{0.0f}; /*!< del to mch tmp value */
+    float_t del2del{0.0f}; /*!< del to del tmp value */
+    float_t ins2mch{0.0f}; /*!< ins to mch tmp value */
+    float_t ins2del{0.0f}; /*!< ins to del tmp value */
+    float_t ins2ins{0.0f}; /*!< ins to ins tmp value */
 
     /** \brief Resize matrices and initialize to given value
      *
@@ -69,6 +87,65 @@ struct align_pair_work_t {
         ins_ins.resize(len_a, len_b, val);  // ins to ins matrix
         ins_del.resize(len_a, len_b, val);  // ins to del matrix
     }
+
+    /** \brief Save edge values between mch, del, and ins states
+     *
+     * @param[in] i std::size_t row index.
+     * @param[in] j std::size_t column index.
+     */
+    void save_values(size_t i, size_t j) {
+        mch_mch(i, j) = mch2mch;
+        mch_del(i, j) = mch2del;
+        mch_ins(i, j) = mch2ins;
+        del_mch(i, j) = del2mch;
+        del_del(i, j) = del2del;
+        ins_mch(i, j) = ins2mch;
+        ins_del(i, j) = ins2del;
+        ins_ins(i, j) = ins2ins;
+    }
+
+    /** \brief Initialize margins in edge matrices del to del and ins to ins
+     *
+     */
+    void init_margins() {
+        del_del = del;
+        ins_ins = ins;
+    }
+};
+
+/**
+ * @brief Stores matrices and temporary values in dynamic programming alignment.
+ *
+ */
+class align_pair_work_mem_t {
+   public:
+    Matrixf mch;           /*!< match state */
+    Matrixf del;           /*!< deletion state */
+    Matrixf ins;           /*!< insertion state */
+    float_t subst{0.0f};   /*!< substitution tmp value*/
+    float_t mch2mch{0.0f}; /*!< match to match tmp value */
+    float_t mch2del{0.0f}; /*!< match to del tmp value */
+    float_t mch2ins{0.0f}; /*!< match to ins tmp value */
+    float_t del2mch{0.0f}; /*!< del to mch tmp value */
+    float_t del2del{0.0f}; /*!< del to del tmp value */
+    float_t ins2mch{0.0f}; /*!< ins to mch tmp value */
+    float_t ins2del{0.0f}; /*!< ins to del tmp value */
+    float_t ins2ins{0.0f}; /*!< ins to ins tmp value */
+
+    /** \brief Resize matrices and initialize to given value
+     *
+     * @param[in] len_a std::size_t number of rows.
+     * @param[in] len_b std::size_t number of columns.
+     * @param[in] val coati::float_t value.
+     */
+    void resize(size_t len_a, size_t len_b, float_t val) {
+        mch.resize(len_a, len_b, val);  // match matrix
+        del.resize(len_a, len_b, val);  // deletion matrix
+        ins.resize(len_a, len_b, val);  // insertion matrix
+    }
+
+    void save_values(size_t i, size_t j) {}
+    void init_margins() {}
 };
 
 /** \brief Max value between two coati::float_t values */
@@ -77,39 +154,29 @@ inline float_t maximum(float_t x, float_t y) { return std::max(x, y); }
 inline float_t maximum(float_t x, float_t y, float_t z) {
     return std::max(maximum(x, y), z);
 }
-/** \brief Index of max value between three coati::float_t values */
-inline int max_index(float_t x, float_t y, float_t z) {
-    int i = 0;
-    float_t val = x;
-    if(y > val) {
-        val = y;
-        i = 1;
-    }
-    if(z > val) {
-        return 2;
-    }
-    return i;
-}
 
-inline float_t plus(float_t x, float_t y) {
-    return utils::log_sum_exp(x,y);
-}
-
-inline float_t plus(float_t x, float_t y, float_t z) {
-    return plus(plus(x,y),z);
-}
-
-void align_pair(align_pair_work_t &work, const seq_view_t &a,
-                const seq_view_t &b, const Matrixf &match, utils::args_t &args);
-void traceback(const align_pair_work_t &work, const std::string &a,
-               const std::string &b, utils::alignment_t &aln, size_t look_back);
-
-void forward(align_pair_work_t &work, const seq_view_t &a,
-                const seq_view_t &b, const Matrixf &match,
-                utils::args_t &args);
-
+// Implementation of Forward algorithm.
+template <class S, class W>
+void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
+                  const alignment_t &aln);
+// Forward algorithm storing all state transition probabilities.
+void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
+             const alignment_t &aln);
+// Memory efficient Forward algorithm - uses only 3 matrices.
+void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
+                 const seq_view_t &b, const alignment_t &aln);
+// Viterbi algorithm - used for pairwise alignment, stores all state
+void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
+             const alignment_t &aln);
+// Memory efficient Viterbi algorithm - pairwise alignment - 3 matrices.
+void viterbi_mem(align_pair_work_mem_t &work, const seq_view_t &a,
+                 const seq_view_t &b, const alignment_t &aln);
+// Implementation of traceback algorithm.
+void traceback(const align_pair_work_mem_t &work, const std::string &a,
+               const std::string &b, alignment_t &aln, size_t look_back);
+// Traceback with sampling.
 void sampleback(const align_pair_work_t &work, const std::string &a,
-                const std::string &b, utils::alignment_t &aln, size_t look_back,
+                const std::string &b, alignment_t &aln, size_t look_back,
                 random_t &rand);
 
 }  // namespace coati

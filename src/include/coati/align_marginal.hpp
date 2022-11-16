@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,16 +26,21 @@
 #include <vector>
 
 #include "align_pair.hpp"
+#include "io.hpp"
 #include "mutation_ecm.hpp"
-#include "phylip.hpp"
+#include "semiring.hpp"
 #include "utils.hpp"
 
 namespace coati {
-bool marg_alignment(coati::utils::args_t& args, coati::utils::alignment_t& aln);
-float alignment_score(coati::utils::args_t& args, coati::Matrixf& P);
-
-void marg_sample(coati::utils::args_t& args, coati::utils::alignment_t& aln,
-    random_t &rand);
+// pairwise alignment using dynamic programming and a marginal model
+bool marg_alignment(coati::alignment_t& aln);
+// reorder pair of input sequences so that reference is at position zero
+void order_ref(coati::alignment_t& aln);
+// score alignment using marginal model
+float alignment_score(const coati::alignment_t& aln,
+                      const coati::Matrixf& p_marg);
+// Sample from a marginal alignment.
+void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand);
 
 }  // namespace coati
 #endif

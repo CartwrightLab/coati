@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,11 +25,22 @@
 
 #include "align_pair.hpp"
 #include "insertions.hpp"
-#include "phylip.hpp"
+#include "io.hpp"
+#include "semiring.hpp"
 #include "tree.hpp"
 #include "utils.hpp"
 
 namespace coati {
-bool ref_indel_alignment(coati::utils::args_t& args);
+// Multiple sequence alignment using an iterative algorithm.
+bool ref_indel_alignment(coati::alignment_t& input);
+// Pairwise alignments of leafs with reference sequence.
+void align_leafs(coati::alignment_t& input, const coati::tree::tree_t& tree,
+                 std::size_t ref_pos, const std::string& ref_seq,
+                 coati::insertion_vector& nodes_ins);
+// Merge alignments starting from leafs until root.
+void merge_alignments(std::vector<bool>& visited,
+                      const coati::tree::tree_t& tree,
+                      coati::insertion_vector& nodes_ins,
+                      const std::vector<std::size_t>& inode_indexes);
 }  // namespace coati
 #endif

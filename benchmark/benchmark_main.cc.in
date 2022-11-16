@@ -25,6 +25,7 @@
 
 #include <coati/align_fst.hpp>
 #include <coati/align_marginal.hpp>
+#include <coati/io.hpp>
 #include <string>
 #include <chrono>
 
@@ -32,32 +33,26 @@
 template <class ...ExtraArgs>
 static void BM_marg_alignment(benchmark::State& state, ExtraArgs&&... extra_args) {
     // initialize auxiliary variables
-    coati::utils::args_t args;
-    coati::utils::alignment_t aln;
+    coati::args_t args;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
 
     for(auto _ : state) {
         auto start = std::chrono::high_resolution_clock::now();
-        // read fasta
-        args.fasta = coati::read_fasta(fasta);
-
-        // set ouput path and sequences names
-        aln.fasta.path = args.fasta.path.stem();
-        aln.fasta.path += std::filesystem::path(".phy");
-        aln.fasta.names = args.fasta.names;
 
         // set substitution matrix
-        coati::utils::set_subst(args, aln);
+        coati::utils::set_subst(args.aln);
+
+        args.aln.data.path = fasta;
 
         // pairwise alignment and report time elapsed
-        coati::marg_alignment(args, aln);
+        coati::marg_alignment(args.aln);
         auto end = std::chrono::high_resolution_clock::now();
         auto elapsed_time =
             std::chrono::duration_cast<std::chrono::duration<double>>(end-start);
         state.SetIterationTime(elapsed_time.count());
     }
 
-    std::filesystem::remove(aln.fasta.path);
+    std::filesystem::remove(args.aln.output);
 }
 
 /* marginal alignment with different length fasta files */
@@ -79,41 +74,37 @@ BENCHMARK_CAPTURE(BM_marg_alignment, bm_8k, std::string("@bm_data@/benchmark_8k.
 BENCHMARK_CAPTURE(BM_marg_alignment, bm_16k, std::string("@bm_data@/benchmark_16k.fasta"))
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_marg_alignment, bm_32k, std::string("@bm_data@/benchmark_32k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
 
 /* fst pairwise alignment */
 template <class ...ExtraArgs>
 static void BM_fst_alignment(benchmark::State& state, ExtraArgs&&... extra_args) {
     // initialize auxiliary variables
-    coati::utils::args_t args;
-    coati::utils::alignment_t aln;
+    coati::args_t args;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
 
     for(auto _ : state) {
         auto start = std::chrono::high_resolution_clock::now();
 
-        // read fasta
-        args.fasta = coati::read_fasta(fasta, aln.seqs);
-
-        // set output path and sequences names
-        aln.fasta.path = args.fasta.path.stem();
-        aln.fasta.path += std::filesystem::path(".phy");
-        aln.fasta.names = args.fasta.names;
-
         // set model to coati
-        args.model = "coati";
+        args.aln.model = "coati";
 
         // set substitution matrix
-        coati::utils::set_subst(args, aln);
+        coati::utils::set_subst(args.aln);
+
+        args.aln.data.path = fasta;
 
         // pairwise alignment via FST composition and report time elapsed
-        coati::fst_alignment(args, aln);
+        coati::fst_alignment(args.aln);
         auto end = std::chrono::high_resolution_clock::now();
         auto elapsed_time =
             std::chrono::duration_cast<std::chrono::duration<double>>(end-start);
         state.SetIterationTime(elapsed_time.count());
     }
 
-    std::filesystem::remove(aln.fasta.path);
+    std::filesystem::remove(args.aln.output);
 }
 
 BENCHMARK_CAPTURE(BM_fst_alignment, bm_156, std::string("@bm_data@/benchmark_156.fasta"))
@@ -125,26 +116,23 @@ BENCHMARK_CAPTURE(BM_fst_alignment, bm_1k, std::string("@bm_data@/benchmark_1k.f
 BENCHMARK_CAPTURE(BM_fst_alignment, bm_2k, std::string("@bm_data@/benchmark_2k.fasta"))
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
-BENCHMARK_CAPTURE(BM_fst_alignment, bm_4k, std::string("@bm_data@/benchmark_4k.fasta"))
-    ->UseManualTime()
-    ->Unit(benchmark::kMillisecond);
 
 // align_pair
 template <class ...ExtraArgs>
 static void BM_align_pair(benchmark::State& state, ExtraArgs&&... extra_args) {
-    coati::utils::args_t args;
-    coati::utils::alignment_t aln;
+    coati::args_t args;
     std::string fasta(std::forward<ExtraArgs>(extra_args)...);
-    args.fasta = coati::read_fasta(fasta, aln.seqs);
-    coati::utils::set_subst(args, aln);
-    auto anc = args.fasta.seqs[0];
-    auto des = args.fasta.seqs[1];
+    args.aln.data.path = fasta;
+    args.aln.data = coati::io::read_input(args.aln);
+    coati::utils::set_subst(args.aln);
+    auto anc = args.aln.data.seqs[0];
+    auto des = args.aln.data.seqs[1];
     coati::align_pair_work_t work;
     coati::utils::sequence_pair_t seq_pair = coati::utils::marginal_seq_encoding(anc, des);
 
     for(auto _ : state) {
         auto start = std::chrono::high_resolution_clock::now();
-        coati::align_pair(work, seq_pair[0], seq_pair[1], aln.subst_matrix, args);
+        coati::viterbi(work, seq_pair[0], seq_pair[1], args.aln);
         auto end = std::chrono::high_resolution_clock::now();
         auto elapsed_time =
             std::chrono::duration_cast<std::chrono::duration<double>>(end-start);
@@ -168,6 +156,48 @@ BENCHMARK_CAPTURE(BM_align_pair, bm_8k, std::string("@bm_data@/benchmark_8k.fast
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(BM_align_pair, bm_16k, std::string("@bm_data@/benchmark_16k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+
+// align_pair_mem
+template <class ...ExtraArgs>
+static void BM_align_pair_mem(benchmark::State& state, ExtraArgs&&... extra_args) {
+    coati::args_t args;
+    std::string fasta(std::forward<ExtraArgs>(extra_args)...);
+    args.aln.data.path = fasta;
+    args.aln.data = coati::io::read_input(args.aln);
+    coati::utils::set_subst(args.aln);
+    auto anc = args.aln.data.seqs[0];
+    auto des = args.aln.data.seqs[1];
+    coati::align_pair_work_mem_t work;
+    coati::utils::sequence_pair_t seq_pair = coati::utils::marginal_seq_encoding(anc, des);
+
+    for(auto _ : state) {
+        auto start = std::chrono::high_resolution_clock::now();
+        coati::viterbi_mem(work, seq_pair[0], seq_pair[1], args.aln);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto elapsed_time =
+            std::chrono::duration_cast<std::chrono::duration<double>>(end-start);
+        state.SetIterationTime(elapsed_time.count());
+    }
+}
+
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_156, std::string("@bm_data@/benchmark_156.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_1k, std::string("@bm_data@/benchmark_1k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_2k, std::string("@bm_data@/benchmark_2k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_4k, std::string("@bm_data@/benchmark_4k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_8k, std::string("@bm_data@/benchmark_8k.fasta"))
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(BM_align_pair_mem, bm_16k, std::string("@bm_data@/benchmark_16k.fasta"))
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 

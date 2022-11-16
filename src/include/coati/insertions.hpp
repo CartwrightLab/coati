@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,11 +26,16 @@
 #include <Eigen/Sparse>
 #include <iostream>
 #include <numeric>
+#include <string_view>
 #include <vector>
 
 namespace coati {
 using SparseVectorInt = Eigen::SparseVector<int, Eigen::RowMajor>;
 
+/**
+ * @brief Keep track of open and close insertions for msa.
+ *
+ */
 struct insertion_data_t {
     std::vector<std::string> sequences; /*!< sequences */
     std::vector<std::string> names;     /*!< sequence names */
@@ -48,11 +53,23 @@ struct insertion_data_t {
         : sequences{std::move(s)}, names{std::move(n)}, insertions{i} {}
 };
 
-bool insertion_flags(const std::string& ref, const std::string& seq,
-                     SparseVectorInt& insertions_vector);
-bool merge_indels(std::vector<insertion_data_t>& ins_data,
+using insertion_vector = std::vector<insertion_data_t>;
+
+// Store open insertions in a sparse vector given two aligned sequences.
+SparseVectorInt insertion_flags(const std::string_view ref,
+                                const std::string_view seq);
+// Collapse insertions between two sequences.
+void merge_indels(coati::insertion_vector& ins_data,
                   insertion_data_t& merged_data);
-void add_gap(std::vector<insertion_data_t>& ins_data,
-             std::vector<int> seq_indexes, int pos);
+// Add closed insertions to other sequences.
+uint64_t add_closed_ins(coati::insertion_vector& ins_data, std::size_t pos);
+// Check if all sequences have an open insertion at a given position.
+bool check_all_open(coati::insertion_vector& ins_data, std::size_t pos);
+// Find open insertions with same character at a given position.
+std::vector<std::size_t> find_open_ins(coati::insertion_vector& ins_data,
+                                       std::size_t pos);
+// Add closed gaps to sequences and insertion vectors.
+void add_gap(coati::insertion_vector& ins_data,
+             const std::vector<std::size_t>& seq_indexes, std::size_t pos);
 }  // namespace coati
 #endif

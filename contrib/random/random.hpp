@@ -54,6 +54,11 @@ template <size_t count>
 class SeedSeq;
 class Random;
 
+//https://clang.llvm.org/docs/LanguageExtensions.html#has-builtin
+#ifndef __has_builtin
+#define __has_builtin(x) 0    // Compatibility with non-clang compilers.
+#endif
+
 #if defined(__has_builtin) && __has_builtin(__builtin_expect)
 #define FRAGMITES_LIKELY(x) __builtin_expect(!!(x), 1)
 #define FRAGMITES_UNLIKELY(x) __builtin_expect(!!(x), 0)
@@ -479,9 +484,9 @@ inline seed_seq_t auto_seed_seq() {
 
     // heap randomness
     void *malloc_addr = malloc(sizeof(int));  // NOLINT
-    free(malloc_addr);                        // NOLINT
     auto heap = crushto32(malloc_addr);
     auto stack = crushto32(&malloc_addr);
+    free(malloc_addr);                        // NOLINT
 
     // High-resolution time information
     auto hitime = crushto32(std::chrono::high_resolution_clock::now().time_since_epoch().count());
