@@ -31,7 +31,9 @@ subdir('contrib')
 subdir('src')
 subdir('tests')
 subdir('doc')
-subdir('benchmark')
+if get_option('benchmark')
+    subdir('benchmark')
+endif
 
 configure_file(input : 'coati.sublime-project.in',
   output : 'coati.sublime-project',
