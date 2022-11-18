@@ -68,7 +68,7 @@ class data_t {
     std::filesystem::path path;        /*!< path to input file */
     std::vector<std::string> names;    /*!< names of fasta sequences */
     std::vector<std::string> seqs;     /*!< fasta sequences */
-    float_t weight{0.f};               /*!< alignment weight */
+    float_t score{0.f};                /*!< alignment score */
     std::vector<VectorFstStdArc> fsts; /*!< sequences as FSTs */
     file_type_t out_file;              /*!< path to alignment output file */
 
@@ -80,7 +80,7 @@ class data_t {
         : path{std::move(p)},
           names{std::move(n)},
           seqs{std::move(s)},
-          weight{w},
+          score{w},
           fsts{std::move(f)},
           out_file{o} {}
 
@@ -129,8 +129,8 @@ class alignment_t {
                                0.f, 0.f, 0.f}; /*!< GTR sigma parameters */
     Matrixf subst_matrix;                      /*!< substitution matrix */
     VectorFstStdArc subst_fst;                 /*!< substitution FST */
-    std::filesystem::path output;      /*!< path to alignment output file */
-    std::filesystem::path weight_file; /*!< file to output alignment weight */
+    std::filesystem::path output;     /*!< path to alignment output file */
+    std::filesystem::path score_file; /*!< file to output alignment score */
     bool score{false}; /*!< if true an input alignment is scored */
     AmbiguousNucs amb = AmbiguousNucs::AVG;
 

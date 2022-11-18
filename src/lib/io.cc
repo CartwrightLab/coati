@@ -262,9 +262,14 @@ TEST_CASE("read_input") {
         std::string filename{"test-read-input.json"};
         outfile.open(filename);
         REQUIRE(outfile);
-        outfile << "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
-                   "[\"CTCTGGATAGTC\",\"CTCTGGATAGTC\"]}}"
-                << std::endl;
+        outfile << R"({
+  "alignment": {
+    "a": "CTCTGGATAGTC",
+    "b": "CTATAGTC"
+  },
+  "score": 0.1
+}
+)";
         outfile.close();
 
         aln.data.path = filename;
@@ -274,7 +279,8 @@ TEST_CASE("read_input") {
         CHECK_EQ(json.names[0], "a");
         CHECK_EQ(json.names[1], "b");
         CHECK_EQ(json.seqs[0], "CTCTGGATAGTC");
-        CHECK_EQ(json.seqs[1], "CTCTGGATAGTC");
+        CHECK_EQ(json.seqs[1], "CTATAGTC");
+        CHECK_EQ(json.score, 0.1f);
     }
     SUBCASE("ext") {
         std::string filename("test-read-input.ext");
@@ -298,7 +304,7 @@ TEST_CASE("read_input") {
 /**
  * @brief Write sequences and names in any suppported format.
  *
- * @param[in] data coati::data_t sequences, names, fsts, and weight information.
+ * @param[in] data coati::data_t sequences, names, fsts, and score information.
  * @param[in] aln_path coati::VectorFstStdArc FST object with alignment.
  */
 void write_output(coati::data_t& data, const coati::VectorFstStdArc& aln_path) {
@@ -394,15 +400,17 @@ TEST_CASE("write_output") {
         write_output(data);
 
         std::ifstream infile(data.out_file.path);
-        std::string s1;
-        infile >> s1;
-        CHECK_EQ(
-            s1,
-            "{\"data\":{\"names\":[\"anc\",\"des\"],\"seqs\":"
-            "[\"ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTA"
-            "CGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\","
-            "\"ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC"
-            "GTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\"]}}");
+        std::stringstream ss;
+        ss << infile.rdbuf();
+        std::string s1 = ss.str();
+        CHECK_EQ(s1, R"({
+  "alignment": {
+    "anc": "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT",
+    "des": "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT"
+  },
+  "score": 0.0
+}
+)");
         REQUIRE(std::filesystem::remove("test-write-output-phylip.json"));
     }
 

@@ -92,14 +92,16 @@ bool fst_alignment(coati::alignment_t& aln) {
     VectorFstStdArc aln_path;
     fst::ShortestPath(graph_fst, &aln_path);
 
-    // shortestdistance = weight of shortestpath
-    if(!aln.weight_file.empty()) {
-        std::vector<StdArc::Weight> distance;
+    // shortestdistance = score of shortestpath
+    std::vector<StdArc::Weight> distance;
+    fst::ShortestDistance(aln_path, &distance);
+    aln.data.score = distance[0].Value();
+
+    if(!aln.score_file.empty()) {
         std::ofstream out_w;
 
-        fst::ShortestDistance(aln_path, &distance);
-        // append weight and fasta file name info in file
-        out_w.open(aln.weight_file, std::ios::app | std::ios::out);
+        // append score and fasta file name info in file
+        out_w.open(aln.score_file, std::ios::app | std::ios::out);
         out_w << aln.data.path.string() << "," << aln.model << ","
               << distance[0] << std::endl;
         out_w.close();
@@ -165,7 +167,7 @@ TEST_CASE("fst_alignment") {
 
     SUBCASE("coati model, output fasta") {
         aln.model = "coati";
-        aln.weight_file = "score.log";
+        aln.score_file = "score.log";
         aln.output = "test-fst-alignment.fasta";
 
         REQUIRE(fst_alignment(aln));
@@ -180,10 +182,10 @@ TEST_CASE("fst_alignment") {
         CHECK_EQ(s1, ">2");
         CHECK_EQ(s2, "CT----ATAGTG");
 
-        std::ifstream inweight(aln.weight_file);
+        std::ifstream inscore(aln.score_file);
         std::string s;
-        inweight >> s;
-        REQUIRE(std::filesystem::remove(aln.weight_file));
+        inscore >> s;
+        REQUIRE(std::filesystem::remove(aln.score_file));
         REQUIRE(std::filesystem::remove(aln.output));
         CHECK_EQ(s, "test-fst.fasta,coati,9.31297");
     }
@@ -214,7 +216,7 @@ TEST_CASE("fst_alignment") {
 
     SUBCASE("dna model") {
         aln.model = "dna";
-        aln.weight_file = "score.log";
+        aln.score_file = "score.log";
         aln.output = "test-fst-alignment.fasta";
 
         REQUIRE(fst_alignment(aln));
@@ -231,16 +233,16 @@ TEST_CASE("fst_alignment") {
         CHECK_EQ(s2, "CT----ATAGTG");
         REQUIRE(std::filesystem::remove(aln.output));
 
-        std::ifstream inweight(aln.weight_file);
+        std::ifstream inscore(aln.score_file);
         std::string s;
-        inweight >> s;
-        REQUIRE(std::filesystem::remove(aln.weight_file));
+        inscore >> s;
+        REQUIRE(std::filesystem::remove(aln.score_file));
         CHECK_EQ(s, "test-fst.fasta,dna,9.31894");
     }
 
     SUBCASE("ecm model") {
         aln.model = "ecm";
-        aln.weight_file = "score.log";
+        aln.score_file = "score.log";
         aln.output = "test-fst-alignment-ecm.fasta";
 
         REQUIRE(fst_alignment(aln));
@@ -257,16 +259,16 @@ TEST_CASE("fst_alignment") {
 
         REQUIRE(std::filesystem::remove(aln.output));
 
-        std::ifstream inweight(aln.weight_file);
+        std::ifstream inscore(aln.score_file);
         std::string s;
-        inweight >> s;
-        REQUIRE(std::filesystem::remove(aln.weight_file));
+        inscore >> s;
+        REQUIRE(std::filesystem::remove(aln.score_file));
         CHECK_EQ(s, "test-fst.fasta,ecm,9.31288");
     }
 
     SUBCASE("Unknown model") {
         aln.model = "unknown";
-        aln.weight_file = "score.log";
+        aln.score_file = "score.log";
         aln.output = "test-fst-alignment.fasta";
 
         CHECK_THROWS_AS(coati::utils::set_subst(aln), std::invalid_argument);
