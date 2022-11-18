@@ -1,1 +1,2 @@
 option('benchmark', type : 'boolean', value : false, description : 'Build benchmark tests')
+option('test', type : 'boolean', value : true, description : 'Build unit tests')
