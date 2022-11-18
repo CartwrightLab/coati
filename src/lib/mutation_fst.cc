@@ -180,9 +180,9 @@ TEST_CASE("dna") {
  *         deletion (4) <-------> (5)       |
  *                  ^              |        |
  *  start           |             \/        \/
- *   (0) --------> (3) ------->  (6)       (7) end
- *    |             ^ \                      ^
- *   \/             |  ----------------------┘
+ *   (0) --------> (3) ------->  (6) ----> (7) end
+ *    |             ^
+ *   \/             |
  *   (1) <-------> (2)
  * insertion    ins extension
  *
@@ -231,8 +231,8 @@ VectorFstStdArc indel(float gap_open, float gap_extend,
     }
 
     // End probabilities
-    add_arc(indel_fst, 3, end);  // match/ins to end
-    add_arc(indel_fst, 5, end);  // del to end
+    add_arc(indel_fst, match, end);                       // match to end
+    add_arc(indel_fst, 5, end, 0, 0, 1.0f - gap_extend);  // del to end
 
     // Set final state & optimize
     indel_fst.SetFinal(end, 0.0);

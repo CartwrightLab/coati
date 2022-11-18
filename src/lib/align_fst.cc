@@ -185,7 +185,7 @@ TEST_CASE("fst_alignment") {
         inweight >> s;
         REQUIRE(std::filesystem::remove(aln.weight_file));
         REQUIRE(std::filesystem::remove(aln.output));
-        CHECK_EQ(s, "test-fst.fasta,coati,9.31297");
+        CHECK_EQ(s, "test-fst.fasta,coati,9.31397");
     }
 
     SUBCASE("coati model, output phylip") {
@@ -235,7 +235,7 @@ TEST_CASE("fst_alignment") {
         std::string s;
         inweight >> s;
         REQUIRE(std::filesystem::remove(aln.weight_file));
-        CHECK_EQ(s, "test-fst.fasta,dna,9.31894");
+        CHECK_EQ(s, "test-fst.fasta,dna,9.31994");
     }
 
     SUBCASE("ecm model") {
@@ -261,7 +261,7 @@ TEST_CASE("fst_alignment") {
         std::string s;
         inweight >> s;
         REQUIRE(std::filesystem::remove(aln.weight_file));
-        CHECK_EQ(s, "test-fst.fasta,ecm,9.31288");
+        CHECK_EQ(s, "test-fst.fasta,ecm,9.31388");
     }
 
     SUBCASE("Unknown model") {
