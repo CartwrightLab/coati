@@ -108,8 +108,6 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
                  "Use 2nd seq as reference (default: 1st seq)")
         ->excludes(opt_ref)
         ->group("Advanced options");
-    app.add_option("-l,--score-file", args.aln.score_file,
-                   "Write alignment score to file");
     app.add_flag("-s,--score", args.aln.score,
                  "Score input alignment and exit");
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
@@ -154,12 +152,11 @@ TEST_CASE("parse_arguments_alignpair") {
 
     std::vector<const char*> argv;
     std::vector<std::string> cli_args = {
-        "alignpair", "test.fasta", "-m",    "fst",       "-t",    "0.2",
-        "-r",        "A",          "-l",    "score.log", "-s",    "-o",
-        "out.phy",   "-g",         "0.015", "-e",        "0.009", "-w",
-        "0.21",      "-p",         "0.15",  "0.35",      "0.35",  "0.15",
-        "-k",        "3",          "-x",    "0.1",       "0.1",   "0.1",
-        "0.1",       "0.1",        "0.1",   "-a",        "AVG"};
+        "alignpair", "test.fasta", "-m",   "fst",     "-t",   "0.2",   "-r",
+        "A",         "-s",         "-o",   "out.phy", "-g",   "0.015", "-e",
+        "0.009",     "-w",         "0.21", "-p",      "0.15", "0.35",  "0.35",
+        "0.15",      "-k",         "3",    "-x",      "0.1",  "0.1",   "0.1",
+        "0.1",       "0.1",        "0.1",  "-a",      "AVG"};
     argv.reserve(cli_args.size() + 1);
     for(auto& arg : cli_args) {
         argv.push_back(arg.c_str());
@@ -171,7 +168,6 @@ TEST_CASE("parse_arguments_alignpair") {
     CHECK_EQ(args.aln.model, "fst");
     CHECK_EQ(args.aln.br_len, 0.2f);
     CHECK_EQ(args.aln.refs, "A");
-    CHECK_EQ(args.aln.score_file, "score.log");
     CHECK(args.aln.score);
     CHECK_EQ(args.aln.output, "out.phy");
     CHECK_EQ(args.aln.gap.open, 0.015f);

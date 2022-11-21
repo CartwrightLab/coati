@@ -94,15 +94,8 @@ bool marg_alignment(coati::alignment_t& aln) {
     }
     coati::traceback(work, anc, des, aln, aln.gap.len);
 
-    if(!aln.score_file.empty()) {  // save score and filename
-        out_w.open(aln.score_file, std::ios::app | std::ios::out);
-        out_w << aln.data.path.string() << "," << aln.model << ","
-              << aln.data.score << std::endl;
-        out_w.close();
-    }
-
     // write alignment
-    coati::io::write_output(aln.data);
+    coati::io::write_output(aln);
     return true;
 }
 
@@ -151,17 +144,6 @@ TEST_CASE("marg_alignment") {
         CHECK_EQ(s2, expected.seqs[1]);
         REQUIRE(std::filesystem::remove(aln.output));
         REQUIRE(std::filesystem::remove("test-marg.fasta"));
-
-        if(!aln.score_file.empty()) {
-            std::ifstream inscore(aln.score_file);
-            std::string s;  // NOLINT(clang-diagnostic-unused-variable)
-            inscore >> s;
-            // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
-            std::size_t start = s.find_last_of(',');
-            CHECK_EQ(std::stof(s.substr(start + 1)), expected.score);
-            CHECK_EQ(s.substr(0, start), "test-marg.fasta,marginal");
-            REQUIRE(std::filesystem::remove(aln.score_file));
-        }
     };
 
     // NOLINTNEXTLINE(misc-unused-parameters)
@@ -199,11 +181,9 @@ TEST_CASE("marg_alignment") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n"};
         aln.data.path = "test-marg.fasta";
         aln.model = "marginal";
-        aln.score_file = "score.log";
         aln.output = "test-marg_alignment-fasta.fasta";
 
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
-        expected.score = 1.51294f;
 
         test_fasta(aln, expected, file);
     }
@@ -276,23 +256,19 @@ TEST_CASE("marg_alignment") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
         aln.data.path = "test-marg.fasta";
         aln.model = "marginal";
-        aln.score_file = "score.log";
         aln.output = "test-marg_alignment_ambiguous.fa";
 
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTR"});
-        expected.score = -1.03892f;  // AVG
         test_fasta(aln, expected, file);
     }
     SUBCASE("Alignment with ambiguous nucleotides - BEST") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
         aln.data.path = "test-marg.fasta";
         aln.model = "marginal";
-        aln.score_file = "score.log";
         aln.output = "test-marg_alignment_ambiguous.fa";
         aln.amb = coati::AmbiguousNucs::BEST;
 
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTR"});
-        expected.score = 1.51294f;  // BEST
         test_fasta(aln, expected, file);
     }
     SUBCASE("Alignment with gap length multiple of 3 - fail") {
@@ -326,21 +302,19 @@ TEST_CASE("marg_alignment") {
         out.close();
         aln.data.path = "test-marg.fasta";
         aln.model = "marginal";
-        aln.score_file = "";
         aln.output = "test-marg_alignment-score.fasta";
         aln.score = true;
 
         REQUIRE(marg_alignment(aln));
         CHECK(std::filesystem::remove("test-marg.fasta"));
     }
-    SUBCASE("Score alignment - fail") {
+    SUBCASE("Score alignment diff length - fail") {
         std::ofstream out;
         out.open("test-marg.fasta");
         out << ">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n";
         out.close();
         aln.data.path = "test-marg.fasta";
         aln.model = "marginal";
-        aln.score_file = "";
         aln.output = "test-marg_alignment-score-f.fasta";
         aln.score = true;
 
@@ -564,13 +538,13 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     // set output pointer
     std::ostream* pout(nullptr);
     std::ofstream outfile;
-    if(aln.data.out_file.path.empty() || aln.data.out_file.path == "-") {
+    if(aln.output.empty() || aln.output == "-") {
         pout = &std::cout;
     } else {
-        outfile.open(aln.data.out_file.path);
+        outfile.open(aln.output);
         if(!outfile) {
             throw std::invalid_argument("Opening output file " +
-                                        aln.data.out_file.path + " failed.");
+                                        aln.output.string() + " failed.");
         }
         pout = &outfile;
     }
@@ -714,7 +688,7 @@ TEST_CASE("marg_sample") {
         coati::random_t rand;
         coati::alignment_t aln;
         aln.data.path = "marg-sample.fasta";
-        aln.data.out_file = {{"."}, {".fasta"}};
+        aln.output = "..fasta";
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
     }
     SUBCASE("Number of seqs  != 2") {
