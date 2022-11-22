@@ -90,7 +90,7 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
         ->required();
     auto* opt_m =
         app.add_option("-m,--model", args.aln.model,
-                       "Substitution model (fst ecm dna marginal m-ecm)")
+                       "Substitution model (dna tri-mg tri-ecm mar-mg mar-ecm)")
             ->group("Model parameters");
     app.add_option("--sub", args.aln.rate,
                    "File with branch lengths and codon subst matrix")
@@ -154,7 +154,7 @@ TEST_CASE("parse_arguments_alignpair") {
 
     std::vector<const char*> argv;
     std::vector<std::string> cli_args = {
-        "alignpair", "test.fasta", "-m",    "fst",        "-t",    "0.2",
+        "alignpair", "test.fasta", "-m",    "tri-mg",     "-t",    "0.2",
         "-r",        "A",          "-l",    "weight.log", "-s",    "-o",
         "out.phy",   "-g",         "0.015", "-e",         "0.009", "-w",
         "0.21",      "-p",         "0.15",  "0.35",       "0.35",  "0.15",
@@ -168,7 +168,7 @@ TEST_CASE("parse_arguments_alignpair") {
     alnpair.parse(static_cast<int>(argv.size() - 1), argv.data());
 
     CHECK_EQ(args.aln.data.path, "test.fasta");
-    CHECK_EQ(args.aln.model, "fst");
+    CHECK_EQ(args.aln.model, "tri-mg");
     CHECK_EQ(args.aln.br_len, 0.2f);
     CHECK_EQ(args.aln.refs, "A");
     CHECK_EQ(args.aln.weight_file, "weight.log");
@@ -206,7 +206,7 @@ void set_options_msa(CLI::App& app, coati::args_t& args) {
     app.add_option("reference", args.aln.refs, "Name of reference sequence")
         ->required();
     app.add_option("-m,--model", args.aln.model,
-                   "Substitution model (marginal m-ecm)")
+                   "Substitution model (mar-mg mar-ecm)")
         ->group("Model parameters");
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
     app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
@@ -258,7 +258,7 @@ TEST_CASE("parse_arguments_msa") {
     std::vector<const char*> argv;
     std::vector<std::string> cli_args = {
         "msa",         "test.fasta", "tree.newick",  "seqA",
-        "--model",     "ecm",        "--output",     "out.phy",
+        "--model",     "tri-ecm",    "--output",     "out.phy",
         "--gap-open",  "0.015",      "--gap-extend", "0.009",
         "--omega",     "0.21",       "--pi",         "0.15",
         "0.35",        "0.35",       "0.15",         "--gap-len",
@@ -275,7 +275,7 @@ TEST_CASE("parse_arguments_msa") {
     CHECK_EQ(args.aln.data.path, "test.fasta");
     CHECK_EQ(args.aln.tree, "tree.newick");
     CHECK_EQ(args.aln.refs, "seqA");
-    CHECK_EQ(args.aln.model, "ecm");
+    CHECK_EQ(args.aln.model, "tri-ecm");
     CHECK_EQ(args.aln.output, "out.phy");
     CHECK_EQ(args.aln.gap.open, 0.015f);
     CHECK_EQ(args.aln.gap.extend, 0.009f);
@@ -308,10 +308,9 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
                    "Evolutionary time/branch length")
         ->check(CLI::PositiveNumber)
         ->group("Model parameters");
-    auto* opt_m =
-        app.add_option("-m,--model", args.aln.model,
-                       "Substitution model (coati ecm dna marginal m-ecm)")
-            ->group("Model parameters");
+    auto* opt_m = app.add_option("-m,--model", args.aln.model,
+                                 "Substitution model (mar-mg mar-ecm)")
+                      ->group("Model parameters");
     app.add_option("--sub", args.aln.rate,
                    "File with branch lengths and codon subst matrix")
         ->excludes(opt_m)
@@ -364,7 +363,7 @@ TEST_CASE("parse_arguments_sample") {
     std::vector<const char*> argv;
     std::vector<std::string> cli_args = {
         "sample",      "test.fasta", "-t",           "0.2001",
-        "--model",     "m-ecm",      "--output",     "out.phy",
+        "--model",     "mar-ecm",    "--output",     "out.phy",
         "--gap-open",  "0.015",      "--gap-extend", "0.009",
         "--omega",     "0.21",       "--pi",         "0.15",
         "0.35",        "0.35",       "0.15",         "--gap-len",
@@ -381,7 +380,7 @@ TEST_CASE("parse_arguments_sample") {
 
     CHECK_EQ(args.aln.data.path, "test.fasta");
     CHECK_EQ(args.aln.br_len, 0.2001f);
-    CHECK_EQ(args.aln.model, "m-ecm");
+    CHECK_EQ(args.aln.model, "mar-ecm");
     CHECK_EQ(args.aln.output, "out.phy");
     CHECK_EQ(args.aln.gap.open, 0.015f);
     CHECK_EQ(args.aln.gap.extend, 0.009f);
@@ -546,17 +545,17 @@ void set_subst(alignment_t& aln) {
         aln.model = "user_marg_model";
         P = coati::io::parse_matrix_csv(aln.rate);
         aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
-    } else if(aln.model.compare("m-ecm") == 0) {
+    } else if(aln.model.compare("mar-ecm") == 0) {
         P = ecm_p(aln.br_len, aln.omega);
         aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
-    } else if(aln.model.compare("marginal") == 0) {  // marginal
+    } else if(aln.model.compare("mar-mg") == 0) {  // marginal
         P = mg94_p(aln.br_len, aln.omega, aln.pi);
         aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
-    } else if(aln.model.compare("coati") == 0) {
+    } else if(aln.model.compare("tri-mg") == 0) {
         aln.subst_fst = mg94(aln.br_len, aln.omega, aln.pi);
     } else if(aln.model.compare("dna") == 0) {
         aln.subst_fst = dna(aln.br_len, aln.omega, aln.pi);
-    } else if(aln.model.compare("ecm") == 0) {
+    } else if(aln.model.compare("tri-ecm") == 0) {
         aln.subst_fst = ecm(aln.br_len, aln.omega);
         aln.pi = {0.2676350, 0.2357727, 0.2539630, 0.2426323};
     } else {
