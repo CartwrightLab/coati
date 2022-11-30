@@ -48,14 +48,9 @@ bool fst_alignment(coati::alignment_t& aln) {
 
     // read input data
     aln.data = coati::io::read_input(aln);
-    if(aln.data.size() != 2) {
-        throw std::invalid_argument("Exactly two sequences required.");
-    }
 
-    if(aln.seq(0).length() % 3 != 0) {
-        throw std::invalid_argument(
-            "Length of reference sequence must be multiple of 3.");
-    }
+    // process input sequences
+    coati::utils::process_triplet(aln);
 
     // set substitution matrix according to model
     coati::utils::set_subst(aln);
@@ -108,8 +103,14 @@ bool fst_alignment(coati::alignment_t& aln) {
     // topsort path FST
     fst::TopSort(&aln_path);
 
+    // FST path to alignment strings
+    coati::utils::fst_to_seqs(aln.data, aln_path);
+
+    // restore end stop codons
+    coati::utils::restore_end_stops(aln.data, aln.gap);
+
     // write alignment
-    coati::io::write_output(aln.data, aln_path);
+    coati::io::write_output(aln.data);
     return true;
 }
 
@@ -156,6 +157,7 @@ VectorFstStdArc evo_fst(const coati::alignment_t& aln) {
 TEST_CASE("fst_alignment") {
     coati::alignment_t aln;
     aln.data.path = "test-fst.fasta";
+    aln.data.stops = {"", ""};
 
     std::ofstream out;
     out.open("test-fst.fasta");
@@ -185,7 +187,7 @@ TEST_CASE("fst_alignment") {
         inweight >> s;
         REQUIRE(std::filesystem::remove(aln.weight_file));
         REQUIRE(std::filesystem::remove(aln.output));
-        CHECK_EQ(s, "test-fst.fasta,tri-mg,9.31397");
+        CHECK_EQ(s, "test-fst.fasta,tri-mg,9.31752");
     }
 
     SUBCASE("coati model, output phylip") {
@@ -235,7 +237,7 @@ TEST_CASE("fst_alignment") {
         std::string s;
         inweight >> s;
         REQUIRE(std::filesystem::remove(aln.weight_file));
-        CHECK_EQ(s, "test-fst.fasta,dna,9.31994");
+        CHECK_EQ(s, "test-fst.fasta,dna,9.32121");
     }
 
     SUBCASE("ecm model") {

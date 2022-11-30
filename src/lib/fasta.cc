@@ -178,12 +178,7 @@ TEST_CASE("read_fasta") {
  * @param[in] out std::ostream output stream pointing to stdout or file.
  * @param[in] aln VectorFstStdArc FST with alignment (optional).
  */
-void write_fasta(coati::data_t& fasta, std::ostream& out,
-                 const VectorFstStdArc& aln) {
-    if(aln.NumStates() > 0) {  // if FST alignment
-        coati::utils::fst_to_seqs(fasta, aln);
-    }
-
+void write_fasta(coati::data_t& fasta, std::ostream& out) {
     // for each aligned sequence write name and content (60 characters/line)
     for(size_t i = 0; i < fasta.size(); i++) {
         out << ">" << fasta.names[i] << std::endl;
@@ -217,32 +212,6 @@ TEST_CASE("write_fasta") {
         CHECK_EQ(s1.compare(">2"), 0);
         infile >> s1;
         CHECK_EQ(s1.compare("CTATAGTG"), 0);
-        REQUIRE(std::filesystem::remove(filename));
-    }
-    SUBCASE("fst") {
-        coati::data_t fasta("", {"1", "2"});
-
-        VectorFstStdArc fst_write;
-        fst_write.AddState();
-        fst_write.SetStart(0);
-        add_arc(fst_write, 0, 1, 2, 2);  // C -> C
-        add_arc(fst_write, 1, 2, 4, 4);  // T -> T
-        add_arc(fst_write, 2, 3, 0, 2);  // - -> C
-        add_arc(fst_write, 3, 4, 1, 0);  // A -> -
-        fst_write.SetFinal(4, 0.0);
-
-        write_fasta(fasta, out, fst_write);
-
-        std::ifstream infile(filename);
-        std::string s1;
-        infile >> s1;
-        CHECK_EQ(s1.compare(">1"), 0);
-        infile >> s1;
-        CHECK_EQ(s1.compare("CT-A"), 0);
-        infile >> s1;
-        CHECK_EQ(s1.compare(">2"), 0);
-        infile >> s1;
-        CHECK_EQ(s1.compare("CTC-"), 0);
         REQUIRE(std::filesystem::remove(filename));
     }
     SUBCASE("data_t size fails - diff number of names and seqs") {

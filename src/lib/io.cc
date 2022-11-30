@@ -100,11 +100,12 @@ TEST_CASE("parse_matrix_csv") {
         REQUIRE(outfile);
 
         float Q[4096]{0.0f};
-        for(auto i = 0; i < 640; i++) {
+        for(size_t i = 0; i < 610; i++) {
             Q[mg94_indexes[i]] = mg94Q[i];
         }
 
         outfile << "0.0133" << std::endl;  // branch length
+        std::cout.precision(10);
         for(auto i = 0; i < 64; i++) {
             for(auto j = 0; j < 64; j++) {
                 outfile << codons[i] << "," << codons[j] << "," << Q[i * 64 + j]
@@ -144,7 +145,7 @@ TEST_CASE("parse_matrix_csv") {
         REQUIRE(outfile);
 
         float Q[4096]{0.0f};
-        for(auto i = 0; i < 640; i++) {
+        for(auto i = 0; i < 610; i++) {
             Q[mg94_indexes[i]] = mg94Q[i];
         }
 
@@ -301,7 +302,7 @@ TEST_CASE("read_input") {
  * @param[in] data coati::data_t sequences, names, fsts, and weight information.
  * @param[in] aln_path coati::VectorFstStdArc FST object with alignment.
  */
-void write_output(coati::data_t& data, const coati::VectorFstStdArc& aln_path) {
+void write_output(coati::data_t& data) {
     // call writer depending on file type
 
     // set output stream pointer
@@ -316,11 +317,11 @@ void write_output(coati::data_t& data, const coati::VectorFstStdArc& aln_path) {
     std::ostream& out = *pout;
 
     if(data.out_file.type_ext == ".fa" || data.out_file.type_ext == ".fasta") {
-        write_fasta(data, out, aln_path);
+        write_fasta(data, out);
     } else if(data.out_file.type_ext == ".phy") {
-        write_phylip(data, out, aln_path);
+        write_phylip(data, out);
     } else if(data.out_file.type_ext == ".json") {
-        write_json(data, out, aln_path);
+        write_json(data, out);
     } else {
         // not supported output format
         throw std::invalid_argument("Invalid output format" +

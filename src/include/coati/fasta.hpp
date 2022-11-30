@@ -40,8 +40,7 @@ using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 // Read fasta format file.
 coati::data_t read_fasta(std::istream& in, bool marginal);
 // Write alignment in fasta format.
-void write_fasta(coati::data_t& fasta, std::ostream& out,
-                 const VectorFstStdArc& aln = {});
+void write_fasta(coati::data_t& fasta, std::ostream& out);
 
 }  // namespace coati
 

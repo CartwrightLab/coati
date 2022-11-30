@@ -37,6 +37,9 @@ parse_arguments_sample
 parse_arguments_format
 marginal_seq_encoding
 extract_file_type
+fst_to_seqs
 get_nuc
+trim_end_stops
+restore_end_stops
 version_number_check_equal
 version_integer

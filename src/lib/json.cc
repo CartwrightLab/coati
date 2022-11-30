@@ -144,12 +144,7 @@ TEST_CASE("read_json") {
  * @param[in] aln coati::VectorFstStdArc FST with alignment path.
  *
  */
-void write_json(coati::data_t& json, std::ostream& out,
-                const VectorFstStdArc& aln) {
-    if(aln.NumStates() > 0) {  // if FST alignment, convert to strings
-        coati::utils::fst_to_seqs(json, aln);
-    }
-
+void write_json(coati::data_t& json, std::ostream& out) {
     // implicit conversion of data_t to json using `to_json`
     json_t out_json = json;
 
@@ -177,28 +172,6 @@ TEST_CASE("write-json") {
         CHECK_EQ(s1,
                  "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
                  "[\"ATGTCTTCTCACAAGACT\",\"ATGTCTTCTCACAAGACT\"]}}");
-        REQUIRE(std::filesystem::remove(filename));
-    }
-    SUBCASE("FST") {
-        coati::data_t json("", {"a", "b"}, {"CT-A", "CTC-"});
-
-        VectorFstStdArc fst_write;
-        fst_write.AddState();
-        fst_write.SetStart(0);
-        add_arc(fst_write, 0, 1, 2, 2);  // C -> C
-        add_arc(fst_write, 1, 2, 4, 4);  // T -> T
-        add_arc(fst_write, 2, 3, 0, 2);  // - -> C
-        add_arc(fst_write, 3, 4, 1, 0);  // A -> -
-        fst_write.SetFinal(4, 0.0);
-
-        write_json(json, out, fst_write);
-
-        std::ifstream infile(filename);
-        std::string s1;
-        infile >> s1;
-        CHECK_EQ(s1,
-                 "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
-                 "[\"CT-A\",\"CTC-\"]}}");
         REQUIRE(std::filesystem::remove(filename));
     }
 }

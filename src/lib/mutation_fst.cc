@@ -56,6 +56,9 @@ VectorFstStdArc mg94(float br_len, float omega,
     // Creat FST
     int r = 1;
     for(uint8_t i = 0; i < 64; i++) {
+        if(i == 48 || i == 50 || i == 56) {  // stop codons (TAA, TAG, TGA)
+            continue;
+        }
         for(uint8_t j = 0; j < 64; j++) {
             add_arc(mg94, 0, r, get_nuc(i, 0) + 1, get_nuc(j, 0) + 1, P(i, j));
             add_arc(mg94, r, r + 1, get_nuc(i, 1) + 1, get_nuc(j, 1) + 1);
@@ -80,7 +83,7 @@ TEST_CASE("mg94") {
 
     REQUIRE(Verify(mut_fst));          // openfst built-in sanity check
     CHECK_EQ(mut_fst.NumArcs(0), 16);  // 4x4 nuc to nuc arcs from start state
-    CHECK_EQ(mut_fst.NumStates(), 241);
+    CHECK_EQ(mut_fst.NumStates(), 251);
 }
 // GCOVR_EXCL_STOP
 
@@ -155,17 +158,17 @@ TEST_CASE("dna") {
     CHECK_EQ(dna_fst.NumStates(), 1);  // trans are indp, only 1 state needed
 
     // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
-    float dna_val[16]{
-        0.0035908299, 7.56063986,    5.91386986,    7.92348003,
-        7.04520988,   0.00627565011, 7.14309978,    5.38297987,
-        5.47493982,   7.21499014,    0.00562130986, 7.29403019,
-        7.92336988,   5.89603996,    7.7301898,     0.00355818006};
+    float dna_val[16]{0.9965122898, 0.0005353988, 0.0025812510, 0.0003710603,
+                      0.0009374010, 0.9932729980, 0.0008498813, 0.0049397197,
+                      0.0040882818, 0.0007710082, 0.9944280545, 0.0007126555,
+                      0.0003757659, 0.0028826668, 0.0004548433, 0.9962867240};
     fst::StateIterator<fst::StdFst> siter(dna_fst);  // FST state iterator
     fst::ArcIteratorData<fst::StdArc> data;
     dna_fst.InitArcIterator(siter.Value(), &data);
 
     for(auto i = 0; i < 16; i++) {
-        CHECK_EQ(data.arcs[i].weight.Value(), doctest::Approx(dna_val[i]));
+        CHECK_EQ(data.arcs[i].weight.Value(),
+                 doctest::Approx(-::logf(dna_val[i])));
     }
 }
 // GCOVR_EXCL_STOP

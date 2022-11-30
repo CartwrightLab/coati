@@ -34,8 +34,6 @@
 namespace coati {
 // pairwise alignment using dynamic programming and a marginal model
 bool marg_alignment(coati::alignment_t& aln);
-// reorder pair of input sequences so that reference is at position zero
-void order_ref(coati::alignment_t& aln);
 // score alignment using marginal model
 float alignment_score(const coati::alignment_t& aln,
                       const coati::Matrixf& p_marg);

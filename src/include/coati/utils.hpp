@@ -115,6 +115,16 @@ file_type_t extract_file_type(std::string path);
 void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln);
 // Get nucleotide from codon.
 uint8_t get_nuc(uint8_t cod, int pos);
+// Reorder pair of input sequences so that reference is at position zero
+void order_ref(coati::alignment_t& aln);
+// Read and validate input sequences
+void process_marginal(coati::alignment_t& aln);
+// Trim end stop codons
+void trim_end_stops(coati::data_t& data);
+// Restore end stop codons
+void restore_end_stops(coati::data_t& data, const coati::gap_t& gap);
+// Read and validate input sequences
+void process_triplet(coati::alignment_t& aln);
 
 // calculate log(1+exp(x))
 // https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf

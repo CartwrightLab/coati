@@ -457,7 +457,9 @@ TEST_CASE("parse_arguments_format") {
  *
  * @details Encode ancestor (ref) sequence as codon \& phase, descendant as
  * nucleotide. ref: AAA \& position 0 -> 0, AAA \& 1 -> 1, ... , TTT \& 2 ->
- * 191. des: A -> 0, C -> 1, G -> 2, T -> 3.
+ * 191. des: A -> 0, C -> 1, G -> 2, T -> 3. Ending stop codons have been
+ * removed from both sequences if present. Only descendant is allowed to have
+ * early stop codons (considered artifacts).
  *
  * @param[in] anc std::string sequence of ancestor (reference).
  * @param[in] des std::string sequence of descendant.
@@ -474,7 +476,12 @@ sequence_pair_t marginal_seq_encoding(const std::string_view anc,
     // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... ,
     // TTT3->191
     for(size_t i = 0; i < anc.size() - 2; i += 3) {
-        auto cod = cod_int(anc.substr(i, i + 2)) * 3;
+        auto cod = cod_int(anc.substr(i, i + 2));
+        // if stop codon - throw error
+        if(cod == 48 || cod == 50 || cod == 56) {
+            throw std::invalid_argument("Early stop codon in ancestor.");
+        }
+        cod *= 3;
         ret[0].push_back(cod);
         ret[0].push_back(cod + 1);
         ret[0].push_back(cod + 2);
@@ -491,7 +498,7 @@ sequence_pair_t marginal_seq_encoding(const std::string_view anc,
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("marginal_seq_encoding") {
-    std::string anc = "AAAGGGTTTCCC", des = "ACGTRYMKSWBDHVN-";
+    std::string anc = "AAAGGGTTTCCCACTAGA", des = "ACGTRYMKSWBDHVN-";
     auto result = marginal_seq_encoding(anc, des);
 
     CHECK_EQ(result[0][0], static_cast<unsigned char>(0));
@@ -506,6 +513,13 @@ TEST_CASE("marginal_seq_encoding") {
     CHECK_EQ(result[0][9], static_cast<unsigned char>(63));
     CHECK_EQ(result[0][10], static_cast<unsigned char>(64));
     CHECK_EQ(result[0][11], static_cast<unsigned char>(65));
+    CHECK_EQ(result[0][12], static_cast<unsigned char>(21));
+    CHECK_EQ(result[0][13], static_cast<unsigned char>(22));
+    CHECK_EQ(result[0][14], static_cast<unsigned char>(23));
+    CHECK_EQ(result[0][15], static_cast<unsigned char>(24));
+    CHECK_EQ(result[0][16], static_cast<unsigned char>(25));
+    CHECK_EQ(result[0][17], static_cast<unsigned char>(26));
+
     CHECK_EQ(result[1][0], static_cast<unsigned char>(0));
     CHECK_EQ(result[1][1], static_cast<unsigned char>(1));
     CHECK_EQ(result[1][2], static_cast<unsigned char>(2));
@@ -523,11 +537,19 @@ TEST_CASE("marginal_seq_encoding") {
     CHECK_EQ(result[1][14], static_cast<unsigned char>(14));
     CHECK_EQ(result[1][15], static_cast<unsigned char>(15));
 
+    // ambiguous nucleotides in ancestor
     anc = "AAACCCGGN";
     REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
     anc = "AAACCCGGR";
     REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
     anc = "YAACCCGGG";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
+    // stop codons
+    anc = "AAATAA";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
+    anc = "AAATAGGCC";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
+    anc = "TGA";
     REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
 }
 // GCOVR_EXCL_STOP
@@ -625,7 +647,7 @@ TEST_CASE("extract_file_type") {
 /**
  * @brief Convert alignment FST to std::string sequences.
  *
- * @param[in] data coati::data_t sequences, names, fst, weight information.
+ * @param[in,out] data coati::data_t sequences, names, fst, weight information.
  * @param[in] aln coati::alignment_t alignment object.
  */
 void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln) {
@@ -650,6 +672,27 @@ void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln) {
     boost::replace_all(data.seqs[0], "<eps>", "-");
     boost::replace_all(data.seqs[1], "<eps>", "-");
 }
+
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("fst_to_seqs") {
+    coati::data_t data;
+
+    VectorFstStdArc fst;
+    fst.AddState();
+    fst.SetStart(0);
+    add_arc(fst, 0, 1, 2, 2);  // C -> C
+    add_arc(fst, 1, 2, 4, 4);  // T -> T
+    add_arc(fst, 2, 3, 0, 2);  // - -> C
+    add_arc(fst, 3, 4, 1, 0);  // A -> -
+    fst.SetFinal(4, 0.0);
+
+    fst_to_seqs(data, fst);
+
+    CHECK_EQ(data.seqs[0], "CT-A");
+    CHECK_EQ(data.seqs[1], "CTC-");
+}
+// GCOVR_EXCL_STOP
 
 /**
  * @brief Get nucleotide from codon.
@@ -684,5 +727,209 @@ TEST_CASE("get_nuc") {
     }
 }
 // GCOVR_EXCL_STOP
+
+/**
+ * @brief Reorder pair of input sequences so that reference is at position zero.
+ *
+ * @param[in,out] aln coati::alignment_t alignment data.
+ */
+void order_ref(coati::alignment_t& aln) {
+    if(aln.data.names[0] == aln.refs) {
+        // already the first sequence: do nothing
+    } else if(aln.data.names[1] == aln.refs) {  // swap sequences
+        std::swap(aln.data.names[0], aln.data.names[1]);
+        std::swap(aln.data.seqs[0], aln.data.seqs[1]);
+    } else if(aln.rev) {  // swap sequences
+        std::swap(aln.data.names[0], aln.data.names[1]);
+        std::swap(aln.data.seqs[0], aln.data.seqs[1]);
+    } else {  // aln.refs was specified and doesn't match any seq names
+        throw std::invalid_argument("Name of reference sequence not found.");
+    }
+}
+
+/**
+ * @brief Read and validate input sequences.
+ *
+ * @param[in,out] aln coati::alignment_t input sequences and alignment info.
+ *
+ */
+void process_marginal(coati::alignment_t& aln) {
+    // different functions for alignpair/msa/fst/.../ ?
+
+    if(aln.data.size() != 2) {
+        throw std::invalid_argument("Exactly two sequences required.");
+    }
+
+    // set reference sequence as first sequence
+    if(!aln.refs.empty() || aln.rev) {
+        order_ref(aln);
+    }
+
+    // check that length of ref is multiple of 3 and gap unit length
+    size_t len_a = aln.seq(0).length();
+    size_t len_b = aln.seq(1).length();
+    if(len_a % 3 != 0 || len_a % aln.gap.len != 0) {
+        throw std::invalid_argument(
+            "Length of reference sequence must be multiple of 3 and gap unit "
+            "length.");
+    }
+
+    // check that length of descendant is multiple of gap unit length
+    if(len_b % aln.gap.len != 0) {
+        throw std::invalid_argument(
+            "Length of descendant sequence must be multiple of gap unit "
+            "length.");
+    }
+
+    // handle ending stop codons
+    trim_end_stops(aln.data);
+}
+
+/**
+ * @brief Trim end stop codons.
+ *
+ * @param[in,out] aln coati::alignment_t input sequences and alignment info.
+ */
+void trim_end_stops(coati::data_t& data) {
+    for(auto& seq : data.seqs) {
+        size_t len = seq.length();
+        std::string last_cod{seq.substr(len - 3)};
+        if(last_cod == "TAA" || last_cod == "TAG" || last_cod == "TGA") {
+            data.stops.push_back(last_cod);
+            seq.erase(len - 3);
+        } else {
+            data.stops.emplace_back("");
+        }
+    }
+}
+
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("trim_end_stops") {
+    auto test = [](const std::vector<std::string>& raw_seqs,     // NOLINT
+                   const std::vector<std::string>& exp_seqs,     // NOLINT
+                   const std::vector<std::string>& exp_stops) {  // NOLINT
+        coati::data_t data;
+        data.seqs = raw_seqs;
+
+        trim_end_stops(data);
+
+        CHECK_EQ(data.seqs, exp_seqs);
+        CHECK_EQ(data.stops, exp_stops);
+    };
+    test({"AAA", "CCC"}, {"AAA", "CCC"}, {"", ""});              // no stops
+    test({"AAATAA", "AAATTT"}, {"AAA", "AAATTT"}, {"TAA", ""});  // stop on ref
+    test({"AAATTT", "AAATAG"}, {"AAATTT", "AAA"}, {"", "TAG"});  // stop on des
+    test({"AAATGA", "AAATGA"}, {"AAA", "AAA"}, {"TGA", "TGA"});  // stop on des
+    test({"AAATAA", "AAATAG"}, {"AAA", "AAA"}, {"TAA", "TAG"});  // stop on des
+}
+// GCOVR_EXCL_STOP
+
+/**
+ * @brief Restore end stop codons post pairwise alignment.
+ *
+ * @details Four case scenarios:
+ *  (1) no end stop codons on either sequence: nothing to do.
+ *  (2) only present in one sequence: add codon back and insert 3 gaps to other
+        sequence.
+ *  (3) present in both and same stop codon: add codons back as 3 matches.
+ *  (4) present in both but different stop codon: add codons as a
+ *      3 len insertion + a 3 len deletion.
+ * To simplify, if both strings are equal (i.e. same codon or empty) add back.
+ * if strings are different,
+ *
+ * @param[in,out] data coati::data_t sequences aligned, score, and trimmed end
+ * stop codons.
+ */
+void restore_end_stops(coati::data_t& data, const coati::gap_t& gap) {
+    if(data.stops.size() != 2) {
+        throw std::runtime_error("Error restoring end stop codons.");
+    }
+
+    coati::float_t gap_score = -::logf(gap.open * gap.extend * gap.extend);
+    gap_score -= ::logf(1.f - gap.extend);
+
+    if(data.stops[0] == data.stops[1]) {  // cases 1 & 3
+        data.seqs[0].append(data.stops[0]);
+        data.seqs[1].append(data.stops[1]);
+    } else if(data.stops[0].empty()) {  // case 2 - stop in descendant
+        data.seqs[0].append("---");
+        data.seqs[1].append(data.stops[1]);
+        data.weight += gap_score;
+    } else if(data.stops[1].empty()) {  // case 2 - stop in ancestor
+        data.seqs[0].append(data.stops[0]);
+        data.seqs[1].append("---");
+        data.weight += gap_score;
+    } else {  // case 4
+        data.seqs[0].append("---" + data.stops[0]);
+        data.seqs[1].append(data.stops[1] + "---");
+        data.weight += gap_score + gap_score;
+    }
+}
+
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("restore_end_stops") {
+    auto test = [](const std::vector<std::string>& seqs,
+                   const std::vector<std::string>& stops,
+                   const std::vector<std::string>& exp_seqs) {  // NOLINT
+        coati::data_t data;
+        coati::gap_t gap;
+        data.seqs = seqs;
+        data.stops = stops;
+
+        restore_end_stops(data, gap);
+
+        CHECK_EQ(data.seqs, exp_seqs);
+    };
+    test({"AAA", "AAA"}, {"TAA", "TAA"}, {"AAATAA", "AAATAA"});  // same end cod
+    test({"", ""}, {"TAA", "TAA"}, {"TAA", "TAA"});              // same end cod
+    test({"CGA", "CGA"}, {"", ""}, {"CGA", "CGA"});              // no stop cod
+    test({"CTA", "CTA"}, {"TAG", "TGA"},
+         {"CTA---TAG", "CTATGA---"});                         // diff stop cod
+    test({"TGC", "TGC"}, {"", "TAA"}, {"TGC---", "TGCTAA"});  // one stop cod
+    test({"TGC---", "TGCCAC"}, {"", "TAA"},
+         {"TGC------", "TGCCACTAA"});                         // one stop cod
+    test({"CGG", "CGG"}, {"TAG", ""}, {"CGGTAG", "CGG---"});  // one stop cod
+    // data.stops size != 2
+    coati::data_t d;
+    coati::gap_t gap;  // NOLINT
+    d.stops = {""};
+    CHECK_THROWS_AS(restore_end_stops(d, gap), std::runtime_error);
+}
+// GCOVR_EXCL_STOP
+
+/**
+ * @brief Read and validate input sequences.
+ *
+ * @param[in,out] aln coati::alignment_t input sequences and alignment info.
+ */
+void process_triplet(coati::alignment_t& aln) {
+    if(aln.data.size() != 2) {
+        throw std::invalid_argument("Exactly two sequences required.");
+    }
+
+    // set reference sequence as first sequence
+    if(!aln.refs.empty() || aln.rev) {
+        order_ref(aln);
+    }
+
+    if(aln.seq(0).length() % 3 != 0) {
+        throw std::invalid_argument(
+            "Length of reference sequence must be multiple of 3.");
+    }
+
+    // no early stop codons allowed in reference/ancestor
+    std::string cod;
+    for(size_t i = 0; i < aln.seq(0).length(); i += 3) {
+        cod = aln.seq(0).substr(i, 3);
+        if(cod == "TAA" || cod == "TAG" || cod == "TGA") {
+            throw std::invalid_argument("Early stop codon in ancestor.");
+        }
+    }
+
+    // handle ending stop codons
+    trim_end_stops(aln.data);
+}
 
 }  // namespace coati::utils

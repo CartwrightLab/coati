@@ -71,18 +71,20 @@ class data_t {
     float_t weight{0.f};               /*!< alignment weight */
     std::vector<VectorFstStdArc> fsts; /*!< sequences as FSTs */
     file_type_t out_file;              /*!< path to alignment output file */
+    std::vector<std::string> stops;
 
     data_t() = default;
     explicit data_t(std::filesystem::path p, std::vector<std::string> n = {},
                     std::vector<std::string> s = {}, float_t w = 0.f,
                     std::vector<VectorFstStdArc> f = {},
-                    const std::filesystem::path& o = "")
+                    const std::filesystem::path& o = "", std::string c = {})
         : path{std::move(p)},
           names{std::move(n)},
           seqs{std::move(s)},
           weight{w},
           fsts{std::move(f)},
-          out_file{o} {}
+          out_file{o},
+          stops{std::move(c)} {}
 
     /** \brief Return number of names/sequences */
     std::size_t size() {
