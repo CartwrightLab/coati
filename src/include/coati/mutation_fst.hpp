@@ -48,7 +48,7 @@ VectorFstStdArc indel(float gap_open, float gap_extend,
                       const std::vector<float>& pi);
 // Add arc to FST.
 void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel = 0,
-             int olabel = 0, float weight = 1.0);
+             int olabel = 0, float score = 1.0);
 // Create FSA (acceptor) from a sequence.
 bool acceptor(const std::string_view content, VectorFstStdArc& accept);
 // Optimize FST: remove epsilons, determinize, and minimize.

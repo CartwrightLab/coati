@@ -255,7 +255,7 @@ void traceback(const align_pair_work_mem_t &work, const std::string &a,
     aln.seq(0).reserve(i + j);
     aln.seq(1).reserve(i + j);
 
-    aln.data.weight = maximum(work.mch(i, j), work.del(i, j), work.ins(i, j));
+    aln.data.score = maximum(work.mch(i, j), work.del(i, j), work.ins(i, j));
     auto m = max_mdi(work.mch(i, j), work.del(i, j), work.ins(i, j));
 
     while((j > (look_back - 1)) || (i > (look_back - 1))) {
@@ -312,19 +312,19 @@ std::pair<AlnState, float> sample_mdi(float log_mch, float log_del,
     float scale = mch + del + ins;
     p *= scale;
     AlnState ret{AlnState::MATCH};
-    float weight{0.f};
+    float score{0.f};
     if(p < mch) {
         ret = AlnState::MATCH;
-        weight = log_mch;
+        score = log_mch;
     } else if(p < del + mch) {
         ret = AlnState::DELETION;
-        weight = log_del;
+        score = log_del;
     } else {
         ret = AlnState::INSERTION;
-        weight = log_ins;
+        score = log_ins;
     }
-    weight = weight - ::logf(scale);
-    return {ret, weight};
+    score = score - ::logf(scale);
+    return {ret, score};
 }
 
 /**
@@ -343,16 +343,16 @@ std::pair<AlnState, float> sample_mi(float log_mch, float log_ins, float p) {
     float scale = mch + ins;
     p *= scale;
     AlnState ret{AlnState::MATCH};
-    float weight{0.f};
+    float score{0.f};
     if(p < mch) {
         ret = AlnState::MATCH;
-        weight = log_mch;
+        score = log_mch;
     } else {
         ret = AlnState::INSERTION;
-        weight = log_ins;
+        score = log_ins;
     }
-    weight = weight - ::logf(scale);
-    return {ret, weight};
+    score = score - ::logf(scale);
+    return {ret, score};
 }
 
 /**
@@ -380,12 +380,12 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
     aln.seq(1).clear();
     aln.seq(0).reserve(i + j);
     aln.seq(1).reserve(i + j);
-    aln.data.weight = 0.0f;
+    aln.data.score = 0.0f;
 
     float w = maximum(work.mch(i, j), work.del(i, j), work.ins(i, j));
     auto pick = sample_mdi(work.mch(i, j) - w, work.del(i, j) - w,
                            work.ins(i, j) - w, rand.f24());
-    aln.data.weight += pick.second;
+    aln.data.score += pick.second;
 
     while((j > (look_back - 1)) || (i > (look_back - 1))) {
         switch(pick.first) {
@@ -395,7 +395,7 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
             w = work.mch(i, j);
             pick = sample_mdi(work.mch_mch(i, j) - w, work.del_mch(i, j) - w,
                               work.ins_mch(i, j) - w, rand.f24());
-            aln.data.weight += pick.second;
+            aln.data.score += pick.second;
             i--;
             j--;
             break;
@@ -407,7 +407,7 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
             w = work.del(i, j);
             pick = sample_mdi(work.mch_del(i, j) - w, work.del_del(i, j) - w,
                               work.ins_del(i, j) - w, rand.f24());
-            aln.data.weight += pick.second;
+            aln.data.score += pick.second;
             i -= look_back;
             break;
         case AlnState::INSERTION:
@@ -418,7 +418,7 @@ void sampleback(const align_pair_work_t &work, const std::string &a,
             w = work.ins(i, j);
             pick = sample_mi(work.mch_ins(i, j) - w, work.ins_ins(i, j) - w,
                              rand.f24());
-            aln.data.weight += pick.second;
+            aln.data.score += pick.second;
             j -= look_back;
             break;
         }

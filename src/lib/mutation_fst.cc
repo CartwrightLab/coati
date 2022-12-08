@@ -266,23 +266,23 @@ TEST_CASE("indel") {
  * @param[in] dest int destination state.
  * @param[in] ilabel int input label.
  * @param[in] olabel int output label.
- * @param[in] weight float weight of the arc.
+ * @param[in] score float score of the arc.
  */
 void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel, int olabel,
-             float weight) {
-    if(weight == 1.0) {
-        weight = 0.0;
-    } else if(weight == 0.0) {
-        weight = static_cast<float>(INT_MAX);
+             float score) {
+    if(score == 1.0) {
+        score = 0.0;
+    } else if(score == 0.0) {
+        score = static_cast<float>(INT_MAX);
     } else {
-        weight = -logf(weight);
+        score = -logf(score);
     }
 
     if(fst.NumStates() <= dest) {
         fst.AddState();
-        fst.AddArc(src, fst::StdArc(ilabel, olabel, weight, dest));
+        fst.AddArc(src, fst::StdArc(ilabel, olabel, score, dest));
     } else {
-        fst.AddArc(src, fst::StdArc(ilabel, olabel, weight, dest));
+        fst.AddArc(src, fst::StdArc(ilabel, olabel, score, dest));
     }
 }
 

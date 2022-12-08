@@ -68,21 +68,18 @@ class data_t {
     std::filesystem::path path;        /*!< path to input file */
     std::vector<std::string> names;    /*!< names of fasta sequences */
     std::vector<std::string> seqs;     /*!< fasta sequences */
-    float_t weight{0.f};               /*!< alignment weight */
+    float_t score{0.f};                /*!< alignment score */
     std::vector<VectorFstStdArc> fsts; /*!< sequences as FSTs */
-    file_type_t out_file;              /*!< path to alignment output file */
 
     data_t() = default;
     explicit data_t(std::filesystem::path p, std::vector<std::string> n = {},
                     std::vector<std::string> s = {}, float_t w = 0.f,
-                    std::vector<VectorFstStdArc> f = {},
-                    const std::filesystem::path& o = "")
+                    std::vector<VectorFstStdArc> f = {})
         : path{std::move(p)},
           names{std::move(n)},
           seqs{std::move(s)},
-          weight{w},
-          fsts{std::move(f)},
-          out_file{o} {}
+          score{w},
+          fsts{std::move(f)} {}
 
     /** \brief Return number of names/sequences */
     std::size_t size() {
@@ -129,9 +126,8 @@ class alignment_t {
                                0.f, 0.f, 0.f}; /*!< GTR sigma parameters */
     Matrixf subst_matrix;                      /*!< substitution matrix */
     VectorFstStdArc subst_fst;                 /*!< substitution FST */
-    std::filesystem::path output;      /*!< path to alignment output file */
-    std::filesystem::path weight_file; /*!< file to output alignment weight */
-    bool score{false}; /*!< if true an input alignment is scored */
+    std::filesystem::path output; /*!< path to alignment output file */
+    bool score{false};            /*!< if true an input alignment is scored */
     AmbiguousNucs amb = AmbiguousNucs::AVG;
 
     /** \brief Return true if model selected is marginal (marginal or m-ecm) */

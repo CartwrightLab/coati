@@ -34,8 +34,10 @@ using json_t = nlohmann::json;
  * @param[in] data coati::data_t object.
  */
 void to_json(json_t& j, const data_t& data) {
-    j["data"]["names"] = data.names;
-    j["data"]["seqs"] = data.seqs;
+    for(size_t i = 0; i < data.size(); ++i) {
+        j["alignment"][data.names[i]] = data.seqs[i];
+    }
+    j["score"] = data.score;
 }
 
 /**
@@ -45,10 +47,11 @@ void to_json(json_t& j, const data_t& data) {
  * @param[in] j nlohmann::json json object.
  */
 void from_json(const json_t& j, data_t& data) {
-    for(size_t i = 0; i < j.at("data").size(); i++) {
-        data.names.emplace_back(j.at("data").at("names")[i]);
-        data.seqs.emplace_back(j.at("data").at("seqs")[i]);
+    for(const auto& element : j.at("alignment").items()) {
+        data.names.emplace_back(element.key());
+        data.seqs.emplace_back(element.value());
     }
+    data.score = j.at("score");
 }
 
 /**
@@ -91,47 +94,59 @@ TEST_CASE("read_json") {
     SUBCASE("test-read-json-marg.json") {
         outfile.open(filename);
         REQUIRE(outfile);
-        outfile << "{\"data\":{\"names\" : [\"anc\",\"des\"], \"seqs\" : "
-                   "[\"CTCTGGATAGTC\",\"CTATAGTC\"]}}"
-                << std::endl;
+        outfile << R"({
+  "alignment": {
+    "anc": "CTCTGGATAGTC",
+    "des": "CTATAGTC"
+  },
+  "score": 0.1
+}
+)";
         outfile.close();
 
         in.open(filename);
         REQUIRE(in);
-        coati::data_t json = read_json(in, true);
+        coati::data_t data = read_json(in, true);
         REQUIRE(std::filesystem::remove(filename));
 
-        CHECK_EQ(json.names[0], "anc");
-        CHECK_EQ(json.names[1], "des");
-        CHECK_EQ(json.seqs[0], "CTCTGGATAGTC");
-        CHECK_EQ(json.seqs[1], "CTATAGTC");
+        CHECK_EQ(data.names[0], "anc");
+        CHECK_EQ(data.names[1], "des");
+        CHECK_EQ(data.seqs[0], "CTCTGGATAGTC");
+        CHECK_EQ(data.seqs[1], "CTATAGTC");
+        CHECK_EQ(data.score, 0.1f);
     }
     SUBCASE("test-read-json-fst.json") {
         outfile.open(filename);
         REQUIRE(outfile);
-        outfile << "{\"data\":{\"names\" : [\"anc\",\"des\"], \"seqs\" : "
-                   "[\"CTCTGGATAGTC\",\"CTATAGTC\"]}}"
-                << std::endl;
+        outfile << R"({
+  "alignment": {
+    "anc": "CTCTGGATAGTC",
+    "des": "CTATAGTC"
+  },
+  "score": 0.1
+}
+)";
         outfile.close();
 
         in.open(filename);
         REQUIRE(in);
-        coati::data_t json = read_json(in, false);
+        coati::data_t data = read_json(in, false);
         REQUIRE(std::filesystem::remove(filename));
 
-        CHECK_EQ(json.names[0], "anc");
-        CHECK_EQ(json.names[1], "des");
-        CHECK_EQ(json.seqs[0], "CTCTGGATAGTC");
-        CHECK_EQ(json.seqs[1], "CTATAGTC");
-        CHECK_EQ(json.fsts[0].NumStates(), 13);
-        CHECK_EQ(json.fsts[1].NumStates(), 9);
+        CHECK_EQ(data.names[0], "anc");
+        CHECK_EQ(data.names[1], "des");
+        CHECK_EQ(data.seqs[0], "CTCTGGATAGTC");
+        CHECK_EQ(data.seqs[1], "CTATAGTC");
+        CHECK_EQ(data.fsts[0].NumStates(), 13);
+        CHECK_EQ(data.fsts[1].NumStates(), 9);
         for(int i = 0; i < 12; i++) {
-            CHECK_EQ(json.fsts[0].NumArcs(i), 1);
+            CHECK_EQ(data.fsts[0].NumArcs(i), 1);
         }
 
         for(int i = 0; i < 8; i++) {
-            CHECK_EQ(json.fsts[0].NumArcs(i), 1);
+            CHECK_EQ(data.fsts[0].NumArcs(i), 1);
         }
+        CHECK_EQ(data.score, 0.1f);
     }
 }
 // GCOVR_EXCL_STOP
@@ -153,7 +168,7 @@ void write_json(coati::data_t& json, std::ostream& out,
     // implicit conversion of data_t to json using `to_json`
     json_t out_json = json;
 
-    out << out_json << std::endl;
+    out << std::setw(2) << out_json << std::endl;
 }
 
 /// @private
@@ -167,16 +182,22 @@ TEST_CASE("write-json") {
 
     SUBCASE("marginal") {
         coati::data_t json("", {"a", "b"},
-                           {"ATGTCTTCTCACAAGACT", "ATGTCTTCTCACAAGACT"});
+                           {"ATGTCTTCTCACAAGACA", "ATGTCTTCTCACAAGACA"});
 
         write_json(json, out);
 
         std::ifstream infile(filename);
-        std::string s1;
-        infile >> s1;
-        CHECK_EQ(s1,
-                 "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
-                 "[\"ATGTCTTCTCACAAGACT\",\"ATGTCTTCTCACAAGACT\"]}}");
+        std::stringstream ss;
+        ss << infile.rdbuf();
+        std::string s1 = ss.str();
+        CHECK_EQ(s1, R"({
+  "alignment": {
+    "a": "ATGTCTTCTCACAAGACA",
+    "b": "ATGTCTTCTCACAAGACA"
+  },
+  "score": 0.0
+}
+)");
         REQUIRE(std::filesystem::remove(filename));
     }
     SUBCASE("FST") {
@@ -194,11 +215,105 @@ TEST_CASE("write-json") {
         write_json(json, out, fst_write);
 
         std::ifstream infile(filename);
-        std::string s1;
-        infile >> s1;
-        CHECK_EQ(s1,
-                 "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
-                 "[\"CT-A\",\"CTC-\"]}}");
+        std::stringstream ss;
+        ss << infile.rdbuf();
+        std::string s1 = ss.str();
+        CHECK_EQ(s1, R"({
+  "alignment": {
+    "a": "CT-A",
+    "b": "CTC-"
+  },
+  "score": 0.0
+}
+)");
+        REQUIRE(std::filesystem::remove(filename));
+    }
+}
+// GCOVR_EXCL_STOP
+
+/**
+ * @brief Write content of coati::data_t to json format for coati sample.
+ *
+ * @param[in] json coati::data_t object.
+ * @param[in] out std::ostream output stream pointing to stdout or file.
+ * @param[in] iter std::size_t iteration.
+ * @param[in] sample_size std::size_t number of iterations.
+ *
+ */
+void write_json(coati::data_t& data, std::ostream& out, size_t iter,
+                size_t sample_size) {
+    if(iter == 0) {
+        out << "[" << std::endl;
+    }
+
+    // implicit conversion of data_t to json using `to_json`
+    json_t json = data;
+
+    out << std::setw(2) << json;
+    if(iter < sample_size - 1) {
+        out << "," << std::endl;
+    } else {
+        out << std::endl << "]" << std::endl;
+    }
+}
+
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("write-json-sample") {
+    std::ofstream outfile;
+    std::string filename{"test-write-json.json"};
+    outfile.open(filename);
+    REQUIRE(outfile);
+    std::ostream& out = outfile;
+
+    SUBCASE("sample size 1") {
+        coati::data_t data("", {"a"}, {"ATGTCTTCTCACAAGACT"});
+
+        write_json(data, out, 0, 1);
+
+        std::ifstream infile(filename);
+        std::stringstream ss;
+        ss << infile.rdbuf();
+        std::string s1 = ss.str();
+        CHECK_EQ(s1, R"([
+{
+  "alignment": {
+    "a": "ATGTCTTCTCACAAGACT"
+  },
+  "score": 0.0
+}
+]
+)");
+        REQUIRE(std::filesystem::remove(filename));
+    }
+    SUBCASE("sample size 2") {
+        coati::data_t data("", {"a", "b"},
+                           {"ATGTCTTCTCACAAGACT", "ATGTCTTCTCACAAGACA"});
+
+        write_json(data, out, 0, 2);
+        write_json(data, out, 1, 2);
+
+        std::ifstream infile(filename);
+        std::stringstream ss;
+        ss << infile.rdbuf();
+        std::string s1 = ss.str();
+        CHECK_EQ(s1, R"([
+{
+  "alignment": {
+    "a": "ATGTCTTCTCACAAGACT",
+    "b": "ATGTCTTCTCACAAGACA"
+  },
+  "score": 0.0
+},
+{
+  "alignment": {
+    "a": "ATGTCTTCTCACAAGACT",
+    "b": "ATGTCTTCTCACAAGACA"
+  },
+  "score": 0.0
+}
+]
+)");
         REQUIRE(std::filesystem::remove(filename));
     }
 }
