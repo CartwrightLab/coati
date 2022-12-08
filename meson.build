@@ -29,9 +29,13 @@ project('COATI', 'cpp',
 
 subdir('contrib')
 subdir('src')
-subdir('tests')
+if get_option('test')
+  subdir('tests')
+endif
 subdir('doc')
-subdir('benchmark')
+if get_option('benchmark')
+  subdir('benchmark')
+endif
 
 configure_file(input : 'coati.sublime-project.in',
   output : 'coati.sublime-project',
