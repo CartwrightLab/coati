@@ -76,18 +76,11 @@ bool marg_alignment(coati::alignment_t& aln) {
     }
     coati::traceback(work, anc, des, aln, aln.gap.len);
 
-    if(!aln.weight_file.empty()) {  // save weight and filename
-        out_w.open(aln.weight_file, std::ios::app | std::ios::out);
-        out_w << aln.data.path.string() << "," << aln.model << ","
-              << aln.data.weight << std::endl;
-        out_w.close();
-    }
-
     // handle end stop codons
     coati::utils::restore_end_stops(aln.data, aln.gap);
 
     // write alignment
-    coati::io::write_output(aln.data);
+    coati::io::write_output(aln);
     return true;
 }
 
@@ -117,17 +110,6 @@ TEST_CASE("marg_alignment") {
         CHECK_EQ(s2, expected.seqs[1]);
         REQUIRE(std::filesystem::remove(aln.output));
         REQUIRE(std::filesystem::remove("test-marg.fasta"));
-
-        if(!aln.weight_file.empty()) {
-            std::ifstream inweight(aln.weight_file);
-            std::string s;  // NOLINT(clang-diagnostic-unused-variable)
-            inweight >> s;
-            // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
-            std::size_t start = s.find_last_of(',');
-            CHECK_EQ(std::stof(s.substr(start + 1)), expected.weight);
-            CHECK_EQ(s.substr(0, start), "test-marg.fasta,mar-mg");
-            REQUIRE(std::filesystem::remove(aln.weight_file));
-        }
     };
 
     // NOLINTNEXTLINE(misc-unused-parameters)
@@ -165,11 +147,8 @@ TEST_CASE("marg_alignment") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n"};
         aln.data.path = "test-marg.fasta";
         aln.model = "mar-mg";
-        aln.weight_file = "score.log";
         aln.output = "test-marg_alignment-fasta.fasta";
-
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
-        expected.weight = 1.51073f;
 
         test_fasta(aln, expected, file);
     }
@@ -242,23 +221,19 @@ TEST_CASE("marg_alignment") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
         aln.data.path = "test-marg.fasta";
         aln.model = "mar-mg";
-        aln.weight_file = "score.log";
         aln.output = "test-marg_alignment_ambiguous.fa";
 
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTR"});
-        expected.weight = -1.00451f;  // AVG
         test_fasta(aln, expected, file);
     }
     SUBCASE("Alignment with ambiguous nucleotides - BEST") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
         aln.data.path = "test-marg.fasta";
         aln.model = "mar-mg";
-        aln.weight_file = "score.log";
         aln.output = "test-marg_alignment_ambiguous.fa";
         aln.amb = coati::AmbiguousNucs::BEST;
 
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTR"});
-        expected.weight = 1.51073f;  // BEST
         test_fasta(aln, expected, file);
     }
     SUBCASE("Alignment with gap length multiple of 3 - fail") {
@@ -292,21 +267,19 @@ TEST_CASE("marg_alignment") {
         out.close();
         aln.data.path = "test-marg.fasta";
         aln.model = "mar-mg";
-        aln.weight_file = "";
         aln.output = "test-marg_alignment-score.fasta";
         aln.score = true;
 
         REQUIRE(marg_alignment(aln));
         CHECK(std::filesystem::remove("test-marg.fasta"));
     }
-    SUBCASE("Score alignment - fail") {
+    SUBCASE("Score alignment diff length - fail") {
         std::ofstream out;
         out.open("test-marg.fasta");
         out << ">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n";
         out.close();
         aln.data.path = "test-marg.fasta";
         aln.model = "mar-mg";
-        aln.weight_file = "";
         aln.output = "test-marg_alignment-score-f.fasta";
         aln.score = true;
 
@@ -422,23 +395,23 @@ float alignment_score(const coati::alignment_t& aln,
     std::transform(pi.cbegin(), pi.cend(), pi.begin(),
                    [](auto value) { return ::logf(value); });
 
-    float weight{0.f};
+    float score{0.f};
     int state{0}, ngap{0};
     for(size_t i = 0; i < seqs[0].length(); i++) {
         switch(state) {
         case 0:  // subsitution
             if(seqs[0][i] == '-') {
                 // insertion;
-                weight += gap_open;
+                score += gap_open;
                 state = 2;
                 ngap++;
             } else if(seqs[1][i] == '-') {
                 // deletion;
-                weight += no_gap + gap_open;
+                score += no_gap + gap_open;
                 state = 1;
             } else {
                 // match/mismatch;
-                weight +=
+                score +=
                     2 * no_gap + p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
             }
             break;
@@ -448,10 +421,10 @@ float alignment_score(const coati::alignment_t& aln,
                     "Insertion after deletion is not modeled.");
             } else if(seqs[1][i] == '-') {
                 // deletion_ext
-                weight += gap_extend;
+                score += gap_extend;
             } else {
                 // match/mismatch
-                weight +=
+                score +=
                     gap_stop + p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
                 state = 0;
             }
@@ -459,28 +432,28 @@ float alignment_score(const coati::alignment_t& aln,
         case 2:  // insertion
             if(seqs[0][i] == '-') {
                 // insertion_ext
-                weight += gap_extend;
+                score += gap_extend;
                 ngap++;
             } else if(seqs[1][i] == '-') {
                 // deletion
-                weight += gap_stop + gap_open;
+                score += gap_stop + gap_open;
                 state = 1;
             } else {
                 // match/mismatch
-                weight += gap_stop + no_gap +
-                          p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
+                score += gap_stop + no_gap +
+                         p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
                 state = 0;
             }
             break;
         }
     }
-    // terminal state weight
+    // terminal state score
     if(state == 0) {
-        weight += no_gap;
+        score += no_gap;
     } else if(state == 2) {
-        weight += gap_stop;
+        score += gap_stop;
     }
-    return weight;
+    return score;
 }
 
 /// @private
@@ -530,13 +503,13 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     // set output pointer
     std::ostream* pout(nullptr);
     std::ofstream outfile;
-    if(aln.data.out_file.path.empty() || aln.data.out_file.path == "-") {
+    if(aln.output.empty() || aln.output == "-") {
         pout = &std::cout;
     } else {
-        outfile.open(aln.data.out_file.path);
+        outfile.open(aln.output);
         if(!outfile) {
             throw std::invalid_argument("Opening output file " +
-                                        aln.data.out_file.path + " failed.");
+                                        aln.output.string() + " failed.");
         }
         pout = &outfile;
     }
@@ -568,28 +541,11 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     coati::align_pair_work_t work;
     coati::viterbi(work, seq_pair[0], seq_pair[1], aln);
 
-    out << "[" << std::endl;
     // sample and print as many aligments as required (sample_size)
     for(size_t i = 0; i < sample_size; ++i) {
         coati::sampleback(work, anc, des, aln, aln.gap.len, rand);
-
-        out << "  {\n    \"aln\": {\n";
-        out << "      \"" << aln.name(0) << "\": ";
-        out << "\"" << aln.seq(0) << "\",\n";
-        out << "      \"" << aln.name(1) << "\": ";
-        out << "\"" << aln.seq(1) << "\"\n";
-        out << "    },\n";
-        out << "    \"weight\": " << ::expf(aln.data.weight) << ",\n";
-        out << "    \"log_weight\": " << aln.data.weight << "\n";
-        if(i < sample_size - 1) {
-            out << "  },";
-        } else {
-            out << "  }";
-        }
-        out << std::endl;
+        write_json(aln.data, out, i, sample_size);
     }
-
-    out << "]" << std::endl;
 }
 
 /// @private
@@ -607,8 +563,7 @@ TEST_CASE("marg_sample") {
                                 const std::string& seq2,
                                 const std::vector<std::string>& expected_s1,
                                 const std::vector<std::string>& expected_s2,
-                                const std::vector<std::string>& weight,
-                                const std::vector<std::string>& lweight) {
+                                const std::vector<std::string>& lscore) {
         // set seed
         coati::random_t rand;
         const std::vector<std::string> s42{{"42"}};
@@ -632,17 +587,16 @@ TEST_CASE("marg_sample") {
 
         check_line_eq(infile, "[");
         for(size_t i = 0; i < reps; ++i) {
-            check_line_eq(infile, "  {");
-            check_line_eq(infile, "    \"aln\": {");
-            check_line_eq(infile, R"(      "A": ")" + expected_s1[i] + "\",");
-            check_line_eq(infile, R"(      "B": ")" + expected_s2[i] + "\"");
-            check_line_eq(infile, "    },");
-            check_line_eq(infile, "    \"weight\": " + weight[i] + ",");
-            check_line_eq(infile, "    \"log_weight\": " + lweight[i]);
+            check_line_eq(infile, "{");
+            check_line_eq(infile, "  \"alignment\": {");
+            check_line_eq(infile, R"(    "A": ")" + expected_s1[i] + "\",");
+            check_line_eq(infile, R"(    "B": ")" + expected_s2[i] + "\"");
+            check_line_eq(infile, "  },");
+            check_line_eq(infile, "  \"score\": " + lscore[i]);
             if(i < reps - 1) {
-                check_line_eq(infile, "  },");
+                check_line_eq(infile, "},");
             } else {
-                check_line_eq(infile, "  }");
+                check_line_eq(infile, "}");
             }
         }
         check_line_eq(infile, "]");
@@ -654,23 +608,22 @@ TEST_CASE("marg_sample") {
     SUBCASE("sample size 1") {
         std::vector<std::string> seq1{"CC--CCCC"};
         std::vector<std::string> seq2{"CCCCCCCC"};
-        std::vector<std::string> weight{"0.031239"};
-        std::vector<std::string> lweight{"-3.46609"};
-        test("CCCCCC", "CCCCCCCC", seq1, seq2, weight, lweight);
+        std::vector<std::string> lscore{"-3.4660892486572266"};
+        test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 1 - deletion") {
         std::vector<std::string> seq1{"CCCCCC"};
         std::vector<std::string> seq2{"CCCC--"};
-        std::vector<std::string> weight{"0.856821"};
-        std::vector<std::string> lweight{"-0.154526"};
-        test("CCCCCC", "CCCC", seq1, seq2, weight, lweight);
+        std::vector<std::string> lscore{"-0.15452587604522705"};
+        test("CCCCCC", "CCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 3") {
         std::vector<std::string> seq1{"CC--CCCC", "CCCCCC--", "CCCCC--C"};
         std::vector<std::string> seq2{"CCCCCCCC", "CCCCCCCC", "CCCCCCCC"};
-        std::vector<std::string> weight{"0.031239", "0.499854", "0.249923"};
-        std::vector<std::string> lweight{"-3.46609", "-0.693439", "-1.3866"};
-        test("CCCCCC", "CCCCCCCC", seq1, seq2, weight, lweight);
+        std::vector<std::string> lscore{"-3.4660892486572266",
+                                        "-0.6934394836425781",
+                                        "-1.3866022825241089"};
+        test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("length of reference not multiple of 3") {
         coati::random_t rand;
@@ -701,7 +654,7 @@ TEST_CASE("marg_sample") {
         coati::random_t rand;
         coati::alignment_t aln;
         aln.data.path = "marg-sample.fasta";
-        aln.data.out_file = {{"."}, {".fasta"}};
+        aln.output = "..fasta";
         CHECK_THROWS_AS(marg_sample(aln, 1, rand), std::invalid_argument);
     }
     SUBCASE("Number of seqs  != 2") {

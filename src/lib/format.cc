@@ -71,7 +71,7 @@ int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
     }
 
     // output formatted sequences
-    coati::io::write_output(aln.data);
+    coati::io::write_output(aln);
     return EXIT_SUCCESS;
 }
 
@@ -210,14 +210,14 @@ TEST_CASE("format_sequences") {
 
     // NOLINTNEXTLINE(misc-unused-parameters)
     auto test_format_fasta = [](args_t args, data_t expected) {
-        args.aln.data.out_file = {"test-format-seqs.fa", ".fa"};
-        if(std::filesystem::exists(args.aln.data.out_file.path)) {
-            std::filesystem::remove(args.aln.data.out_file.path);
+        args.aln.output = "test-format-seqs.fa";
+        if(std::filesystem::exists(args.aln.output)) {
+            std::filesystem::remove(args.aln.output);
         }
 
         REQUIRE_EQ(coati::format_sequences(args.format, args.aln), 0);
 
-        std::ifstream infile(args.aln.data.out_file.path);
+        std::ifstream infile(args.aln.output);
         std::string s1, s2;
 
         for(size_t i = 0; i < expected.size(); ++i) {
@@ -226,19 +226,19 @@ TEST_CASE("format_sequences") {
             CHECK(s2 == expected.seqs[i]);
         }
 
-        CHECK(std::filesystem::remove(args.aln.data.out_file.path));
+        CHECK(std::filesystem::remove(args.aln.output));
     };
 
     // NOLINTNEXTLINE(misc-unused-parameters)
     auto test_format_phylip = [](args_t args, data_t expected) {
-        args.aln.data.out_file = {"test-format-seqs.phy", ".phy"};
-        if(std::filesystem::exists(args.aln.data.out_file.path)) {
-            std::filesystem::remove(args.aln.data.out_file.path);
+        args.aln.output = "test-format-seqs.phy";
+        if(std::filesystem::exists(args.aln.output)) {
+            std::filesystem::remove(args.aln.output);
         }
 
         REQUIRE_EQ(coati::format_sequences(args.format, args.aln), 0);
 
-        std::ifstream infile(args.aln.data.out_file.path);
+        std::ifstream infile(args.aln.output);
         std::string s1, s2;
 
         infile >> s1 >> s2;
@@ -251,7 +251,7 @@ TEST_CASE("format_sequences") {
             CHECK(s2 == expected.seqs[i]);
         }
 
-        CHECK(std::filesystem::remove(args.aln.data.out_file.path));
+        CHECK(std::filesystem::remove(args.aln.output));
     };
 
     SUBCASE("fasta-multiple-3") {

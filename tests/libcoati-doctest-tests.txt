@@ -15,6 +15,7 @@ read_input
 write_output
 read_json
 write-json
+write-json-sample
 mg94_p
 marginal_p
 gtr_q

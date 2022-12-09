@@ -43,8 +43,6 @@ namespace coati {
  * @retval true successful run.
  */
 bool ref_indel_alignment(coati::alignment_t& input) {
-    coati::data_t aligned;
-
     if(!input.is_marginal()) {
         throw std::invalid_argument("MSA only supports marginal models.");
     }
@@ -54,8 +52,6 @@ bool ref_indel_alignment(coati::alignment_t& input) {
     if(input.data.size() < 3) {
         throw std::invalid_argument("At least three sequences required.");
     }
-
-    aligned.out_file = input.data.out_file;
 
     // read newick tree file
     std::string newick = coati::tree::read_newick(input.tree);
@@ -104,17 +100,20 @@ bool ref_indel_alignment(coati::alignment_t& input) {
     merge_alignments(visited, tree, nodes_ins, inode_indexes);
 
     // transfer result data nodes_ins[ROOT] --> aln && order sequences
+    coati::alignment_t aln;
+    aln.output = input.output;
+
     auto root = tree[ref_pos].parent;
     for(const auto& name : input.data.names) {
         auto it = find(nodes_ins[root].names.begin(),
                        nodes_ins[root].names.end(), name);
         auto index = distance(nodes_ins[root].names.begin(), it);
-        aligned.names.push_back(nodes_ins[root].names[index]);
-        aligned.seqs.push_back(nodes_ins[root].sequences[index]);
+        aln.data.names.push_back(nodes_ins[root].names[index]);
+        aln.data.seqs.push_back(nodes_ins[root].sequences[index]);
     }
 
     // write alignment
-    coati::io::write_output(aligned);
+    coati::io::write_output(aln);
     return true;
 }
 
@@ -143,7 +142,7 @@ TEST_CASE("ref_indel_alignment") {
 
         REQUIRE(ref_indel_alignment(aln));
 
-        std::ifstream infile(aln.data.out_file.path);
+        std::ifstream infile(aln.output);
         std::string s1, s2;
 
         infile >> s1 >> s2;
@@ -174,7 +173,7 @@ TEST_CASE("ref_indel_alignment") {
 
         REQUIRE(ref_indel_alignment(aln));
 
-        std::ifstream infile(aln.data.out_file.path);
+        std::ifstream infile(aln.output);
         std::string s1, s2;
 
         infile >> s1 >> s2;
@@ -235,7 +234,7 @@ TEST_CASE("ref_indel_alignment") {
         aln.output = "test-fst-complex-tree.fa";
         REQUIRE(ref_indel_alignment(aln));
 
-        std::ifstream infile(aln.data.out_file.path);
+        std::ifstream infile(aln.output);
         std::string s1, s2;
 
         infile >> s1 >> s2;

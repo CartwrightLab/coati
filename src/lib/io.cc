@@ -175,15 +175,13 @@ TEST_CASE("parse_matrix_csv") {
  * @retval coati::data_t names and content of sequences.
  */
 coati::data_t read_input(alignment_t& aln) {
-    if(aln.output.empty()) {  // default output: json format & stdout
-        aln.output = "json:-";
-    }
-    if(aln.data.path.empty()) {  // default input: json format & stdin
-        std::cout << "aln.data.path is empty" << std::endl;
-        aln.data.path = "json:-";
-    }
     coati::data_t input_data;
-    coati::file_type_t in_type = coati::utils::extract_file_type(aln.data.path);
+    coati::file_type_t in_type;
+    if(aln.data.path.empty()) {
+        in_type = {"-", ".json"};
+    } else {
+        in_type = coati::utils::extract_file_type(aln.data.path);
+    }
 
     // set input stream pointer
     std::istream* pin(nullptr);
@@ -213,7 +211,6 @@ coati::data_t read_input(alignment_t& aln) {
                                     ".");
     }
     input_data.path = aln.data.path;
-    input_data.out_file = coati::utils::extract_file_type(aln.output);
     return input_data;
 }
 
@@ -263,9 +260,14 @@ TEST_CASE("read_input") {
         std::string filename{"test-read-input.json"};
         outfile.open(filename);
         REQUIRE(outfile);
-        outfile << "{\"data\":{\"names\":[\"a\",\"b\"],\"seqs\":"
-                   "[\"CTCTGGATAGTC\",\"CTCTGGATAGTC\"]}}"
-                << std::endl;
+        outfile << R"({
+  "alignment": {
+    "a": "CTCTGGATAGTC",
+    "b": "CTATAGTC"
+  },
+  "score": 0.1
+}
+)";
         outfile.close();
 
         aln.data.path = filename;
@@ -275,7 +277,8 @@ TEST_CASE("read_input") {
         CHECK_EQ(json.names[0], "a");
         CHECK_EQ(json.names[1], "b");
         CHECK_EQ(json.seqs[0], "CTCTGGATAGTC");
-        CHECK_EQ(json.seqs[1], "CTCTGGATAGTC");
+        CHECK_EQ(json.seqs[1], "CTATAGTC");
+        CHECK_EQ(json.score, 0.1f);
     }
     SUBCASE("ext") {
         std::string filename("test-read-input.ext");
@@ -299,40 +302,45 @@ TEST_CASE("read_input") {
 /**
  * @brief Write sequences and names in any suppported format.
  *
- * @param[in] data coati::data_t sequences, names, fsts, and weight information.
+ * @param[in] data coati::alignment_t sequences, names, fsts, and score
+ * information.
  * @param[in] aln_path coati::VectorFstStdArc FST object with alignment.
  */
-void write_output(coati::data_t& data) {
-    // call writer depending on file type
+void write_output(coati::alignment_t& aln) {
+    coati::file_type_t out_type;
+    if(aln.output.empty()) {
+        out_type = {"-", ".json"};
+    } else {
+        out_type = coati::utils::extract_file_type(aln.output);
+    }
 
     // set output stream pointer
     std::ostream* pout(nullptr);
     std::ofstream outfile;
-    if(data.out_file.path.empty() || data.out_file.path == "-") {
+    if(out_type.path.empty()) {
         pout = &std::cout;
     } else {
-        outfile.open(data.out_file.path);
+        outfile.open(aln.output);
         pout = &outfile;
     }
     std::ostream& out = *pout;
 
-    if(data.out_file.type_ext == ".fa" || data.out_file.type_ext == ".fasta") {
-        write_fasta(data, out);
-    } else if(data.out_file.type_ext == ".phy") {
-        write_phylip(data, out);
-    } else if(data.out_file.type_ext == ".json") {
-        write_json(data, out);
+    if(out_type.type_ext == ".fa" || out_type.type_ext == ".fasta") {
+        write_fasta(aln.data, out);
+    } else if(out_type.type_ext == ".phy") {
+        write_phylip(aln.data, out);
+    } else if(out_type.type_ext == ".json") {
+        write_json(aln.data, out);
     } else {
         // not supported output format
         throw std::invalid_argument("Invalid output format" +
-                                    data.out_file.path + ".");
+                                    aln.output.string() + ".");
     }
 }
 
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("write_output") {
-    coati::data_t data;
     std::vector<std::string> names = {"anc", "des"};
     std::vector<std::string> sequences = {
         "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC"
@@ -341,12 +349,12 @@ TEST_CASE("write_output") {
         "GTACGTACGTACGTACGTACGTACGTACGTTTTT"};  // length > 100 to test new line
 
     SUBCASE("fasta") {
-        data = coati::data_t("", names, sequences);
-        data.out_file.path = "test-write-output-fasta.fasta";
-        data.out_file.type_ext = ".fasta";
-        write_output(data);
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", names, sequences);
+        aln.output = "test-write-output-fasta.fasta";
+        write_output(aln);
 
-        std::ifstream infile(data.out_file.path);
+        std::ifstream infile(aln.output);
         std::string s;
         infile >> s;
         CHECK_EQ(s, ">anc");
@@ -366,12 +374,12 @@ TEST_CASE("write_output") {
     }
 
     SUBCASE("phylip") {
-        data = coati::data_t("", names, sequences);
-        data.out_file.path = "test-write-output-phylip.phy";
-        data.out_file.type_ext = ".phy";
-        write_output(data);
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", names, sequences);
+        aln.output = "test-write-output-phylip.phy";
+        write_output(aln);
 
-        std::ifstream infile(data.out_file.path);
+        std::ifstream infile(aln.output);
         std::string s;
         getline(infile, s);
         CHECK_EQ(s, "2 104");
@@ -389,29 +397,31 @@ TEST_CASE("write_output") {
     }
 
     SUBCASE("json") {
-        data = coati::data_t("", names, sequences);
-        data.out_file.path = "test-write-output-phylip.json";
-        data.out_file.type_ext = ".json";
-        write_output(data);
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", names, sequences);
+        aln.output = "test-write-output-phylip.json";
+        write_output(aln);
 
-        std::ifstream infile(data.out_file.path);
-        std::string s1;
-        infile >> s1;
-        CHECK_EQ(
-            s1,
-            "{\"data\":{\"names\":[\"anc\",\"des\"],\"seqs\":"
-            "[\"ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTA"
-            "CGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\","
-            "\"ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC"
-            "GTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT\"]}}");
+        std::ifstream infile(aln.output);
+        std::stringstream ss;
+        ss << infile.rdbuf();
+        std::string s1 = ss.str();
+        CHECK_EQ(s1, R"({
+  "alignment": {
+    "anc": "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT",
+    "des": "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT"
+  },
+  "score": 0.0
+}
+)");
         REQUIRE(std::filesystem::remove("test-write-output-phylip.json"));
     }
 
     SUBCASE("ext") {
-        data = coati::data_t("", names, sequences);
-        data.out_file.path = "test-write-output-ext.ext";
-        data.out_file.type_ext = ".ext";
-        REQUIRE_THROWS_AS(write_output(data), std::invalid_argument);
+        coati::alignment_t aln;
+        aln.data = coati::data_t("", names, sequences);
+        aln.output = "test-write-output-ext.ext";
+        REQUIRE_THROWS_AS(write_output(aln), std::invalid_argument);
         REQUIRE(std::filesystem::remove("test-write-output-ext.ext"));
     }
 }
