@@ -917,7 +917,7 @@ void process_triplet(coati::alignment_t& aln) {
 
     // no early stop codons allowed in reference/ancestor
     std::string cod;
-    for(size_t i = 0; i < aln.seq(0).length(); i += 3) {
+    for(size_t i = 0; i < aln.seq(0).length() - 3; i += 3) {
         cod = aln.seq(0).substr(i, 3);
         if(cod == "TAA" || cod == "TAG" || cod == "TGA") {
             throw std::invalid_argument("Early stop codon in ancestor.");
