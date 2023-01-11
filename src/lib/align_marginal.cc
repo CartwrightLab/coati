@@ -528,6 +528,8 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
             std::to_string(aln.gap.len) + ".");
     }
 
+    coati::utils::trim_end_stops(aln.data);
+
     // encode sequences
     auto anc = aln.seq(0);
     auto des = aln.seq(1);
@@ -544,6 +546,7 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     // sample and print as many aligments as required (sample_size)
     for(size_t i = 0; i < sample_size; ++i) {
         coati::sampleback(work, anc, des, aln, aln.gap.len, rand);
+        coati::utils::restore_end_stops(aln.data, aln.gap);
         write_json(aln.data, out, i, sample_size);
     }
 }
