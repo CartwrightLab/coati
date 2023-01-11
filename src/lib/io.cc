@@ -317,7 +317,7 @@ void write_output(coati::alignment_t& aln) {
     // set output stream pointer
     std::ostream* pout(nullptr);
     std::ofstream outfile;
-    if(out_type.path.empty()) {
+    if(out_type.path == "-") {
         pout = &std::cout;
     } else {
         outfile.open(aln.output);
@@ -333,8 +333,8 @@ void write_output(coati::alignment_t& aln) {
         write_json(aln.data, out);
     } else {
         // not supported output format
-        throw std::invalid_argument("Invalid output format" +
-                                    aln.output.string() + ".");
+        throw std::invalid_argument("Invalid output format " +
+                                    out_type.type_ext + ".");
     }
 }
 
