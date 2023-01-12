@@ -732,12 +732,12 @@ TEST_CASE("get_nuc") {
 void order_ref(coati::alignment_t& aln) {
     if(aln.data.names[0] == aln.refs) {
         // already the first sequence: do nothing
-    } else if(aln.data.names[1] == aln.refs) {  // swap sequences
+    } else if(aln.data.names[1] == aln.refs || aln.rev) {  // swap sequences
         std::swap(aln.data.names[0], aln.data.names[1]);
         std::swap(aln.data.seqs[0], aln.data.seqs[1]);
-    } else if(aln.rev) {  // swap sequences
-        std::swap(aln.data.names[0], aln.data.names[1]);
-        std::swap(aln.data.seqs[0], aln.data.seqs[1]);
+        if(aln.data.fsts.size() > 0) {
+            std::swap(aln.data.fsts[0], aln.data.fsts[1]);
+        }
     } else {  // aln.refs was specified and doesn't match any seq names
         throw std::invalid_argument("Name of reference sequence not found.");
     }
