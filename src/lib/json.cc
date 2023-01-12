@@ -25,7 +25,7 @@
 #include <coati/json.hpp>
 
 namespace coati {
-using json_t = nlohmann::json;
+using json_t = nlohmann::ordered_json;
 
 /**
  * @brief Convert coati::data_t to json format.
