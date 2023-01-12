@@ -267,7 +267,39 @@ TEST_CASE("fst_alignment") {
 
         CHECK_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
     }
+    SUBCASE("Early stop codon in ancestor - fail") {
+        std::ofstream out;
+        out.open("test-fst.fasta");
+        REQUIRE(out);
+        out << ">1\nCTCTGGTAGTAA\n>2\nCTATAGTG\n";
+        out.close();
 
+        CHECK_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
+    }
+    SUBCASE("Sequence with end stop codon") {
+        std::ofstream out;
+        out.open("test-fst.fasta");
+        REQUIRE(out);
+        out << ">1\nCTCTGGATATAA\n>2\nCTATAGTG\n";
+        out.close();
+
+        aln.model = "tri-ecm";
+        aln.output = "test-fst-alignment-stop.fasta";
+
+        REQUIRE(fst_alignment(aln));
+        std::ifstream infile(aln.output);
+        std::string s1, s2;
+
+        infile >> s1 >> s2;
+        CHECK_EQ(s1, ">1");
+        CHECK_EQ(s2, "CTCTGGATA---TAA");
+
+        infile >> s1 >> s2;
+        CHECK_EQ(s1, ">2");
+        CHECK_EQ(s2, "CT----ATAGTG---");
+
+        REQUIRE(std::filesystem::remove(aln.output));
+    }
     REQUIRE(std::filesystem::remove("test-fst.fasta"));
 }
 // GCOVR_EXCL_STOP

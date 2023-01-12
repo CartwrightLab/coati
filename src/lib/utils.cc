@@ -787,12 +787,18 @@ void process_marginal(coati::alignment_t& aln) {
  * @param[in,out] aln coati::alignment_t input sequences and alignment info.
  */
 void trim_end_stops(coati::data_t& data) {
-    for(auto& seq : data.seqs) {
+    for(size_t i = 0; i < data.size(); ++i) {
+        std::string seq{data.seqs[i]};
         size_t len = seq.length();
         std::string last_cod{seq.substr(len - 3)};
         if(last_cod == "TAA" || last_cod == "TAG" || last_cod == "TGA") {
             data.stops.push_back(last_cod);
-            seq.erase(len - 3);
+            data.seqs[i].erase(len - 3);
+            if(data.fsts.size() > 0) {
+                int end = static_cast<int>(len);
+                data.fsts[i].DeleteStates({end, end - 1, end - 2});
+                data.fsts[i].SetFinal(end - 3);
+            }
         } else {
             data.stops.emplace_back("");
         }
@@ -807,6 +813,9 @@ TEST_CASE("trim_end_stops") {
                    const std::vector<std::string>& exp_stops) {  // NOLINT
         coati::data_t data;
         data.seqs = raw_seqs;
+        for(size_t i = 0; i < raw_seqs.size(); ++i) {
+            data.names.push_back("seq_name");
+        }
 
         trim_end_stops(data);
 
@@ -818,6 +827,38 @@ TEST_CASE("trim_end_stops") {
     test({"AAATTT", "AAATAG"}, {"AAATTT", "AAA"}, {"", "TAG"});  // stop on des
     test({"AAATGA", "AAATGA"}, {"AAA", "AAA"}, {"TGA", "TGA"});  // stop on des
     test({"AAATAA", "AAATAG"}, {"AAA", "AAA"}, {"TAA", "TAG"});  // stop on des
+
+    auto test_tri = [](const std::vector<std::string>& raw_seqs,     // NOLINT
+                       const std::vector<std::string>& exp_seqs,     // NOLINT
+                       const std::vector<std::string>& exp_stops) {  // NOLINT
+        coati::data_t data;
+        data.seqs = raw_seqs;
+        for(const auto& seq : raw_seqs) {
+            data.names.push_back("seq_name");
+            VectorFstStdArc fsa;  // FSA input sequence
+            coati::acceptor(seq, fsa);
+            data.fsts.push_back(fsa);
+        }
+
+        trim_end_stops(data);
+
+        CHECK_EQ(data.seqs, exp_seqs);
+        CHECK_EQ(data.stops, exp_stops);
+
+        for(size_t i = 0; i < data.size(); ++i) {
+            VectorFstStdArc expected;
+            acceptor(data.seqs[i], expected);
+            CHECK(fst::Equal(expected, data.fsts[i]));
+        }
+    };
+    test_tri({"AAA", "CCC"}, {"AAA", "CCC"}, {"", ""});  // no stops
+    // stop on reference/ancestor
+    test_tri({"AAATAA", "AAATTT"}, {"AAA", "AAATTT"}, {"TAA", ""});
+    // stop on descendant
+    test_tri({"AAATTT", "AAATAG"}, {"AAATTT", "AAA"}, {"", "TAG"});
+    // stop on both sequences
+    test_tri({"AAATGA", "AAATGA"}, {"AAA", "AAA"}, {"TGA", "TGA"});
+    test_tri({"AAATAA", "AAATAG"}, {"AAA", "AAA"}, {"TAA", "TAG"});
 }
 // GCOVR_EXCL_STOP
 
@@ -831,8 +872,6 @@ TEST_CASE("trim_end_stops") {
  *  (3) present in both and same stop codon: add codons back as 3 matches.
  *  (4) present in both but different stop codon: add codons as a
  *      3 len insertion + a 3 len deletion.
- * To simplify, if both strings are equal (i.e. same codon or empty) add back.
- * if strings are different,
  *
  * @param[in,out] data coati::data_t sequences aligned, score, and trimmed end
  * stop codons.
