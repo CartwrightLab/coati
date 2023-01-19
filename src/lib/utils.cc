@@ -471,7 +471,7 @@ sequence_pair_t marginal_seq_encoding(const std::string_view anc,
 
     // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... ,
     // TTT3->191
-    for(size_t i = 0; i < anc.size() - 2; i += 3) {
+    for(size_t i = 0; i < anc.size(); i += 3) {
         auto cod = cod_int(anc.substr(i, i + 2));
         // if stop codon - throw error
         if(cod == 48 || cod == 50 || cod == 56) {
