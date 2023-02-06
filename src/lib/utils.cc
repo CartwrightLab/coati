@@ -788,11 +788,11 @@ void process_marginal(coati::alignment_t& aln) {
  */
 void trim_end_stops(coati::data_t& data) {
     for(size_t i = 0; i < data.size(); ++i) {
-        std::string seq{data.seqs[i]};
+        std::string_view seq{data.seqs[i]};
         size_t len = seq.length();
-        std::string last_cod{seq.substr(len - 3)};
+        std::string_view last_cod{seq.substr(len - 3)};
         if(last_cod == "TAA" || last_cod == "TAG" || last_cod == "TGA") {
-            data.stops.push_back(last_cod);
+            data.stops.emplace_back(last_cod);
             data.seqs[i].erase(len - 3);
             if(data.fsts.size() > 0) {
                 int end = static_cast<int>(len);
@@ -868,10 +868,8 @@ TEST_CASE("trim_end_stops") {
  * @details Four case scenarios:
  *  (1) no end stop codons on either sequence: nothing to do.
  *  (2) only present in one sequence: add codon back and insert 3 gaps to other
-        sequence.
- *  (3) present in both and same stop codon: add codons back as 3 matches.
- *  (4) present in both but different stop codon: add codons as a
- *      3 len insertion + a 3 len deletion.
+ *      sequence.
+ *  (3) present in both sequences: add codons back as 3 matches.
  *
  * @param[in,out] data coati::data_t sequences aligned, score, and trimmed end
  * stop codons.
@@ -884,21 +882,17 @@ void restore_end_stops(coati::data_t& data, const coati::gap_t& gap) {
     coati::float_t gap_score = -::logf(gap.open * gap.extend * gap.extend);
     gap_score -= ::logf(1.f - gap.extend);
 
-    if(data.stops[0] == data.stops[1]) {  // cases 1 & 3
+    if(data.stops[0].size() == data.stops[1].size()) {  // cases 1 & 3
         data.seqs[0].append(data.stops[0]);
         data.seqs[1].append(data.stops[1]);
-    } else if(data.stops[0].empty()) {  // case 2 - stop in descendant
+    } else if(data.stops[0].empty()) {  // case 2 - stop only in descendant
         data.seqs[0].append("---");
         data.seqs[1].append(data.stops[1]);
         data.score += gap_score;
-    } else if(data.stops[1].empty()) {  // case 2 - stop in ancestor
+    } else if(data.stops[1].empty()) {  // case 2 - stop only in ancestor
         data.seqs[0].append(data.stops[0]);
         data.seqs[1].append("---");
         data.score += gap_score;
-    } else {  // case 4
-        data.seqs[0].append("---" + data.stops[0]);
-        data.seqs[1].append(data.stops[1] + "---");
-        data.score += gap_score + gap_score;
     }
 }
 
@@ -921,7 +915,7 @@ TEST_CASE("restore_end_stops") {
     test({"", ""}, {"TAA", "TAA"}, {"TAA", "TAA"});              // same end cod
     test({"CGA", "CGA"}, {"", ""}, {"CGA", "CGA"});              // no stop cod
     test({"CTA", "CTA"}, {"TAG", "TGA"},
-         {"CTA---TAG", "CTATGA---"});                         // diff stop cod
+         {"CTATAG", "CTATGA"});                               // diff stop cod
     test({"TGC", "TGC"}, {"", "TAA"}, {"TGC---", "TGCTAA"});  // one stop cod
     test({"TGC---", "TGCCAC"}, {"", "TAA"},
          {"TGC------", "TGCCACTAA"});                         // one stop cod
