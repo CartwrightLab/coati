@@ -53,7 +53,7 @@ VectorFstStdArc mg94(float br_len, float omega,
     mg94.AddState();
     mg94.SetStart(0);
 
-    // Creat FST
+    // Create FST
     int r = 1;
     for(uint8_t i = 0; i < 64; i++) {
         if(i == 48 || i == 50 || i == 56) {  // stop codons (TAA, TAG, TGA)

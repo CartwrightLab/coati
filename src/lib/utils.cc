@@ -725,6 +725,59 @@ TEST_CASE("get_nuc") {
 // GCOVR_EXCL_STOP
 
 /**
+ * @brief Get nucleotide from codon using codon list without stop codons.
+ *
+ * @param[in] cod uint8_t codon.
+ * @param[in] pos int position in codon = {0, 1, 2}.
+ *
+ * @retval uint8_t nucleotide (A = 0, C = 1, G = 2, T = 3).
+ *
+ */
+uint8_t get_nuc_ecm(uint8_t cod, int pos) {
+    if(cod > 61) {
+        throw std::out_of_range(
+            "Codon out of range for list without stop codons.");
+    }
+    if(cod >= 48) {
+        cod++;
+    }
+    if(cod >= 50) {
+        cod++;
+    }
+    if(cod >= 56) {
+        cod++;
+    }
+
+    return get_nuc(cod, pos);
+}
+
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("get_nuc_ecm") {
+    auto test = [](int cod1, int cod2) {
+        auto n1 = get_nuc_ecm(cod1, 0);
+        auto n2 = get_nuc_ecm(cod1, 1);
+        auto n3 = get_nuc_ecm(cod1, 2);
+        CHECK_EQ(16 * n1 + 4 * n2 + n3, cod2);
+    };
+    // test all codons before first stop codon (48)
+    for(auto i = 0; i < 48; ++i) {
+        test(i, i);
+    }
+    // test codon after first (48) and before second (50-1) stop codon
+    test(48, 49);
+    // test codons after second (50-1) and before third (56-2) stop codon
+    for(auto i = 49; i < 54; ++i) {
+        test(i, i + 2);
+    }
+    // test codons after third (56-2) until last (61) codon
+    for(auto i = 54; i < 61; ++i) {
+        test(i, i + 3);
+    }
+}
+// GCOVR_EXCL_STOP
+
+/**
  * @brief Reorder pair of input sequences so that reference is at position zero.
  *
  * @param[in,out] aln coati::alignment_t alignment data.

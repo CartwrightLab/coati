@@ -40,6 +40,7 @@ marginal_seq_encoding
 extract_file_type
 fst_to_seqs
 get_nuc
+get_nuc_ecm
 trim_end_stops
 restore_end_stops
 version_number_check_equal

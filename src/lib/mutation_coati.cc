@@ -170,25 +170,25 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
 
     coati::Matrixf p(192, 15);
 
-    for(int cod = 0; cod < 64; cod++) {
+    for(size_t cod = 0; cod < P.rows(); cod++) {
         for(int nuc = 0; nuc < 4; nuc++) {  // A,C,G,T
             // position 0
             marg = 0.0;
-            for(uint8_t i = 0; i < 64; i++) {
+            for(uint8_t i = 0; i < P.cols(); i++) {
                 marg += (get_nuc(i, 0) == nuc ? P(cod, i) : 0.0f);
             }
             p(cod * 3, nuc) = ::logf(marg / pi[nuc]);
 
             // position 1
             marg = 0.0;
-            for(uint8_t i = 0; i < 64; i++) {
+            for(uint8_t i = 0; i < P.cols(); i++) {
                 marg += (get_nuc(i, 1) == nuc ? P(cod, i) : 0.0f);
             }
             p(cod * 3 + 1, nuc) = ::logf(marg / pi[nuc]);
 
             // position 2
             marg = 0.0;
-            for(uint8_t i = 0; i < 64; i++) {
+            for(uint8_t i = 0; i < P.cols(); i++) {
                 marg += (get_nuc(i, 2) == nuc ? P(cod, i) : 0.0f);
             }
             p(cod * 3 + 2, nuc) = ::logf(marg / pi[nuc]);

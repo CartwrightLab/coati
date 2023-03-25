@@ -23,7 +23,7 @@
 #ifndef MUTATION_ECM_HPP
 #define MUTATION_ECM_HPP
 
-#include "ecm.tcc"
+#include "ecm_unrest.tcc"
 #include "matrix.hpp"
 #include "mutation_fst.hpp"
 

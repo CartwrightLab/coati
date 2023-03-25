@@ -149,19 +149,18 @@ coati::Matrixf ecm_p(float br_len, float omega) {
         throw std::out_of_range("Branch length must be positive.");
     }
 
-    Matrix64f Q = Matrix64f::Zero();
+    Matrix61f Q = Matrix61f::Zero();
 
     float d = 0.0;
 
-    for(uint8_t i = 0; i < 64; i++) {
+    for(uint8_t i = 0; i < 61; i++) {
         float rowSum = 0.0;
-        for(uint8_t j = 0; j < 64; j++) {
+        for(uint8_t j = 0; j < 61; j++) {
             // if codons i or j are stop codons value is zero (default)
-            if(i == j || amino_group_table[i] == '*' ||
-               amino_group_table[j] == '*') {
+            if(i == j) {
                 continue;
             }
-            if(amino_group_table[i] == amino_group_table[j]) {
+            if(amino_group_ecm[i] == amino_group_ecm[j]) {
                 // same aminoacid group
                 Q(i, j) = exchang[i][j] * ecm_pi[j] * k(i, j, 0);
             } else {
@@ -181,8 +180,7 @@ coati::Matrixf ecm_p(float br_len, float omega) {
     Q = Q * br_len;
     Q = Q.exp();
 
-    coati::Matrixf P(64, 64, Q);
-
+    coati::Matrixf P(61, 61, Q);
     return P;
 }
 
@@ -196,25 +194,33 @@ coati::Matrixf ecm_p(float br_len, float omega) {
  */
 VectorFstStdArc ecm(float br_len, float omega) {
     coati::Matrixf P = ecm_p(br_len, omega);
-    using coati::utils::get_nuc;
+    using coati::utils::get_nuc_ecm;
 
     // Add state 0 and make it the start state
     VectorFstStdArc ecm;
     ecm.AddState();
     ecm.SetStart(0);
 
+    // Create FST
     int r = 1;
-    for(uint8_t i = 0; i < 64; i++) {
-        for(uint8_t j = 0; j < 64; j++) {
-            add_arc(ecm, 0, r, get_nuc(i, 0) + 1, get_nuc(i, 0) + 1, P(i, j));
-            add_arc(ecm, r, r + 1, get_nuc(i, 1) + 1, get_nuc(j, 1) + 1);
-            add_arc(ecm, r + 1, 0, get_nuc(i, 2) + 1, get_nuc(j, 2) + 1);
+    for(uint8_t i = 0; i < 61; i++) {
+        for(uint8_t j = 0; j < 61; j++) {
+            add_arc(ecm, 0, r, get_nuc_ecm(i, 0) + 1, get_nuc_ecm(j, 0) + 1,
+                    P(i, j));
+            add_arc(ecm, r, r + 1, get_nuc_ecm(i, 1) + 1,
+                    get_nuc_ecm(j, 1) + 1);
+            add_arc(ecm, r + 1, 0, get_nuc_ecm(i, 2) + 1,
+                    get_nuc_ecm(j, 2) + 1);
             r = r + 2;
         }
     }
 
     // Set final state
     ecm.SetFinal(0, 0.0);
-    return optimize(ecm);
+
+    VectorFstStdArc ecm_rmep;
+    ecm_rmep = fst::RmEpsilonFst<fst::StdArc>(ecm);  // epsilon removal
+
+    return optimize(ecm_rmep);
 }
 }  // namespace coati

@@ -86,6 +86,15 @@ const uint8_t amino_group_table[64] = {
     69, 68, 69, 68, 65, 65, 65, 65, 71, 71, 71, 71, 86, 86, 86, 86,
     42, 89, 42, 89, 83, 83, 83, 83, 42, 67, 87, 67, 76, 70, 76, 70};
 
+/**
+ * @brief Table for looking up a codon ECM group without stop codons.
+ */
+const uint8_t amino_group_ecm[61] = {
+    75, 78, 75, 78, 84, 84, 84, 84, 82, 83, 82, 83, 73, 73, 77, 73,
+    81, 72, 81, 72, 80, 80, 80, 80, 82, 82, 82, 82, 76, 76, 76, 76,
+    69, 68, 69, 68, 65, 65, 65, 65, 71, 71, 71, 71, 86, 86, 86, 86,
+    89, 89, 83, 83, 83, 83, 67, 87, 67, 76, 70, 76, 70};
+
 namespace coati::utils {
 using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
@@ -115,6 +124,8 @@ file_type_t extract_file_type(std::string path);
 void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln);
 // Get nucleotide from codon.
 uint8_t get_nuc(uint8_t cod, int pos);
+// Get nucleotide from codon list without stop codons.
+uint8_t get_nuc_ecm(uint8_t cod, int pos);
 // Reorder pair of input sequences so that reference is at position zero
 void order_ref(coati::alignment_t& aln);
 // Read and validate input sequences
