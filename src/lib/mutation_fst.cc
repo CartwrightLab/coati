@@ -196,7 +196,7 @@ TEST_CASE("dna") {
  * @retval coati::VectorFstStdArc indel model FST.
  */
 VectorFstStdArc indel(float gap_open, float gap_extend,
-                      const std::vector<float>& pi) {
+                      const std::vector<float>& pi, float bc_error) {
     VectorFstStdArc indel_fst;
     int start = 0, insertion = 1, deletion = 4, match = 6, end = 7;
 
@@ -228,9 +228,19 @@ VectorFstStdArc indel(float gap_open, float gap_extend,
     add_arc(indel_fst, 5, match, 0, 0, 1.0f - gap_extend);
 
     // Matches
-    for(int i = 0; i < 4; i++) {
-        add_arc(indel_fst, match, start, i + 1, i + 1);
-        add_arc(indel_fst, match, start, i + 1, 5);
+    for(int i = 1; i < 5; i++) {
+        add_arc(indel_fst, match, start, i, i);  // nuc -> nuc
+        add_arc(indel_fst, match, start, i, 5);  // nuc -> N
+    }
+
+    // Base calling error
+    for(int i = 1; i < 5; ++i) {
+        for(int j = 1; j < 5; ++j) {
+            if(i == j) {
+                continue;
+            }
+            add_arc(indel_fst, match, start, i, j, bc_error);
+        }
     }
 
     // End probabilities
@@ -250,13 +260,13 @@ VectorFstStdArc indel(float gap_open, float gap_extend,
 // GCOVR_EXCL_START
 TEST_CASE("indel") {
     VectorFstStdArc indel_model(
-        indel(0.001, 1.f - 1.f / 6.f, {0.308, 0.185, 0.199, 0.308}));
+        indel(0.001, 1.f - 1.f / 6.f, {0.308, 0.185, 0.199, 0.308}, 0.0001));
 
     REQUIRE(Verify(indel_model));  // openfst built-in sanity check
     CHECK_EQ(indel_model.NumStates(), 4);
-    CHECK_EQ(indel_model.NumArcs(0), 17);  // number of outcoming arcs
-    CHECK_EQ(indel_model.NumArcs(1), 17);
-    CHECK_EQ(indel_model.NumArcs(2), 12);
+    CHECK_EQ(indel_model.NumArcs(0), 29);  // number of outcoming arcs
+    CHECK_EQ(indel_model.NumArcs(1), 29);
+    CHECK_EQ(indel_model.NumArcs(2), 24);
     CHECK_EQ(indel_model.NumArcs(3), 1);
 }
 // GCOVR_EXCL_STOP

@@ -141,6 +141,10 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
                    "Ambiguous nucleotides model", "AVG")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
+    app.add_option("-b,--base-error", args.aln.bc_error,
+                   "Base calling error rate")
+        ->check(CLI::PositiveNumber)
+        ->group("Advanced options");
 }
 
 /// private

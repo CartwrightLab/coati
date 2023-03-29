@@ -45,7 +45,7 @@ VectorFstStdArc dna(float br_len, float omega,
                     const std::vector<coati::float_t>& pi);
 // Create affine gap indel model FST.
 VectorFstStdArc indel(float gap_open, float gap_extend,
-                      const std::vector<float>& pi);
+                      const std::vector<float>& pi, float bc_error);
 // Add arc to FST.
 void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel = 0,
              int olabel = 0, float score = 1.0);
