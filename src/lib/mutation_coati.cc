@@ -28,7 +28,7 @@ namespace coati {
 /**
  * @brief Create Muse \& Gaut (1994) substitution matrix.
  *
- * @details Given a branch length, create a 64x64 codon substitution P matrix
+ * @details Given a branch length, create a 61x61 codon substitution P matrix
  * based on Muse \& Gaut model. Using either nucleotide substitution rates from
  * Yang (1994) or the General Time Reversible (GTR) model from Tavaré (1986).
  *
@@ -64,13 +64,13 @@ coati::Matrixf mg94_p(float br_len, float omega,
     }
 
     // MG94 model - doi:10.1534/genetics.108.092254
-    Matrix64f Q = Matrix64f::Zero();
-    float Pi[64];
+    Matrix61f Q = Matrix61f::Zero();
+    float Pi[61];
     float w{NAN}, d = 0.0f;
     int x = 0, y = 0;
 
     // construct transition matrix
-    for(uint8_t i = 0; i < 64; i++) {
+    for(uint8_t i = 0; i < 61; i++) {
         Pi[i] = nuc_freqs[get_nuc(i, 0)] * nuc_freqs[get_nuc(i, 1)] *
                 nuc_freqs[get_nuc(i, 2)];
         /* Codon frequency by multiplying nucleotide frequencies.
@@ -85,16 +85,13 @@ coati::Matrixf mg94_p(float br_len, float omega,
          */
 
         float rowSum = 0.0;
-        for(uint8_t j = 0; j < 64; j++) {
+        for(uint8_t j = 0; j < 61; j++) {
             if(i == j) {
                 Q(i, j) = 0;
             } else if(coati::utils::cod_distance(i, j) > 1) {
                 Q(i, j) = 0;
-            } else if(i == 48 || i == 50 || i == 56) {  // stop codons
-                Q(i, j) = 0;
             } else {
-                w = ((amino_group_table[i] == amino_group_table[j]) ? 1
-                                                                    : omega);
+                w = ((amino_group[i] == amino_group[j]) ? 1 : omega);
 
                 // x,y = positions of two nucleotides involved in substitution
                 if(get_nuc(i, 0) != get_nuc(j, 0)) {
@@ -122,7 +119,7 @@ coati::Matrixf mg94_p(float br_len, float omega,
     Q = Q * br_len;
     Q = Q.exp();
 
-    return {64, 64, Q};
+    return {61, 61, Q};
 }
 
 /// @private
@@ -131,8 +128,8 @@ TEST_CASE("mg94_p") {
     SUBCASE("default") {
         coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
-        for(int i = 0; i < 64; i++) {
-            for(int j = 0; j < 64; j++) {
+        for(int i = 0; i < 61; i++) {
+            for(int j = 0; j < 61; j++) {
                 CHECK_EQ(P(i, j), doctest::Approx(mg94P[i][j]));
             }
         }
@@ -147,20 +144,20 @@ TEST_CASE("mg94_p") {
 // GCOVR_EXCL_STOP
 
 /**
- * @brief Create marginal 192x15 substitution P matrix.
+ * @brief Create marginal 183x15 substitution P matrix.
  *
- * @details Give a 64x64 codon substitution matrix, marginalized by codon,
+ * @details Give a 61x61 codon substitution matrix, marginalized by codon,
  * phase, and nucleotide (i.e. P(nuc | codon, phase), where phase = {0,1,2}).
- * Dimensions are 64 codons * 3 phases * 15 nucleotides = 192x15.
+ * Dimensions are 61 codons * 3 phases * 15 nucleotides = 183x15.
  *  note: 15 nucleotides defined in IUPAC code
  *        https://www.bioinformatics.org/sms/iupac.html.
  *
- * @param[in] P coati::Matrixf 64x64 codon substitution matrix.
+ * @param[in] P coati::Matrixf 61x61 codon substitution matrix.
  * @param[in] pi std::vector<coati::float_t> nucleotide frequencies (A,C,G,T).
  * @param[in] amb coati::AmbiguousNucs how to calculate probabilities for
  * ambiguous nucleotides.
  *
- * @retval coati::Matrixf marginal 192x4 substitution matrix.
+ * @retval coati::Matrixf marginal 183x4 substitution matrix.
  */
 coati::Matrixf marginal_p(const coati::Matrixf& P,
                           const std::vector<coati::float_t>& pi,
@@ -168,7 +165,7 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
     using coati::utils::get_nuc;
     float marg{NAN};
 
-    coati::Matrixf p(192, 15);
+    coati::Matrixf p(183, 15);
 
     for(size_t cod = 0; cod < P.rows(); cod++) {
         for(int nuc = 0; nuc < 4; nuc++) {  // A,C,G,T
@@ -211,7 +208,7 @@ TEST_CASE("marginal_p") {
     coati::Matrixf P = mg94_p(0.0133, 0.2, pi);
     coati::Matrixf p_marg = marginal_p(P, pi, AmbiguousNucs::AVG);
 
-    for(int cod = 0; cod < 64; cod++) {
+    for(int cod = 0; cod < 61; cod++) {
         for(int pos = 0; pos < 3; pos++) {
             // NOLINTNEXTLINE(clang-diagnostic-unused-but-set-variable)
             float val = 0.f;
@@ -235,7 +232,7 @@ TEST_CASE("marginal_p") {
  */
 void ambiguous_avg_p(coati::Matrixf& p) {
     size_t row{0};
-    for(int cod = 0; cod < 64; cod++) {
+    for(int cod = 0; cod < 61; cod++) {
         for(size_t pos = 0; pos < 3; pos++) {
             row = cod * 3 + pos;
 
@@ -266,7 +263,7 @@ void ambiguous_avg_p(coati::Matrixf& p) {
  */
 void ambiguous_best_p(coati::Matrixf& p) {
     size_t row{0};
-    for(int cod = 0; cod < 64; cod++) {
+    for(int cod = 0; cod < 61; cod++) {
         for(size_t pos = 0; pos < 3; pos++) {
             row = cod * 3 + pos;
 

@@ -71,7 +71,7 @@ TEST_CASE("nts_ntv") {
     CHECK_EQ(nts, 0);
     CHECK_EQ(ntv, 1);
 
-    nts_ntv(39, 60, nts, ntv);  // GCT -> TTA
+    nts_ntv(39, 57, nts, ntv);  // GCT -> TTA
     CHECK_EQ(nts, 1);
     CHECK_EQ(ntv, 2);
 
@@ -128,7 +128,7 @@ TEST_CASE("k") {
     CHECK_EQ(k(0, 42, 1), 15.625);   // AAA -> GGG, ECM+F+omega+1k(ts)
     CHECK_EQ(k(32, 29, 1), 1);       // GAA -> CTC, ECM+F+omega+1k(ts)
     CHECK_EQ(k(47, 38, 1), 2.5);     // GTT -> GCT, ECM+F+omega+1k(ts)
-    CHECK_EQ(k(21, 51, 1), 6.25);    // CCC -> TAT, ECM+F+omega+1k(ts)
+    CHECK_EQ(k(21, 49, 1), 6.25);    // CCC -> TAT, ECM+F+omega+1k(ts)
     CHECK_EQ(k(0, 0, 2), 1);         // AAA -> AAA, ECM+F+omega+1k(tv)
     CHECK_EQ(k(32, 29, 2), 15.625);  // GAA -> CTC, ECM+F+omega+1k(tv)
     CHECK_EQ(k(47, 38, 2), 2.5);     // GTT -> GCT, ECM+F+omega+1k(tv)
@@ -160,7 +160,7 @@ coati::Matrixf ecm_p(float br_len, float omega) {
             if(i == j) {
                 continue;
             }
-            if(amino_group_ecm[i] == amino_group_ecm[j]) {
+            if(amino_group[i] == amino_group[j]) {
                 // same aminoacid group
                 Q(i, j) = exchang[i][j] * ecm_pi[j] * k(i, j, 0);
             } else {
@@ -180,8 +180,7 @@ coati::Matrixf ecm_p(float br_len, float omega) {
     Q = Q * br_len;
     Q = Q.exp();
 
-    coati::Matrixf P(61, 61, Q);
-    return P;
+    return {61, 61, Q};
 }
 
 /**
@@ -194,7 +193,7 @@ coati::Matrixf ecm_p(float br_len, float omega) {
  */
 VectorFstStdArc ecm(float br_len, float omega) {
     coati::Matrixf P = ecm_p(br_len, omega);
-    using coati::utils::get_nuc_ecm;
+    using coati::utils::get_nuc;
 
     // Add state 0 and make it the start state
     VectorFstStdArc ecm;
@@ -205,12 +204,9 @@ VectorFstStdArc ecm(float br_len, float omega) {
     int r = 1;
     for(uint8_t i = 0; i < 61; i++) {
         for(uint8_t j = 0; j < 61; j++) {
-            add_arc(ecm, 0, r, get_nuc_ecm(i, 0) + 1, get_nuc_ecm(j, 0) + 1,
-                    P(i, j));
-            add_arc(ecm, r, r + 1, get_nuc_ecm(i, 1) + 1,
-                    get_nuc_ecm(j, 1) + 1);
-            add_arc(ecm, r + 1, 0, get_nuc_ecm(i, 2) + 1,
-                    get_nuc_ecm(j, 2) + 1);
+            add_arc(ecm, 0, r, get_nuc(i, 0) + 1, get_nuc(j, 0) + 1, P(i, j));
+            add_arc(ecm, r, r + 1, get_nuc(i, 1) + 1, get_nuc(j, 1) + 1);
+            add_arc(ecm, r + 1, 0, get_nuc(i, 2) + 1, get_nuc(j, 2) + 1);
             r = r + 2;
         }
     }
@@ -218,9 +214,6 @@ VectorFstStdArc ecm(float br_len, float omega) {
     // Set final state
     ecm.SetFinal(0, 0.0);
 
-    VectorFstStdArc ecm_rmep;
-    ecm_rmep = fst::RmEpsilonFst<fst::StdArc>(ecm);  // epsilon removal
-
-    return optimize(ecm_rmep);
+    return optimize(ecm);
 }
 }  // namespace coati
