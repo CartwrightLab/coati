@@ -225,8 +225,8 @@ VectorFstStdArc indel(float gap_open, float gap_extend,
 
     // Matches
     for(int i = 1; i < 5; i++) {
-        add_arc(indel_fst, match, start, i, i);  // nuc -> nuc
-        add_arc(indel_fst, match, start, i, 5);  // nuc -> N
+        add_arc(indel_fst, match, start, i, i, 1 - 3 * bc_error);  // nuc -> nuc
+        add_arc(indel_fst, match, start, i, 5);                    // nuc -> N
     }
 
     // Base calling error
