@@ -25,7 +25,7 @@
 #include <coati/json.hpp>
 
 namespace coati {
-using json_t = nlohmann::json;
+using json_t = nlohmann::ordered_json;
 
 /**
  * @brief Convert coati::data_t to json format.
@@ -159,12 +159,7 @@ TEST_CASE("read_json") {
  * @param[in] aln coati::VectorFstStdArc FST with alignment path.
  *
  */
-void write_json(coati::data_t& json, std::ostream& out,
-                const VectorFstStdArc& aln) {
-    if(aln.NumStates() > 0) {  // if FST alignment, convert to strings
-        coati::utils::fst_to_seqs(json, aln);
-    }
-
+void write_json(coati::data_t& json, std::ostream& out) {
     // implicit conversion of data_t to json using `to_json`
     json_t out_json = json;
 
@@ -194,34 +189,6 @@ TEST_CASE("write-json") {
   "alignment": {
     "a": "ATGTCTTCTCACAAGACA",
     "b": "ATGTCTTCTCACAAGACA"
-  },
-  "score": 0.0
-}
-)");
-        REQUIRE(std::filesystem::remove(filename));
-    }
-    SUBCASE("FST") {
-        coati::data_t json("", {"a", "b"}, {"CT-A", "CTC-"});
-
-        VectorFstStdArc fst_write;
-        fst_write.AddState();
-        fst_write.SetStart(0);
-        add_arc(fst_write, 0, 1, 2, 2);  // C -> C
-        add_arc(fst_write, 1, 2, 4, 4);  // T -> T
-        add_arc(fst_write, 2, 3, 0, 2);  // - -> C
-        add_arc(fst_write, 3, 4, 1, 0);  // A -> -
-        fst_write.SetFinal(4, 0.0);
-
-        write_json(json, out, fst_write);
-
-        std::ifstream infile(filename);
-        std::stringstream ss;
-        ss << infile.rdbuf();
-        std::string s1 = ss.str();
-        CHECK_EQ(s1, R"({
-  "alignment": {
-    "a": "CT-A",
-    "b": "CTC-"
   },
   "score": 0.0
 }

@@ -100,11 +100,12 @@ TEST_CASE("parse_matrix_csv") {
         REQUIRE(outfile);
 
         float Q[4096]{0.0f};
-        for(auto i = 0; i < 640; i++) {
+        for(size_t i = 0; i < 610; i++) {
             Q[mg94_indexes[i]] = mg94Q[i];
         }
 
         outfile << "0.0133" << std::endl;  // branch length
+        std::cout.precision(10);
         for(auto i = 0; i < 64; i++) {
             for(auto j = 0; j < 64; j++) {
                 outfile << codons[i] << "," << codons[j] << "," << Q[i * 64 + j]
@@ -144,7 +145,7 @@ TEST_CASE("parse_matrix_csv") {
         REQUIRE(outfile);
 
         float Q[4096]{0.0f};
-        for(auto i = 0; i < 640; i++) {
+        for(auto i = 0; i < 610; i++) {
             Q[mg94_indexes[i]] = mg94Q[i];
         }
 
@@ -301,10 +302,11 @@ TEST_CASE("read_input") {
 /**
  * @brief Write sequences and names in any suppported format.
  *
- * @param[in] data coati::data_t sequences, names, fsts, and score information.
+ * @param[in] data coati::alignment_t sequences, names, fsts, and score
+ * information.
  * @param[in] aln_path coati::VectorFstStdArc FST object with alignment.
  */
-void write_output(coati::alignment_t& aln, const coati::VectorFstStdArc& fst) {
+void write_output(coati::alignment_t& aln) {
     coati::file_type_t out_type;
     if(aln.output.empty()) {
         out_type = {"-", ".json"};
@@ -315,7 +317,7 @@ void write_output(coati::alignment_t& aln, const coati::VectorFstStdArc& fst) {
     // set output stream pointer
     std::ostream* pout(nullptr);
     std::ofstream outfile;
-    if(out_type.path.empty()) {
+    if(out_type.path == "-") {
         pout = &std::cout;
     } else {
         outfile.open(aln.output);
@@ -324,15 +326,15 @@ void write_output(coati::alignment_t& aln, const coati::VectorFstStdArc& fst) {
     std::ostream& out = *pout;
 
     if(out_type.type_ext == ".fa" || out_type.type_ext == ".fasta") {
-        write_fasta(aln.data, out, fst);
+        write_fasta(aln.data, out);
     } else if(out_type.type_ext == ".phy") {
-        write_phylip(aln.data, out, fst);
+        write_phylip(aln.data, out);
     } else if(out_type.type_ext == ".json") {
-        write_json(aln.data, out, fst);
+        write_json(aln.data, out);
     } else {
         // not supported output format
-        throw std::invalid_argument("Invalid output format" +
-                                    aln.output.string() + ".");
+        throw std::invalid_argument("Invalid output format " +
+                                    out_type.type_ext + ".");
     }
 }
 

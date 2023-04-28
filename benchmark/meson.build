@@ -74,7 +74,8 @@ if time_exe.found()
         benchmark_exe.full_path(),
         f'--benchmark_filter=@benchmark_case@',
         f'--benchmark_out=@benchmark_case@.json'.replace('/','_'),
-        '--benchmark_out_format=json'
+        '--benchmark_out_format=json',
+        '--benchmark_repetitions=10'
         ],
       timeout : 600
     )
@@ -86,7 +87,8 @@ else
       args : [
         f'--benchmark_filter=@benchmark_case@',
         f'--benchmark_out=@benchmark_case@.json'.replace('/','_'),
-        '--benchmark_out_format=json'
+        '--benchmark_out_format=json',
+        '--benchmark_repetitions=10'
         ],
       timeout : 600
     )

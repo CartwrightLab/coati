@@ -43,35 +43,17 @@ bool marg_alignment(coati::alignment_t& aln) {
 
     // read input data
     aln.data = coati::io::read_input(aln);
-    if(aln.data.size() != 2) {
-        throw std::invalid_argument("Exactly two sequences required.");
-    }
+
+    // process input sequences
+    coati::utils::process_marginal(aln);
 
     // set substitution matrix according to model
     coati::utils::set_subst(aln);
-
-    // set reference sequence as first sequence (in aln.data)
-    if(!aln.refs.empty() || aln.rev) {
-        order_ref(aln);
-    }
 
     // if -s or --score, score alignment and exit
     if(aln.score) {
         std::cout << alignment_score(aln, aln.subst_matrix) << std::endl;
         return true;
-    }
-
-    // check that length of ref sequence is multiple of 3 and gap unit length
-    size_t len_a = aln.seq(0).length();
-    if(len_a % 3 != 0 || len_a % aln.gap.len != 0) {
-        throw std::invalid_argument(
-            "Length of reference sequence must be multiple of 3.");
-    }
-    // check that length of descendant sequence is multiple of gap unit length
-    if(aln.seq(1).length() % aln.gap.len != 0) {
-        throw std::invalid_argument(
-            "Length of descendant sequence must be multiple of " +
-            std::to_string(aln.gap.len) + ".");
     }
 
     // encode sequences
@@ -94,28 +76,12 @@ bool marg_alignment(coati::alignment_t& aln) {
     }
     coati::traceback(work, anc, des, aln, aln.gap.len);
 
+    // handle end stop codons
+    coati::utils::restore_end_stops(aln.data, aln.gap);
+
     // write alignment
     coati::io::write_output(aln);
     return true;
-}
-
-/**
- * @brief Reorder pair of input sequences so that reference is at position zero.
- *
- * @param[in,out] aln coati::alignment_t alignment data.
- */
-void order_ref(coati::alignment_t& aln) {
-    if(aln.data.names[0] == aln.refs) {
-        // already the first sequence: do nothing
-    } else if(aln.data.names[1] == aln.refs) {  // swap sequences
-        std::swap(aln.data.names[0], aln.data.names[1]);
-        std::swap(aln.data.seqs[0], aln.data.seqs[1]);
-    } else if(aln.rev) {  // swap sequences
-        std::swap(aln.data.names[0], aln.data.names[1]);
-        std::swap(aln.data.seqs[0], aln.data.seqs[1]);
-    } else {  // aln.refs was specified and doesn't match any seq names
-        throw std::invalid_argument("Name of reference sequence not found.");
-    }
 }
 
 /// @private
@@ -180,9 +146,8 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output fasta") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.output = "test-marg_alignment-fasta.fasta";
-
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTG"});
 
         test_fasta(aln, expected, file);
@@ -190,7 +155,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output fasta - use aln.refs") {
         std::string file{">1\nCTATAGTG\n>2\nCTCTGGATAGTG\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.output = "test-marg_alignment-fasta.fasta";
         aln.refs = "2";
 
@@ -201,7 +166,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output fasta - use aln.refs - no change") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.output = "test-marg_alignment-fasta.fasta";
         aln.refs = "1";
 
@@ -212,7 +177,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output phylip") {
         std::string file{">1\nGCGACTGTT\n>2\nGCGATTGCTGTT\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.output = "test-marg_alignment-phylip.phy";
 
         expected = data_t("", {"1", "2"}, {"GCGA---CTGTT", "GCGATTGCTGTT"});
@@ -222,7 +187,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment - output phylip - use aln.refn") {
         std::string file{">A\nGCGATTGCTGTT\n>B\nGCGACTGTT\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-ecm";
         aln.output = "test-marg_alignment-phylip.phy";
         aln.rev = true;
 
@@ -233,7 +198,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment 2 dels - output phylip") {
         std::string file{">1\nACGTTAAGGGGT\n>2\nACGAAT\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.output = "test-marg_alignment-phylip2.phy";
 
         expected = data_t("", {"1", "2"}, {"ACGTTAAGGGGT", "ACG--AA----T"});
@@ -243,7 +208,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment with gap length multiple of 3") {
         std::string file{">1\nACGTTAAGGGGT\n>2\nACGAAT\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.output = "test-marg_alignment-no-frameshifts.fa";
         aln.gap.len = 3;
 
@@ -255,7 +220,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment with ambiguous nucleotides - AVG") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.output = "test-marg_alignment_ambiguous.fa";
 
         expected = data_t("", {">1", ">2"}, {"CTCTGGATAGTG", "CT----ATAGTR"});
@@ -264,7 +229,7 @@ TEST_CASE("marg_alignment") {
     SUBCASE("Alignment with ambiguous nucleotides - BEST") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.output = "test-marg_alignment_ambiguous.fa";
         aln.amb = coati::AmbiguousNucs::BEST;
 
@@ -276,7 +241,7 @@ TEST_CASE("marg_alignment") {
         out.open("test-marg.fasta");
         out << ">1\nGCGATTGCTGT\n>2\nGCGACTGTT\n";
         out.close();
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.data.path = "test-marg.fasta";
         aln.output = "test-marg_alignment-no-frameshifts-f.fasta";
         aln.gap.len = 3;
@@ -290,7 +255,7 @@ TEST_CASE("marg_alignment") {
         out << ">A\nCTCGGA\n>B\nCTCGG\n";
         out.close();
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.gap.len = 3;
         REQUIRE_THROWS_AS(marg_alignment(aln), std::invalid_argument);
         CHECK(std::filesystem::remove("test-marg.fasta"));
@@ -301,7 +266,7 @@ TEST_CASE("marg_alignment") {
         out << ">1\nCTCTGGATAGTG\n>2\nCT----ATAGTG\n";
         out.close();
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.output = "test-marg_alignment-score.fasta";
         aln.score = true;
 
@@ -314,7 +279,7 @@ TEST_CASE("marg_alignment") {
         out << ">1\nCTCTGGATAGTG\n>2\nCTATAGTG\n";
         out.close();
         aln.data.path = "test-marg.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.output = "test-marg_alignment-score-f.fasta";
         aln.score = true;
 
@@ -353,7 +318,7 @@ TEST_CASE("marg_alignment") {
         REQUIRE(outfile);
 
         float Q[4096]{0.0f};
-        for(auto i = 0; i < 640; i++) {
+        for(auto i = 0; i < 610; i++) {
             Q[mg94_indexes[i]] = mg94Q[i];
         }
 
@@ -499,16 +464,16 @@ TEST_CASE("alignment_score") {
     coati::Matrixf p_marg = marginal_p(P, aln.pi, AmbiguousNucs::AVG);
 
     aln.data.seqs = {"CTCTGGATAGTG", "CT----ATAGTG"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(1.51294f));
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(1.51073f));
 
     aln.data.seqs = {"CTCT--AT", "CTCTGGAT"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.835939f));
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.83802f));
 
     aln.data.seqs = {"ACTCT-A", "ACTCTG-"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-8.73357f));
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-8.73539f));
 
     aln.data.seqs = {"ACTCTA-", "ACTCTAG"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.658564f));
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.66101f));
     // different length
     aln.data.seqs = {"CTC", "CT"};
     REQUIRE_THROWS_AS(alignment_score(aln, p_marg), std::invalid_argument);
@@ -563,6 +528,8 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
             std::to_string(aln.gap.len) + ".");
     }
 
+    coati::utils::trim_end_stops(aln.data);
+
     // encode sequences
     auto anc = aln.seq(0);
     auto des = aln.seq(1);
@@ -579,6 +546,7 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     // sample and print as many aligments as required (sample_size)
     for(size_t i = 0; i < sample_size; ++i) {
         coati::sampleback(work, anc, des, aln, aln.gap.len, rand);
+        coati::utils::restore_end_stops(aln.data, aln.gap);
         write_json(aln.data, out, i, sample_size);
     }
 }
@@ -643,20 +611,21 @@ TEST_CASE("marg_sample") {
     SUBCASE("sample size 1") {
         std::vector<std::string> seq1{"CC--CCCC"};
         std::vector<std::string> seq2{"CCCCCCCC"};
-        std::vector<std::string> lscore{"-3.466088056564331"};
+        std::vector<std::string> lscore{"-3.4660892486572266"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 1 - deletion") {
         std::vector<std::string> seq1{"CCCCCC"};
         std::vector<std::string> seq2{"CCCC--"};
-        std::vector<std::string> lscore{"-0.1545257419347763"};
+        std::vector<std::string> lscore{"-0.15452587604522705"};
         test("CCCCCC", "CCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 3") {
         std::vector<std::string> seq1{"CC--CCCC", "CCCCCC--", "CCCCC--C"};
         std::vector<std::string> seq2{"CCCCCCCC", "CCCCCCCC", "CCCCCCCC"};
-        std::vector<std::string> lscore{
-            "-3.466088056564331", "-0.6934397220611572", "-1.3866020441055298"};
+        std::vector<std::string> lscore{"-3.4660892486572266",
+                                        "-0.6934394836425781",
+                                        "-1.3866022825241089"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("length of reference not multiple of 3") {

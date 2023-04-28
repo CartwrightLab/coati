@@ -90,6 +90,8 @@ coati::Matrixf mg94_p(float br_len, float omega,
                 Q(i, j) = 0;
             } else if(coati::utils::cod_distance(i, j) > 1) {
                 Q(i, j) = 0;
+            } else if(i == 48 || i == 50 || i == 56) {  // stop codons
+                Q(i, j) = 0;
             } else {
                 w = ((amino_group_table[i] == amino_group_table[j]) ? 1
                                                                     : omega);

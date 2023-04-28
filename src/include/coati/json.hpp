@@ -36,8 +36,7 @@ void from_json(const nlohmann::json& j, alignment_t& aln);
 // Read json file.
 coati::data_t read_json(std::istream& in, bool marginal);
 // Write content of coati::data_t to json format.
-void write_json(coati::data_t& json, std::ostream& out,
-                const VectorFstStdArc& aln = {});
+void write_json(coati::data_t& json, std::ostream& out);
 // Write content of coati::data_t to json format for coati sample.
 void write_json(coati::data_t& data, std::ostream& out, size_t iter,
                 size_t sample_size);

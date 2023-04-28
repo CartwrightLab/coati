@@ -190,12 +190,7 @@ TEST_CASE("read_phylip") {
  * @param[in] out std::ostream output stream pointing to stdout or file.
  * @param[in] aln fst::VectorFst<fst::StdArc> aligned sequences in FST form.
  */
-void write_phylip(coati::data_t& phylip, std::ostream& out,
-                  const VectorFstStdArc& aln) {
-    if(aln.NumStates() > 1) {
-        coati::utils::fst_to_seqs(phylip, aln);
-    }
-
+void write_phylip(coati::data_t& phylip, std::ostream& out) {
     // write number of sequences and length
     out << phylip.size() << " " << phylip.seqs[0].length() << std::endl;
 
@@ -274,33 +269,6 @@ TEST_CASE("write_phylip") {
         CHECK_EQ(s1, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         getline(infile, s1);
         CHECK_EQ(s1, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-
-        REQUIRE(std::filesystem::remove(filename));
-    }
-    SUBCASE("fst") {
-        coati::data_t phylip("", {"1", "2"});
-
-        VectorFstStdArc fst_write;
-        fst_write.AddState();
-        fst_write.SetStart(0);
-        add_arc(fst_write, 0, 1, 2, 2);  // C -> C
-        add_arc(fst_write, 1, 2, 4, 4);  // T -> T
-        add_arc(fst_write, 2, 3, 0, 2);  // - -> C
-        add_arc(fst_write, 3, 4, 1, 0);  // A -> -
-        fst_write.SetFinal(4, 0.0);
-
-        write_phylip(phylip, out, fst_write);
-        std::ifstream infile(filename);
-        std::string s1;
-
-        getline(infile, s1);
-        CHECK_EQ(s1, "2 4");
-
-        getline(infile, s1);
-        CHECK_EQ(s1, "1         CT-A");
-
-        getline(infile, s1);
-        CHECK_EQ(s1, "2         CTC-");
 
         REQUIRE(std::filesystem::remove(filename));
     }

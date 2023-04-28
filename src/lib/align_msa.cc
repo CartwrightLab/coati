@@ -135,7 +135,7 @@ TEST_CASE("ref_indel_alignment") {
     SUBCASE("marginal model") {
         coati::alignment_t aln;
         aln.data.path = "test-msa.fasta";
-        aln.model = "marginal";
+        aln.model = "mar-mg";
         aln.output = "test-mecm-msa.fasta";
         aln.tree = "tree-msa.newick";
         aln.refs = "A";
@@ -166,7 +166,7 @@ TEST_CASE("ref_indel_alignment") {
     SUBCASE("m-ecm model") {
         coati::alignment_t aln;
         aln.data.path = "test-msa.fasta";
-        aln.model = "m-ecm";
+        aln.model = "mar-ecm";
         aln.output = "test-mecm-msa.fasta";
         aln.tree = "tree-msa.newick";
         aln.refs = "A";
@@ -259,7 +259,7 @@ TEST_CASE("ref_indel_alignment") {
     }
     SUBCASE("not marginal model - fail") {
         coati::alignment_t aln;
-        aln.model = "fst";
+        aln.model = "tri-mg";
 
         CHECK_THROWS_AS(ref_indel_alignment(aln), std::invalid_argument);
     }

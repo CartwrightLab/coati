@@ -47,11 +47,11 @@ Pairwise alignment of nucleotide sequences via composition of finite-state
 transducers (FSTs) or using Gotoh's algorithm.
 Substitution models available:
 
-  - fst: Muse and Gaut codon model using finite-state transducers.
-  - ecm: empirical codon model using FSTs.
+  - tri-mg94: Muse and Gaut codon model using finite-state transducers.
+  - tri-ecm: empirical codon model using FSTs.
   - dna: dna model resulting of marginalizing Muse and Gaut's model using FSTs.
-  - marginal: marginal Muse and Gaut using Gotoh's algorithm.
-  - m-ecm: marginal empirical codon model using Gotoh's algorithm.
+  - mar-mg94: marginal Muse and Gaut using Gotoh's algorithm.
+  - mar-ecm: marginal empirical codon model using Gotoh's algorithm.
 
 Indel model allows gaps of any length at any position.
 Insertion always precede deletions when contiguous to eliminate equivalent
@@ -67,13 +67,12 @@ Positionals:
 
 Options:
   -h,--help                        Print this help message and exit
-  -l,--weight TEXT                 Write alignment score to file
   -s,--score                       Score input alignment and exit
   -o,--output TEXT                 Alignment output file
 
 
 Model parameters:
-  -m,--model TEXT Excludes: --sub  Substitution model (fst ecm dna marginal m-ecm)
+  -m,--model TEXT Excludes: --sub  Substitution model (dna tri-mg tri-ecm mar-mg mar-ecm)
   -t,--time FLOAT:POSITIVE         Evolutionary time/branch length
   -g,--gap-open FLOAT:POSITIVE     Gap opening score
   -e,--gap-extend FLOAT:POSITIVE   Gap extension score
@@ -226,7 +225,7 @@ Options:
 
 
 Model parameters:
-  -m,--model TEXT                  Substitution model (m-coati m-ecm)
+  -m,--model TEXT                  Substitution model (mar-mg94 mar-ecm)
   -g,--gap-open FLOAT:POSITIVE     Gap opening score
   -e,--gap-extend FLOAT:POSITIVE   Gap extension score
   -k,--gap-len UINT                Gap unit length

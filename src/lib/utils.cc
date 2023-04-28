@@ -90,7 +90,7 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
         ->required();
     auto* opt_m =
         app.add_option("-m,--model", args.aln.model,
-                       "Substitution model (fst ecm dna marginal m-ecm)")
+                       "Substitution model (dna tri-mg tri-ecm mar-mg mar-ecm)")
             ->group("Model parameters");
     app.add_option("--sub", args.aln.rate,
                    "File with branch lengths and codon subst matrix")
@@ -152,7 +152,7 @@ TEST_CASE("parse_arguments_alignpair") {
 
     std::vector<const char*> argv;
     std::vector<std::string> cli_args = {
-        "alignpair", "test.fasta", "-m",   "fst",     "-t",   "0.2",   "-r",
+        "alignpair", "test.fasta", "-m",   "tri-mg",  "-t",   "0.2",   "-r",
         "A",         "-s",         "-o",   "out.phy", "-g",   "0.015", "-e",
         "0.009",     "-w",         "0.21", "-p",      "0.15", "0.35",  "0.35",
         "0.15",      "-k",         "3",    "-x",      "0.1",  "0.1",   "0.1",
@@ -165,7 +165,7 @@ TEST_CASE("parse_arguments_alignpair") {
     alnpair.parse(static_cast<int>(argv.size() - 1), argv.data());
 
     CHECK_EQ(args.aln.data.path, "test.fasta");
-    CHECK_EQ(args.aln.model, "fst");
+    CHECK_EQ(args.aln.model, "tri-mg");
     CHECK_EQ(args.aln.br_len, 0.2f);
     CHECK_EQ(args.aln.refs, "A");
     CHECK(args.aln.score);
@@ -202,7 +202,7 @@ void set_options_msa(CLI::App& app, coati::args_t& args) {
     app.add_option("reference", args.aln.refs, "Name of reference sequence")
         ->required();
     app.add_option("-m,--model", args.aln.model,
-                   "Substitution model (marginal m-ecm)")
+                   "Substitution model (mar-mg mar-ecm)")
         ->group("Model parameters");
     app.add_option("-o,--output", args.aln.output, "Alignment output file");
     app.add_option("-g,--gap-open", args.aln.gap.open, "Gap opening score")
@@ -254,7 +254,7 @@ TEST_CASE("parse_arguments_msa") {
     std::vector<const char*> argv;
     std::vector<std::string> cli_args = {
         "msa",         "test.fasta", "tree.newick",  "seqA",
-        "--model",     "ecm",        "--output",     "out.phy",
+        "--model",     "tri-ecm",    "--output",     "out.phy",
         "--gap-open",  "0.015",      "--gap-extend", "0.009",
         "--omega",     "0.21",       "--pi",         "0.15",
         "0.35",        "0.35",       "0.15",         "--gap-len",
@@ -271,7 +271,7 @@ TEST_CASE("parse_arguments_msa") {
     CHECK_EQ(args.aln.data.path, "test.fasta");
     CHECK_EQ(args.aln.tree, "tree.newick");
     CHECK_EQ(args.aln.refs, "seqA");
-    CHECK_EQ(args.aln.model, "ecm");
+    CHECK_EQ(args.aln.model, "tri-ecm");
     CHECK_EQ(args.aln.output, "out.phy");
     CHECK_EQ(args.aln.gap.open, 0.015f);
     CHECK_EQ(args.aln.gap.extend, 0.009f);
@@ -304,10 +304,9 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
                    "Evolutionary time/branch length")
         ->check(CLI::PositiveNumber)
         ->group("Model parameters");
-    auto* opt_m =
-        app.add_option("-m,--model", args.aln.model,
-                       "Substitution model (coati ecm dna marginal m-ecm)")
-            ->group("Model parameters");
+    auto* opt_m = app.add_option("-m,--model", args.aln.model,
+                                 "Substitution model (mar-mg mar-ecm)")
+                      ->group("Model parameters");
     app.add_option("--sub", args.aln.rate,
                    "File with branch lengths and codon subst matrix")
         ->excludes(opt_m)
@@ -360,7 +359,7 @@ TEST_CASE("parse_arguments_sample") {
     std::vector<const char*> argv;
     std::vector<std::string> cli_args = {
         "sample",      "test.fasta", "-t",           "0.2001",
-        "--model",     "m-ecm",      "--output",     "out.phy",
+        "--model",     "mar-ecm",    "--output",     "out.phy",
         "--gap-open",  "0.015",      "--gap-extend", "0.009",
         "--omega",     "0.21",       "--pi",         "0.15",
         "0.35",        "0.35",       "0.15",         "--gap-len",
@@ -377,7 +376,7 @@ TEST_CASE("parse_arguments_sample") {
 
     CHECK_EQ(args.aln.data.path, "test.fasta");
     CHECK_EQ(args.aln.br_len, 0.2001f);
-    CHECK_EQ(args.aln.model, "m-ecm");
+    CHECK_EQ(args.aln.model, "mar-ecm");
     CHECK_EQ(args.aln.output, "out.phy");
     CHECK_EQ(args.aln.gap.open, 0.015f);
     CHECK_EQ(args.aln.gap.extend, 0.009f);
@@ -454,7 +453,9 @@ TEST_CASE("parse_arguments_format") {
  *
  * @details Encode ancestor (ref) sequence as codon \& phase, descendant as
  * nucleotide. ref: AAA \& position 0 -> 0, AAA \& 1 -> 1, ... , TTT \& 2 ->
- * 191. des: A -> 0, C -> 1, G -> 2, T -> 3.
+ * 191. des: A -> 0, C -> 1, G -> 2, T -> 3. Ending stop codons have been
+ * removed from both sequences if present. Only descendant is allowed to have
+ * early stop codons (considered artifacts).
  *
  * @param[in] anc std::string sequence of ancestor (reference).
  * @param[in] des std::string sequence of descendant.
@@ -470,8 +471,13 @@ sequence_pair_t marginal_seq_encoding(const std::string_view anc,
 
     // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... ,
     // TTT3->191
-    for(size_t i = 0; i < anc.size() - 2; i += 3) {
-        auto cod = cod_int(anc.substr(i, i + 2)) * 3;
+    for(size_t i = 0; i < anc.size(); i += 3) {
+        auto cod = cod_int(anc.substr(i, i + 2));
+        // if stop codon - throw error
+        if(cod == 48 || cod == 50 || cod == 56) {
+            throw std::invalid_argument("Early stop codon in ancestor.");
+        }
+        cod *= 3;
         ret[0].push_back(cod);
         ret[0].push_back(cod + 1);
         ret[0].push_back(cod + 2);
@@ -488,7 +494,7 @@ sequence_pair_t marginal_seq_encoding(const std::string_view anc,
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("marginal_seq_encoding") {
-    std::string anc = "AAAGGGTTTCCC", des = "ACGTRYMKSWBDHVN-";
+    std::string anc = "AAAGGGTTTCCCACTAGA", des = "ACGTRYMKSWBDHVN-";
     auto result = marginal_seq_encoding(anc, des);
 
     CHECK_EQ(result[0][0], static_cast<unsigned char>(0));
@@ -503,6 +509,13 @@ TEST_CASE("marginal_seq_encoding") {
     CHECK_EQ(result[0][9], static_cast<unsigned char>(63));
     CHECK_EQ(result[0][10], static_cast<unsigned char>(64));
     CHECK_EQ(result[0][11], static_cast<unsigned char>(65));
+    CHECK_EQ(result[0][12], static_cast<unsigned char>(21));
+    CHECK_EQ(result[0][13], static_cast<unsigned char>(22));
+    CHECK_EQ(result[0][14], static_cast<unsigned char>(23));
+    CHECK_EQ(result[0][15], static_cast<unsigned char>(24));
+    CHECK_EQ(result[0][16], static_cast<unsigned char>(25));
+    CHECK_EQ(result[0][17], static_cast<unsigned char>(26));
+
     CHECK_EQ(result[1][0], static_cast<unsigned char>(0));
     CHECK_EQ(result[1][1], static_cast<unsigned char>(1));
     CHECK_EQ(result[1][2], static_cast<unsigned char>(2));
@@ -520,11 +533,19 @@ TEST_CASE("marginal_seq_encoding") {
     CHECK_EQ(result[1][14], static_cast<unsigned char>(14));
     CHECK_EQ(result[1][15], static_cast<unsigned char>(15));
 
+    // ambiguous nucleotides in ancestor
     anc = "AAACCCGGN";
     REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
     anc = "AAACCCGGR";
     REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
     anc = "YAACCCGGG";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
+    // stop codons
+    anc = "AAATAA";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
+    anc = "AAATAGGCC";
+    REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
+    anc = "TGA";
     REQUIRE_THROWS_AS(marginal_seq_encoding(anc, des), std::invalid_argument);
 }
 // GCOVR_EXCL_STOP
@@ -542,17 +563,17 @@ void set_subst(alignment_t& aln) {
         aln.model = "user_marg_model";
         P = coati::io::parse_matrix_csv(aln.rate);
         aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
-    } else if(aln.model.compare("m-ecm") == 0) {
+    } else if(aln.model.compare("mar-ecm") == 0) {
         P = ecm_p(aln.br_len, aln.omega);
         aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
-    } else if(aln.model.compare("marginal") == 0) {  // marginal
+    } else if(aln.model.compare("mar-mg") == 0) {  // marginal
         P = mg94_p(aln.br_len, aln.omega, aln.pi);
         aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
-    } else if(aln.model.compare("coati") == 0) {
+    } else if(aln.model.compare("tri-mg") == 0) {
         aln.subst_fst = mg94(aln.br_len, aln.omega, aln.pi);
     } else if(aln.model.compare("dna") == 0) {
         aln.subst_fst = dna(aln.br_len, aln.omega, aln.pi);
-    } else if(aln.model.compare("ecm") == 0) {
+    } else if(aln.model.compare("tri-ecm") == 0) {
         aln.subst_fst = ecm(aln.br_len, aln.omega);
         aln.pi = {0.2676350, 0.2357727, 0.2539630, 0.2426323};
     } else {
@@ -648,6 +669,27 @@ void fst_to_seqs(coati::data_t& data, const VectorFstStdArc& aln) {
     boost::replace_all(data.seqs[1], "<eps>", "-");
 }
 
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("fst_to_seqs") {
+    coati::data_t data;
+
+    VectorFstStdArc fst;
+    fst.AddState();
+    fst.SetStart(0);
+    add_arc(fst, 0, 1, 2, 2);  // C -> C
+    add_arc(fst, 1, 2, 4, 4);  // T -> T
+    add_arc(fst, 2, 3, 0, 2);  // - -> C
+    add_arc(fst, 3, 4, 1, 0);  // A -> -
+    fst.SetFinal(4, 0.0);
+
+    fst_to_seqs(data, fst);
+
+    CHECK_EQ(data.seqs[0], "CT-A");
+    CHECK_EQ(data.seqs[1], "CTC-");
+}
+// GCOVR_EXCL_STOP
+
 /**
  * @brief Get nucleotide from codon.
  *
@@ -681,5 +723,242 @@ TEST_CASE("get_nuc") {
     }
 }
 // GCOVR_EXCL_STOP
+
+/**
+ * @brief Reorder pair of input sequences so that reference is at position zero.
+ *
+ * @param[in,out] aln coati::alignment_t alignment data.
+ */
+void order_ref(coati::alignment_t& aln) {
+    if(aln.data.names[0] == aln.refs) {
+        // already the first sequence: do nothing
+    } else if(aln.data.names[1] == aln.refs || aln.rev) {  // swap sequences
+        std::swap(aln.data.names[0], aln.data.names[1]);
+        std::swap(aln.data.seqs[0], aln.data.seqs[1]);
+        if(aln.data.fsts.size() > 0) {
+            std::swap(aln.data.fsts[0], aln.data.fsts[1]);
+        }
+    } else {  // aln.refs was specified and doesn't match any seq names
+        throw std::invalid_argument("Name of reference sequence not found.");
+    }
+}
+
+/**
+ * @brief Read and validate input sequences.
+ *
+ * @param[in,out] aln coati::alignment_t input sequences and alignment info.
+ *
+ */
+void process_marginal(coati::alignment_t& aln) {
+    // different functions for alignpair/msa/fst/.../ ?
+
+    if(aln.data.size() != 2) {
+        throw std::invalid_argument("Exactly two sequences required.");
+    }
+
+    // set reference sequence as first sequence
+    if(!aln.refs.empty() || aln.rev) {
+        order_ref(aln);
+    }
+
+    // check that length of ref is multiple of 3 and gap unit length
+    size_t len_a = aln.seq(0).length();
+    size_t len_b = aln.seq(1).length();
+    if(len_a % 3 != 0 || len_a % aln.gap.len != 0) {
+        throw std::invalid_argument(
+            "Length of reference sequence must be multiple of 3 and gap unit "
+            "length.");
+    }
+
+    // check that length of descendant is multiple of gap unit length
+    if(len_b % aln.gap.len != 0) {
+        throw std::invalid_argument(
+            "Length of descendant sequence must be multiple of gap unit "
+            "length.");
+    }
+
+    // handle ending stop codons
+    trim_end_stops(aln.data);
+}
+
+/**
+ * @brief Trim end stop codons.
+ *
+ * @param[in,out] aln coati::alignment_t input sequences and alignment info.
+ */
+void trim_end_stops(coati::data_t& data) {
+    for(size_t i = 0; i < data.size(); ++i) {
+        std::string_view seq{data.seqs[i]};
+        size_t len = seq.length();
+        std::string_view last_cod{seq.substr(len - 3)};
+        if(last_cod == "TAA" || last_cod == "TAG" || last_cod == "TGA") {
+            data.stops.emplace_back(last_cod);
+            data.seqs[i].erase(len - 3);
+            if(data.fsts.size() > 0) {
+                int end = static_cast<int>(len);
+                data.fsts[i].DeleteStates({end, end - 1, end - 2});
+                data.fsts[i].SetFinal(end - 3);
+            }
+        } else {
+            data.stops.emplace_back("");
+        }
+    }
+}
+
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("trim_end_stops") {
+    auto test = [](const std::vector<std::string>& raw_seqs,     // NOLINT
+                   const std::vector<std::string>& exp_seqs,     // NOLINT
+                   const std::vector<std::string>& exp_stops) {  // NOLINT
+        coati::data_t data;
+        data.seqs = raw_seqs;
+        for(size_t i = 0; i < raw_seqs.size(); ++i) {
+            data.names.push_back("seq_name");
+        }
+
+        trim_end_stops(data);
+
+        CHECK_EQ(data.seqs, exp_seqs);
+        CHECK_EQ(data.stops, exp_stops);
+    };
+    test({"AAA", "CCC"}, {"AAA", "CCC"}, {"", ""});              // no stops
+    test({"AAATAA", "AAATTT"}, {"AAA", "AAATTT"}, {"TAA", ""});  // stop on ref
+    test({"AAATTT", "AAATAG"}, {"AAATTT", "AAA"}, {"", "TAG"});  // stop on des
+    test({"AAATGA", "AAATGA"}, {"AAA", "AAA"}, {"TGA", "TGA"});  // stop on des
+    test({"AAATAA", "AAATAG"}, {"AAA", "AAA"}, {"TAA", "TAG"});  // stop on des
+
+    auto test_tri = [](const std::vector<std::string>& raw_seqs,     // NOLINT
+                       const std::vector<std::string>& exp_seqs,     // NOLINT
+                       const std::vector<std::string>& exp_stops) {  // NOLINT
+        coati::data_t data;
+        data.seqs = raw_seqs;
+        for(const auto& seq : raw_seqs) {
+            data.names.push_back("seq_name");
+            VectorFstStdArc fsa;  // FSA input sequence
+            coati::acceptor(seq, fsa);
+            data.fsts.push_back(fsa);
+        }
+
+        trim_end_stops(data);
+
+        CHECK_EQ(data.seqs, exp_seqs);
+        CHECK_EQ(data.stops, exp_stops);
+
+        for(size_t i = 0; i < data.size(); ++i) {
+            VectorFstStdArc expected;
+            acceptor(data.seqs[i], expected);
+            CHECK(fst::Equal(expected, data.fsts[i]));
+        }
+    };
+    test_tri({"AAA", "CCC"}, {"AAA", "CCC"}, {"", ""});  // no stops
+    // stop on reference/ancestor
+    test_tri({"AAATAA", "AAATTT"}, {"AAA", "AAATTT"}, {"TAA", ""});
+    // stop on descendant
+    test_tri({"AAATTT", "AAATAG"}, {"AAATTT", "AAA"}, {"", "TAG"});
+    // stop on both sequences
+    test_tri({"AAATGA", "AAATGA"}, {"AAA", "AAA"}, {"TGA", "TGA"});
+    test_tri({"AAATAA", "AAATAG"}, {"AAA", "AAA"}, {"TAA", "TAG"});
+}
+// GCOVR_EXCL_STOP
+
+/**
+ * @brief Restore end stop codons post pairwise alignment.
+ *
+ * @details Four case scenarios:
+ *  (1) no end stop codons on either sequence: nothing to do.
+ *  (2) only present in one sequence: add codon back and insert 3 gaps to other
+ *      sequence.
+ *  (3) present in both sequences: add codons back as 3 matches.
+ *
+ * @param[in,out] data coati::data_t sequences aligned, score, and trimmed end
+ * stop codons.
+ */
+void restore_end_stops(coati::data_t& data, const coati::gap_t& gap) {
+    if(data.stops.size() != 2) {
+        throw std::runtime_error("Error restoring end stop codons.");
+    }
+
+    coati::float_t gap_score = -::logf(gap.open * gap.extend * gap.extend);
+    gap_score -= ::logf(1.f - gap.extend);
+
+    if(data.stops[0].size() == data.stops[1].size()) {  // cases 1 & 3
+        data.seqs[0].append(data.stops[0]);
+        data.seqs[1].append(data.stops[1]);
+    } else if(data.stops[0].empty()) {  // case 2 - stop only in descendant
+        data.seqs[0].append("---");
+        data.seqs[1].append(data.stops[1]);
+        data.score += gap_score;
+    } else if(data.stops[1].empty()) {  // case 2 - stop only in ancestor
+        data.seqs[0].append(data.stops[0]);
+        data.seqs[1].append("---");
+        data.score += gap_score;
+    }
+}
+
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("restore_end_stops") {
+    auto test = [](const std::vector<std::string>& seqs,
+                   const std::vector<std::string>& stops,
+                   const std::vector<std::string>& exp_seqs) {  // NOLINT
+        coati::data_t data;
+        coati::gap_t gap;
+        data.seqs = seqs;
+        data.stops = stops;
+
+        restore_end_stops(data, gap);
+
+        CHECK_EQ(data.seqs, exp_seqs);
+    };
+    test({"AAA", "AAA"}, {"TAA", "TAA"}, {"AAATAA", "AAATAA"});  // same end cod
+    test({"", ""}, {"TAA", "TAA"}, {"TAA", "TAA"});              // same end cod
+    test({"CGA", "CGA"}, {"", ""}, {"CGA", "CGA"});              // no stop cod
+    test({"CTA", "CTA"}, {"TAG", "TGA"},
+         {"CTATAG", "CTATGA"});                               // diff stop cod
+    test({"TGC", "TGC"}, {"", "TAA"}, {"TGC---", "TGCTAA"});  // one stop cod
+    test({"TGC---", "TGCCAC"}, {"", "TAA"},
+         {"TGC------", "TGCCACTAA"});                         // one stop cod
+    test({"CGG", "CGG"}, {"TAG", ""}, {"CGGTAG", "CGG---"});  // one stop cod
+    // data.stops size != 2
+    coati::data_t d;
+    coati::gap_t gap;  // NOLINT
+    d.stops = {""};
+    CHECK_THROWS_AS(restore_end_stops(d, gap), std::runtime_error);
+}
+// GCOVR_EXCL_STOP
+
+/**
+ * @brief Read and validate input sequences.
+ *
+ * @param[in,out] aln coati::alignment_t input sequences and alignment info.
+ */
+void process_triplet(coati::alignment_t& aln) {
+    if(aln.data.size() != 2) {
+        throw std::invalid_argument("Exactly two sequences required.");
+    }
+
+    // set reference sequence as first sequence
+    if(!aln.refs.empty() || aln.rev) {
+        order_ref(aln);
+    }
+
+    if(aln.seq(0).length() % 3 != 0) {
+        throw std::invalid_argument(
+            "Length of reference sequence must be multiple of 3.");
+    }
+
+    // no early stop codons allowed in reference/ancestor
+    std::string cod;
+    for(size_t i = 0; i < aln.seq(0).length() - 3; i += 3) {
+        cod = aln.seq(0).substr(i, 3);
+        if(cod == "TAA" || cod == "TAG" || cod == "TGA") {
+            throw std::invalid_argument("Early stop codon in ancestor.");
+        }
+    }
+
+    // handle ending stop codons
+    trim_end_stops(aln.data);
+}
 
 }  // namespace coati::utils

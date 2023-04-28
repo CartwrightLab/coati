@@ -48,14 +48,9 @@ bool fst_alignment(coati::alignment_t& aln) {
 
     // read input data
     aln.data = coati::io::read_input(aln);
-    if(aln.data.size() != 2) {
-        throw std::invalid_argument("Exactly two sequences required.");
-    }
 
-    if(aln.seq(0).length() % 3 != 0) {
-        throw std::invalid_argument(
-            "Length of reference sequence must be multiple of 3.");
-    }
+    // process input sequences
+    coati::utils::process_triplet(aln);
 
     // set substitution matrix according to model
     coati::utils::set_subst(aln);
@@ -100,8 +95,14 @@ bool fst_alignment(coati::alignment_t& aln) {
     // topsort path FST
     fst::TopSort(&aln_path);
 
+    // FST path to alignment strings
+    coati::utils::fst_to_seqs(aln.data, aln_path);
+
+    // restore end stop codons
+    coati::utils::restore_end_stops(aln.data, aln.gap);
+
     // write alignment
-    coati::io::write_output(aln, aln_path);
+    coati::io::write_output(aln);
     return true;
 }
 
@@ -148,6 +149,7 @@ VectorFstStdArc evo_fst(const coati::alignment_t& aln) {
 TEST_CASE("fst_alignment") {
     coati::alignment_t aln;
     aln.data.path = "test-fst.fasta";
+    aln.data.stops = {"", ""};
 
     std::ofstream out;
     out.open("test-fst.fasta");
@@ -156,27 +158,27 @@ TEST_CASE("fst_alignment") {
     out.close();
 
     SUBCASE("coati model, output json") {
-        aln.model = "coati";
+        aln.model = "tri-mg";
         aln.output = "test-fst-alignment.json";
 
         REQUIRE(fst_alignment(aln));
         std::ifstream infile(aln.output);  // input file
         std::stringstream ss;
         ss << infile.rdbuf();
-        std::string s1 = ss.str();
-        CHECK_EQ(s1, R"({
+        std::string s = ss.str();
+        CHECK_EQ(s, R"({
   "alignment": {
     "1": "CTCTGGATAGTG",
     "2": "CT----ATAGTG"
   },
-  "score": 9.312972068786621
+  "score": 9.31751537322998
 }
 )");
         REQUIRE(std::filesystem::remove(aln.output));
     }
 
     SUBCASE("coati model, output phylip") {
-        aln.model = "coati";
+        aln.model = "tri-mg";
         aln.output = "test-fst-phylip.phy";
 
         REQUIRE(fst_alignment(aln));
@@ -219,7 +221,7 @@ TEST_CASE("fst_alignment") {
     }
 
     SUBCASE("ecm model") {
-        aln.model = "ecm";
+        aln.model = "tri-ecm";
         aln.output = "test-fst-alignment-ecm.fasta";
 
         REQUIRE(fst_alignment(aln));
@@ -265,7 +267,39 @@ TEST_CASE("fst_alignment") {
 
         CHECK_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
     }
+    SUBCASE("Early stop codon in ancestor - fail") {
+        std::ofstream out;
+        out.open("test-fst.fasta");
+        REQUIRE(out);
+        out << ">1\nCTCTGGTAGTAA\n>2\nCTATAGTG\n";
+        out.close();
 
+        CHECK_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
+    }
+    SUBCASE("Sequence with end stop codon") {
+        std::ofstream out;
+        out.open("test-fst.fasta");
+        REQUIRE(out);
+        out << ">1\nCTCTGGATATAA\n>2\nCTATAGTG\n";
+        out.close();
+
+        aln.model = "tri-ecm";
+        aln.output = "test-fst-alignment-stop.fasta";
+
+        REQUIRE(fst_alignment(aln));
+        std::ifstream infile(aln.output);
+        std::string s1, s2;
+
+        infile >> s1 >> s2;
+        CHECK_EQ(s1, ">1");
+        CHECK_EQ(s2, "CTCTGGATA---TAA");
+
+        infile >> s1 >> s2;
+        CHECK_EQ(s1, ">2");
+        CHECK_EQ(s2, "CT----ATAGTG---");
+
+        REQUIRE(std::filesystem::remove(aln.output));
+    }
     REQUIRE(std::filesystem::remove("test-fst.fasta"));
 }
 // GCOVR_EXCL_STOP

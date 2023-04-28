@@ -46,8 +46,7 @@ coati::Matrixf parse_matrix_csv(const std::string& file);
 // Read sequences and names in any supported format.
 coati::data_t read_input(coati::alignment_t& aln);
 // Write sequences and names in any suppported format.
-void write_output(coati::alignment_t& aln,
-                  const coati::VectorFstStdArc& fst = {});
+void write_output(coati::alignment_t& aln);
 
 }  // namespace coati::io
 #endif

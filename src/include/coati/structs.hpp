@@ -70,16 +70,18 @@ class data_t {
     std::vector<std::string> seqs;     /*!< fasta sequences */
     float_t score{0.f};                /*!< alignment score */
     std::vector<VectorFstStdArc> fsts; /*!< sequences as FSTs */
+    std::vector<std::string> stops;
 
     data_t() = default;
     explicit data_t(std::filesystem::path p, std::vector<std::string> n = {},
                     std::vector<std::string> s = {}, float_t w = 0.f,
-                    std::vector<VectorFstStdArc> f = {})
+                    std::vector<VectorFstStdArc> f = {}, std::string c = {})
         : path{std::move(p)},
           names{std::move(n)},
           seqs{std::move(s)},
           score{w},
-          fsts{std::move(f)} {}
+          fsts{std::move(f)},
+          stops{std::move(c)} {}
 
     /** \brief Return number of names/sequences */
     std::size_t size() {
@@ -111,10 +113,10 @@ enum struct AmbiguousNucs { AVG, BEST };
  */
 class alignment_t {
    public:
-    coati::data_t data;            /*!< sequences */
-    std::string model{"marginal"}; /*!< substitution model */
-    float_t br_len{0.0133};        /*!< branch length */
-    float_t omega{0.2};            /*!< nonsynonymous-synonymous bias */
+    coati::data_t data;          /*!< sequences */
+    std::string model{"mar-mg"}; /*!< substitution model */
+    float_t br_len{0.0133};      /*!< branch length */
+    float_t omega{0.2};          /*!< nonsynonymous-synonymous bias */
     std::vector<float_t> pi{0.308, 0.185, 0.199,
                             0.308}; /*!< nucleotide frequencies */
     std::string tree{""};           /*!< path to input newick tree file */
@@ -132,7 +134,7 @@ class alignment_t {
 
     /** \brief Return true if model selected is marginal (marginal or m-ecm) */
     bool is_marginal() {
-        return (model == "marginal" || model == "m-ecm" || !rate.empty());
+        return (model == "mar-mg" || model == "mar-ecm" || !rate.empty());
     }
 
     /** \brief Return sequence at position index. */
