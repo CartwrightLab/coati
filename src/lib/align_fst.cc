@@ -120,7 +120,8 @@ bool fst_alignment(coati::alignment_t& aln) {
 VectorFstStdArc evo_fst(const coati::alignment_t& aln) {
     using fst::StdArc;
     // get indel FST
-    VectorFstStdArc indel_fst = indel(aln.gap.open, aln.gap.extend, aln.pi);
+    VectorFstStdArc indel_fst =
+        indel(aln.gap.open, aln.gap.extend, aln.pi, aln.bc_error);
 
     // sort mutation and indel FSTs
     VectorFstStdArc mutation_sort, indel_sort;
@@ -171,7 +172,7 @@ TEST_CASE("fst_alignment") {
     "1": "CTCTGGATAGTG",
     "2": "CT----ATAGTG"
   },
-  "score": 9.31751537322998
+  "score": 9.316000938415527
 }
 )");
         REQUIRE(std::filesystem::remove(aln.output));

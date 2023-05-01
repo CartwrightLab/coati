@@ -30,7 +30,7 @@ namespace coati::io {
  * @brief Read substitution rate matrix from a CSV file
  *
  * @details Read from file a branch length and a codon substitution rate matrix.
- *  File is expected to have 4067 lines; 1 with branch length and 4096 with
+ *  File is expected to have 3722 lines; 1 with branch length and 3721 with
  *  the following structure: codon,codon,value (e.g. AAA,AAA,0.0015).
  *
  * @param[in] file std::string path to input file.
@@ -39,7 +39,7 @@ namespace coati::io {
  */
 coati::Matrixf parse_matrix_csv(const std::string& file) {
     float br_len{NAN};
-    Matrix64f Q;
+    Matrix61f Q;
     std::ifstream input(file);
     if(!input.good()) {
         throw std::invalid_argument("Error opening file " + file + ".");
@@ -59,15 +59,16 @@ coati::Matrixf parse_matrix_csv(const std::string& file) {
         getline(ss, vec[0], ',');
         getline(ss, vec[1], ',');
         getline(ss, vec[2], ',');
-        Q(coati::utils::cod_int(vec[0]), coati::utils::cod_int(vec[1])) =
-            stof(vec[2]);
+        auto cod0 = coati::utils::cod64_to_61(coati::utils::cod_int(vec[0]));
+        auto cod1 = coati::utils::cod64_to_61(coati::utils::cod_int(vec[1]));
+        Q(cod0, cod1) = stof(vec[2]);
         count++;
     }
 
     input.close();
 
-    // if file had a different number of lines that it should (64*64=4096)
-    if(count != 4096) {
+    // if file had a different number of lines that it should (61*61=3721)
+    if(count != 3721) {
         throw std::invalid_argument(
             "Error reading substitution rate CSV file. Exiting!");
     }
@@ -75,7 +76,7 @@ coati::Matrixf parse_matrix_csv(const std::string& file) {
     Q = Q * br_len;
     Q = Q.exp();
 
-    return {64, 64, Q};
+    return {61, 61, Q};
 }
 
 /// @private
@@ -87,28 +88,27 @@ TEST_CASE("parse_matrix_csv") {
             mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
         const std::vector<std::string> codons = {
-            "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT",
-            "AGA", "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT",
-            "CAA", "CAC", "CAG", "CAT", "CCA", "CCC", "CCG", "CCT",
-            "CGA", "CGC", "CGG", "CGT", "CTA", "CTC", "CTG", "CTT",
-            "GAA", "GAC", "GAG", "GAT", "GCA", "GCC", "GCG", "GCT",
-            "GGA", "GGC", "GGG", "GGT", "GTA", "GTC", "GTG", "GTT",
-            "TAA", "TAC", "TAG", "TAT", "TCA", "TCC", "TCG", "TCT",
-            "TGA", "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT"};
+            "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA",
+            "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT", "CAA", "CAC",
+            "CAG", "CAT", "CCA", "CCC", "CCG", "CCT", "CGA", "CGC", "CGG",
+            "CGT", "CTA", "CTC", "CTG", "CTT", "GAA", "GAC", "GAG", "GAT",
+            "GCA", "GCC", "GCG", "GCT", "GGA", "GGC", "GGG", "GGT", "GTA",
+            "GTC", "GTG", "GTT", "TAC", "TAT", "TCA", "TCC", "TCG", "TCT",
+            "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT"};
 
         outfile.open("test-marg-matrix.csv");
         REQUIRE(outfile);
 
-        float Q[4096]{0.0f};
-        for(size_t i = 0; i < 610; i++) {
+        float Q[3721]{0.0f};
+        for(size_t i = 0; i < 587; i++) {
             Q[mg94_indexes[i]] = mg94Q[i];
         }
 
         outfile << "0.0133" << std::endl;  // branch length
         std::cout.precision(10);
-        for(auto i = 0; i < 64; i++) {
-            for(auto j = 0; j < 64; j++) {
-                outfile << codons[i] << "," << codons[j] << "," << Q[i * 64 + j]
+        for(auto i = 0; i < 61; i++) {
+            for(auto j = 0; j < 61; j++) {
+                outfile << codons[i] << "," << codons[j] << "," << Q[i * 61 + j]
                         << std::endl;
             }
         }
@@ -116,8 +116,8 @@ TEST_CASE("parse_matrix_csv") {
         outfile.close();
         coati::Matrix<coati::float_t> P_test(
             parse_matrix_csv("test-marg-matrix.csv"));
-        for(auto i = 0; i < 64; i++) {
-            for(auto j = 0; j < 64; j++) {
+        for(auto i = 0; i < 61; i++) {
+            for(auto j = 0; j < 61; j++) {
                 CHECK_EQ(P(i, j), doctest::Approx(P_test(i, j)));
             }
         }
@@ -132,27 +132,26 @@ TEST_CASE("parse_matrix_csv") {
             mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
         const std::vector<std::string> codons = {
-            "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT",
-            "AGA", "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT",
-            "CAA", "CAC", "CAG", "CAT", "CCA", "CCC", "CCG", "CCT",
-            "CGA", "CGC", "CGG", "CGT", "CTA", "CTC", "CTG", "CTT",
-            "GAA", "GAC", "GAG", "GAT", "GCA", "GCC", "GCG", "GCT",
-            "GGA", "GGC", "GGG", "GGT", "GTA", "GTC", "GTG", "GTT",
-            "TAA", "TAC", "TAG", "TAT", "TCA", "TCC", "TCG", "TCT",
-            "TGA", "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT"};
+            "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA",
+            "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT", "CAA", "CAC",
+            "CAG", "CAT", "CCA", "CCC", "CCG", "CCT", "CGA", "CGC", "CGG",
+            "CGT", "CTA", "CTC", "CTG", "CTT", "GAA", "GAC", "GAG", "GAT",
+            "GCA", "GCC", "GCG", "GCT", "GGA", "GGC", "GGG", "GGT", "GTA",
+            "GTC", "GTG", "GTT", "TAC", "TAT", "TCA", "TCC", "TCG", "TCT",
+            "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT"};
 
         outfile.open("test-marg-matrix.csv");
         REQUIRE(outfile);
 
-        float Q[4096]{0.0f};
-        for(auto i = 0; i < 610; i++) {
+        float Q[3721]{0.0f};
+        for(auto i = 0; i < 587; i++) {
             Q[mg94_indexes[i]] = mg94Q[i];
         }
 
         outfile << "0.0133" << std::endl;  // branch length
-        for(auto i = 0; i < 64; i++) {
-            for(auto j = 0; j < 64; j++) {
-                outfile << codons[i] << "," << codons[j] << "," << Q[i * 64 + j]
+        for(auto i = 0; i < 61; i++) {
+            for(auto j = 0; j < 61; j++) {
+                outfile << codons[i] << "," << codons[j] << "," << Q[i * 61 + j]
                         << std::endl;
             }
         }

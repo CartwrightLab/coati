@@ -141,6 +141,10 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
                    "Ambiguous nucleotides model", "AVG")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
+    app.add_option("-b,--base-error", args.aln.bc_error,
+                   "Base calling error rate")
+        ->check(CLI::PositiveNumber)
+        ->group("Advanced options");
 }
 
 /// private
@@ -453,7 +457,7 @@ TEST_CASE("parse_arguments_format") {
  *
  * @details Encode ancestor (ref) sequence as codon \& phase, descendant as
  * nucleotide. ref: AAA \& position 0 -> 0, AAA \& 1 -> 1, ... , TTT \& 2 ->
- * 191. des: A -> 0, C -> 1, G -> 2, T -> 3. Ending stop codons have been
+ * 183. des: A -> 0, C -> 1, G -> 2, T -> 3. Ending stop codons have been
  * removed from both sequences if present. Only descendant is allowed to have
  * early stop codons (considered artifacts).
  *
@@ -470,13 +474,14 @@ sequence_pair_t marginal_seq_encoding(const std::string_view anc,
     ret[1].reserve(des.length());
 
     // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... ,
-    // TTT3->191
+    // TTT3->183
     for(size_t i = 0; i < anc.size(); i += 3) {
         auto cod = cod_int(anc.substr(i, i + 2));
         // if stop codon - throw error
         if(cod == 48 || cod == 50 || cod == 56) {
             throw std::invalid_argument("Early stop codon in ancestor.");
         }
+        cod = cod64_to_61(cod);
         cod *= 3;
         ret[0].push_back(cod);
         ret[0].push_back(cod + 1);
@@ -503,9 +508,9 @@ TEST_CASE("marginal_seq_encoding") {
     CHECK_EQ(result[0][3], static_cast<unsigned char>(126));
     CHECK_EQ(result[0][4], static_cast<unsigned char>(127));
     CHECK_EQ(result[0][5], static_cast<unsigned char>(128));
-    CHECK_EQ(result[0][6], static_cast<unsigned char>(189));
-    CHECK_EQ(result[0][7], static_cast<unsigned char>(190));
-    CHECK_EQ(result[0][8], static_cast<unsigned char>(191));
+    CHECK_EQ(result[0][6], static_cast<unsigned char>(180));
+    CHECK_EQ(result[0][7], static_cast<unsigned char>(181));
+    CHECK_EQ(result[0][8], static_cast<unsigned char>(182));
     CHECK_EQ(result[0][9], static_cast<unsigned char>(63));
     CHECK_EQ(result[0][10], static_cast<unsigned char>(64));
     CHECK_EQ(result[0][11], static_cast<unsigned char>(65));
@@ -557,7 +562,7 @@ TEST_CASE("marginal_seq_encoding") {
  * and substitution matrix/FST.
  */
 void set_subst(alignment_t& aln) {
-    Matrixf P(64, 64);
+    Matrixf P(61, 61);
 
     if(!aln.rate.empty()) {
         aln.model = "user_marg_model";
@@ -691,7 +696,7 @@ TEST_CASE("fst_to_seqs") {
 // GCOVR_EXCL_STOP
 
 /**
- * @brief Get nucleotide from codon.
+ * @brief Get nucleotide from codon using codon list without stop codons.
  *
  * @param[in] cod uint8_t codon.
  * @param[in] pos int position in codon = {0, 1, 2}.
@@ -700,6 +705,12 @@ TEST_CASE("fst_to_seqs") {
  *
  */
 uint8_t get_nuc(uint8_t cod, int pos) {
+    if(cod > 61) {
+        throw std::out_of_range(
+            "Codon out of range for list without stop codons.");
+    }
+    cod = cod61_to_64(cod);
+
     std::vector<uint8_t> cod_mask = {48, 12, 3};
     std::vector<uint8_t> shift = {4, 2, 0};
 
@@ -709,17 +720,25 @@ uint8_t get_nuc(uint8_t cod, int pos) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("get_nuc") {
-    std::vector<uint8_t> nucs{0, 1, 2, 3};
-    for(const auto& n1 : nucs) {  // NOLINT(clang-diagnostic-unused-variable)
-        // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
-        for(const auto& n2 : nucs) {
-            // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
-            for(const auto& n3 : nucs) {
-                CHECK_EQ(get_nuc(16 * n1 + 4 * n2 + n3, 0), n1);
-                CHECK_EQ(get_nuc(16 * n1 + 4 * n2 + n3, 1), n2);
-                CHECK_EQ(get_nuc(16 * n1 + 4 * n2 + n3, 2), n3);
-            }
-        }
+    auto test = [](int cod1, int cod2) {
+        auto n1 = get_nuc(cod1, 0);
+        auto n2 = get_nuc(cod1, 1);
+        auto n3 = get_nuc(cod1, 2);
+        CHECK_EQ(16 * n1 + 4 * n2 + n3, cod2);
+    };
+    // test all codons before first stop codon (48)
+    for(auto i = 0; i < 48; ++i) {
+        test(i, i);
+    }
+    // test codon after first (48) and before second (50-1) stop codon
+    test(48, 49);
+    // test codons after second (50-1) and before third (56-2) stop codon
+    for(auto i = 49; i < 54; ++i) {
+        test(i, i + 2);
+    }
+    // test codons after third (56-2) until last (61) codon
+    for(auto i = 54; i < 61; ++i) {
+        test(i, i + 3);
     }
 }
 // GCOVR_EXCL_STOP
@@ -960,5 +979,98 @@ void process_triplet(coati::alignment_t& aln) {
     // handle ending stop codons
     trim_end_stops(aln.data);
 }
+
+/**
+ * @brief Convert codon index from 64 codon table to 61 (no stop codons).
+ *
+ * @param[in] codon index in 64 codon table.
+ *
+ * @retval codon index in 61 codon table.
+ */
+int cod64_to_61(int cod) {
+    if(cod < 0 || cod > 63) {
+        throw std::out_of_range("Codon index " + std::to_string(cod) +
+                                " is out of range [0-63].");
+    }
+    if(cod == 48 || cod == 50 || cod == 56) {  // stop codons
+        throw std::invalid_argument("Stop codon not expected in cod64_to_61");
+    }
+    if(cod < 48) {
+        return cod;
+    }
+    if(cod == 49) {
+        cod--;
+    }
+    if(cod >= 50 && cod < 57) {
+        cod -= 2;
+    }
+    if(cod >= 57) {
+        cod -= 3;
+    }
+    return cod;
+}
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("cod64_to_61") {
+    CHECK_EQ(cod64_to_61(0), 0);
+    CHECK_EQ(cod64_to_61(20), 20);
+    CHECK_EQ(cod64_to_61(47), 47);
+    CHECK_EQ(cod64_to_61(49), 48);
+    CHECK_EQ(cod64_to_61(51), 49);
+    CHECK_EQ(cod64_to_61(52), 50);
+    CHECK_EQ(cod64_to_61(53), 51);
+    CHECK_EQ(cod64_to_61(57), 54);
+    CHECK_EQ(cod64_to_61(60), 57);
+    CHECK_EQ(cod64_to_61(63), 60);
+    // Fails
+    CHECK_THROWS_AS(cod64_to_61(-1), std::out_of_range);
+    CHECK_THROWS_AS(cod64_to_61(64), std::out_of_range);
+    CHECK_THROWS_AS(cod64_to_61(48), std::invalid_argument);
+    CHECK_THROWS_AS(cod64_to_61(50), std::invalid_argument);
+    CHECK_THROWS_AS(cod64_to_61(56), std::invalid_argument);
+}
+// GCOVR_EXCL_STOP
+
+/**
+ * @brief Convert codon index from 61 (no stop codons) codon table to 64.
+ *
+ * @param[in] codon index in 61 codon table.
+ *
+ * @retval codon index in 64 codon table.
+ */
+int cod61_to_64(int cod) {
+    if(cod < 0 || cod > 60) {
+        throw std::out_of_range("Codon index " + std::to_string(cod) +
+                                " is out of range [0-60].");
+    }
+    if(cod < 48) {
+        return cod;
+    }
+    if(cod == 48) {
+        cod++;
+    } else if(cod >= 49 && cod < 54) {
+        cod += 2;
+    } else {  // >= 54
+        cod += 3;
+    }
+    return cod;
+}
+/// @private
+// GCOVR_EXCL_START
+TEST_CASE("cod61_to_64") {
+    CHECK_EQ(cod61_to_64(0), 0);
+    CHECK_EQ(cod61_to_64(20), 20);
+    CHECK_EQ(cod61_to_64(47), 47);
+    CHECK_EQ(cod61_to_64(48), 49);
+    CHECK_EQ(cod61_to_64(49), 51);
+    CHECK_EQ(cod61_to_64(50), 52);
+    CHECK_EQ(cod61_to_64(54), 57);
+    CHECK_EQ(cod61_to_64(56), 59);
+    CHECK_EQ(cod61_to_64(60), 63);
+    // Fails
+    CHECK_THROWS_AS(cod61_to_64(-1), std::out_of_range);
+    CHECK_THROWS_AS(cod61_to_64(61), std::out_of_range);
+}
+// GCOVR_EXCL_STOP
 
 }  // namespace coati::utils

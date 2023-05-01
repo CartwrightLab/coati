@@ -87,6 +87,7 @@ Advanced options:
   -w,--omega FLOAT:POSITIVE        Nonsynonymous-synonymous bias
   -p,--pi FLOAT x 4                Nucleotide frequencies (A C G T)
   -x,--sigma FLOAT x 6             GTR sigma parameters (AC AG AT CG CT GT)
+  -b,--base-error FLOAT:POSITIVE   Base calling error rate
 
 ```
 
