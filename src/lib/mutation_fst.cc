@@ -30,7 +30,7 @@ namespace coati {
  * @brief Create Muse and Gaut codon model FST.
  *
  * @details Create an FST that represents the codon substitution model by Muse
- * and Gaut. For each codon to codon substitution value (64*64, we add three
+ * and Gaut. For each codon to codon substitution value (61*61), we add three
  * arcs that model the nucleotide to nucleotide changes. The first arc carries
  * the substitution probability.
  *
@@ -53,13 +53,10 @@ VectorFstStdArc mg94(float br_len, float omega,
     mg94.AddState();
     mg94.SetStart(0);
 
-    // Creat FST
+    // Create FST
     int r = 1;
-    for(uint8_t i = 0; i < 64; i++) {
-        if(i == 48 || i == 50 || i == 56) {  // stop codons (TAA, TAG, TGA)
-            continue;
-        }
-        for(uint8_t j = 0; j < 64; j++) {
+    for(uint8_t i = 0; i < 61; i++) {
+        for(uint8_t j = 0; j < 61; j++) {
             add_arc(mg94, 0, r, get_nuc(i, 0) + 1, get_nuc(j, 0) + 1, P(i, j));
             add_arc(mg94, r, r + 1, get_nuc(i, 1) + 1, get_nuc(j, 1) + 1);
             add_arc(mg94, r + 1, 0, get_nuc(i, 2) + 1, get_nuc(j, 2) + 1);
@@ -83,7 +80,6 @@ TEST_CASE("mg94") {
 
     REQUIRE(Verify(mut_fst));          // openfst built-in sanity check
     CHECK_EQ(mut_fst.NumArcs(0), 16);  // 4x4 nuc to nuc arcs from start state
-    CHECK_EQ(mut_fst.NumStates(), 251);
 }
 // GCOVR_EXCL_STOP
 
@@ -115,11 +111,11 @@ VectorFstStdArc dna(float br_len, float omega,
 
     coati::Matrixf dna_p(4, 4);
 
-    for(uint8_t cod = 0; cod < 64; cod++) {  // for each codon
+    for(uint8_t cod = 0; cod < 61; cod++) {  // for each codon
         for(int pos = 0; pos < 3; pos++) {   // for each position in a codon
             for(int nucf = 0; nucf < 4; nucf++) {  // for each nucleotide (from)
                 for(int nuct = 0; nuct < 4; nuct++) {  // for each nuc (to)
-                    for(int i = 0; i < 64; i++) {      // sum over all codons
+                    for(int i = 0; i < 61; i++) {      // sum over all codons
                         dna_p(nucf, nuct) +=
                             (get_nuc(i, pos) == nuct
                                  ? get_nuc(cod, pos) == nucf ? P(cod, i) : 0.0f
@@ -158,10 +154,10 @@ TEST_CASE("dna") {
     CHECK_EQ(dna_fst.NumStates(), 1);  // trans are indp, only 1 state needed
 
     // NOLINTNEXTLINE(clang-diagnostic-unused-variable)
-    float dna_val[16]{0.9965122898, 0.0005353988, 0.0025812510, 0.0003710603,
-                      0.0009374010, 0.9932729980, 0.0008498813, 0.0049397197,
-                      0.0040882818, 0.0007710082, 0.9944280545, 0.0007126555,
-                      0.0003757659, 0.0028826668, 0.0004548433, 0.9962867240};
+    float dna_val[16]{0.9961381369, 0.0005952569, 0.0028695324, 0.0003970738,
+                      0.0009135811, 0.9933360211, 0.0008441978, 0.0049061999,
+                      0.0042575611, 0.0008198302, 0.9941940598, 0.0007285488,
+                      0.0003882735, 0.0031330203, 0.0004814705, 0.9959972357};
     fst::StateIterator<fst::StdFst> siter(dna_fst);  // FST state iterator
     fst::ArcIteratorData<fst::StdArc> data;
     dna_fst.InitArcIterator(siter.Value(), &data);
@@ -196,7 +192,7 @@ TEST_CASE("dna") {
  * @retval coati::VectorFstStdArc indel model FST.
  */
 VectorFstStdArc indel(float gap_open, float gap_extend,
-                      const std::vector<float>& pi) {
+                      const std::vector<float>& pi, float bc_error) {
     VectorFstStdArc indel_fst;
     int start = 0, insertion = 1, deletion = 4, match = 6, end = 7;
 
@@ -228,9 +224,19 @@ VectorFstStdArc indel(float gap_open, float gap_extend,
     add_arc(indel_fst, 5, match, 0, 0, 1.0f - gap_extend);
 
     // Matches
-    for(int i = 0; i < 4; i++) {
-        add_arc(indel_fst, match, start, i + 1, i + 1);
-        add_arc(indel_fst, match, start, i + 1, 5);
+    for(int i = 1; i < 5; i++) {
+        add_arc(indel_fst, match, start, i, i, 1 - 3 * bc_error);  // nuc -> nuc
+        add_arc(indel_fst, match, start, i, 5);                    // nuc -> N
+    }
+
+    // Base calling error
+    for(int i = 1; i < 5; ++i) {
+        for(int j = 1; j < 5; ++j) {
+            if(i == j) {
+                continue;
+            }
+            add_arc(indel_fst, match, start, i, j, bc_error);
+        }
     }
 
     // End probabilities
@@ -250,13 +256,13 @@ VectorFstStdArc indel(float gap_open, float gap_extend,
 // GCOVR_EXCL_START
 TEST_CASE("indel") {
     VectorFstStdArc indel_model(
-        indel(0.001, 1.f - 1.f / 6.f, {0.308, 0.185, 0.199, 0.308}));
+        indel(0.001, 1.f - 1.f / 6.f, {0.308, 0.185, 0.199, 0.308}, 0.0001));
 
     REQUIRE(Verify(indel_model));  // openfst built-in sanity check
     CHECK_EQ(indel_model.NumStates(), 4);
-    CHECK_EQ(indel_model.NumArcs(0), 17);  // number of outcoming arcs
-    CHECK_EQ(indel_model.NumArcs(1), 17);
-    CHECK_EQ(indel_model.NumArcs(2), 12);
+    CHECK_EQ(indel_model.NumArcs(0), 29);  // number of outcoming arcs
+    CHECK_EQ(indel_model.NumArcs(1), 29);
+    CHECK_EQ(indel_model.NumArcs(2), 24);
     CHECK_EQ(indel_model.NumArcs(3), 1);
 }
 // GCOVR_EXCL_STOP

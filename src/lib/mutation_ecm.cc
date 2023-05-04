@@ -71,7 +71,7 @@ TEST_CASE("nts_ntv") {
     CHECK_EQ(nts, 0);
     CHECK_EQ(ntv, 1);
 
-    nts_ntv(39, 60, nts, ntv);  // GCT -> TTA
+    nts_ntv(39, 57, nts, ntv);  // GCT -> TTA
     CHECK_EQ(nts, 1);
     CHECK_EQ(ntv, 2);
 
@@ -128,7 +128,7 @@ TEST_CASE("k") {
     CHECK_EQ(k(0, 42, 1), 15.625);   // AAA -> GGG, ECM+F+omega+1k(ts)
     CHECK_EQ(k(32, 29, 1), 1);       // GAA -> CTC, ECM+F+omega+1k(ts)
     CHECK_EQ(k(47, 38, 1), 2.5);     // GTT -> GCT, ECM+F+omega+1k(ts)
-    CHECK_EQ(k(21, 51, 1), 6.25);    // CCC -> TAT, ECM+F+omega+1k(ts)
+    CHECK_EQ(k(21, 49, 1), 6.25);    // CCC -> TAT, ECM+F+omega+1k(ts)
     CHECK_EQ(k(0, 0, 2), 1);         // AAA -> AAA, ECM+F+omega+1k(tv)
     CHECK_EQ(k(32, 29, 2), 15.625);  // GAA -> CTC, ECM+F+omega+1k(tv)
     CHECK_EQ(k(47, 38, 2), 2.5);     // GTT -> GCT, ECM+F+omega+1k(tv)
@@ -149,19 +149,18 @@ coati::Matrixf ecm_p(float br_len, float omega) {
         throw std::out_of_range("Branch length must be positive.");
     }
 
-    Matrix64f Q = Matrix64f::Zero();
+    Matrix61f Q = Matrix61f::Zero();
 
     float d = 0.0;
 
-    for(uint8_t i = 0; i < 64; i++) {
+    for(uint8_t i = 0; i < 61; i++) {
         float rowSum = 0.0;
-        for(uint8_t j = 0; j < 64; j++) {
+        for(uint8_t j = 0; j < 61; j++) {
             // if codons i or j are stop codons value is zero (default)
-            if(i == j || amino_group_table[i] == '*' ||
-               amino_group_table[j] == '*') {
+            if(i == j) {
                 continue;
             }
-            if(amino_group_table[i] == amino_group_table[j]) {
+            if(amino_group[i] == amino_group[j]) {
                 // same aminoacid group
                 Q(i, j) = exchang[i][j] * ecm_pi[j] * k(i, j, 0);
             } else {
@@ -181,9 +180,7 @@ coati::Matrixf ecm_p(float br_len, float omega) {
     Q = Q * br_len;
     Q = Q.exp();
 
-    coati::Matrixf P(64, 64, Q);
-
-    return P;
+    return {61, 61, Q};
 }
 
 /**
@@ -203,10 +200,11 @@ VectorFstStdArc ecm(float br_len, float omega) {
     ecm.AddState();
     ecm.SetStart(0);
 
+    // Create FST
     int r = 1;
-    for(uint8_t i = 0; i < 64; i++) {
-        for(uint8_t j = 0; j < 64; j++) {
-            add_arc(ecm, 0, r, get_nuc(i, 0) + 1, get_nuc(i, 0) + 1, P(i, j));
+    for(uint8_t i = 0; i < 61; i++) {
+        for(uint8_t j = 0; j < 61; j++) {
+            add_arc(ecm, 0, r, get_nuc(i, 0) + 1, get_nuc(j, 0) + 1, P(i, j));
             add_arc(ecm, r, r + 1, get_nuc(i, 1) + 1, get_nuc(j, 1) + 1);
             add_arc(ecm, r + 1, 0, get_nuc(i, 2) + 1, get_nuc(j, 2) + 1);
             r = r + 2;
@@ -215,6 +213,7 @@ VectorFstStdArc ecm(float br_len, float omega) {
 
     // Set final state
     ecm.SetFinal(0, 0.0);
+
     return optimize(ecm);
 }
 }  // namespace coati

@@ -131,6 +131,7 @@ class alignment_t {
     std::filesystem::path output; /*!< path to alignment output file */
     bool score{false};            /*!< if true an input alignment is scored */
     AmbiguousNucs amb = AmbiguousNucs::AVG;
+    float_t bc_error{0.0001}; /*!< base calling error rate */
 
     /** \brief Return true if model selected is marginal (marginal or m-ecm) */
     bool is_marginal() {

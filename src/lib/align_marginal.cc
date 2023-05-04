@@ -38,7 +38,6 @@ namespace coati {
  * @retval true successful run.
  */
 bool marg_alignment(coati::alignment_t& aln) {
-    coati::Matrixf P(64, 64), p_marg;
     std::ofstream out_w;
 
     // read input data
@@ -305,27 +304,26 @@ TEST_CASE("marg_alignment") {
             mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
 
         const std::vector<std::string> codons = {
-            "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT",
-            "AGA", "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT",
-            "CAA", "CAC", "CAG", "CAT", "CCA", "CCC", "CCG", "CCT",
-            "CGA", "CGC", "CGG", "CGT", "CTA", "CTC", "CTG", "CTT",
-            "GAA", "GAC", "GAG", "GAT", "GCA", "GCC", "GCG", "GCT",
-            "GGA", "GGC", "GGG", "GGT", "GTA", "GTC", "GTG", "GTT",
-            "TAA", "TAC", "TAG", "TAT", "TCA", "TCC", "TCG", "TCT",
-            "TGA", "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT"};
+            "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA",
+            "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT", "CAA", "CAC",
+            "CAG", "CAT", "CCA", "CCC", "CCG", "CCT", "CGA", "CGC", "CGG",
+            "CGT", "CTA", "CTC", "CTG", "CTT", "GAA", "GAC", "GAG", "GAT",
+            "GCA", "GCC", "GCG", "GCT", "GGA", "GGC", "GGG", "GGT", "GTA",
+            "GTC", "GTG", "GTT", "TAC", "TAT", "TCA", "TCC", "TCG", "TCT",
+            "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT"};
 
         outfile.open("test-marg-matrix.csv");
         REQUIRE(outfile);
 
-        float Q[4096]{0.0f};
-        for(auto i = 0; i < 610; i++) {
+        float Q[3721]{0.0f};
+        for(auto i = 0; i < 587; i++) {
             Q[mg94_indexes[i]] = mg94Q[i];
         }
 
         outfile << "0.0133" << std::endl;  // branch length
-        for(auto i = 0; i < 64; i++) {
-            for(auto j = 0; j < 64; j++) {
-                outfile << codons[i] << "," << codons[j] << "," << Q[i * 64 + j]
+        for(auto i = 0; i < 61; i++) {
+            for(auto j = 0; j < 61; j++) {
+                outfile << codons[i] << "," << codons[j] << "," << Q[i * 61 + j]
                         << std::endl;
             }
         }
@@ -464,16 +462,16 @@ TEST_CASE("alignment_score") {
     coati::Matrixf p_marg = marginal_p(P, aln.pi, AmbiguousNucs::AVG);
 
     aln.data.seqs = {"CTCTGGATAGTG", "CT----ATAGTG"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(1.51073f));
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(1.51014f));
 
     aln.data.seqs = {"CTCT--AT", "CTCTGGAT"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.83802f));
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.83806f));
 
     aln.data.seqs = {"ACTCT-A", "ACTCTG-"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-8.73539f));
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-8.73588f));
 
     aln.data.seqs = {"ACTCTA-", "ACTCTAG"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.66101f));
+    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.66167f));
     // different length
     aln.data.seqs = {"CTC", "CT"};
     REQUIRE_THROWS_AS(alignment_score(aln, p_marg), std::invalid_argument);
@@ -492,7 +490,7 @@ TEST_CASE("alignment_score") {
  *
  */
 void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
-    coati::Matrixf P(64, 64), p_marg;
+    coati::Matrixf P(61, 61), p_marg;
 
     // read input data
     aln.data = coati::io::read_input(aln);
@@ -611,7 +609,7 @@ TEST_CASE("marg_sample") {
     SUBCASE("sample size 1") {
         std::vector<std::string> seq1{"CC--CCCC"};
         std::vector<std::string> seq2{"CCCCCCCC"};
-        std::vector<std::string> lscore{"-3.4660892486572266"};
+        std::vector<std::string> lscore{"-3.466090440750122"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 1 - deletion") {
@@ -623,9 +621,8 @@ TEST_CASE("marg_sample") {
     SUBCASE("sample size 3") {
         std::vector<std::string> seq1{"CC--CCCC", "CCCCCC--", "CCCCC--C"};
         std::vector<std::string> seq2{"CCCCCCCC", "CCCCCCCC", "CCCCCCCC"};
-        std::vector<std::string> lscore{"-3.4660892486572266",
-                                        "-0.6934394836425781",
-                                        "-1.3866022825241089"};
+        std::vector<std::string> lscore{
+            "-3.466090440750122", "-0.693439245223999", "-1.386602520942688"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("length of reference not multiple of 3") {

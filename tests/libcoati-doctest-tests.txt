@@ -42,5 +42,7 @@ fst_to_seqs
 get_nuc
 trim_end_stops
 restore_end_stops
+cod64_to_61
+cod61_to_64
 version_number_check_equal
 version_integer
