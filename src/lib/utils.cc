@@ -740,6 +740,10 @@ TEST_CASE("get_nuc") {
     for(auto i = 54; i < 61; ++i) {
         test(i, i + 3);
     }
+
+    CHECK_THROWS_AS(get_nuc(62, 0), std::out_of_range);
+    CHECK_THROWS_AS(get_nuc(62, 1), std::out_of_range);
+    CHECK_THROWS_AS(get_nuc(62, 2), std::out_of_range);
 }
 // GCOVR_EXCL_STOP
 
@@ -769,8 +773,6 @@ void order_ref(coati::alignment_t& aln) {
  *
  */
 void process_marginal(coati::alignment_t& aln) {
-    // different functions for alignpair/msa/fst/.../ ?
-
     if(aln.data.size() != 2) {
         throw std::invalid_argument("Exactly two sequences required.");
     }
@@ -780,9 +782,61 @@ void process_marginal(coati::alignment_t& aln) {
         order_ref(aln);
     }
 
-    // check that length of ref is multiple of 3 and gap unit length
     size_t len_a = aln.seq(0).length();
     size_t len_b = aln.seq(1).length();
+
+    // check that length of ref is multiple of 3 and gap unit length
+    if(len_a % 3 != 0 || len_a % aln.gap.len != 0) {
+        throw std::invalid_argument(
+            "Length of reference sequence must be multiple of 3 and gap unit "
+            "length.");
+    }
+
+    // check that length of descendant is multiple of gap unit length
+    if(len_b % aln.gap.len != 0) {
+        throw std::invalid_argument(
+            "Length of descendant sequence must be multiple of gap unit "
+            "length.");
+    }
+
+    // handle ending stop codons
+    trim_end_stops(aln.data);
+}
+
+/**
+ * @brief Validate pairwise alignment before scoring
+ *
+ * @param[in,out] aln coati::alignment_t input sequences and alignment info.
+ *
+ */
+void process_alignment(coati::alignment_t& aln) {
+    if(aln.data.size() != 2) {
+        throw std::invalid_argument("Exactly two sequences required.");
+    }
+
+    // set reference sequence as first sequence
+    if(!aln.refs.empty() || aln.rev) {
+        order_ref(aln);
+    }
+
+    size_t len_a = aln.seq(0).length();
+    size_t len_b = aln.seq(1).length();
+
+    // check that both sequences have equal length
+    if(len_a != len_b) {
+        throw std::invalid_argument(
+            "For alignment scoring both sequences must have equal length.");
+    }
+
+    // remove gaps
+    boost::algorithm::erase_all(aln.data.seqs[0], "-");
+    boost::algorithm::erase_all(aln.data.seqs[1], "-");
+
+    // recalculate length without gaps
+    len_a = aln.seq(0).length();
+    len_b = aln.seq(1).length();
+
+    // check that length of ref is multiple of 3 and gap unit length
     if(len_a % 3 != 0 || len_a % aln.gap.len != 0) {
         throw std::invalid_argument(
             "Length of reference sequence must be multiple of 3 and gap unit "
@@ -898,8 +952,7 @@ void restore_end_stops(coati::data_t& data, const coati::gap_t& gap) {
         throw std::runtime_error("Error restoring end stop codons.");
     }
 
-    coati::float_t gap_score = -::logf(gap.open * gap.extend * gap.extend);
-    gap_score -= ::logf(1.f - gap.extend);
+    coati::float_t gap_score = ::logf(gap.open * gap.extend * gap.extend);
 
     if(data.stops[0].size() == data.stops[1].size()) {  // cases 1 & 3
         data.seqs[0].append(data.stops[0]);

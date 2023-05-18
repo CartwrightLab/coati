@@ -113,7 +113,7 @@ void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
             work.mch2ins = work.mch(i, j - look_back) + gap_open +
                            gap_extend * static_cast<float_t>(look_back - 1);
             work.ins2ins = work.ins(i, j - look_back) +
-                           gap_extend * static_cast<float_t>(look_back - 1);
+                           gap_extend * static_cast<float_t>(look_back);
 
             // save score
             work.mch(i, j) = S::plus(work.mch2mch, work.del2mch, work.ins2mch);

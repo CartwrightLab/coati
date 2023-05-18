@@ -43,9 +43,6 @@ bool marg_alignment(coati::alignment_t& aln) {
     // read input data
     aln.data = coati::io::read_input(aln);
 
-    // process input sequences
-    coati::utils::process_marginal(aln);
-
     // set substitution matrix according to model
     coati::utils::set_subst(aln);
 
@@ -54,6 +51,9 @@ bool marg_alignment(coati::alignment_t& aln) {
         std::cout << alignment_score(aln, aln.subst_matrix) << std::endl;
         return true;
     }
+
+    // process input sequences
+    coati::utils::process_marginal(aln);
 
     // encode sequences
     auto anc = aln.seq(0);
@@ -367,21 +367,13 @@ TEST_CASE("marg_alignment") {
  *
  * @retval float alignment score.
  */
-float alignment_score(const coati::alignment_t& aln,
-                      const coati::Matrixf& p_marg) {
+float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
     std::vector<std::string> seqs = aln.data.seqs;
 
-    // check that both sequences have equal length
-    if(seqs[0].length() != seqs[1].length()) {
-        throw std::invalid_argument(
-            "For alignment scoring both sequences must have equal length.");
-    }
+    coati::utils::process_alignment(aln);
 
-    // encode desc and gap-less ref sequences for subsitution matrix access
-    std::string anc{seqs[0]};
-    boost::erase_all(anc, "-");
     coati::utils::sequence_pair_t seq_pair =
-        coati::utils::marginal_seq_encoding(anc, seqs[1]);
+        coati::utils::marginal_seq_encoding(aln.data.seqs[0], seqs[1]);
 
     coati::semiring::tropical tropical_rig;
     // calculate log(1-g) log(1-e) log(g) log(e) log(pi)
@@ -393,91 +385,110 @@ float alignment_score(const coati::alignment_t& aln,
     std::transform(pi.cbegin(), pi.cend(), pi.begin(),
                    [](auto value) { return ::logf(value); });
 
+    enum struct State { MATCH, GAP };
+    auto state = State::MATCH;
     float score{0.f};
-    int state{0}, ngap{0};
-    for(size_t i = 0; i < seqs[0].length(); i++) {
+    size_t ngap{0}, nins{0}, ndel{0}, len_stops{0};
+    if(aln.data.stops[0] != "" || aln.data.stops[1] != "") {
+        len_stops = 3;
+    }
+    for(size_t i = 0; i < seqs[0].length() - len_stops; i++) {
         switch(state) {
-        case 0:  // subsitution
-            if(seqs[0][i] == '-') {
-                // insertion;
-                score += gap_open;
-                state = 2;
-                ngap++;
-            } else if(seqs[1][i] == '-') {
-                // deletion;
-                score += no_gap + gap_open;
-                state = 1;
-            } else {
-                // match/mismatch;
+        case State::MATCH:
+            if(seqs[0][i] == '-') {  // insertion;
+                nins++;
+                state = State::GAP;
+            } else if(seqs[1][i] == '-') {  // deletion;
+                ndel++;
+                state = State::GAP;
+            } else {  // match/mismatch;
                 score +=
                     2 * no_gap + p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
             }
             break;
-        case 1:  // deletion
-            if(seqs[0][i] == '-') {
-                throw std::runtime_error(
-                    "Insertion after deletion is not modeled.");
-            } else if(seqs[1][i] == '-') {
-                // deletion_ext
-                score += gap_extend;
-            } else {
-                // match/mismatch
-                score +=
-                    gap_stop + p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
-                state = 0;
-            }
-            break;
-        case 2:  // insertion
-            if(seqs[0][i] == '-') {
-                // insertion_ext
-                score += gap_extend;
-                ngap++;
-            } else if(seqs[1][i] == '-') {
-                // deletion
-                score += gap_stop + gap_open;
-                state = 1;
-            } else {
-                // match/mismatch
-                score += gap_stop + no_gap +
-                         p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
-                state = 0;
+        case State::GAP:
+            if(seqs[0][i] == '-') {  // insertion_extension
+                nins++;
+            } else if(seqs[1][i] == '-') {  // deletion_ext
+                ndel++;
+            } else {  // match/mismatch
+                assert(nins > 0 || ndel > 0);
+                if(nins == 0) {  // score deletions
+                    score +=
+                        no_gap + gap_open + (ndel - 1) * gap_extend + gap_stop;
+                } else if(ndel == 0) {  // score insertions
+                    score +=
+                        gap_open + (nins - 1) * gap_extend + gap_stop + no_gap;
+                } else {  // score both insertions and deletions
+                    score += 2 * gap_open + (nins + ndel - 2) * gap_extend +
+                             2 * gap_stop;
+                }
+                ngap += nins;
+                score += p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
+                nins = ndel = 0;
+                state = State::MATCH;
             }
             break;
         }
     }
     // terminal state score
-    if(state == 0) {
+    if(state == State::MATCH) {
         score += no_gap;
-    } else if(state == 2) {
-        score += gap_stop;
+    } else if(state == State::GAP) {
+        if(nins == 0) {  // score deletions
+            score += no_gap + gap_open + (ndel - 1) * gap_extend;
+        } else if(ndel == 0) {  // score insertions
+            score += gap_open + (nins - 1) * gap_extend + gap_stop;
+        } else {  // score both insertions and deletions
+            score += 2 * gap_open + (nins + ndel - 2) * gap_extend + gap_stop;
+        }
     }
-    return score;
+
+    // handle end stop codons
+    aln.data.score = score;
+    coati::utils::restore_end_stops(aln.data, aln.gap);
+
+    return aln.data.score;
 }
 
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("alignment_score") {
-    coati::alignment_t aln;
-    coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
-    coati::Matrixf p_marg = marginal_p(P, aln.pi, AmbiguousNucs::AVG);
+    auto test = [](const std::string anc, const std::string des, float exp) {
+        coati::alignment_t aln;
+        coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
+        coati::Matrixf p_marg = marginal_p(P, aln.pi, AmbiguousNucs::AVG);
+        aln.data.names = {"A", "B"};
+        aln.data.seqs = {anc, des};
+        CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(exp));
+    };
 
-    aln.data.seqs = {"CTCTGGATAGTG", "CT----ATAGTG"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(1.51014f));
+    test("CTCTGGATAGTG", "CT----ATAGTG", 1.51014f);
+    test("CTCT--AT", "CTCTGGAT", -0.83806f);
+    test("ACTCT-A", "ACTCTG-", -8.73588f);
+    test("ATGCTTTAC", "ATGCT-TAC", 2.13693f);
+    test("ATGCTT---", "ATGCTTTGA", 0.70707f);
+    test("ACTCTA-", "ACTCTAG", -1.57593f);
+    test("A-CTAAC", "ACCTAAG", -8.2776f);
+    test("ACT---", "ACTCTG", -5.04097);
+    test("ACTCTA", "ACT---", -3.25021);
+    test("AAAAAA---AAA", "AAA---AAAAAA", -11.0946);
+    test("AAA---AAAAAA", "AAAAAA---AAA", -11.0946);
+    test("AAA-A-A-AAAA", "AAAA-A-A-AAA", -11.0946);
 
-    aln.data.seqs = {"CTCT--AT", "CTCTGGAT"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.83806f));
+    auto test_fail = [](const std::string anc, const std::string des) {
+        coati::alignment_t aln;
+        coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
+        coati::Matrixf p_marg = marginal_p(P, aln.pi, AmbiguousNucs::AVG);
+        aln.data.names = {"A", "B"};
+        aln.data.seqs = {anc, des};
+        CHECK_THROWS_AS(alignment_score(aln, p_marg), std::invalid_argument);
+    };
 
-    aln.data.seqs = {"ACTCT-A", "ACTCTG-"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-8.73588f));
-
-    aln.data.seqs = {"ACTCTA-", "ACTCTAG"};
-    CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(-0.66167f));
-    // different length
-    aln.data.seqs = {"CTC", "CT"};
-    REQUIRE_THROWS_AS(alignment_score(aln, p_marg), std::invalid_argument);
-    // insertion after deletion is not modeled
-    aln.data.seqs = {"ATAC-GGGTC", "ATA-GGGGTC"};
-    REQUIRE_THROWS_AS(alignment_score(aln, p_marg), std::runtime_error);
+    // more than 2 sequences
+    test_fail("ATACGGGTC", "");
+    // length of ref is not multiple of 3
+    test_fail("ATAC", "ATA-");
 }
 // GCOVR_EXCL_STOP
 
@@ -609,7 +620,7 @@ TEST_CASE("marg_sample") {
     SUBCASE("sample size 1") {
         std::vector<std::string> seq1{"CC--CCCC"};
         std::vector<std::string> seq2{"CCCCCCCC"};
-        std::vector<std::string> lscore{"-3.466090440750122"};
+        std::vector<std::string> lscore{"-3.4660911560058594"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 1 - deletion") {
@@ -621,8 +632,9 @@ TEST_CASE("marg_sample") {
     SUBCASE("sample size 3") {
         std::vector<std::string> seq1{"CC--CCCC", "CCCCCC--", "CCCCC--C"};
         std::vector<std::string> seq2{"CCCCCCCC", "CCCCCCCC", "CCCCCCCC"};
-        std::vector<std::string> lscore{
-            "-3.466090440750122", "-0.693439245223999", "-1.386602520942688"};
+        std::vector<std::string> lscore{"-3.4660911560058594",
+                                        "-0.6934521198272705",
+                                        "-1.3866122961044312"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("length of reference not multiple of 3") {

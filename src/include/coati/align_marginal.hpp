@@ -35,8 +35,7 @@ namespace coati {
 // pairwise alignment using dynamic programming and a marginal model
 bool marg_alignment(coati::alignment_t& aln);
 // score alignment using marginal model
-float alignment_score(const coati::alignment_t& aln,
-                      const coati::Matrixf& p_marg);
+float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg);
 // Sample from a marginal alignment.
 void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand);
 
