@@ -193,7 +193,7 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
     }
 
     if(amb == AmbiguousNucs::AVG) {
-        ambiguous_avg_p(p);
+        ambiguous_sum_p(p);
     } else {
         ambiguous_best_p(p);
     }
@@ -230,24 +230,40 @@ TEST_CASE("marginal_p") {
  * @param[in,out] p coati::Matrixf marginal substitution matrix.
  *
  */
-void ambiguous_avg_p(coati::Matrixf& p) {
+void ambiguous_sum_p(coati::Matrixf& p) {
+    using coati::utils::log_sum_exp;
     size_t row{0};
     for(int cod = 0; cod < 61; cod++) {
         for(size_t pos = 0; pos < 3; pos++) {
             row = cod * 3 + pos;
-
-            p(row, 4) = (p(row, 0) + p(row, 2)) / 2;  // R: purine       A or G
-            p(row, 5) = (p(row, 1) + p(row, 3)) / 2;  // Y: pyrimidine   C or T
-            p(row, 6) = (p(row, 0) + p(row, 1)) / 2;  // M: amino group  A or C
-            p(row, 7) = (p(row, 2) + p(row, 3)) / 2;  // K: keto group   G or T
-            p(row, 8) = (p(row, 1) + p(row, 2)) / 2;  // S: strong inter C or G
-            p(row, 9) = (p(row, 0) + p(row, 3)) / 2;  // W: weak interac A or T
-            p(row, 10) = (p(row, 1) + p(row, 2) + p(row, 3)) / 3;  // B: not A
-            p(row, 11) = (p(row, 0) + p(row, 2) + p(row, 3)) / 3;  // D: not C
-            p(row, 12) = (p(row, 0) + p(row, 1) + p(row, 3)) / 3;  // H: not G
-            p(row, 13) = (p(row, 0) + p(row, 1) + p(row, 2)) / 3;  // V: not T
-            p(row, 14) =
-                (p(row, 0) + p(row, 1) + p(row, 2) + p(row, 3)) / 4;  // N: any
+            // R: purine       A or G
+            p(row, 4) = log_sum_exp(p(row, 0), p(row, 2));
+            // Y: pyrymidine   C or T
+            p(row, 5) = log_sum_exp(p(row, 1), p(row, 3));
+            // M: amino group  A or C
+            p(row, 6) = log_sum_exp(p(row, 0), p(row, 1));
+            // K: keto group   G or T
+            p(row, 7) = log_sum_exp(p(row, 2), p(row, 3));
+            // S: strong inter C or G
+            p(row, 8) = log_sum_exp(p(row, 1), p(row, 2));
+            // W: weak interac A or T
+            p(row, 9) = log_sum_exp(p(row, 0), p(row, 3));
+            // B: not A
+            p(row, 10) =
+                log_sum_exp(log_sum_exp(p(row, 1), p(row, 2)), p(row, 3));
+            // D: not C
+            p(row, 11) =
+                log_sum_exp(log_sum_exp(p(row, 0), p(row, 2)), p(row, 3));
+            // H: not G
+            p(row, 12) =
+                log_sum_exp(log_sum_exp(p(row, 0), p(row, 1)), p(row, 3));
+            // V: not T
+            p(row, 13) =
+                log_sum_exp(log_sum_exp(p(row, 0), p(row, 1)), p(row, 2));
+            // N: any
+            p(row, 14) = log_sum_exp(
+                log_sum_exp(log_sum_exp(p(row, 0), p(row, 1)), p(row, 2)),
+                p(row, 3));
         }
     }
 }

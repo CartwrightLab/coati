@@ -44,7 +44,7 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
                           const std::vector<coati::float_t>& pi,
                           const coati::AmbiguousNucs amb);
 // Probabilities for ambiguous nucs in marginal model using averages.
-void ambiguous_avg_p(coati::Matrixf& p);
+void ambiguous_sum_p(coati::Matrixf& p);
 // Probabilities for ambiguous nucs in marginal model taking best prob.
 void ambiguous_best_p(coati::Matrixf& p);
 // Create GTR substitution model matrix.
