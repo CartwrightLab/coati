@@ -157,5 +157,9 @@ static inline float_t log_sum_exp(float_t a, float_t b) {
     return x + log1p_exp(y);
 }
 
+static inline float_t log_sum_exp(float_t a, float_t b, float_t c) {
+    return log_sum_exp(log_sum_exp(a, b), c);
+}
+
 }  // namespace coati::utils
 #endif

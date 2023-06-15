@@ -249,21 +249,16 @@ void ambiguous_sum_p(coati::Matrixf& p) {
             // W: weak interac A or T
             p(row, 9) = log_sum_exp(p(row, 0), p(row, 3));
             // B: not A
-            p(row, 10) =
-                log_sum_exp(log_sum_exp(p(row, 1), p(row, 2)), p(row, 3));
+            p(row, 10) = log_sum_exp(p(row, 1), p(row, 2), p(row, 3));
             // D: not C
-            p(row, 11) =
-                log_sum_exp(log_sum_exp(p(row, 0), p(row, 2)), p(row, 3));
+            p(row, 11) = log_sum_exp(p(row, 0), p(row, 2), p(row, 3));
             // H: not G
-            p(row, 12) =
-                log_sum_exp(log_sum_exp(p(row, 0), p(row, 1)), p(row, 3));
+            p(row, 12) = log_sum_exp(p(row, 0), p(row, 1), p(row, 3));
             // V: not T
-            p(row, 13) =
-                log_sum_exp(log_sum_exp(p(row, 0), p(row, 1)), p(row, 2));
+            p(row, 13) = log_sum_exp(p(row, 0), p(row, 1), p(row, 2));
             // N: any
             p(row, 14) = log_sum_exp(
-                log_sum_exp(log_sum_exp(p(row, 0), p(row, 1)), p(row, 2)),
-                p(row, 3));
+                log_sum_exp(p(row, 0), p(row, 1), p(row, 2)), p(row, 3));
         }
     }
 }
