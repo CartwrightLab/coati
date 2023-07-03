@@ -550,7 +550,7 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
 
     // dynamic programming pairwise alignment and traceback
     coati::align_pair_work_t work;
-    coati::viterbi(work, seq_pair[0], seq_pair[1], aln);
+    coati::forward(work, seq_pair[0], seq_pair[1], aln);
 
     // sample and print as many aligments as required (sample_size)
     for(size_t i = 0; i < sample_size; ++i) {
@@ -620,21 +620,20 @@ TEST_CASE("marg_sample") {
     SUBCASE("sample size 1") {
         std::vector<std::string> seq1{"CC--CCCC"};
         std::vector<std::string> seq2{"CCCCCCCC"};
-        std::vector<std::string> lscore{"-3.4660911560058594"};
+        std::vector<std::string> lscore{"-1.9467827081680298"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 1 - deletion") {
         std::vector<std::string> seq1{"CCCCCC"};
         std::vector<std::string> seq2{"CCCC--"};
-        std::vector<std::string> lscore{"-0.15452587604522705"};
+        std::vector<std::string> lscore{"-0.5095058679580688"};
         test("CCCCCC", "CCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 3") {
-        std::vector<std::string> seq1{"CC--CCCC", "CCCCCC--", "CCCCC--C"};
+        std::vector<std::string> seq1{"CC--CCCC", "CCCCCC--", "CCCC--CC"};
         std::vector<std::string> seq2{"CCCCCCCC", "CCCCCCCC", "CCCCCCCC"};
-        std::vector<std::string> lscore{"-3.4660911560058594",
-                                        "-0.6934521198272705",
-                                        "-1.3866122961044312"};
+        std::vector<std::string> lscore{
+            "-1.9467827081680298", "-1.946782112121582", "-1.9467825889587402"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("length of reference not multiple of 3") {
