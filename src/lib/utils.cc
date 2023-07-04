@@ -50,7 +50,7 @@ int cod_distance(uint8_t cod1, uint8_t cod2) {
 }
 
 /**
- * @brief Get a codon's position in the codon list (AAA->0, AAAC->1 .. TTT->63).
+ * @brief Get a codon's position in the codon list (AAA->0, AAC->1, ..., TTT->63).
  *
  * @details Each nucleotide is converted to its position in nucleotide list
  * (A = 0, C = 1, G = 2, T = 3). Then we apply the following:
@@ -70,8 +70,7 @@ int cod_int(const std::string_view codon) {
     // check that REF/ancestor doesnt have ambiguous nucs
     auto pos = codon.find_first_not_of("ACGTUacgtu");
     if(pos != std::string::npos) {
-        throw std::invalid_argument(
-            "Ambiguous nucleotides in reference sequence not supported.");
+        return -1;
     }
 
     return (nt16_table[pos0] << 4) | (nt16_table[pos1] << 2) | nt16_table[pos2];
@@ -477,9 +476,13 @@ sequence_pair_t marginal_seq_encoding(const std::string_view anc,
     // TTT3->183
     for(size_t i = 0; i < anc.size(); i += 3) {
         auto cod = cod_int(anc.substr(i, i + 2));
+        if(cod == -1) {
+           throw std::invalid_argument(
+                "Ambiguous nucleotides in ancestor/reference.");
+        }
         // if stop codon - throw error
         if(cod == 48 || cod == 50 || cod == 56) {
-            throw std::invalid_argument("Early stop codon in ancestor.");
+            throw std::invalid_argument("Early stop codon in ancestor/reference.");
         }
         cod = cod64_to_61(cod);
         cod *= 3;
@@ -863,8 +866,13 @@ void trim_end_stops(coati::data_t& data) {
     for(size_t i = 0; i < data.size(); ++i) {
         std::string_view seq{data.seqs[i]};
         size_t len = seq.length();
-        std::string_view last_cod{seq.substr(len - 3)};
-        if(last_cod == "TAA" || last_cod == "TAG" || last_cod == "TGA") {
+        if(len < 3) {
+            data.stops.emplace_back("");
+            continue;
+        }
+        auto last_cod = seq.substr(len - 3);
+        int cod = cod_int(last_cod);
+        if(cod == 48 || cod == 50 || cod == 56) {
             data.stops.emplace_back(last_cod);
             data.seqs[i].erase(len - 3);
             if(data.fsts.size() > 0) {
@@ -898,8 +906,11 @@ TEST_CASE("trim_end_stops") {
     test({"AAA", "CCC"}, {"AAA", "CCC"}, {"", ""});              // no stops
     test({"AAATAA", "AAATTT"}, {"AAA", "AAATTT"}, {"TAA", ""});  // stop on ref
     test({"AAATTT", "AAATAG"}, {"AAATTT", "AAA"}, {"", "TAG"});  // stop on des
-    test({"AAATGA", "AAATGA"}, {"AAA", "AAA"}, {"TGA", "TGA"});  // stop on des
+    test({"AAATGA", "AAAuga"}, {"AAA", "AAA"}, {"TGA", "uga"});  // stop on des
     test({"AAATAA", "AAATAG"}, {"AAA", "AAA"}, {"TAA", "TAG"});  // stop on des
+    test({"AAA", "C"}, {"AAA", "C"}, {"", ""});
+    test({"AAATGA", "C"}, {"AAA", "C"}, {"TGA", ""});
+    test({"AAA", "ctaa"}, {"AAA", "c"}, {"", "taa"});
 
     auto test_tri = [](const std::vector<std::string>& raw_seqs,     // NOLINT
                        const std::vector<std::string>& exp_seqs,     // NOLINT
@@ -930,8 +941,12 @@ TEST_CASE("trim_end_stops") {
     // stop on descendant
     test_tri({"AAATTT", "AAATAG"}, {"AAATTT", "AAA"}, {"", "TAG"});
     // stop on both sequences
-    test_tri({"AAATGA", "AAATGA"}, {"AAA", "AAA"}, {"TGA", "TGA"});
-    test_tri({"AAATAA", "AAATAG"}, {"AAA", "AAA"}, {"TAA", "TAG"});
+    test_tri({"AAAuga", "AAATGA"}, {"AAA", "AAA"}, {"uga", "TGA"});
+    test_tri({"AAATAA", "AAAuag"}, {"AAA", "AAA"}, {"TAA", "uag"});
+    test_tri({"AAA", "C"}, {"AAA", "C"}, {"", ""});
+    test_tri({"AAATGA", "C"}, {"AAA", "C"}, {"TGA", ""});
+    test_tri({"AAA", "ctaa"}, {"AAA", "c"}, {"", "taa"});
+
 }
 // GCOVR_EXCL_STOP
 
