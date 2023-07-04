@@ -50,7 +50,8 @@ int cod_distance(uint8_t cod1, uint8_t cod2) {
 }
 
 /**
- * @brief Get a codon's position in the codon list (AAA->0, AAC->1, ..., TTT->63).
+ * @brief Get a codon's position in the codon list (AAA->0, AAC->1, ...,
+ * TTT->63).
  *
  * @details Each nucleotide is converted to its position in nucleotide list
  * (A = 0, C = 1, G = 2, T = 3). Then we apply the following:
@@ -477,12 +478,13 @@ sequence_pair_t marginal_seq_encoding(const std::string_view anc,
     for(size_t i = 0; i < anc.size(); i += 3) {
         auto cod = cod_int(anc.substr(i, i + 2));
         if(cod == -1) {
-           throw std::invalid_argument(
+            throw std::invalid_argument(
                 "Ambiguous nucleotides in ancestor/reference.");
         }
         // if stop codon - throw error
         if(cod == 48 || cod == 50 || cod == 56) {
-            throw std::invalid_argument("Early stop codon in ancestor/reference.");
+            throw std::invalid_argument(
+                "Early stop codon in ancestor/reference.");
         }
         cod = cod64_to_61(cod);
         cod *= 3;
@@ -946,7 +948,6 @@ TEST_CASE("trim_end_stops") {
     test_tri({"AAA", "C"}, {"AAA", "C"}, {"", ""});
     test_tri({"AAATGA", "C"}, {"AAA", "C"}, {"TGA", ""});
     test_tri({"AAA", "ctaa"}, {"AAA", "c"}, {"", "taa"});
-
 }
 // GCOVR_EXCL_STOP
 

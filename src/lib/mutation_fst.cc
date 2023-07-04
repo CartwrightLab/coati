@@ -304,11 +304,9 @@ void add_arc(VectorFstStdArc& fst, int src, int dest, int ilabel, int olabel,
  * @retval true if run successfully.
  */
 bool acceptor(const std::string_view content, VectorFstStdArc& accept) {
-    std::map<char, int> syms = {{'-', 0},
-                                {'A', 1}, {'C', 2}, {'G', 3},
-                                {'T', 4}, {'U', 4}, {'N', 5},
-                                {'a', 1}, {'c', 2}, {'g', 3},
-                                {'t', 4}, {'u', 4}, {'n', 5}};
+    std::map<char, int> syms = {
+        {'-', 0}, {'A', 1}, {'C', 2}, {'G', 3}, {'T', 4}, {'U', 4}, {'N', 5},
+        {'a', 1}, {'c', 2}, {'g', 3}, {'t', 4}, {'u', 4}, {'n', 5}};
 
     // Add initial state
     accept.AddState();
