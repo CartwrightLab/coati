@@ -172,8 +172,12 @@ void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
 void viterbi_mem(align_pair_work_mem_t &work, const seq_view_t &a,
                  const seq_view_t &b, const alignment_t &aln);
 // Implementation of traceback algorithm.
+template <class S>
 void traceback(const align_pair_work_mem_t &work, const std::string &a,
                const std::string &b, alignment_t &aln, size_t look_back);
+void traceback_viterbi(const align_pair_work_mem_t &work, const std::string &a,
+                       const std::string &b, alignment_t &aln,
+                       size_t look_back);
 // Traceback with sampling.
 void sampleback(const align_pair_work_t &work, const std::string &a,
                 const std::string &b, alignment_t &aln, size_t look_back,

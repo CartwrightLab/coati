@@ -40,6 +40,12 @@ class linear {
     static constexpr float plus(float x, float y) { return x + y; }
     static constexpr float plus(float x, float y, float z) { return x + y + z; }
     static constexpr float times(float x, float y) { return x * y; }
+    static constexpr float times(float x, float y, float z) {
+        return x * y * z;
+    }
+    static constexpr float times(float w, float x, float y, float z) {
+        return w * x * y * z;
+    }
     static constexpr float zero() { return 0.0f; }
     static constexpr float one() { return 1.0f; }
 };
@@ -47,7 +53,7 @@ class linear {
  * @brief Log semiring class.
  *
  * |         Set          |     +     | * | + neutral element | * neutral elem |
- * | Reals U {-INF, +INF} | logSumExp | + |        +INF       |         0      |
+ * | Reals U {-INF, +INF} | logSumExp | + |        -INF       |         0      |
  *
  */
 class log {
@@ -59,7 +65,15 @@ class log {
         return coati::utils::log_sum_exp(coati::utils::log_sum_exp(x, y), z);
     }
     static constexpr float times(float x, float y) { return x + y; }
-    static constexpr float zero() { return static_cast<float>(INT_MAX); }
+    static constexpr float times(float x, float y, float z) {
+        return x + y + z;
+    }
+    static constexpr float times(float w, float x, float y, float z) {
+        return w + x + y + z;
+    }
+    static constexpr float zero() {
+        return std::numeric_limits<float_t>::lowest();
+    }
     static constexpr float one() { return 0.0f; }
 
     static float from_linearf(float x) { return ::logf(x); }
@@ -71,17 +85,25 @@ class log {
  * @brief Tropical semiring class.
  *
  * |         Set          |  +  | * | + neutral element | * neutral element |
- * | Reals U {-INF, +INF} | max | + |        +INF       |         0      |
+ * | Reals U {-INF, +INF} | max | + |        -INF       |         0      |
  *
  */
 class tropical {
    public:
     static constexpr float plus(float x, float y) { return std::max(x, y); }
     static constexpr float plus(float x, float y, float z) {
-        return std::max(plus(x, y), z);
+        return std::max(std::max(x, y), z);
     }
     static constexpr float times(float x, float y) { return x + y; }
-    static constexpr float zero() { return static_cast<float>(INT_MAX); }
+    static constexpr float times(float x, float y, float z) {
+        return x + y + z;
+    }
+    static constexpr float times(float w, float x, float y, float z) {
+        return w + x + y + z;
+    }
+    static constexpr float zero() {
+        return std::numeric_limits<float_t>::lowest();
+    }
     static constexpr float one() { return 0.0f; }
 
     static float from_linearf(float x) { return ::logf(x); }

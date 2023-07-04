@@ -73,7 +73,7 @@ bool marg_alignment(coati::alignment_t& aln) {
         std::cerr << "ERROR: " << e.what() << std::endl;
         return false;
     }
-    coati::traceback(work, anc, des, aln, aln.gap.len);
+    coati::traceback_viterbi(work, anc, des, aln, aln.gap.len);
 
     // handle end stop codons
     coati::utils::restore_end_stops(aln.data, aln.gap);
@@ -548,7 +548,7 @@ void marg_sample(coati::alignment_t& aln, size_t sample_size, random_t& rand) {
     // set substitution matrix according to model
     coati::utils::set_subst(aln);
 
-    // dynamic programming pairwise alignment and traceback
+    // dynamic programming pairwise alignment and sampleback
     coati::align_pair_work_t work;
     coati::forward(work, seq_pair[0], seq_pair[1], aln);
 

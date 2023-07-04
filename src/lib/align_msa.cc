@@ -305,8 +305,8 @@ void align_leafs(coati::alignment_t& input, const coati::tree::tree_t& tree,
                 coati::utils::marginal_seq_encoding(pair_seqs[0], pair_seqs[1]);
             coati::align_pair_work_mem_t work;
             coati::viterbi_mem(work, seq_pair[0], seq_pair[1], input);
-            coati::traceback(work, pair_seqs[0], pair_seqs[1], aln,
-                             input.gap.len);
+            coati::traceback_viterbi(work, pair_seqs[0], pair_seqs[1], aln,
+                                     input.gap.len);
 
             // store insertion positions and type (open by default)
             SparseVectorInt ins = insertion_flags(aln.seq(0), aln.seq(1));
