@@ -211,8 +211,7 @@ TEST_CASE("marg_alignment") {
         aln.output = "test-marg_alignment-no-frameshifts.fa";
         aln.gap.len = 3;
 
-        expected =
-            data_t("", {">1", ">2"}, {"ACG---TTAAGGGGT", "ACGAAT---------"});
+        expected = data_t("", {">1", ">2"}, {"ACGTTAAGGGGT", "AC------GAAT"});
 
         test_fasta(aln, expected, file);
     }
@@ -375,12 +374,12 @@ float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
     coati::utils::sequence_pair_t seq_pair =
         coati::utils::marginal_seq_encoding(aln.data.seqs[0], seqs[1]);
 
-    coati::semiring::tropical tropical_rig;
+    coati::semiring::tropical trig;  // tropical rig
     // calculate log(1-g) log(1-e) log(g) log(e) log(pi)
-    float_t no_gap = tropical_rig.from_linear_1mf(aln.gap.open);
-    float_t gap_stop = tropical_rig.from_linear_1mf(aln.gap.extend);
-    float_t gap_open = tropical_rig.from_linearf(aln.gap.open);
-    float_t gap_extend = tropical_rig.from_linearf(aln.gap.extend);
+    float_t no_gap = trig.from_linear_1mf(aln.gap.open);
+    float_t gap_stop = trig.from_linear_1mf(aln.gap.extend);
+    float_t gap_open = trig.from_linearf(aln.gap.open);
+    float_t gap_extend = trig.from_linearf(aln.gap.extend);
     std::vector<coati::float_t> pi{aln.pi};
     std::transform(pi.cbegin(), pi.cend(), pi.begin(),
                    [](auto value) { return ::logf(value); });
@@ -402,8 +401,9 @@ float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
                 ndel++;
                 state = State::GAP;
             } else {  // match/mismatch;
-                score +=
-                    2 * no_gap + p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
+                score =
+                    trig.times(score, 2 * no_gap,
+                               p_marg(seq_pair[0][i - ngap], seq_pair[1][i]));
             }
             break;
         case State::GAP:
@@ -414,17 +414,19 @@ float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
             } else {  // match/mismatch
                 assert(nins > 0 || ndel > 0);
                 if(nins == 0) {  // score deletions
-                    score +=
-                        no_gap + gap_open + (ndel - 1) * gap_extend + gap_stop;
+                    score = trig.times(score, no_gap, gap_open,
+                                       (ndel - 1) * gap_extend, gap_stop);
                 } else if(ndel == 0) {  // score insertions
-                    score +=
-                        gap_open + (nins - 1) * gap_extend + gap_stop + no_gap;
+                    score = trig.times(score, gap_open, (nins - 1) * gap_extend,
+                                       gap_stop, no_gap);
                 } else {  // score both insertions and deletions
-                    score += 2 * gap_open + (nins + ndel - 2) * gap_extend +
-                             2 * gap_stop;
+                    score = trig.times(score, 2 * gap_open,
+                                       (nins + ndel - 2) * gap_extend,
+                                       2 * gap_stop);
                 }
                 ngap += nins;
-                score += p_marg(seq_pair[0][i - ngap], seq_pair[1][i]);
+                score = trig.times(
+                    score, p_marg(seq_pair[0][i - ngap], seq_pair[1][i]));
                 nins = ndel = 0;
                 state = State::MATCH;
             }
@@ -433,14 +435,18 @@ float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
     }
     // terminal state score
     if(state == State::MATCH) {
-        score += no_gap;
+        score = trig.times(score, 2 * no_gap);
     } else if(state == State::GAP) {
         if(nins == 0) {  // score deletions
-            score += no_gap + gap_open + (ndel - 1) * gap_extend;
+            score = trig.times(score, no_gap, gap_open, (ndel - 1) * gap_extend,
+                               gap_stop);
         } else if(ndel == 0) {  // score insertions
-            score += gap_open + (nins - 1) * gap_extend + gap_stop;
+            score = trig.times(score, gap_open, (nins - 1) * gap_extend,
+                               gap_stop, no_gap);
         } else {  // score both insertions and deletions
-            score += 2 * gap_open + (nins + ndel - 2) * gap_extend + gap_stop;
+            score =
+                trig.times(score, 2 * gap_open, (nins + ndel - 2) * gap_extend,
+                           2 * gap_stop, no_gap);
         }
     }
 
@@ -463,18 +469,22 @@ TEST_CASE("alignment_score") {
         CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(exp));
     };
 
-    test("CTCTGGATAGTG", "CT----ATAGTG", 1.51014f);
-    test("CTCT--AT", "CTCTGGAT", -0.83806f);
-    test("ACTCT-A", "ACTCTG-", -8.73588f);
-    test("ATGCTTTAC", "ATGCT-TAC", 2.13693f);
-    test("ATGCTT---", "ATGCTTTGA", 0.70707f);
-    test("ACTCTA-", "ACTCTAG", -1.57593f);
-    test("A-CTAAC", "ACCTAAG", -8.2776f);
-    test("ACT---", "ACTCTG", -5.04097);
-    test("ACTCTA", "ACT---", -3.25021);
-    test("AAAAAA---AAA", "AAA---AAAAAA", -11.0946);
-    test("AAA---AAAAAA", "AAAAAA---AAA", -11.0946);
-    test("AAA-A-A-AAAA", "AAAA-A-A-AAA", -11.0946);
+    test("CTCTGGATAGTG", "CT----ATAGTG", 1.50914f);
+    test("CTCT--AT", "CTCTGGAT", -0.83906f);
+    test("ACTCT-A", "ACTCTG-", -10.52864);
+    test("ATGCTTTAC", "ATGCT-TAC", 2.13593f);
+    test("ATGCTT---", "ATGCTTTGA", 0.70607f);
+    test("ACTCTA-", "ACTCTAG", -1.57693f);
+    test("A-CTAAC", "ACCTAAG", -8.2786f);
+    test("ACT---", "ACTCTG", -5.04197);
+    test("ACTCTA", "ACT---", -5.04197);
+    test("AAAAAA---AAA", "AAA---AAAAAA", -11.09557);
+    test("AAA---AAAAAA", "AAAAAA---AAA", -11.09557);
+    test("AAA-A-A-AAAA", "AAAA-A-A-AAA", -11.09557);
+    test("---AAAAAA", "AAAAAAAAA", -2.03242);
+    test("AAAAAA---", "AAAAAAAAA", -2.03242);
+    test("AAAAAAAAA", "---AAAAAA", -2.03242);
+    test("AAAAAAAAA", "AAAAAA---", -2.03242);
 
     auto test_fail = [](const std::string anc, const std::string des) {
         coati::alignment_t aln;
@@ -620,20 +630,20 @@ TEST_CASE("marg_sample") {
     SUBCASE("sample size 1") {
         std::vector<std::string> seq1{"CC--CCCC"};
         std::vector<std::string> seq2{"CCCCCCCC"};
-        std::vector<std::string> lscore{"-1.9467827081680298"};
+        std::vector<std::string> lscore{"-1.9466572999954224"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 1 - deletion") {
         std::vector<std::string> seq1{"CCCCCC"};
-        std::vector<std::string> seq2{"CCCC--"};
-        std::vector<std::string> lscore{"-0.5095058679580688"};
+        std::vector<std::string> seq2{"--CCCC"};
+        std::vector<std::string> lscore{"-1.6172499656677246"};
         test("CCCCCC", "CCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 3") {
         std::vector<std::string> seq1{"CC--CCCC", "CCCCCC--", "CCCC--CC"};
         std::vector<std::string> seq2{"CCCCCCCC", "CCCCCCCC", "CCCCCCCC"};
         std::vector<std::string> lscore{
-            "-1.9467827081680298", "-1.946782112121582", "-1.9467825889587402"};
+            "-1.9466572999954224", "-1.946657419204712", "-1.9466570615768433"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("length of reference not multiple of 3") {

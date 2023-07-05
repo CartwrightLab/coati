@@ -39,12 +39,10 @@ class linear {
    public:
     static constexpr float plus(float x, float y) { return x + y; }
     static constexpr float plus(float x, float y, float z) { return x + y + z; }
-    static constexpr float times(float x, float y) { return x * y; }
-    static constexpr float times(float x, float y, float z) {
-        return x * y * z;
-    }
-    static constexpr float times(float w, float x, float y, float z) {
-        return w * x * y * z;
+    static constexpr float times(float x) { return x; }
+    template <typename... Args>
+    static constexpr float times(float first, Args... args) {
+        return first * times(args...);
     }
     static constexpr float zero() { return 0.0f; }
     static constexpr float one() { return 1.0f; }
@@ -64,12 +62,10 @@ class log {
     static float plus(float x, float y, float z) {
         return coati::utils::log_sum_exp(coati::utils::log_sum_exp(x, y), z);
     }
-    static constexpr float times(float x, float y) { return x + y; }
-    static constexpr float times(float x, float y, float z) {
-        return x + y + z;
-    }
-    static constexpr float times(float w, float x, float y, float z) {
-        return w + x + y + z;
+    static constexpr float times(float x) { return x; }
+    template <typename... Args>
+    static constexpr float times(float first, Args... args) {
+        return first + times(args...);
     }
     static constexpr float zero() {
         return std::numeric_limits<float_t>::lowest();
@@ -94,12 +90,10 @@ class tropical {
     static constexpr float plus(float x, float y, float z) {
         return std::max(std::max(x, y), z);
     }
-    static constexpr float times(float x, float y) { return x + y; }
-    static constexpr float times(float x, float y, float z) {
-        return x + y + z;
-    }
-    static constexpr float times(float w, float x, float y, float z) {
-        return w + x + y + z;
+    static constexpr float times(float x) { return x; }
+    template <typename... Args>
+    static constexpr float times(float first, Args... args) {
+        return first + times(args...);
     }
     static constexpr float zero() {
         return std::numeric_limits<float_t>::lowest();

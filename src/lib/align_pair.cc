@@ -32,15 +32,15 @@ namespace coati {
 // m -> m      (1-g)*(1-g)*P(b[j] | a[i])/P(b[j])
 // m -> d      (1-g)*g
 // m -> i      g
-// m -> END    1-g
+// m -> END    (1-g)*(1-g)
 // d -> m      1-e
 // d -> d      e
 // d -> i      0
-// d -> END    1
+// d -> END    1-e
 // i -> m      (1-e)*(1-g)
 // i -> d      (1-e)*g
 // i -> i      e
-// i -> END    (1-e)
+// i -> END    (1-e)*(1-g)
 
 // a is "ancestor"
 // b is "descendant"
@@ -134,9 +134,11 @@ void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
     {
         // adjust the terminal state
         work.mch(len_a - 1, len_b - 1) =
-            S::times(work.mch(len_a - 1, len_b - 1), no_gap);
+            S::times(work.mch(len_a - 1, len_b - 1), 2 * no_gap);
         work.ins(len_a - 1, len_b - 1) =
-            S::times(work.ins(len_a - 1, len_b - 1), gap_stop);
+            S::times(work.ins(len_a - 1, len_b - 1), gap_stop, no_gap);
+        work.del(len_a - 1, len_b - 1) =
+            S::times(work.del(len_a - 1, len_b - 1), gap_stop);
     }
 }
 
