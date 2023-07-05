@@ -93,7 +93,7 @@ using sequence_pair_t = std::vector<std::basic_string<unsigned char>>;
 
 // Hamming distance between two codons.
 int cod_distance(uint8_t cod1, uint8_t cod2);
-// Get a codon's position in the codon list (AAA->0, AAAC->1 .. TTT->63).
+// Get a codon's position in the codon list (AAA->0, AAC->1, ..., TTT->63).
 int cod_int(const std::string_view codon);
 // Setup command line options for coati-alignpair.
 void set_options_alignpair(CLI::App& app, coati::args_t& args);
