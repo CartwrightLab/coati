@@ -22,9 +22,8 @@
 
 #include <doctest/doctest.h>
 
-#include <coati/mutation_ecm.hpp>
-
 #include <Eigen/Dense>
+#include <coati/mutation_ecm.hpp>
 #include <unsupported/Eigen/MatrixFunctions>
 
 namespace coati {

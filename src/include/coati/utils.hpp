@@ -23,13 +23,12 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include <vector>
-#include <string>
-#include <string_view>
-
 #include <fst/fst-decl.h>
 
 #include <CLI11.hpp>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include "structs.hpp"
 

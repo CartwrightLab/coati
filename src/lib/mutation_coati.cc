@@ -22,10 +22,9 @@
 
 #include <doctest/doctest.h>
 
+#include <coati/mg94p.tcc>
 #include <coati/mutation_coati.hpp>
 #include <coati/utils.hpp>
-#include <coati/mg94p.tcc>
-
 #include <unsupported/Eigen/MatrixFunctions>
 
 namespace coati {

@@ -21,21 +21,17 @@
 */
 
 #include <doctest/doctest.h>
-
 #include <fst/equal.h>
 
-#include <coati/utils.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <climits>
+#include <coati/dna_syms.hpp>
 #include <coati/io.hpp>
 #include <coati/mutation_coati.hpp>
 #include <coati/mutation_ecm.hpp>
-#include <coati/dna_syms.hpp>
-
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/algorithm/string.hpp>
-#include <climits>
+#include <coati/utils.hpp>
 #include <filesystem>
-
-
 
 namespace coati::utils {
 
