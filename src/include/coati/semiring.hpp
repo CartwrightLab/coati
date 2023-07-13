@@ -38,8 +38,16 @@ namespace coati::semiring {
 class linear {
    public:
     static constexpr float plus(float x, float y) { return x + y; }
-    static constexpr float plus(float x, float y, float z) { return x + y + z; }
+    template <typename... Args>
+    static constexpr float plus(float x, float y, Args... args) {
+        return plus(plus(x, y), args...);
+    }
     static constexpr float times(float x, float y) { return x * y; }
+    template <typename... Args>
+    static constexpr float times(float x, float y, Args... args) {
+        return times(times(x, y), args...);
+    }
+    static constexpr float power(float x, size_t y) { return std::pow(x, y); }
     static constexpr float zero() { return 0.0f; }
     static constexpr float one() { return 1.0f; }
 };
@@ -47,7 +55,7 @@ class linear {
  * @brief Log semiring class.
  *
  * |         Set          |     +     | * | + neutral element | * neutral elem |
- * | Reals U {-INF, +INF} | logSumExp | + |        +INF       |         0      |
+ * | Reals U {-INF, +INF} | logSumExp | + |        -INF       |         0      |
  *
  */
 class log {
@@ -55,11 +63,21 @@ class log {
     static float plus(float x, float y) {
         return coati::utils::log_sum_exp(x, y);
     }
-    static float plus(float x, float y, float z) {
-        return coati::utils::log_sum_exp(coati::utils::log_sum_exp(x, y), z);
+    template <typename... Args>
+    static constexpr float plus(float x, float y, Args... args) {
+        return plus(plus(x, y), args...);
     }
     static constexpr float times(float x, float y) { return x + y; }
-    static constexpr float zero() { return static_cast<float>(INT_MAX); }
+    template <typename... Args>
+    static constexpr float times(float x, float y, Args... args) {
+        return times(times(x, y), args...);
+    }
+    static constexpr float power(float x, size_t y) {
+        return x * static_cast<float>(y);
+    }
+    static constexpr float zero() {
+        return std::numeric_limits<float_t>::lowest();
+    }
     static constexpr float one() { return 0.0f; }
 
     static float from_linearf(float x) { return ::logf(x); }
@@ -71,17 +89,27 @@ class log {
  * @brief Tropical semiring class.
  *
  * |         Set          |  +  | * | + neutral element | * neutral element |
- * | Reals U {-INF, +INF} | max | + |        +INF       |         0      |
+ * | Reals U {-INF, +INF} | max | + |        -INF       |         0      |
  *
  */
 class tropical {
    public:
     static constexpr float plus(float x, float y) { return std::max(x, y); }
-    static constexpr float plus(float x, float y, float z) {
-        return std::max(plus(x, y), z);
+    template <typename... Args>
+    static constexpr float plus(float x, float y, Args... args) {
+        return plus(plus(x, y), args...);
     }
     static constexpr float times(float x, float y) { return x + y; }
-    static constexpr float zero() { return static_cast<float>(INT_MAX); }
+    template <typename... Args>
+    static constexpr float times(float x, float y, Args... args) {
+        return times(times(x, y), args...);
+    }
+    static constexpr float power(float x, size_t y) {
+        return x * static_cast<float>(y);
+    }
+    static constexpr float zero() {
+        return std::numeric_limits<float_t>::lowest();
+    }
     static constexpr float one() { return 0.0f; }
 
     static float from_linearf(float x) { return ::logf(x); }

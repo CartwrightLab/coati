@@ -277,6 +277,15 @@ TEST_CASE("fst_alignment") {
 
         CHECK_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
     }
+    SUBCASE("Ambiguous codon in ancestor - fail") {
+        std::ofstream out;
+        out.open("test-fst.fasta");
+        REQUIRE(out);
+        out << ">1\nCTCTGN\n>2\nCTATGGTG\n";
+        out.close();
+
+        CHECK_THROWS_AS(coati::fst_alignment(aln), std::invalid_argument);
+    }
     SUBCASE("Sequence with end stop codon") {
         std::ofstream out;
         out.open("test-fst.fasta");
