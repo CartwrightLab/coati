@@ -38,15 +38,17 @@ namespace coati::semiring {
 class linear {
    public:
     static constexpr float plus(float x, float y) { return x + y; }
-    static constexpr float plus(float x, float y, float z) { return x + y + z; }
-    static constexpr float times(float x) { return x; }
     template <typename... Args>
-    static constexpr float times(float first, Args... args) {
-        return first * times(args...);
+    static constexpr float plus(float x, float y, Args... args) {
+        return plus(plus(x, y), args...);
     }
-    static constexpr float power(float x, float y) { return std::pow(x, y); }
+    static constexpr float times(float x, float y) { return x * y; }
+    template <typename... Args>
+    static constexpr float times(float x, float y, Args... args) {
+        return times(times(x, y), args...);
+    }
     static constexpr float power(float x, size_t y) {
-        return std::pow(x, static_cast<float>(y));
+        return std::pow(x, y);
     }
     static constexpr float zero() { return 0.0f; }
     static constexpr float one() { return 1.0f; }
@@ -63,15 +65,15 @@ class log {
     static float plus(float x, float y) {
         return coati::utils::log_sum_exp(x, y);
     }
-    static float plus(float x, float y, float z) {
-        return coati::utils::log_sum_exp(coati::utils::log_sum_exp(x, y), z);
-    }
-    static constexpr float times(float x) { return x; }
     template <typename... Args>
-    static constexpr float times(float first, Args... args) {
-        return first + times(args...);
+    static constexpr float plus(float x, float y, Args... args) {
+        return plus(plus(x, y), args...);
     }
-    static constexpr float power(float x, float y) { return x * y; }
+    static constexpr float times(float x, float y) { return x + y; }
+    template <typename... Args>
+    static constexpr float times(float x, float y, Args... args) {
+        return times(times(x, y), args...);
+    }
     static constexpr float power(float x, size_t y) {
         return x * static_cast<float>(y);
     }
@@ -95,15 +97,15 @@ class log {
 class tropical {
    public:
     static constexpr float plus(float x, float y) { return std::max(x, y); }
-    static constexpr float plus(float x, float y, float z) {
-        return std::max(std::max(x, y), z);
-    }
-    static constexpr float times(float x) { return x; }
     template <typename... Args>
-    static constexpr float times(float first, Args... args) {
-        return first + times(args...);
+    static constexpr float plus(float x, float y, Args... args) {
+        return plus(plus(x, y), args...);
     }
-    static constexpr float power(float x, float y) { return x * y; }
+    static constexpr float times(float x, float y) { return x + y; }
+    template <typename... Args>
+    static constexpr float times(float x, float y, Args... args) {
+        return times(times(x, y), args...);
+    }
     static constexpr float power(float x, size_t y) {
         return x * static_cast<float>(y);
     }

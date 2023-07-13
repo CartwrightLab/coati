@@ -635,20 +635,20 @@ TEST_CASE("marg_sample") {
     SUBCASE("sample size 1") {
         std::vector<std::string> seq1{"CC--CCCC"};
         std::vector<std::string> seq2{"CCCCCCCC"};
-        std::vector<std::string> lscore{"-1.9466572999954224"};
+        std::vector<std::string> lscore{"-1.9466571807861328"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 1 - deletion") {
         std::vector<std::string> seq1{"CCCCCC"};
         std::vector<std::string> seq2{"--CCCC"};
-        std::vector<std::string> lscore{"-1.6172499656677246"};
+        std::vector<std::string> lscore{"-1.6172490119934082"};
         test("CCCCCC", "CCCC", seq1, seq2, lscore);
     }
     SUBCASE("sample size 3") {
         std::vector<std::string> seq1{"CC--CCCC", "CCCCCC--", "CCCC--CC"};
         std::vector<std::string> seq2{"CCCCCCCC", "CCCCCCCC", "CCCCCCCC"};
         std::vector<std::string> lscore{
-            "-1.9466572999954224", "-1.946657419204712", "-1.9466570615768433"};
+            "-1.9466571807861328", "-1.9466569423675537", "-1.9466572999954224"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("length of reference not multiple of 3") {
