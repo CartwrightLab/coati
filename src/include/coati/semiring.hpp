@@ -47,9 +47,7 @@ class linear {
     static constexpr float times(float x, float y, Args... args) {
         return times(times(x, y), args...);
     }
-    static constexpr float power(float x, size_t y) {
-        return std::pow(x, y);
-    }
+    static constexpr float power(float x, size_t y) { return std::pow(x, y); }
     static constexpr float zero() { return 0.0f; }
     static constexpr float one() { return 1.0f; }
 };

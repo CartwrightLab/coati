@@ -647,8 +647,9 @@ TEST_CASE("marg_sample") {
     SUBCASE("sample size 3") {
         std::vector<std::string> seq1{"CC--CCCC", "CCCCCC--", "CCCC--CC"};
         std::vector<std::string> seq2{"CCCCCCCC", "CCCCCCCC", "CCCCCCCC"};
-        std::vector<std::string> lscore{
-            "-1.9466571807861328", "-1.9466569423675537", "-1.9466572999954224"};
+        std::vector<std::string> lscore{"-1.9466571807861328",
+                                        "-1.9466569423675537",
+                                        "-1.9466572999954224"};
         test("CCCCCC", "CCCCCCCC", seq1, seq2, lscore);
     }
     SUBCASE("length of reference not multiple of 3") {
