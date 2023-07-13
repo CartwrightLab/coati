@@ -402,7 +402,7 @@ float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
                 state = State::GAP;
             } else {  // match/mismatch;
                 score =
-                    trig.times(score, 2 * no_gap,
+                    trig.times(score, no_gap, no_gap,
                                p_marg(seq_pair[0][i - ngap], seq_pair[1][i]));
             }
             break;
@@ -414,15 +414,17 @@ float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
             } else {  // match/mismatch
                 assert(nins > 0 || ndel > 0);
                 if(nins == 0) {  // score deletions
-                    score = trig.times(score, no_gap, gap_open,
-                                       (ndel - 1) * gap_extend, gap_stop);
+                    score =
+                        trig.times(score, no_gap, gap_open,
+                                   trig.power(gap_extend, ndel - 1), gap_stop);
                 } else if(ndel == 0) {  // score insertions
-                    score = trig.times(score, gap_open, (nins - 1) * gap_extend,
+                    score = trig.times(score, gap_open,
+                                       trig.power(gap_extend, nins - 1),
                                        gap_stop, no_gap);
                 } else {  // score both insertions and deletions
-                    score = trig.times(score, 2 * gap_open,
-                                       (nins + ndel - 2) * gap_extend,
-                                       2 * gap_stop);
+                    score = trig.times(score, gap_open, gap_open,
+                                       trig.power(gap_extend, nins + ndel - 2),
+                                       gap_stop, gap_stop);
                 }
                 ngap += nins;
                 score = trig.times(
@@ -435,18 +437,19 @@ float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
     }
     // terminal state score
     if(state == State::MATCH) {
-        score = trig.times(score, 2 * no_gap);
+        score = trig.times(score, no_gap, no_gap);
     } else if(state == State::GAP) {
         if(nins == 0) {  // score deletions
-            score = trig.times(score, no_gap, gap_open, (ndel - 1) * gap_extend,
-                               gap_stop);
+            score = trig.times(score, no_gap, gap_open,
+                               trig.power(gap_extend, ndel - 1), gap_stop);
         } else if(ndel == 0) {  // score insertions
-            score = trig.times(score, gap_open, (nins - 1) * gap_extend,
-                               gap_stop, no_gap);
-        } else {  // score both insertions and deletions
             score =
-                trig.times(score, 2 * gap_open, (nins + ndel - 2) * gap_extend,
-                           2 * gap_stop, no_gap);
+                trig.times(score, gap_open, trig.power(gap_extend, nins - 1),
+                           gap_stop, no_gap);
+        } else {  // score both insertions and deletions
+            score = trig.times(score, gap_open, gap_open,
+                               trig.power(gap_extend, nins + ndel - 2),
+                               gap_stop, gap_stop, no_gap);
         }
     }
 
@@ -460,7 +463,8 @@ float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("alignment_score") {
-    auto test = [](const std::string anc, const std::string des, float exp) {
+    // NOLINTNEXTLINE(misc-unused-parameters)
+    auto test = [](const std::string& anc, const std::string& des, float exp) {
         coati::alignment_t aln;
         coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
         coati::Matrixf p_marg = marginal_p(P, aln.pi, AmbiguousNucs::AVG);
@@ -486,7 +490,8 @@ TEST_CASE("alignment_score") {
     test("AAAAAAAAA", "---AAAAAA", -2.03242);
     test("AAAAAAAAA", "AAAAAA---", -2.03242);
 
-    auto test_fail = [](const std::string anc, const std::string des) {
+    // NOLINTNEXTLINE(misc-unused-parameters)
+    auto test_fail = [](const std::string& anc, const std::string& des) {
         coati::alignment_t aln;
         coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
         coati::Matrixf p_marg = marginal_p(P, aln.pi, AmbiguousNucs::AVG);

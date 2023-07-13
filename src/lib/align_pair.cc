@@ -82,12 +82,11 @@ void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
     work.mch(start, start) = S::one();
 
     for(size_t i = start + look_back; i < len_a; i += look_back) {
-        work.del(i, start) = S::times(no_gap, gap_open,
-                                      gap_extend * static_cast<float_t>(i - 1));
+        work.del(i, start) =
+            S::times(no_gap, gap_open, S::power(gap_extend, i - 1));
     }
     for(size_t j = start + look_back; j < len_b; j += look_back) {
-        work.ins(start, j) =
-            S::times(gap_open, gap_extend * static_cast<float_t>(j - 1));
+        work.ins(start, j) = S::times(gap_open, S::power(gap_extend, j - 1));
     }
     work.init_margins();
 
@@ -97,7 +96,7 @@ void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
             //  from match, ins, or del to match
             work.subst = aln.subst_matrix(a[i - look_back], b[j - look_back]);
             work.mch2mch =
-                S::times(work.mch(i - 1, j - 1), 2 * no_gap, work.subst);
+                S::times(work.mch(i - 1, j - 1), no_gap, no_gap, work.subst);
             work.del2mch =
                 S::times(work.del(i - 1, j - 1), gap_stop, work.subst);
             work.ins2mch =
@@ -106,21 +105,18 @@ void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
             // from match, del, or ins to del
             work.mch2del =
                 S::times(work.mch(i - look_back, j), no_gap, gap_open,
-                         gap_extend * static_cast<float_t>(look_back - 1));
+                         S::power(gap_extend, look_back - 1));
             work.ins2del =
                 S::times(work.ins(i - look_back, j), gap_stop, gap_open,
-                         gap_extend * static_cast<float_t>(look_back - 1));
-            work.del2del =
-                S::times(work.del(i - look_back, j),
-                         gap_extend * static_cast<float_t>(look_back));
+                         S::power(gap_extend, look_back - 1));
+            work.del2del = S::times(work.del(i - look_back, j),
+                                    S::power(gap_extend, look_back));
 
             // from match  or ins to ins
-            work.mch2ins =
-                S::times(work.mch(i, j - look_back), gap_open,
-                         gap_extend * static_cast<float_t>(look_back - 1));
-            work.ins2ins =
-                S::times(work.ins(i, j - look_back),
-                         gap_extend * static_cast<float_t>(look_back));
+            work.mch2ins = S::times(work.mch(i, j - look_back), gap_open,
+                                    S::power(gap_extend, look_back - 1));
+            work.ins2ins = S::times(work.ins(i, j - look_back),
+                                    S::power(gap_extend, look_back));
 
             // save score
             work.mch(i, j) = S::plus(work.mch2mch, work.del2mch, work.ins2mch);
@@ -134,7 +130,7 @@ void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
     {
         // adjust the terminal state
         work.mch(len_a - 1, len_b - 1) =
-            S::times(work.mch(len_a - 1, len_b - 1), 2 * no_gap);
+            S::times(work.mch(len_a - 1, len_b - 1), no_gap, no_gap);
         work.ins(len_a - 1, len_b - 1) =
             S::times(work.ins(len_a - 1, len_b - 1), gap_stop, no_gap);
         work.del(len_a - 1, len_b - 1) =
@@ -276,7 +272,7 @@ void traceback(const align_pair_work_mem_t &work, const std::string &a,
             aln.seq(1).push_back(b[j - look_back]);
             i--;
             j--;
-            m = max_mdi(S::times(work.mch(i, j), 2 * no_gap),
+            m = max_mdi(S::times(work.mch(i, j), no_gap, no_gap),
                         S::times(work.del(i, j), gap_stop),
                         S::times(work.ins(i, j), gap_stop, no_gap));
             break;

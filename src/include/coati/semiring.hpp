@@ -44,6 +44,10 @@ class linear {
     static constexpr float times(float first, Args... args) {
         return first * times(args...);
     }
+    static constexpr float power(float x, float y) { return std::pow(x, y); }
+    static constexpr float power(float x, size_t y) {
+        return std::pow(x, static_cast<float>(y));
+    }
     static constexpr float zero() { return 0.0f; }
     static constexpr float one() { return 1.0f; }
 };
@@ -66,6 +70,10 @@ class log {
     template <typename... Args>
     static constexpr float times(float first, Args... args) {
         return first + times(args...);
+    }
+    static constexpr float power(float x, float y) { return x * y; }
+    static constexpr float power(float x, size_t y) {
+        return x * static_cast<float>(y);
     }
     static constexpr float zero() {
         return std::numeric_limits<float_t>::lowest();
@@ -94,6 +102,10 @@ class tropical {
     template <typename... Args>
     static constexpr float times(float first, Args... args) {
         return first + times(args...);
+    }
+    static constexpr float power(float x, float y) { return x * y; }
+    static constexpr float power(float x, size_t y) {
+        return x * static_cast<float>(y);
     }
     static constexpr float zero() {
         return std::numeric_limits<float_t>::lowest();
