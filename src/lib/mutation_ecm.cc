@@ -24,6 +24,9 @@
 
 #include <coati/mutation_ecm.hpp>
 
+#include <Eigen/Dense>
+#include <unsupported/Eigen/MatrixFunctions>
+
 namespace coati {
 
 /**

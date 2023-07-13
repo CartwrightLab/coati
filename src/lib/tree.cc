@@ -22,8 +22,10 @@
 
 #include <doctest/doctest.h>
 
-#include <cfloat>
 #include <coati/tree.hpp>
+
+#include <cfloat>
+#include <boost/algorithm/string/erase.hpp>
 
 namespace newick {
 namespace x3 = boost::spirit::x3;

@@ -23,6 +23,14 @@
 #include <doctest/doctest.h>
 
 #include <coati/io.hpp>
+#include <coati/utils.hpp>
+#include <coati/fasta.hpp>
+#include <coati/phylip.hpp>
+#include <coati/json.hpp>
+#include <coati/mutation_coati.hpp>
+#include <coati/mg94q.tcc>
+
+#include <unsupported/Eigen/MatrixFunctions>
 
 namespace coati::io {
 

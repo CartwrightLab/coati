@@ -23,13 +23,9 @@
 #ifndef ALIGN_HPP
 #define ALIGN_HPP
 
-#include <fst/fstlib.h>
-
 #include <vector>
 
-#include "io.hpp"
-#include "mutation_ecm.hpp"
-#include "utils.hpp"
+#include "structs.hpp"
 
 namespace coati {
 // Pairwise alignment using FST composition

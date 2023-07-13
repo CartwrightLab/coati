@@ -23,19 +23,13 @@
 #ifndef FASTA_HPP
 #define FASTA_HPP
 
-#include <fst/fstlib.h>
-
 #include <filesystem>
 #include <string>
 #include <vector>
 
-#include "mutation_fst.hpp"
 #include "structs.hpp"
-#include "utils.hpp"
 
 namespace coati {
-
-using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 // Read fasta format file.
 coati::data_t read_fasta(std::istream& in, bool marginal);

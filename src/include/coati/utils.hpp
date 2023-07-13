@@ -23,30 +23,14 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include <fst/fstlib.h>
-
-#include <CLI11.hpp>
-#include <Eigen/Dense>
-#include <boost/algorithm/string.hpp>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <regex>
+#include <vector>
 #include <string>
 #include <string_view>
-#include <unsupported/Eigen/MatrixFunctions>
-#include <vector>
 
-#include "dna_syms.hpp"
-#include "fasta.hpp"
-#include "io.hpp"
-#include "json.hpp"
-#include "matrix.hpp"
-#include "mg94q.tcc"
-#include "mutation_coati.hpp"
-#include "mutation_ecm.hpp"
-#include "mutation_fst.hpp"
-#include "phylip.hpp"
+#include <fst/fst-decl.h>
+
+#include <CLI11.hpp>
+
 #include "structs.hpp"
 
 /**
@@ -87,7 +71,6 @@ const uint8_t amino_group[61] = {
     89, 89, 83, 83, 83, 83, 67, 87, 67, 76, 70, 76, 70};
 
 namespace coati::utils {
-using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 using sequence_pair_t = std::vector<std::basic_string<unsigned char>>;
 
@@ -106,7 +89,7 @@ void set_options_format(CLI::App& app, coati::args_t& args);
 // Encode two sequences as vector<unsigned char>.
 sequence_pair_t marginal_seq_encoding(const std::string_view anc,
                                       const std::string_view des);
-// Set subtitution matrix or FST according to model.
+// Set substitution matrix or FST according to model.
 void set_subst(alignment_t& aln);
 // Extract file type from path. Returns {.ext, file.foo}.
 // trims whitespace as well

@@ -23,7 +23,8 @@
 #ifndef STRUCTS_HPP
 #define STRUCTS_HPP
 
-#include <fst/fstlib.h>
+#include <fst/arc.h>
+#include <fst/vector-fst.h>
 
 #include <filesystem>
 

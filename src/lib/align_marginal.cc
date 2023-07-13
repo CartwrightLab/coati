@@ -23,6 +23,11 @@
 #include <doctest/doctest.h>
 
 #include <coati/align_marginal.hpp>
+#include <coati/json.hpp>
+#include <coati/mutation_coati.hpp>
+#include <coati/mg94q.tcc>
+#include <coati/io.hpp>
+
 #include <filesystem>
 
 namespace coati {
