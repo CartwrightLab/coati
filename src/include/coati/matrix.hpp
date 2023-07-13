@@ -23,14 +23,11 @@
 #ifndef MATRIX_HPP
 #define MATRIX_HPP
 
-#include <Eigen/Dense>
 #include <vector>
 
-namespace coati {
+#include "matrix_decl.hpp"
 
-using Matrix64f = Eigen::Matrix<float, 64, 64>;
-using Matrix61f = Eigen::Matrix<float, 61, 61>;
-using float_t = float;
+namespace coati {
 
 /**
  * @brief Matrix class with custom constructors.

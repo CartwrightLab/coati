@@ -1,5 +1,5 @@
 /*
-# Copyright (c) 2021-2022 Juan J. Garcia Mesa <juanjosegarciamesa@gmail.com>
+# Copyright (c) 2023 Reed A. Cartwright <racartwright@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,16 @@
 # SOFTWARE.
 */
 
-#ifndef FASTA_HPP
-#define FASTA_HPP
+#ifndef MATRIX_DECL_HPP
+#define MATRIX_DECL_HPP
 
-#include <filesystem>
-#include <string>
-#include <vector>
-
-#include "data.hpp"
+#include <Eigen/Core>
 
 namespace coati {
 
-// Read fasta format file.
-coati::data_t read_fasta(std::istream& in, bool marginal);
-// Write alignment in fasta format.
-void write_fasta(coati::data_t& fasta, std::ostream& out);
+using Matrix64f = Eigen::Matrix<float, 64, 64>;
+using Matrix61f = Eigen::Matrix<float, 61, 61>;
+using float_t = float;
 
 }  // namespace coati
 

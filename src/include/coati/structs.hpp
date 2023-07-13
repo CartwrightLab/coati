@@ -23,16 +23,12 @@
 #ifndef STRUCTS_HPP
 #define STRUCTS_HPP
 
-#include <fst/arc.h>
-#include <fst/vector-fst.h>
-
 #include <filesystem>
 
+#include "data.hpp"
 #include "matrix.hpp"
 
 namespace coati {
-
-using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 /**
  * @brief Stores gap unit length and open/extend score cost.
@@ -58,52 +54,6 @@ struct file_type_t {
    public:
     std::string path;
     std::string type_ext;
-};
-
-/**
- * @brief Store sequence information.
- *
- */
-class data_t {
-   public:
-    std::filesystem::path path;        /*!< path to input file */
-    std::vector<std::string> names;    /*!< names of fasta sequences */
-    std::vector<std::string> seqs;     /*!< fasta sequences */
-    float_t score{0.f};                /*!< alignment score */
-    std::vector<VectorFstStdArc> fsts; /*!< sequences as FSTs */
-    std::vector<std::string> stops;
-
-    data_t() = default;
-    explicit data_t(std::filesystem::path p, std::vector<std::string> n = {},
-                    std::vector<std::string> s = {}, float_t w = 0.f,
-                    std::vector<VectorFstStdArc> f = {}, std::string c = {})
-        : path{std::move(p)},
-          names{std::move(n)},
-          seqs{std::move(s)},
-          score{w},
-          fsts{std::move(f)},
-          stops{std::move(c)} {}
-
-    /** \brief Return number of names/sequences */
-    std::size_t size() {
-        if(names.size() != seqs.size()) {
-            throw std::invalid_argument(
-                "Different number of sequences and names.");
-        }
-        return names.size();
-    }
-
-    /** \brief Return number of names/sequences */
-    [[nodiscard]] size_t size() const {
-        if(names.size() != seqs.size()) {
-            throw std::invalid_argument(
-                "Different number of sequences and names.");
-        }
-        return names.size();
-    }
-
-    /** \brief Return length of sequence on position index */
-    size_t len(size_t index) { return seqs[index].length(); }
 };
 
 enum struct AmbiguousNucs { AVG, BEST };
