@@ -1055,6 +1055,13 @@ void process_triplet(coati::alignment_t& aln) {
         }
     }
 
+    // check that reference/ancestor doesnt have ambiguous nucs
+    auto pos = aln.seq(0).find_first_not_of("ACGTUacgtu");
+    if(pos != std::string::npos) {
+        throw std::invalid_argument(
+            "Ambiguous nucleotides in reference sequence not supported.");
+    }
+
     // handle ending stop codons
     trim_end_stops(aln.data);
 }
