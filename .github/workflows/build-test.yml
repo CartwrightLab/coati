@@ -5,7 +5,6 @@ on:
     branches:
       - main
       - master
-      - develop
   pull_request:
     branches:
       - main
@@ -40,3 +39,9 @@ jobs:
           setup-options: -Db_test=true --buildtype=debug -Db_coverage=false -Db_benchmark=false
           options: --verbose
           meson-version: 0.61.2
+      - name: Preserve Build Log on Failure
+        uses: actions/upload-artifact@v3
+        if: ${{ failure() }}
+        with:
+          name: Linux_Meson_log
+          path: build/meson-logs/meson-log.txt
