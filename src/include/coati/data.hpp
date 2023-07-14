@@ -31,7 +31,7 @@
 #include <string>
 #include <vector>
 
-#include "matrix_decl.hpp"
+#include "matrix.hpp"
 
 namespace coati {
 

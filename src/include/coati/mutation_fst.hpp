@@ -26,7 +26,7 @@
 #include <string_view>
 
 #include "data.hpp"
-#include "matrix_decl.hpp"
+#include "matrix.hpp"
 
 namespace coati {
 

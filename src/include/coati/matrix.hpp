@@ -23,9 +23,9 @@
 #ifndef MATRIX_HPP
 #define MATRIX_HPP
 
-#include <vector>
+#include <cassert>
 
-#include "matrix_decl.hpp"
+#include <vector>
 
 namespace coati {
 
@@ -39,24 +39,12 @@ class Matrix {
     Matrix() = default;
     Matrix(std::size_t rows, std::size_t cols, T value = static_cast<T>(0))
         : rows_(rows), cols_(cols), data_(rows * cols, value) {}
-    Matrix(std::size_t rows, std::size_t cols, Matrix64f& eigen_m)
-        : rows_(rows), cols_(cols) {
-        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m(
-            eigen_m);
-        data_.resize(rows_ * cols_);
-        for(std::size_t i = 0; i < rows_ * cols_; i++) {
-            data_[i] = m(i);
-        }
+
+    template< class InputIt >
+    Matrix(std::size_t rows, std::size_t cols, InputIt first, InputIt last)
+        : rows_(rows), cols_(cols), data_(first, last) {
     }
-    Matrix(std::size_t rows, std::size_t cols, Matrix61f& eigen_m)
-        : rows_(rows), cols_(cols) {
-        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m(
-            eigen_m);
-        data_.resize(rows_ * cols_);
-        for(std::size_t i = 0; i < rows_ * cols_; i++) {
-            data_[i] = m(i);
-        }
-    }
+
     // copy constructor
     Matrix(const Matrix&) = default;
     // move constructor
@@ -177,6 +165,7 @@ class Tensor {
     std::vector<T> data_;
 };  // class Tensor
 
+using float_t = float;
 using Matrixf = Matrix<float_t>;
 using Matrixi = Matrix<int>;
 using Tensorf = Tensor<float_t>;

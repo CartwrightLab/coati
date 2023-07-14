@@ -20,16 +20,17 @@
 # SOFTWARE.
 */
 
-#ifndef MATRIX_DECL_HPP
-#define MATRIX_DECL_HPP
+#ifndef COATI_EIGEN_MATRIX_HPP
+#define COATI_EIGEN_MATRIX_HPP
 
 #include <Eigen/Core>
 
+#include "matrix.hpp"
+
 namespace coati {
 
-using Matrix64f = Eigen::Matrix<float, 64, 64>;
-using Matrix61f = Eigen::Matrix<float, 61, 61>;
-using float_t = float;
+using Matrix64f = Eigen::Matrix<float_t, 64, 64>;
+using Matrix61f = Eigen::Matrix<float_t, 61, 61>;
 
 }  // namespace coati
 
