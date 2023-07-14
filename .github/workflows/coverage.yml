@@ -5,6 +5,7 @@ on:
     workflows: ["Build and Test"]
     types:
       - completed
+  workflow_dispatch:
 
 jobs:
   upload-coverage:
