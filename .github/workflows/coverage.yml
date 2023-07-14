@@ -1,14 +1,10 @@
-name: "Build and Test"
+name: "Coverage Report"
 
 on:
-  push:
-    branches:
-      - main
-      - master
-  pull_request:
-    branches:
-      - main
-      - master
+  workflow_run:
+    workflows: ["Build and Test"]
+    types:
+      - completed
 
 jobs:
   build-linux:
@@ -23,25 +19,23 @@ jobs:
             gcc-11 g++-11 \
             libboost-all-dev \
             libeigen3-dev
-      - name: Full Build
-        uses: BSFishy/meson-build@v1.0.3
-        with:
-          action: build
-          directory: build/debug
-          setup-options: -Db_test=true --buildtype=debug -Db_coverage=false -Db_benchmark=false
-          options: --verbose
-          meson-version: 0.61.2
       - name: Run Unit Tests
         uses: BSFishy/meson-build@v1.0.3
         with:
           action: test
           directory: build/debug
-          setup-options: -Db_test=true --buildtype=debug -Db_coverage=false -Db_benchmark=false
+          setup-options: -Db_test=true --buildtype=debug -Db_coverage=true -Db_benchmark=false
           options: --verbose
           meson-version: 0.61.2
-      - name: Preserve Build Log on Failure
-        uses: actions/upload-artifact@v3
-        if: ${{ failure() }}
+      - name: Run Coverage
+        uses: BSFishy/meson-build@v1.0.3
         with:
-          name: Linux_Meson_log
-          path: build/debug/meson-logs/meson-log.txt
+          action: coverage
+          directory: build/debug
+          setup-options: -Db_test=true --buildtype=debug -Db_coverage=true -Db_benchmark=false
+          options: --verbose
+          meson-version: 0.61.2
+    - name: Upload coverage results
+      uses: codecov/codecov-action@v2
+      with:
+        files: build/debug/meson-logs/coverage.xml
