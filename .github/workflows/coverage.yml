@@ -36,7 +36,7 @@ jobs:
           setup-options: -Db_test=true --buildtype=debug -Db_coverage=true -Db_benchmark=false
           options: --verbose
           meson-version: 0.61.2
-    - name: Upload coverage results
-      uses: codecov/codecov-action@v2
-      with:
-        files: build/debug/meson-logs/coverage.xml
+      - name: Upload coverage results
+        uses: codecov/codecov-action@v2
+        with:
+          files: build/debug/meson-logs/coverage.xml
