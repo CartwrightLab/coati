@@ -1,0 +1,30 @@
+name: "Clang-Tidy"
+
+on:
+  workflow_run:
+    workflows: ["Build and Test"]
+    types:
+      - completed
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - name: Install Boost
+      run: sudo apt-get update && sudo apt-get install -yq libboost-all-dev
+    - name: Install Eigen
+      run: sudo apt-get install -yq libeigen3-dev
+    - name: Install gcc11
+      run: sudo apt install gcc-11 g++-11
+    - uses: BSFishy/meson-build@v1.0.3
+      with:
+        action: tidy
+        directory: builddir
+        setup-options: -Db_test=false --buildtype=debug
+        options: --verbose
+        meson-version: 0.61.2
+        ninja-version: 1.2.1
