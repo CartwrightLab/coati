@@ -24,7 +24,6 @@
 #define MATRIX_HPP
 
 #include <cassert>
-
 #include <vector>
 
 namespace coati {
@@ -40,10 +39,9 @@ class Matrix {
     Matrix(std::size_t rows, std::size_t cols, T value = static_cast<T>(0))
         : rows_(rows), cols_(cols), data_(rows * cols, value) {}
 
-    template< class InputIt >
+    template <class InputIt>
     Matrix(std::size_t rows, std::size_t cols, InputIt first, InputIt last)
-        : rows_(rows), cols_(cols), data_(first, last) {
-    }
+        : rows_(rows), cols_(cols), data_(first, last) {}
 
     // copy constructor
     Matrix(const Matrix&) = default;

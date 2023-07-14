@@ -84,7 +84,7 @@ coati::Matrixf parse_matrix_csv(const std::string& file) {
     // normalize and exponentiate
     Matrix61f P = (Q * br_len).exp();
     P.transposeInPlace();
-    return {61, 61, P.data(), P.data()+P.size()};    
+    return {61, 61, P.data(), P.data() + P.size()};
 }
 
 /// @private

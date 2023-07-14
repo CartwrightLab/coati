@@ -22,10 +22,10 @@
 
 #include <doctest/doctest.h>
 
+#include <coati/eigen_matrix.hpp>
+#include <coati/matrix.hpp>
 #include <coati/mutation_ecm.hpp>
 #include <coati/utils.hpp>
-#include <coati/matrix.hpp>
-#include <coati/eigen_matrix.hpp>
 #include <unsupported/Eigen/MatrixFunctions>
 
 namespace coati {
@@ -178,9 +178,9 @@ coati::Matrixf ecm_p(float br_len, float omega) {
     }
 
     // normalize and exponentiate
-    Matrix61f P = (Q * (br_len/d)).exp();
+    Matrix61f P = (Q * (br_len / d)).exp();
     P.transposeInPlace();
-    return {61, 61, P.data(), P.data()+P.size()};
+    return {61, 61, P.data(), P.data() + P.size()};
 }
 
 /**
