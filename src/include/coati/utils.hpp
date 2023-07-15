@@ -116,7 +116,7 @@ int cod61_to_64(int cod);
 
 // calculate log(1+exp(x))
 // https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
-static inline float_t log1p_exp(float_t x) {
+inline float_t log1p_exp(float_t x) {
     if(x <= -37.0f) {
         return std::exp(x);
     }
@@ -132,14 +132,13 @@ static inline float_t log1p_exp(float_t x) {
 // Let x = max(a,b)
 // Let y = -abs(a-b)
 //  log(exp(a)+exp(b)) = x+log(1+exp(y))
-// NOLINTNEXTLINE(clang-diagnostic-unused-function)
-static inline float_t log_sum_exp(float_t a, float_t b) {
+inline float_t log_sum_exp(float_t a, float_t b) {
     float_t x = std::max(a, b);
     float_t y = -std::fabs(a - b);
     return x + log1p_exp(y);
 }
 
-static inline float_t log_sum_exp(float_t a, float_t b, float_t c) {
+inline float_t log_sum_exp(float_t a, float_t b, float_t c) {
     return log_sum_exp(log_sum_exp(a, b), c);
 }
 
