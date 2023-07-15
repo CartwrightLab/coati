@@ -1,10 +1,14 @@
 name: "Coverage Report"
 
 on:
-  workflow_run:
-    workflows: ["Build and Test"]
-    types: [completed]
-
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
 jobs:
   upload-coverage:
     runs-on: ubuntu-latest
