@@ -1,4 +1,4 @@
-doctest_dep = declare_dependency(include_directories: include_directories('doctest'))
+doctest_dep = declare_dependency(include_directories: include_directories('doctest', is_system : true))
 
 librandom = static_library(
     'random', ['random/random.cpp'],
@@ -26,4 +26,4 @@ fstlib_dep = declare_dependency(
 
 fstlib_dep = fstlib_dep.as_system('system')
 
-cli_dep = declare_dependency(include_directories : include_directories('CLI'))
+cli_dep = declare_dependency(include_directories : include_directories('CLI', is_system : true))
