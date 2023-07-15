@@ -21,8 +21,12 @@
 */
 
 #include <doctest/doctest.h>
+#include <fst/fstlib.h>
 
 #include <coati/align_fst.hpp>
+#include <coati/io.hpp>
+#include <coati/mutation_fst.hpp>
+#include <coati/utils.hpp>
 #include <filesystem>
 
 namespace coati {

@@ -23,7 +23,7 @@
 #ifndef DNA_SYMS_HPP
 #define DNA_SYMS_HPP
 
-#include <fst/fstlib.h>
+#include <fst/symbol-table.h>
 
 inline void fill_symbol_table(fst::SymbolTable& dna_syms) {
     dna_syms.AddSymbol("<eps>", 0);

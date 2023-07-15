@@ -28,7 +28,6 @@
 #include "mutation_fst.hpp"
 
 namespace coati {
-using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 // Calculate number of transitions and transversion between two codons.
 void nts_ntv(uint8_t c1, uint8_t c2, int& nts, int& ntv);

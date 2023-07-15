@@ -39,6 +39,7 @@ inline int check_version_number() {
     return EXIT_SUCCESS;
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define COATI_VERB_RUNTIME_CHECK_VERSION_NUMBER_OR_RETURN() \
     do {                                                    \
         auto check = coati::verb::check_version_number();   \

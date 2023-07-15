@@ -23,20 +23,8 @@
 #ifndef IO_HPP
 #define IO_HPP
 
-#include <fst/fstlib.h>
-
-#include <filesystem>
-#include <fstream>
-#include <iostream>
 #include <string>
-#include <vector>
 
-#include "fasta.hpp"
-#include "json.hpp"
-#include "matrix.hpp"
-#include "mg94q.tcc"
-#include "mutation_coati.hpp"
-#include "phylip.hpp"
 #include "structs.hpp"
 
 namespace coati::io {

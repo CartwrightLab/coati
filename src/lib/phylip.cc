@@ -22,6 +22,7 @@
 
 #include <doctest/doctest.h>
 
+#include <coati/mutation_fst.hpp>
 #include <coati/phylip.hpp>
 
 namespace coati {

@@ -23,8 +23,6 @@
 #ifndef ALIGN_PAIR_HPP
 #define ALIGN_PAIR_HPP
 
-#include <cmath>
-#include <limits>
 #include <random.hpp>
 #include <string_view>
 

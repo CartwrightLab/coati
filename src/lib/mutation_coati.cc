@@ -22,7 +22,12 @@
 
 #include <doctest/doctest.h>
 
+#include <coati/eigen_matrix.hpp>
+#include <coati/matrix.hpp>
+#include <coati/mg94p.tcc>
 #include <coati/mutation_coati.hpp>
+#include <coati/utils.hpp>
+#include <unsupported/Eigen/MatrixFunctions>
 
 namespace coati {
 /**
@@ -113,13 +118,10 @@ coati::Matrixf mg94_p(float br_len, float omega,
         d += Pi[i] * rowSum;
     }
 
-    // normalize
-    Q = Q / d;
-
-    Q = Q * br_len;
-    Q = Q.exp();
-
-    return {61, 61, Q};
+    // normalize and exponentiate
+    Matrix61f P = (Q * (br_len / d)).exp();
+    P.transposeInPlace();
+    return {61, 61, P.data(), P.data() + P.size()};
 }
 
 /// @private

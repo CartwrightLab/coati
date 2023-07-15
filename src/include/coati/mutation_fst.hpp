@@ -23,17 +23,12 @@
 #ifndef MUTATION_FST_HPP
 #define MUTATION_FST_HPP
 
-#include <fst/fstlib.h>
-
-#include <string>
 #include <string_view>
 
+#include "data.hpp"
 #include "matrix.hpp"
-#include "utils.hpp"
 
 namespace coati {
-
-using VectorFstStdArc = fst::VectorFst<fst::StdArc>;
 
 // Create Muse and Gaut codon model FST.
 VectorFstStdArc mg94(float br_len, float omega,

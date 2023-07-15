@@ -21,8 +21,12 @@
 */
 
 #include <doctest/doctest.h>
+#include <fst/fstlib.h>
 
+#include <coati/dna_syms.hpp>
+#include <coati/mutation_coati.hpp>
 #include <coati/mutation_fst.hpp>
+#include <coati/utils.hpp>
 
 namespace coati {
 

@@ -40,18 +40,21 @@ inc = include_directories(['.', 'include'])
 eigen_dep = dependency('eigen3',
 	fallback : ['eigen', 'eigen_dep'],
 	version : '>=3.3',
-	required : true
+	required : true,
+  include_type : 'system'
 )
 
 boost_dep = dependency('boost',
 	version : '>=1.67.0',
-	required : true
+	required : true,
+  include_type : 'system'
 )
 
 json_dep = dependency('json',
   fallback : ['json', 'nlohmann_json_dep'],
   version : '>=3.2.0',
-  required : true
+  required : true,
+  include_type : 'system'  
 )
 
 subdir('lib')

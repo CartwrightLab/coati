@@ -23,15 +23,10 @@
 #ifndef MUTATION_COATI_HPP
 #define MUTATION_COATI_HPP
 
-#include <algorithm>
-#include <cmath>
-#include <limits>
-#include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
 
 #include "matrix.hpp"
-#include "mg94p.tcc"
-#include "utils.hpp"
+#include "structs.hpp"
 
 namespace coati {
 // Create Muse \& Gaut (1994) substitution matrix.

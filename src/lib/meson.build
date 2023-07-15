@@ -40,7 +40,7 @@ libcoati_sources = files([
 
 libcoati_deps = [cli_dep, boost_dep, doctest_dep, eigen_dep, fstlib_dep, librandom_dep, json_dep]
 
-libcoati = static_library('libcoati', [libcoati_sources, version_file],
+libcoati = static_library('coati', [libcoati_sources, version_file],
   include_directories : inc,
   dependencies : libcoati_deps,
   cpp_args : ['-DDOCTEST_CONFIG_DISABLE']

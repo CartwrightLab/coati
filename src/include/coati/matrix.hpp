@@ -23,14 +23,10 @@
 #ifndef MATRIX_HPP
 #define MATRIX_HPP
 
-#include <Eigen/Dense>
+#include <cassert>
 #include <vector>
 
 namespace coati {
-
-using Matrix64f = Eigen::Matrix<float, 64, 64>;
-using Matrix61f = Eigen::Matrix<float, 61, 61>;
-using float_t = float;
 
 /**
  * @brief Matrix class with custom constructors.
@@ -42,24 +38,11 @@ class Matrix {
     Matrix() = default;
     Matrix(std::size_t rows, std::size_t cols, T value = static_cast<T>(0))
         : rows_(rows), cols_(cols), data_(rows * cols, value) {}
-    Matrix(std::size_t rows, std::size_t cols, Matrix64f& eigen_m)
-        : rows_(rows), cols_(cols) {
-        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m(
-            eigen_m);
-        data_.resize(rows_ * cols_);
-        for(std::size_t i = 0; i < rows_ * cols_; i++) {
-            data_[i] = m(i);
-        }
-    }
-    Matrix(std::size_t rows, std::size_t cols, Matrix61f& eigen_m)
-        : rows_(rows), cols_(cols) {
-        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> m(
-            eigen_m);
-        data_.resize(rows_ * cols_);
-        for(std::size_t i = 0; i < rows_ * cols_; i++) {
-            data_[i] = m(i);
-        }
-    }
+
+    template <class InputIt>
+    Matrix(std::size_t rows, std::size_t cols, InputIt first, InputIt last)
+        : rows_(rows), cols_(cols), data_(first, last) {}
+
     // copy constructor
     Matrix(const Matrix&) = default;
     // move constructor
@@ -73,7 +56,7 @@ class Matrix {
         : rows_(init_list.size()), cols_(init_list.begin()->size()) {
         data_.resize(rows_ * cols_);
 
-        size_t i = 0, j = 0;
+        std::size_t i = 0, j = 0;
         for(const auto& row : init_list) {
             for(const auto& val : row) {
                 data_[i * cols_ + j] = val;
@@ -180,6 +163,7 @@ class Tensor {
     std::vector<T> data_;
 };  // class Tensor
 
+using float_t = float;
 using Matrixf = Matrix<float_t>;
 using Matrixi = Matrix<int>;
 using Tensorf = Tensor<float_t>;

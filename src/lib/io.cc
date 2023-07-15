@@ -22,7 +22,15 @@
 
 #include <doctest/doctest.h>
 
+#include <coati/eigen_matrix.hpp>
+#include <coati/fasta.hpp>
 #include <coati/io.hpp>
+#include <coati/json.hpp>
+#include <coati/mg94q.tcc>
+#include <coati/mutation_coati.hpp>
+#include <coati/phylip.hpp>
+#include <coati/utils.hpp>
+#include <unsupported/Eigen/MatrixFunctions>
 
 namespace coati::io {
 
@@ -73,10 +81,10 @@ coati::Matrixf parse_matrix_csv(const std::string& file) {
             "Error reading substitution rate CSV file. Exiting!");
     }
 
-    Q = Q * br_len;
-    Q = Q.exp();
-
-    return {61, 61, Q};
+    // normalize and exponentiate
+    Matrix61f P = (Q * br_len).exp();
+    P.transposeInPlace();
+    return {61, 61, P.data(), P.data() + P.size()};
 }
 
 /// @private

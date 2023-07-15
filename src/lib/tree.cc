@@ -22,6 +22,7 @@
 
 #include <doctest/doctest.h>
 
+#include <boost/algorithm/string/erase.hpp>
 #include <cfloat>
 #include <coati/tree.hpp>
 

@@ -23,6 +23,8 @@
 #include <doctest/doctest.h>
 
 #include <coati/fasta.hpp>
+#include <coati/mutation_fst.hpp>
+#include <coati/structs.hpp>
 
 namespace coati {
 
