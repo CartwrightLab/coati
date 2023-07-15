@@ -4,6 +4,8 @@ on:
   workflow_run:
     workflows: ["Build and Test"]
     types: [completed]
+  push:
+    branches: [update_workflows]
   workflow_dispatch:
 
 jobs:
