@@ -30,7 +30,7 @@ jobs:
         run: |
           meson setup build/debug -Db_test=false --buildtype=debug -Db_coverage=false -Db_benchmark=false
       - name: Run Clang-Tidy
-        run: ninja coverage-xml -C build/debug
+        run: ninja clang-tidy -C build/debug
       - name: Preserve Build Log on Failure
         uses: actions/upload-artifact@v3
         if: ${{ failure() }}
