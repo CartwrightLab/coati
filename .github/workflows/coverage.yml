@@ -20,7 +20,7 @@ jobs:
             libboost-all-dev \
             libeigen3-dev \
             nlohmann-json3-dev          
-          sudo pip install gcovr
+          pip install gcovr
       - name: Run Unit Tests
         uses: BSFishy/meson-build@v1.0.3
         with:
@@ -28,7 +28,8 @@ jobs:
           directory: build/debug
           setup-options: -Db_test=true --buildtype=debug -Db_coverage=true -Db_benchmark=false
           options: --verbose
-          meson-version: 0.61.2
+          meson-version: 1.1.1
+          ninja-version: 1.11.1
       - name: Generate coverage report
         run: ninja coverage-xml -C build/debug
       - name: Upload coverage results

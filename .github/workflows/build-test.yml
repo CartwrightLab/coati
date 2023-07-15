@@ -31,7 +31,8 @@ jobs:
           directory: build/debug
           setup-options: -Db_test=true --buildtype=debug -Db_coverage=false -Db_benchmark=false
           options: --verbose
-          meson-version: 0.61.2     
+          meson-version: 1.1.1
+          ninja-version: 1.11.1
       - name: Run Unit Tests
         uses: BSFishy/meson-build@v1.0.3
         with:
@@ -39,7 +40,8 @@ jobs:
           directory: build/debug
           setup-options: -Db_test=true --buildtype=debug -Db_coverage=false -Db_benchmark=false
           options: --verbose
-          meson-version: 0.61.2     
+          meson-version: 1.1.1
+          ninja-version: 1.11.1 
       - name: Preserve Build Log on Failure
         uses: actions/upload-artifact@v3
         if: ${{ failure() }}

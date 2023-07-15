@@ -23,8 +23,8 @@ jobs:
             libeigen3-dev \
             nlohmann-json3-dev \
             clang-tidy
-          sudo pip install ninja
-          sudo pip install meson==0.61.2
+          pip install ninja==1.11.1
+          pip install meson==1.1.1
       # Avoid using BSFishy/meson-build@v1.0.3's broken tidy action
       - name: Setup Build
         run: |
