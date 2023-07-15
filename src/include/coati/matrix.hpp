@@ -56,7 +56,7 @@ class Matrix {
         : rows_(init_list.size()), cols_(init_list.begin()->size()) {
         data_.resize(rows_ * cols_);
 
-        size_t i = 0, j = 0;
+        std::size_t i = 0, j = 0;
         for(const auto& row : init_list) {
             for(const auto& val : row) {
                 data_[i * cols_ + j] = val;
