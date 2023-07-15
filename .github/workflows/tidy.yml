@@ -31,6 +31,7 @@ jobs:
       - name: Setup Build
         run: |
           meson setup build/debug -Db_test=false --buildtype=debug -Db_coverage=false -Db_benchmark=false
+          meson compile -C build/debug src/version.h
       - name: Run Clang-Tidy
         run: ninja clang-tidy -C build/debug
       - name: Preserve Build Log on Failure
