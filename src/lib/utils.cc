@@ -731,12 +731,15 @@ uint8_t get_nuc(uint8_t cod, int pos) {
 /// @private
 // GCOVR_EXCL_START
 TEST_CASE("get_nuc") {
+    // NOLINTBEGIN(clang-diagnostic-unused-variable,misc-unused-parameters)
     auto test = [](int cod1, int cod2) {
         auto n1 = get_nuc(cod1, 0);
         auto n2 = get_nuc(cod1, 1);
         auto n3 = get_nuc(cod1, 2);
         CHECK_EQ(16 * n1 + 4 * n2 + n3, cod2);
     };
+    // NOLINTEND(clang-diagnostic-unused-variable,misc-unused-parameters)
+
     // test all codons before first stop codon (48)
     for(auto i = 0; i < 48; ++i) {
         test(i, i);
@@ -903,7 +906,7 @@ TEST_CASE("trim_end_stops") {
         coati::data_t data;
         data.seqs = raw_seqs;
         for(size_t i = 0; i < raw_seqs.size(); ++i) {
-            data.names.push_back("seq_name");
+            data.names.emplace_back("seq_name");
         }
 
         trim_end_stops(data);
@@ -926,7 +929,7 @@ TEST_CASE("trim_end_stops") {
         coati::data_t data;
         data.seqs = raw_seqs;
         for(const auto& seq : raw_seqs) {
-            data.names.push_back("seq_name");
+            data.names.emplace_back("seq_name");
             VectorFstStdArc fsa;  // FSA input sequence
             coati::acceptor(seq, fsa);
             data.fsts.push_back(fsa);
