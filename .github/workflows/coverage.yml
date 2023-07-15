@@ -29,7 +29,6 @@ jobs:
           setup-options: -Db_test=true --buildtype=debug -Db_coverage=true -Db_benchmark=false
           options: --verbose
           meson-version: 0.61.2
-          ninja-version: 1.2.1
       - name: Generate coverage report
         run: ninja coverage-xml -C build/debug
       - name: Upload coverage results
