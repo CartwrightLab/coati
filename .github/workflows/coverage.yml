@@ -1,14 +1,17 @@
 name: "Coverage Report"
 
 on:
-  workflow_run:
-    workflows: ["Build and Test"]
-    types: [completed]
-
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
 jobs:
   upload-coverage:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}    
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
