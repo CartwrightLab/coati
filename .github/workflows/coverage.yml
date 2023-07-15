@@ -1,0 +1,44 @@
+name: "Coverage Report"
+
+on:
+  workflow_run:
+    workflows: ["Build and Test"]
+    types: [completed]
+
+jobs:
+  upload-coverage:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}    
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-11 g++-11 \
+            libboost-all-dev \
+            libeigen3-dev \
+            nlohmann-json3-dev          
+          pip install gcovr
+      - name: Run Unit Tests
+        uses: BSFishy/meson-build@v1.0.3
+        with:
+          action: test
+          directory: build/debug
+          setup-options: -Db_test=true --buildtype=debug -Db_coverage=true -Db_benchmark=false
+          options: --verbose
+          meson-version: 1.1.1
+          ninja-version: 1.11.1
+      - name: Generate coverage report
+        run: ninja coverage-xml -C build/debug
+      - name: Upload coverage results
+        uses: codecov/codecov-action@v2
+        with:
+          files: build/debug/meson-logs/coverage.xml
+      - name: Preserve Build Log on Failure
+        uses: actions/upload-artifact@v3
+        if: ${{ failure() }}
+        with:
+          name: Linux_Meson_log
+          path: build/debug/meson-logs/meson-log.txt
