@@ -147,6 +147,11 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
                    "Ambiguous nucleotides model", "AVG")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
+    std::map<std::string, coati::MarginalSubst> sub_mar_map{
+        {"SUM", coati::MarginalSubst::SUM}, {"MAX", coati::MarginalSubst::MAX}};
+    app.add_option("--marginal-sub")
+        ->transform(CLI::CheckedTransformer(sub_mar_map, CLI::ignore_case))
+        ->group("");
     app.add_option("-b,--base-error", args.aln.bc_error,
                    "Base calling error rate")
         ->check(CLI::PositiveNumber)
@@ -578,13 +583,13 @@ void set_subst(alignment_t& aln) {
     if(!aln.rate.empty()) {
         aln.model = "user_marg_model";
         P = coati::io::parse_matrix_csv(aln.rate);
-        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb, aln.sub);
     } else if(aln.model.compare("mar-ecm") == 0) {
         P = ecm_p(aln.br_len, aln.omega);
-        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb, aln.sub);
     } else if(aln.model.compare("mar-mg") == 0) {  // marginal
         P = mg94_p(aln.br_len, aln.omega, aln.pi);
-        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb, aln.sub);
     } else if(aln.model.compare("tri-mg") == 0) {
         aln.subst_fst = mg94(aln.br_len, aln.omega, aln.pi);
     } else if(aln.model.compare("dna") == 0) {

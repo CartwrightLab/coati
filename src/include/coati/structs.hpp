@@ -57,6 +57,7 @@ struct file_type_t {
 };
 
 enum struct AmbiguousNucs { AVG, BEST };
+enum struct MarginalSubst { SUM, MAX };
 
 /**
  * @brief Stores input and model parameters from an alignment.
@@ -82,6 +83,7 @@ class alignment_t {
     std::filesystem::path output; /*!< path to alignment output file */
     bool score{false};            /*!< if true an input alignment is scored */
     AmbiguousNucs amb = AmbiguousNucs::AVG;
+    MarginalSubst sub = MarginalSubst::SUM;
     float_t bc_error{0.0001}; /*!< base calling error rate */
 
     /** \brief Return true if model selected is marginal (marginal or m-ecm) */

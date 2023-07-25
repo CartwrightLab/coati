@@ -37,7 +37,8 @@ coati::Matrixf mg94_p(coati::float_t br_len, coati::float_t omega,
 // Create marginal 183x4 substitution P matrix.
 coati::Matrixf marginal_p(const coati::Matrixf& P,
                           const std::vector<coati::float_t>& pi,
-                          const coati::AmbiguousNucs amb);
+                          const coati::AmbiguousNucs amb,
+                          const coati::MarginalSubst msub);
 // Probabilities for ambiguous nucs in marginal model using averages.
 void ambiguous_sum_p(coati::Matrixf& p);
 // Probabilities for ambiguous nucs in marginal model taking best prob.
