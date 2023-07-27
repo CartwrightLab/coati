@@ -179,7 +179,7 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
                         marg += (get_nuc(i, pos) == nuc ? P(cod, i) : 0.0f);
                     }
                 } else if(msub == coati::MarginalSubst::MAX) {
-                    auto tmp{0};
+                    auto tmp{0.f};
                     for(uint8_t i = 0; i < P.cols(); i++) {
                         tmp = (get_nuc(i, pos) == nuc ? P(cod, i) : 0.0f);
                         if(tmp > marg) {
