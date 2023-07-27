@@ -149,7 +149,8 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
         ->group("");
     std::map<std::string, coati::MarginalSubst> sub_mar_map{
         {"SUM", coati::MarginalSubst::SUM}, {"MAX", coati::MarginalSubst::MAX}};
-    app.add_option("--marginal-sub")
+    app.add_option("--marginal-sub", args.aln.sub,
+                   "Marginal substitution option", "SUM")
         ->transform(CLI::CheckedTransformer(sub_mar_map, CLI::ignore_case))
         ->group("");
     app.add_option("-b,--base-error", args.aln.bc_error,
@@ -166,12 +167,24 @@ TEST_CASE("parse_arguments_alignpair") {
     coati::utils::set_options_alignpair(alnpair, args);
 
     std::vector<const char*> argv;
-    std::vector<std::string> cli_args = {
-        "alignpair", "test.fasta", "-m",   "tri-mg",  "-t",   "0.2",   "-r",
-        "A",         "-s",         "-o",   "out.phy", "-g",   "0.015", "-e",
-        "0.009",     "-w",         "0.21", "-p",      "0.15", "0.35",  "0.35",
-        "0.15",      "-k",         "3",    "-x",      "0.1",  "0.1",   "0.1",
-        "0.1",       "0.1",        "0.1",  "-a",      "AVG"};
+    std::vector<std::string> cli_args = {"alignpair", "test.fasta",
+                                         "-m",        "tri-mg",
+                                         "-t",        "0.2",
+                                         "-r",        "A",
+                                         "-s",        "-o",
+                                         "out.phy",   "-g",
+                                         "0.015",     "-e",
+                                         "0.009",     "-w",
+                                         "0.21",      "-p",
+                                         "0.15",      "0.35",
+                                         "0.35",      "0.15",
+                                         "-k",        "3",
+                                         "-x",        "0.1",
+                                         "0.1",       "0.1",
+                                         "0.1",       "0.1",
+                                         "0.1",       "-a",
+                                         "AVG",       "--marginal-sub",
+                                         "MAX"};
     argv.reserve(cli_args.size() + 1);
     for(auto& arg : cli_args) {
         argv.push_back(arg.c_str());
@@ -197,6 +210,7 @@ TEST_CASE("parse_arguments_alignpair") {
         CHECK_EQ(args.aln.sigma[i], 0.1f);
     }
     CHECK_EQ(args.aln.amb, coati::AmbiguousNucs::AVG);
+    CHECK_EQ(args.aln.sub, coati::MarginalSubst::MAX);
 }
 // GCOVR_EXCL_STOP
 
