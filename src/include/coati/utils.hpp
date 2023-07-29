@@ -116,18 +116,35 @@ int cod61_to_64(int cod);
 
 // calculate log(1+exp(x))
 // https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
-inline float_t log1p_exp(float_t x) {
-    if(x <= -37.0f) {
-        return std::exp(x);
+// https://cs.stackexchange.com/questions/110798/numerically-stable-log1pexp-calculation
+inline double log1p_exp(double x) {
+    using namespace std;
+    if(x <= -37.0) {  // log(epsilon)
+        return exp(x);
     }
-    if(x <= 18.0f) {
-        return std::log1p(std::exp(x));
+    if(x <= 18.0) {  // -log(2 * .Machine$double.eps) / 2
+        return log1p(exp(x));
     }
-    if(x <= 33.3f) {
-        return x + std::exp(-x);
+    if(x <= 33.3) {
+        return x + exp(-x);
     }
     return x;
 }
+
+inline float log1p_exp(float x) {
+    using namespace std;
+    if(x <= -16.0f) {  // log(epsilon)
+        return expf(x);
+    }
+    if(x <= 8.0f) {  // -log(2 * epsilon) / 2
+        return log1pf(expf(x));
+    }
+    if(x <= 14.5f) {
+        return x + expf(-x);
+    }
+    return x;
+}
+
 // calculate log(exp(a)+exp(b))
 // Let x = max(a,b)
 // Let y = -abs(a-b)
