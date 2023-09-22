@@ -176,7 +176,7 @@ TEST_CASE("fst_alignment") {
     "1": "CTCTGGATAGTG",
     "2": "CT----ATAGTG"
   },
-  "score": 9.316000938415527
+  "score": 9.31800365447998
 }
 )");
         REQUIRE(std::filesystem::remove(aln.output));
