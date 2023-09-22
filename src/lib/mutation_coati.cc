@@ -192,7 +192,7 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
         }
     }
 
-    if(amb == AmbiguousNucs::AVG) {
+    if(amb == AmbiguousNucs::SUM) {
         ambiguous_sum_p(p);
     } else {
         ambiguous_best_p(p);
@@ -207,7 +207,7 @@ TEST_CASE("marginal_p") {
     std::vector<coati::float_t> pi{0.308, 0.185, 0.199, 0.308};
     coati::Matrixf P = mg94_p(0.0133, 0.2, pi);
     coati::Matrixf p_marg =
-        marginal_p(P, pi, AmbiguousNucs::AVG, MarginalSubst::SUM);
+        marginal_p(P, pi, AmbiguousNucs::SUM, MarginalSubst::SUM);
 
     for(int cod = 0; cod < 61; cod++) {
         for(int pos = 0; pos < 3; pos++) {

@@ -139,12 +139,12 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
         ->group("Advanced options");
     // specify string->value mappings
     std::map<std::string, coati::AmbiguousNucs> amb_map{
-        {"AVG", coati::AmbiguousNucs::AVG},
+        {"SUM", coati::AmbiguousNucs::SUM},
         {"BEST", coati::AmbiguousNucs::BEST}};
     // CheckedTransformer translates and checks whether the results are either
     // in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
-                   "Ambiguous nucleotides model", "AVG")
+                   "Ambiguous nucleotides model", "SUM")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
     std::map<std::string, coati::MarginalSubst> sub_mar_map{
@@ -183,7 +183,7 @@ TEST_CASE("parse_arguments_alignpair") {
                                          "0.1",       "0.1",
                                          "0.1",       "0.1",
                                          "0.1",       "-a",
-                                         "AVG",       "--marginal-sub",
+                                         "SUM",       "--marginal-sub",
                                          "MAX"};
     argv.reserve(cli_args.size() + 1);
     for(auto& arg : cli_args) {
@@ -209,7 +209,7 @@ TEST_CASE("parse_arguments_alignpair") {
     for(size_t i = 0; i < 6; ++i) {
         CHECK_EQ(args.aln.sigma[i], 0.1f);
     }
-    CHECK_EQ(args.aln.amb, coati::AmbiguousNucs::AVG);
+    CHECK_EQ(args.aln.amb, coati::AmbiguousNucs::SUM);
     CHECK_EQ(args.aln.sub, coati::MarginalSubst::MAX);
 }
 // GCOVR_EXCL_STOP
@@ -256,12 +256,12 @@ void set_options_msa(CLI::App& app, coati::args_t& args) {
         ->group("Advanced options");
     // specify string->value mappings
     std::map<std::string, coati::AmbiguousNucs> amb_map{
-        {"AVG", coati::AmbiguousNucs::AVG},
+        {"SUM", coati::AmbiguousNucs::SUM},
         {"BEST", coati::AmbiguousNucs::BEST}};
     // CheckedTransformer translates and checks whether the results are either
     // in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
-                   "Ambiguous nucleotides model", "AVG")
+                   "Ambiguous nucleotides model", "SUM")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
 }
@@ -363,12 +363,12 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
         ->group("Advanced options");
     // specify string->value mappings
     std::map<std::string, coati::AmbiguousNucs> amb_map{
-        {"AVG", coati::AmbiguousNucs::AVG},
+        {"SUM", coati::AmbiguousNucs::SUM},
         {"BEST", coati::AmbiguousNucs::BEST}};
     // CheckedTransformer translates and checks whether the results are
     // either in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
-                   "Ambiguous nucleotides model", "AVG")
+                   "Ambiguous nucleotides model", "SUM")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
     // app.add_option("-T,--temperature", args.temperature, "Sampling

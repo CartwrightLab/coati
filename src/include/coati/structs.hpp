@@ -56,7 +56,7 @@ struct file_type_t {
     std::string type_ext;
 };
 
-enum struct AmbiguousNucs { AVG, BEST };
+enum struct AmbiguousNucs { SUM, BEST };
 enum struct MarginalSubst { SUM, MAX };
 
 /**
@@ -82,7 +82,7 @@ class alignment_t {
     VectorFstStdArc subst_fst;                 /*!< substitution FST */
     std::filesystem::path output; /*!< path to alignment output file */
     bool score{false};            /*!< if true an input alignment is scored */
-    AmbiguousNucs amb = AmbiguousNucs::AVG;
+    AmbiguousNucs amb = AmbiguousNucs::SUM;
     MarginalSubst sub = MarginalSubst::SUM;
     float_t bc_error{0.0001}; /*!< base calling error rate */
 
