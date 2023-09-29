@@ -139,13 +139,19 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
         ->group("Advanced options");
     // specify string->value mappings
     std::map<std::string, coati::AmbiguousNucs> amb_map{
-        {"AVG", coati::AmbiguousNucs::AVG},
+        {"SUM", coati::AmbiguousNucs::SUM},
         {"BEST", coati::AmbiguousNucs::BEST}};
     // CheckedTransformer translates and checks whether the results are either
     // in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
-                   "Ambiguous nucleotides model", "AVG")
+                   "Ambiguous nucleotides model", "SUM")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
+        ->group("");
+    std::map<std::string, coati::MarginalSubst> sub_mar_map{
+        {"SUM", coati::MarginalSubst::SUM}, {"MAX", coati::MarginalSubst::MAX}};
+    app.add_option("--marginal-sub", args.aln.sub,
+                   "Marginal substitution option", "SUM")
+        ->transform(CLI::CheckedTransformer(sub_mar_map, CLI::ignore_case))
         ->group("");
     app.add_option("-b,--base-error", args.aln.bc_error,
                    "Base calling error rate")
@@ -161,12 +167,24 @@ TEST_CASE("parse_arguments_alignpair") {
     coati::utils::set_options_alignpair(alnpair, args);
 
     std::vector<const char*> argv;
-    std::vector<std::string> cli_args = {
-        "alignpair", "test.fasta", "-m",   "tri-mg",  "-t",   "0.2",   "-r",
-        "A",         "-s",         "-o",   "out.phy", "-g",   "0.015", "-e",
-        "0.009",     "-w",         "0.21", "-p",      "0.15", "0.35",  "0.35",
-        "0.15",      "-k",         "3",    "-x",      "0.1",  "0.1",   "0.1",
-        "0.1",       "0.1",        "0.1",  "-a",      "AVG"};
+    std::vector<std::string> cli_args = {"alignpair", "test.fasta",
+                                         "-m",        "tri-mg",
+                                         "-t",        "0.2",
+                                         "-r",        "A",
+                                         "-s",        "-o",
+                                         "out.phy",   "-g",
+                                         "0.015",     "-e",
+                                         "0.009",     "-w",
+                                         "0.21",      "-p",
+                                         "0.15",      "0.35",
+                                         "0.35",      "0.15",
+                                         "-k",        "3",
+                                         "-x",        "0.1",
+                                         "0.1",       "0.1",
+                                         "0.1",       "0.1",
+                                         "0.1",       "-a",
+                                         "SUM",       "--marginal-sub",
+                                         "MAX"};
     argv.reserve(cli_args.size() + 1);
     for(auto& arg : cli_args) {
         argv.push_back(arg.c_str());
@@ -191,7 +209,8 @@ TEST_CASE("parse_arguments_alignpair") {
     for(size_t i = 0; i < 6; ++i) {
         CHECK_EQ(args.aln.sigma[i], 0.1f);
     }
-    CHECK_EQ(args.aln.amb, coati::AmbiguousNucs::AVG);
+    CHECK_EQ(args.aln.amb, coati::AmbiguousNucs::SUM);
+    CHECK_EQ(args.aln.sub, coati::MarginalSubst::MAX);
 }
 // GCOVR_EXCL_STOP
 
@@ -237,12 +256,12 @@ void set_options_msa(CLI::App& app, coati::args_t& args) {
         ->group("Advanced options");
     // specify string->value mappings
     std::map<std::string, coati::AmbiguousNucs> amb_map{
-        {"AVG", coati::AmbiguousNucs::AVG},
+        {"SUM", coati::AmbiguousNucs::SUM},
         {"BEST", coati::AmbiguousNucs::BEST}};
     // CheckedTransformer translates and checks whether the results are either
     // in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
-                   "Ambiguous nucleotides model", "AVG")
+                   "Ambiguous nucleotides model", "SUM")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
 }
@@ -344,12 +363,12 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
         ->group("Advanced options");
     // specify string->value mappings
     std::map<std::string, coati::AmbiguousNucs> amb_map{
-        {"AVG", coati::AmbiguousNucs::AVG},
+        {"SUM", coati::AmbiguousNucs::SUM},
         {"BEST", coati::AmbiguousNucs::BEST}};
     // CheckedTransformer translates and checks whether the results are
     // either in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
-                   "Ambiguous nucleotides model", "AVG")
+                   "Ambiguous nucleotides model", "SUM")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
     // app.add_option("-T,--temperature", args.temperature, "Sampling
@@ -578,13 +597,13 @@ void set_subst(alignment_t& aln) {
     if(!aln.rate.empty()) {
         aln.model = "user_marg_model";
         P = coati::io::parse_matrix_csv(aln.rate);
-        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb, aln.sub);
     } else if(aln.model.compare("mar-ecm") == 0) {
         P = ecm_p(aln.br_len, aln.omega);
-        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb, aln.sub);
     } else if(aln.model.compare("mar-mg") == 0) {  // marginal
         P = mg94_p(aln.br_len, aln.omega, aln.pi);
-        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb);
+        aln.subst_matrix = marginal_p(P, aln.pi, aln.amb, aln.sub);
     } else if(aln.model.compare("tri-mg") == 0) {
         aln.subst_fst = mg94(aln.br_len, aln.omega, aln.pi);
     } else if(aln.model.compare("dna") == 0) {

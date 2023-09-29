@@ -163,7 +163,8 @@ TEST_CASE("mg94_p") {
  */
 coati::Matrixf marginal_p(const coati::Matrixf& P,
                           const std::vector<coati::float_t>& pi,
-                          const coati::AmbiguousNucs amb) {
+                          const coati::AmbiguousNucs amb,
+                          const coati::MarginalSubst msub) {
     using coati::utils::get_nuc;
     float marg{NAN};
 
@@ -171,30 +172,27 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
 
     for(size_t cod = 0; cod < P.rows(); cod++) {
         for(int nuc = 0; nuc < 4; nuc++) {  // A,C,G,T
-            // position 0
-            marg = 0.0;
-            for(uint8_t i = 0; i < P.cols(); i++) {
-                marg += (get_nuc(i, 0) == nuc ? P(cod, i) : 0.0f);
+            for(int pos = 0; pos < 3; pos++) {
+                marg = 0.f;
+                if(msub == coati::MarginalSubst::SUM) {
+                    for(uint8_t i = 0; i < P.cols(); i++) {
+                        marg += (get_nuc(i, pos) == nuc ? P(cod, i) : 0.0f);
+                    }
+                } else if(msub == coati::MarginalSubst::MAX) {
+                    auto tmp{0.f};
+                    for(uint8_t i = 0; i < P.cols(); i++) {
+                        tmp = (get_nuc(i, pos) == nuc ? P(cod, i) : 0.0f);
+                        if(tmp > marg) {
+                            marg = tmp;
+                        }
+                    }
+                }
+                p(cod * 3 + pos, nuc) = ::logf(marg / pi[nuc]);
             }
-            p(cod * 3, nuc) = ::logf(marg / pi[nuc]);
-
-            // position 1
-            marg = 0.0;
-            for(uint8_t i = 0; i < P.cols(); i++) {
-                marg += (get_nuc(i, 1) == nuc ? P(cod, i) : 0.0f);
-            }
-            p(cod * 3 + 1, nuc) = ::logf(marg / pi[nuc]);
-
-            // position 2
-            marg = 0.0;
-            for(uint8_t i = 0; i < P.cols(); i++) {
-                marg += (get_nuc(i, 2) == nuc ? P(cod, i) : 0.0f);
-            }
-            p(cod * 3 + 2, nuc) = ::logf(marg / pi[nuc]);
         }
     }
 
-    if(amb == AmbiguousNucs::AVG) {
+    if(amb == AmbiguousNucs::SUM) {
         ambiguous_sum_p(p);
     } else {
         ambiguous_best_p(p);
@@ -208,7 +206,8 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
 TEST_CASE("marginal_p") {
     std::vector<coati::float_t> pi{0.308, 0.185, 0.199, 0.308};
     coati::Matrixf P = mg94_p(0.0133, 0.2, pi);
-    coati::Matrixf p_marg = marginal_p(P, pi, AmbiguousNucs::AVG);
+    coati::Matrixf p_marg =
+        marginal_p(P, pi, AmbiguousNucs::SUM, MarginalSubst::SUM);
 
     for(int cod = 0; cod < 61; cod++) {
         for(int pos = 0; pos < 3; pos++) {

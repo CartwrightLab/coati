@@ -219,7 +219,7 @@ TEST_CASE("marg_alignment") {
 
         test_fasta(aln, expected, file);
     }
-    SUBCASE("Alignment with ambiguous nucleotides - AVG") {
+    SUBCASE("Alignment with ambiguous nucleotides - SUM") {
         std::string file{">1\nCTCTGGATAGTG\n>2\nCTATAGTR\n"};
         aln.data.path = "test-marg.fasta";
         aln.model = "mar-mg";
@@ -471,7 +471,8 @@ TEST_CASE("alignment_score") {
     auto test = [](const std::string& anc, const std::string& des, float exp) {
         coati::alignment_t aln;
         coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
-        coati::Matrixf p_marg = marginal_p(P, aln.pi, AmbiguousNucs::AVG);
+        coati::Matrixf p_marg =
+            marginal_p(P, aln.pi, AmbiguousNucs::SUM, MarginalSubst::SUM);
         aln.data.names = {"A", "B"};
         aln.data.seqs = {anc, des};
         CHECK_EQ(alignment_score(aln, p_marg), doctest::Approx(exp));
@@ -498,7 +499,8 @@ TEST_CASE("alignment_score") {
     auto test_fail = [](const std::string& anc, const std::string& des) {
         coati::alignment_t aln;
         coati::Matrixf P(mg94_p(0.0133, 0.2, {0.308, 0.185, 0.199, 0.308}));
-        coati::Matrixf p_marg = marginal_p(P, aln.pi, AmbiguousNucs::AVG);
+        coati::Matrixf p_marg =
+            marginal_p(P, aln.pi, AmbiguousNucs::SUM, MarginalSubst::SUM);
         aln.data.names = {"A", "B"};
         aln.data.seqs = {anc, des};
         CHECK_THROWS_AS(alignment_score(aln, p_marg), std::invalid_argument);
