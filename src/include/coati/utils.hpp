@@ -102,7 +102,7 @@ void order_ref(coati::alignment_t& aln);
 // Validate input sequences
 void process_marginal(coati::alignment_t& aln);
 // Validate input pairwise alignment for scoring
-void process_alignment(coati::alignment_t& aln);
+std::string process_alignment(coati::alignment_t& aln);
 // Trim end stop codons
 void trim_end_stops(coati::data_t& data);
 // Restore end stop codons

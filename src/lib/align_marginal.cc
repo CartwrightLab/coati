@@ -371,12 +371,12 @@ TEST_CASE("marg_alignment") {
  * @retval float alignment score.
  */
 float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
-    std::vector<std::string> seqs = aln.data.seqs;
-
-    coati::utils::process_alignment(aln);
+    // Remove gaps from alignment and return an expanded cigar string of
+    // alignment
+    std::string cigar = coati::utils::process_alignment(aln);
 
     coati::utils::sequence_pair_t seq_pair =
-        coati::utils::marginal_seq_encoding(aln.data.seqs[0], seqs[1]);
+        coati::utils::marginal_seq_encoding(aln.data.seqs[0], aln.data.seqs[1]);
 
     coati::semiring::tropical trig;  // tropical rig
     // calculate log(1-g) log(1-e) log(g) log(e) log(pi)
@@ -391,30 +391,35 @@ float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
     enum struct State { MATCH, GAP };
     auto state = State::MATCH;
     float score{0.f};
-    size_t ngap{0}, nins{0}, ndel{0}, len_stops{0};
-    if(aln.data.stops[0] != "" || aln.data.stops[1] != "") {
-        len_stops = 3;
-    }
-    for(size_t i = 0; i < seqs[0].length() - len_stops; i++) {
+    size_t nins{0}, ndel{0};
+    size_t apos = 0, bpos = 0;
+
+    for(size_t i = 0; i < cigar.length(); i++) {
         switch(state) {
         case State::MATCH:
-            if(seqs[0][i] == '-') {  // insertion;
+            if(cigar[i] == 'I') {  // insertion;
                 nins++;
+                bpos++;
                 state = State::GAP;
-            } else if(seqs[1][i] == '-') {  // deletion;
+            } else if(cigar[i] == 'D') {  // deletion;
                 ndel++;
+                apos++;
                 state = State::GAP;
             } else {  // match/mismatch;
                 score =
                     trig.times(score, no_gap, no_gap,
-                               p_marg(seq_pair[0][i - ngap], seq_pair[1][i]));
+                               p_marg(seq_pair[0][apos], seq_pair[1][bpos]));
+                apos++;
+                bpos++;
             }
             break;
         case State::GAP:
-            if(seqs[0][i] == '-') {  // insertion_extension
+            if(cigar[i] == 'I') {  // insertion_extension
                 nins++;
-            } else if(seqs[1][i] == '-') {  // deletion_ext
+                bpos++;
+            } else if(cigar[i] == 'D') {  // deletion_ext
                 ndel++;
+                apos++;
             } else {  // match/mismatch
                 assert(nins > 0 || ndel > 0);
                 if(nins == 0) {  // score deletions
@@ -430,15 +435,18 @@ float alignment_score(coati::alignment_t& aln, const coati::Matrixf& p_marg) {
                                        trig.power(gap_extend, nins + ndel - 2),
                                        gap_stop, gap_stop);
                 }
-                ngap += nins;
                 score = trig.times(
-                    score, p_marg(seq_pair[0][i - ngap], seq_pair[1][i]));
+                    score, p_marg(seq_pair[0][apos], seq_pair[1][bpos]));
                 nins = ndel = 0;
                 state = State::MATCH;
+                apos++;
+                bpos++;
             }
             break;
         }
     }
+    assert(apos == seq_pair[0].length());
+    assert(bpos == seq_pair[1].length());
     // terminal state score
     if(state == State::MATCH) {
         score = trig.times(score, no_gap, no_gap);
@@ -483,7 +491,6 @@ TEST_CASE("alignment_score") {
     test("ACTCT-A", "ACTCTG-", -10.52864);
     test("ATGCTTTAC", "ATGCT-TAC", 2.13593f);
     test("ATGCTT---", "ATGCTTTGA", 0.70607f);
-    test("ACTCTA-", "ACTCTAG", -1.57693f);
     test("A-CTAAC", "ACCTAAG", -8.2786f);
     test("ACT---", "ACTCTG", -5.04197);
     test("ACTCTA", "ACT---", -5.04197);
@@ -494,6 +501,9 @@ TEST_CASE("alignment_score") {
     test("AAAAAA---", "AAAAAAAAA", -2.03242);
     test("AAAAAAAAA", "---AAAAAA", -2.03242);
     test("AAAAAAAAA", "AAAAAA---", -2.03242);
+    test("ACTCTA", "ACTC--", -3.18537f);
+    // This alignment will be scored as ACTCTA--- / ACTC--TAG
+    test("ACTCTA-", "ACTCTAG", -10.45777f);
 
     // NOLINTNEXTLINE(misc-unused-parameters)
     auto test_fail = [](const std::string& anc, const std::string& des) {

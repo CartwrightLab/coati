@@ -841,8 +841,9 @@ void process_marginal(coati::alignment_t& aln) {
  *
  * @param[in,out] aln coati::alignment_t input sequences and alignment info.
  *
+ * @retval std::string an expanded cigar string of alignment.
  */
-void process_alignment(coati::alignment_t& aln) {
+std::string process_alignment(coati::alignment_t& aln) {
     if(aln.data.size() != 2) {
         throw std::invalid_argument("Exactly two sequences required.");
     }
@@ -852,13 +853,47 @@ void process_alignment(coati::alignment_t& aln) {
         order_ref(aln);
     }
 
-    size_t len_a = aln.seq(0).length();
-    size_t len_b = aln.seq(1).length();
+    size_t len_a = aln.data.seqs[0].length();
+    size_t len_b = aln.data.seqs[1].length();
 
     // check that both sequences have equal length
     if(len_a != len_b) {
         throw std::invalid_argument(
             "For alignment scoring both sequences must have equal length.");
+    }
+
+    // trim final codons considering alignment we will replace with gaps
+    // and then remove the gaps if necessary
+    for(size_t i = 0; i < aln.data.size(); ++i) {
+        std::string_view seq{aln.data.seqs[i]};
+        size_t pos = seq.find_last_not_of('-');
+        if(pos == std::string::npos || pos < 2) {
+            aln.data.stops.emplace_back("");
+            continue;
+        }
+        auto last_cod = seq.substr(pos - 2, 3);
+        int cod = cod_int(last_cod);
+        if(cod == 48 || cod == 50 || cod == 56) {
+            aln.data.stops.emplace_back(last_cod);
+            aln.data.seqs[i].replace(pos - 2, 3, 3, '-');
+        } else {
+            aln.data.stops.emplace_back("");
+        }
+    }
+
+    // create an expanded cigar string of the alignment
+    std::string cigar;
+    cigar.reserve(len_a);
+    for(size_t i = 0; i < len_a; ++i) {
+        auto a = aln.data.seqs[0][i];
+        auto b = aln.data.seqs[1][i];
+        if(a != '-' && b != '-') {
+            cigar.push_back('M');
+        } else if(a != '-' && b == '-') {
+            cigar.push_back('D');
+        } else if(a == '-' && b != '-') {
+            cigar.push_back('I');
+        }
     }
 
     // remove gaps
@@ -883,8 +918,7 @@ void process_alignment(coati::alignment_t& aln) {
             "length.");
     }
 
-    // handle ending stop codons
-    trim_end_stops(aln.data);
+    return cigar;
 }
 
 /**
