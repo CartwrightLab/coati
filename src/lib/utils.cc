@@ -70,11 +70,12 @@ int cod_distance(uint8_t cod1, uint8_t cod2) {
  * @retval int encoded codon as its position in codon list.
  */
 int cod_int(const std::string_view codon) {
+    assert(codon.length() >= 3);
     unsigned char pos0 = codon[0];
     unsigned char pos1 = codon[1];
     unsigned char pos2 = codon[2];
 
-    // check that REF/ancestor doesnt have ambiguous nucs
+    // check that REF/ancestor doesn't have ambiguous nucs
     auto pos = codon.find_first_not_of("ACGTUacgtu");
     if(pos != std::string::npos) {
         return -1;
@@ -501,7 +502,7 @@ sequence_pair_t marginal_seq_encoding(const std::string_view anc,
     // encode phase & codon: AAA0->0, AAA1->1, AAA2->2, AAC0->3, ... ,
     // TTT3->183
     for(size_t i = 0; i < anc.size(); i += 3) {
-        auto cod = cod_int(anc.substr(i, i + 2));
+        auto cod = cod_int(anc.substr(i, 3));
         if(cod == -1) {
             throw std::invalid_argument(
                 "Ambiguous nucleotides in ancestor/reference.");
@@ -865,17 +866,32 @@ std::string process_alignment(coati::alignment_t& aln) {
     // trim final codons considering alignment we will replace with gaps
     // and then remove the gaps if necessary
     for(size_t i = 0; i < aln.data.size(); ++i) {
-        std::string_view seq{aln.data.seqs[i]};
-        size_t pos = seq.find_last_not_of('-');
-        if(pos == std::string::npos || pos < 2) {
+        const std::string_view seq{aln.data.seqs[i]};
+        // identify last 3 nucleotides
+        size_t pos3 = seq.find_last_not_of('-');
+        if(pos3 == std::string::npos || pos3 < 2) {
             aln.data.stops.emplace_back("");
             continue;
         }
-        auto last_cod = seq.substr(pos - 2, 3);
+        size_t pos2 = seq.find_last_not_of('-', pos3 - 1);
+        if(pos2 == std::string::npos || pos2 < 1) {
+            aln.data.stops.emplace_back("");
+            continue;
+        }
+        size_t pos1 = seq.find_last_not_of('-', pos2 - 1);
+        if(pos1 == std::string::npos) {
+            aln.data.stops.emplace_back("");
+            continue;
+        }
+        // check for stop codon and replace it with gaps
+        char last_cod[4] = {seq[pos1], seq[pos2], seq[pos3], '\0'};
         int cod = cod_int(last_cod);
         if(cod == 48 || cod == 50 || cod == 56) {
             aln.data.stops.emplace_back(last_cod);
-            aln.data.seqs[i].replace(pos - 2, 3, 3, '-');
+            std::cerr << i << " " << last_cod << "\n";
+            aln.data.seqs[i][pos1] = '-';
+            aln.data.seqs[i][pos2] = '-';
+            aln.data.seqs[i][pos3] = '-';
         } else {
             aln.data.stops.emplace_back("");
         }

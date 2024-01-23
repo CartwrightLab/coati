@@ -494,6 +494,7 @@ TEST_CASE("alignment_score") {
     test("A-CTAAC", "ACCTAAG", -8.2786f);
     test("ACT---", "ACTCTG", -5.04197);
     test("ACTCTA", "ACT---", -5.04197);
+    test("ACT----", "ACT-CTG", -5.04197);
     test("AAAAAA---AAA", "AAA---AAAAAA", -11.09557);
     test("AAA---AAAAAA", "AAAAAA---AAA", -11.09557);
     test("AAA-A-A-AAAA", "AAAA-A-A-AAA", -11.09557);
@@ -502,8 +503,9 @@ TEST_CASE("alignment_score") {
     test("AAAAAAAAA", "---AAAAAA", -2.03242);
     test("AAAAAAAAA", "AAAAAA---", -2.03242);
     test("ACTCTA", "ACTC--", -3.18537f);
-    // This alignment will be scored as ACTCTA--- / ACTC--TAG
+    // Theses alignment will be scored as ACTCTA--- / ACTC--TAG
     test("ACTCTA-", "ACTCTAG", -10.45777f);
+    test("ACTCTA--", "ACTCT-AG", -10.45777f);
 
     // NOLINTNEXTLINE(misc-unused-parameters)
     auto test_fail = [](const std::string& anc, const std::string& des) {
