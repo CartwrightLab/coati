@@ -1,4 +1,6 @@
-[![github-actions](https://github.com/CartwrightLab/coati/actions/workflows/meson.yml/badge.svg?branch=master)](https://github.com/CartwrightLab/coati/actions/workflows/meson.yml) [![codecov](https://codecov.io/gh/CartwrightLab/coati/branch/master/graph/badge.svg)](https://codecov.io/gh/CartwrightLab/coati)
+[![DOI](https://zenodo.org/badge/237509889.svg)](https://zenodo.org/doi/10.5281/zenodo.11499799)
+[![github-actions](https://github.com/CartwrightLab/coati/actions/workflows/build-test.yml/badge.svg)](https://github.com/CartwrightLab/coati/actions/workflows/build-test.yml)
+[![codecov](https://codecov.io/gh/CartwrightLab/coati/branch/main/graph/badge.svg)](https://codecov.io/gh/CartwrightLab/coati)
 
 # COATi - Codon-Aware Multiple Sequence Alignments
 
