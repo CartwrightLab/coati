@@ -29,8 +29,7 @@ version_src = configure_file(input : 'version.h.in.in',
     'version_patch' : semver[2],
     'version_int'   : (semver[0].to_int()*1000+ semver[1].to_int())*10000+ \
                        semver[2].to_int(),
-    'version_vcs'   : '@VCS_TAG@'
-
+    'version_str'   : '@VCS_TAG@'
   })
 
 version_file = vcs_tag(input : version_src, output : 'version.h')
