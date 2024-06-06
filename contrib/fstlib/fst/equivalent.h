@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -21,18 +21,24 @@
 #define FST_EQUIVALENT_H_
 
 #include <algorithm>
+#include <cstdint>
 #include <queue>
+#include <utility>
 #include <vector>
 
-#include <fst/types.h>
 #include <fst/log.h>
-
+#include <fst/arc-map.h>
 #include <fst/encode.h>
+#include <fst/fst.h>
+#include <fst/properties.h>
 #include <fst/push.h>
+#include <fst/reweight.h>
+#include <fst/symbol-table.h>
 #include <fst/union-find.h>
+#include <fst/util.h>
 #include <fst/vector-fst.h>
+#include <fst/weight.h>
 #include <unordered_map>
-
 
 namespace fst {
 namespace internal {
@@ -64,7 +70,7 @@ struct EquivalenceUtil {
   // Maps state ID to the representative of the corresponding
   // equivalence class. The parameter 'which_fst' takes the values 1
   // and 2, identifying the input FST.
-  static MappedId MapState(StateId s, int32 which_fst) {
+  static MappedId MapState(StateId s, int32_t which_fst) {
     return (kNoStateId == s) ? kDeadState
                              : (static_cast<MappedId>(s) << 1) + which_fst;
   }
@@ -92,14 +98,6 @@ struct EquivalenceUtil {
     }
   }
 };
-
-template <class Arc>
-constexpr
-    typename EquivalenceUtil<Arc>::MappedId EquivalenceUtil<Arc>::kDeadState;
-
-template <class Arc>
-constexpr
-    typename EquivalenceUtil<Arc>::MappedId EquivalenceUtil<Arc>::kInvalidId;
 
 }  // namespace internal
 

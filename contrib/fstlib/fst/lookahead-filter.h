@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -21,15 +21,21 @@
 #ifndef FST_LOOKAHEAD_FILTER_H_
 #define FST_LOOKAHEAD_FILTER_H_
 
+#include <sys/types.h>
+
+#include <cstdint>
+#include <memory>
 #include <vector>
 
-#include <fst/types.h>
 #include <fst/log.h>
-
+#include <fst/arc.h>
 #include <fst/filter-state.h>
+#include <fst/fst-decl.h>
 #include <fst/fst.h>
 #include <fst/lookahead-matcher.h>
-
+#include <fst/matcher.h>
+#include <fst/properties.h>
+#include <fst/util.h>
 
 namespace fst {
 
@@ -232,13 +238,13 @@ class LookAheadComposeFilter {
     return selector_;
   }
 
-  uint64 Properties(uint64 inprops) const {
+  uint64_t Properties(uint64_t inprops) const {
     auto outprops = filter_.Properties(inprops);
     if (lookahead_type_ == MATCH_NONE) outprops |= kError;
     return outprops;
   }
 
-  uint32 LookAheadFlags() const { return flags_; }
+  uint32_t LookAheadFlags() const { return flags_; }
 
   bool LookAheadArc() const { return lookahead_arc_; }
 
@@ -271,7 +277,7 @@ class LookAheadComposeFilter {
   Filter filter_;             // Underlying filter.
   MatchType lookahead_type_;  // Lookahead match type.
   LookAheadSelector<Matcher1, Matcher2, MT> selector_;
-  uint32 flags_;                // Lookahead flags.
+  uint32_t flags_;              // Lookahead flags.
   mutable bool lookahead_arc_;  // Look-ahead performed at last FilterArc()?
 
   LookAheadComposeFilter &operator=(const LookAheadComposeFilter &) = delete;
@@ -354,13 +360,13 @@ class PushWeightsComposeFilter {
     return filter_.Selector();
   }
 
-  uint32 LookAheadFlags() const { return filter_.LookAheadFlags(); }
+  uint32_t LookAheadFlags() const { return filter_.LookAheadFlags(); }
 
   bool LookAheadArc() const { return filter_.LookAheadArc(); }
 
   bool LookAheadOutput() const { return filter_.LookAheadOutput(); }
 
-  uint64 Properties(uint64 props) const {
+  uint64_t Properties(uint64_t props) const {
     return filter_.Properties(props) & kWeightInvariantProperties;
   }
 
@@ -402,10 +408,10 @@ class PushLabelsComposeFilter {
         fst2_(filter_.GetMatcher2()->GetFst()),
         matcher1_(fst1_, MATCH_OUTPUT,
                   filter_.LookAheadOutput() ? kMultiEpsList : kMultiEpsLoop,
-                  filter_.GetMatcher1(), false),
+                  filter_.GetMatcher1(), /*own_matcher=*/false),
         matcher2_(fst2_, MATCH_INPUT,
                   filter_.LookAheadOutput() ? kMultiEpsLoop : kMultiEpsList,
-                  filter_.GetMatcher2(), false) {}
+                  filter_.GetMatcher2(), /*own_matcher=*/false) {}
 
   PushLabelsComposeFilter(
       const PushLabelsComposeFilter<Filter, M1, M2, MT> &filter,
@@ -416,10 +422,10 @@ class PushLabelsComposeFilter {
         fst2_(filter_.GetMatcher2()->GetFst()),
         matcher1_(fst1_, MATCH_OUTPUT,
                   filter_.LookAheadOutput() ? kMultiEpsList : kMultiEpsLoop,
-                  filter_.GetMatcher1(), false),
+                  filter_.GetMatcher1(), /*own_matcher=*/false),
         matcher2_(fst2_, MATCH_INPUT,
                   filter_.LookAheadOutput() ? kMultiEpsLoop : kMultiEpsList,
-                  filter_.GetMatcher2(), false) {}
+                  filter_.GetMatcher2(), /*own_matcher=*/false) {}
 
   FilterState Start() const {
     return FilterState(filter_.Start(), FilterState2(kNoLabel));
@@ -474,7 +480,7 @@ class PushLabelsComposeFilter {
 
   Matcher2 *GetMatcher2() { return &matcher2_; }
 
-  uint64 Properties(uint64 iprops) const {
+  uint64_t Properties(uint64_t iprops) const {
     const auto oprops = filter_.Properties(iprops);
     if (LookAheadOutput()) {
       return oprops & kOLabelInvariantProperties;
@@ -537,7 +543,7 @@ class PushLabelsComposeFilter {
     }
   }
 
-  uint32 LookAheadFlags() const { return filter_.LookAheadFlags(); }
+  uint32_t LookAheadFlags() const { return filter_.LookAheadFlags(); }
 
   bool LookAheadArc() const { return filter_.LookAheadArc(); }
 

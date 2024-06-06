@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -22,16 +22,27 @@
 #ifndef FST_ARC_MAP_H_
 #define FST_ARC_MAP_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 
-#include <fst/types.h>
 #include <fst/log.h>
-
+#include <fst/arc.h>
 #include <fst/cache.h>
+#include <fst/expanded-fst.h>
+#include <fst/float-weight.h>
+#include <fst/fst.h>
+#include <fst/impl-to-fst.h>
 #include <fst/mutable-fst.h>
+#include <fst/properties.h>
+#include <fst/string-weight.h>
+#include <fst/symbol-table.h>
+#include <fst/util.h>
+#include <fst/weight.h>
 #include <unordered_map>
-
 
 namespace fst {
 
@@ -87,7 +98,7 @@ enum MapSymbolsAction {
 //
 //   // This specifies the known properties of an FST mapped by this mapper. It
 //   takes as argument the input FSTs's known properties.
-//   uint64 Properties(uint64 props) const;
+//   uint64_t Properties(uint64_t props) const;
 // };
 //
 // The ArcMap functions and classes below will use the FinalAction()
@@ -212,8 +223,8 @@ void ArcMap(const Fst<A> &ifst, MutableFst<B> *ofst, C *mapper) {
     return;
   }
   const auto final_action = mapper->FinalAction();
-  if (ifst.Properties(kExpanded, false)) {
-    ofst->ReserveStates(CountStates(ifst) +
+  if (std::optional<StateId> num_states = ifst.NumStatesIfKnown()) {
+    ofst->ReserveStates(*num_states +
                         (final_action == MAP_NO_SUPERFINAL ? 0 : 1));
   }
   // Adds all states.
@@ -413,10 +424,10 @@ class ArcMapFstImpl : public CacheImpl<B> {
     return CacheImpl<B>::NumOutputEpsilons(s);
   }
 
-  uint64 Properties() const override { return Properties(kFstProperties); }
+  uint64_t Properties() const override { return Properties(kFstProperties); }
 
   // Sets error if found, and returns other FST impl properties.
-  uint64 Properties(uint64 mask) const override {
+  uint64_t Properties(uint64_t mask) const override {
     if ((mask & kError) && (fst_->Properties(kError, false) ||
                             (mapper_->Properties(0) & kError))) {
       SetProperties(kError, kError);
@@ -491,7 +502,7 @@ class ArcMapFstImpl : public CacheImpl<B> {
       SetProperties(kNullProperties);
     } else {
       final_action_ = mapper_->FinalAction();
-      uint64 props = fst_->Properties(kCopyProperties, false);
+      uint64_t props = fst_->Properties(kCopyProperties, false);
       SetProperties(mapper_->Properties(props));
       if (final_action_ == MAP_REQUIRE_SUPERFINAL) superfinal_ = 0;
     }
@@ -540,8 +551,8 @@ class ArcMapFst : public ImplToFst<internal::ArcMapFstImpl<A, B, C>> {
   friend class ArcIterator<ArcMapFst<A, B, C>>;
   friend class StateIterator<ArcMapFst<A, B, C>>;
 
-  ArcMapFst(const Fst<A> &fst, const C &mapper,
-            const ArcMapFstOptions &opts = ArcMapFstOptions())
+  explicit ArcMapFst(const Fst<A> &fst, const C &mapper = C(),
+                     const ArcMapFstOptions &opts = ArcMapFstOptions())
       : ImplToFst<Impl>(std::make_shared<Impl>(fst, mapper, opts)) {}
 
   ArcMapFst(const Fst<A> &fst, C *mapper,
@@ -643,25 +654,18 @@ inline void ArcMapFst<A, B, C>::InitStateIterator(
   data->base = std::make_unique<StateIterator<ArcMapFst<A, B, C>>>(*this);
 }
 
-// Constructs and returns an ArcMapFst. This allows constructing ArcMapFsts
-// without specifying all the types. The template argument is typically
-// not specified, so a call looks like: MakeArcMapFst(fst, Mapper(...)).
+// CTAD deduction guides
+// This allows constructing ArcMapFsts without specifying all the types.
 template <class ArcMapper>
-ArcMapFst<typename ArcMapper::FromArc, typename ArcMapper::ToArc, ArcMapper>
-MakeArcMapFst(const Fst<typename ArcMapper::FromArc> &fst,
-              const ArcMapper &mapper) {
-  return ArcMapFst<typename ArcMapper::FromArc, typename ArcMapper::ToArc,
-                   ArcMapper>(fst, mapper);
-}
+ArcMapFst(const Fst<typename ArcMapper::FromArc> &, const ArcMapper &)
+    -> ArcMapFst<typename ArcMapper::FromArc, typename ArcMapper::ToArc,
+                 ArcMapper>;
 
-// Constructs and returns an ArcMapFst. As above, but using the
-// ArcMapFst(..., ArcMapper *) constructor.
+// As above, but using the ArcMapFst(..., ArcMapper *) constructor.
 template <class ArcMapper>
-ArcMapFst<typename ArcMapper::FromArc, typename ArcMapper::ToArc, ArcMapper>
-MakeArcMapFst(const Fst<typename ArcMapper::FromArc> &fst, ArcMapper *mapper) {
-  return ArcMapFst<typename ArcMapper::FromArc, typename ArcMapper::ToArc,
-                   ArcMapper>(fst, mapper);
-}
+ArcMapFst(const Fst<typename ArcMapper::FromArc> &, ArcMapper *)
+    -> ArcMapFst<typename ArcMapper::FromArc, typename ArcMapper::ToArc,
+                 ArcMapper>;
 
 // Utility Mappers.
 
@@ -684,7 +688,7 @@ class IdentityArcMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  constexpr uint64 Properties(uint64 props) const { return props; }
+  constexpr uint64_t Properties(uint64_t props) const { return props; }
 };
 
 // Mapper that converts all input symbols to epsilon.
@@ -708,7 +712,7 @@ class InputEpsilonMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  constexpr uint64 Properties(uint64 props) const {
+  constexpr uint64_t Properties(uint64_t props) const {
     return (props & kSetArcProperties) | kIEpsilons | kILabelSorted;
   }
 };
@@ -734,7 +738,7 @@ class OutputEpsilonMapper {
     return MAP_CLEAR_SYMBOLS;
   }
 
-  constexpr uint64 Properties(uint64 props) const {
+  constexpr uint64_t Properties(uint64_t props) const {
     return (props & kSetArcProperties) | kOEpsilons | kOLabelSorted;
   }
 };
@@ -774,7 +778,7 @@ class SuperFinalMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const {
+  uint64_t Properties(uint64_t props) const {
     if (final_label_ == 0) {
       return props & kAddSuperFinalProperties;
     } else {
@@ -819,7 +823,7 @@ class WeightConvertMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  constexpr uint64 Properties(uint64 props) const { return props; }
+  constexpr uint64_t Properties(uint64_t props) const { return props; }
 
  private:
   const Converter convert_weight_;
@@ -881,7 +885,7 @@ class ToGallicMapper {
     return MAP_CLEAR_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const {
+  uint64_t Properties(uint64_t props) const {
     return ProjectProperties(props, true) & kWeightInvariantProperties;
   }
 };
@@ -931,9 +935,9 @@ class FromGallicMapper {
     return MAP_CLEAR_SYMBOLS;
   }
 
-  uint64 Properties(uint64 inprops) const {
-    uint64 outprops = inprops & kOLabelInvariantProperties &
-                      kWeightInvariantProperties & kAddSuperFinalProperties;
+  uint64_t Properties(uint64_t inprops) const {
+    uint64_t outprops = inprops & kOLabelInvariantProperties &
+                        kWeightInvariantProperties & kAddSuperFinalProperties;
     if (error_) outprops |= kError;
     return outprops;
   }
@@ -995,7 +999,7 @@ class GallicToNewSymbolsMapper {
       std::string name = osymbols_->Name() + "_from_gallic";
       fst_->SetInputSymbols(new SymbolTable(name));
       isymbols_ = fst_->MutableInputSymbols();
-      const int64 zero = 0;
+      const int64_t zero = 0;
       isymbols_->AddSymbol(osymbols_->Find(zero), 0);
     } else {
       fst_->SetInputSymbols(nullptr);
@@ -1012,27 +1016,23 @@ class GallicToNewSymbolsMapper {
     Label l;
     if (w1.Size() == 0) {
       l = 0;
+    } else if (auto [it, inserted] = map_.emplace(w1, kNoLabel); !inserted) {
+      l = it->second;
     } else {
-      auto insert_result = map_.emplace(w1, kNoLabel);
-      if (!insert_result.second) {
-        l = insert_result.first->second;
-      } else {
-        l = ++lmax_;
-        insert_result.first->second = l;
-        StringWeightIterator<SW> iter1(w1);
-        StateId n;
-        std::string s;
-        for (size_t i = 0, p = state_; i < w1.Size();
-             ++i, iter1.Next(), p = n) {
-          n = i == w1.Size() - 1 ? state_ : fst_->AddState();
-          fst_->AddArc(p, ToArc(i ? 0 : l, iter1.Value(), n));
-          if (isymbols_) {
-            if (i) s = s + "_";
-            s = s + osymbols_->Find(iter1.Value());
-          }
+      l = ++lmax_;
+      it->second = l;
+      StringWeightIterator<SW> iter1(w1);
+      StateId n;
+      std::string s;
+      for (size_t i = 0, p = state_; i < w1.Size(); ++i, iter1.Next(), p = n) {
+        n = i == w1.Size() - 1 ? state_ : fst_->AddState();
+        fst_->AddArc(p, ToArc(i ? 0 : l, iter1.Value(), n));
+        if (isymbols_) {
+          if (i) s = s + "_";
+          s = s + osymbols_->Find(iter1.Value());
         }
-        if (isymbols_) isymbols_->AddSymbol(s, l);
       }
+      if (isymbols_) isymbols_->AddSymbol(s, l);
     }
     if (l == kStringInfinity || l == kStringBad || arc.ilabel != arc.olabel) {
       FSTERROR() << "GallicToNewSymbolMapper: Unrepresentable weight: " << l;
@@ -1051,9 +1051,9 @@ class GallicToNewSymbolsMapper {
     return MAP_CLEAR_SYMBOLS;
   }
 
-  uint64 Properties(uint64 inprops) const {
-    uint64 outprops = inprops & kOLabelInvariantProperties &
-                      kWeightInvariantProperties & kAddSuperFinalProperties;
+  uint64_t Properties(uint64_t inprops) const {
+    uint64_t outprops = inprops & kOLabelInvariantProperties &
+                        kWeightInvariantProperties & kAddSuperFinalProperties;
     if (error_) outprops |= kError;
     return outprops;
   }
@@ -1104,7 +1104,7 @@ class PlusMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  constexpr uint64 Properties(uint64 props) const {
+  constexpr uint64_t Properties(uint64_t props) const {
     return props & kWeightInvariantProperties;
   }
 
@@ -1138,7 +1138,7 @@ class TimesMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  constexpr uint64 Properties(uint64 props) const {
+  constexpr uint64_t Properties(uint64_t props) const {
     return props & kWeightInvariantProperties;
   }
 
@@ -1175,7 +1175,7 @@ class PowerMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  constexpr uint64 Properties(uint64 props) const {
+  constexpr uint64_t Properties(uint64_t props) const {
     return props & kWeightInvariantProperties;
   }
 
@@ -1207,7 +1207,7 @@ class InvertWeightMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  constexpr uint64 Properties(uint64 props) const {
+  constexpr uint64_t Properties(uint64_t props) const {
     return props & kWeightInvariantProperties;
   }
 };
@@ -1238,7 +1238,7 @@ class RmWeightMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  constexpr uint64 Properties(uint64 props) const {
+  constexpr uint64_t Properties(uint64_t props) const {
     return (props & kWeightInvariantProperties) | kUnweighted;
   }
 };
@@ -1271,7 +1271,7 @@ class QuantizeMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  constexpr uint64 Properties(uint64 props) const {
+  constexpr uint64_t Properties(uint64_t props) const {
     return props & kWeightInvariantProperties;
   }
 
@@ -1291,6 +1291,14 @@ class ReverseWeightMapper {
  public:
   using FromArc = A;
   using ToArc = B;
+  static_assert(std::is_same_v<typename ToArc::Weight,
+                               typename FromArc::Weight::ReverseWeight>,
+                "ToArc::Weight must be FromArc::Weight::ReverseWeight");
+  static_assert(std::is_same_v<typename ToArc::Label, typename FromArc::Label>,
+                "ToArc::Label must be FromArc::Label");
+  static_assert(
+      std::is_same_v<typename ToArc::StateId, typename FromArc::StateId>,
+      "ToArc::StateId must be FromArc::StateId");
 
   constexpr ToArc operator()(const FromArc &arc) const {
     return ToArc(arc.ilabel, arc.olabel, arc.weight.Reverse(), arc.nextstate);
@@ -1306,7 +1314,7 @@ class ReverseWeightMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  constexpr uint64 Properties(uint64 props) const { return props; }
+  constexpr uint64_t Properties(uint64_t props) const { return props; }
 };
 
 }  // namespace fst

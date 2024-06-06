@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -22,17 +22,26 @@
 #ifndef FST_STATE_MAP_H_
 #define FST_STATE_MAP_H_
 
+#include <sys/types.h>
+
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
-#include <fst/types.h>
 #include <fst/log.h>
-
 #include <fst/arc-map.h>
+#include <fst/arc.h>
 #include <fst/cache.h>
+#include <fst/expanded-fst.h>
+#include <fst/float-weight.h>
+#include <fst/fst.h>
+#include <fst/impl-to-fst.h>
 #include <fst/mutable-fst.h>
+#include <fst/properties.h>
 
 namespace fst {
 
@@ -78,7 +87,7 @@ namespace fst {
 //
 //   // This specifies the known properties of an FST mapped by this
 //   // mapper. It takes as argument the input FST's known properties.
-//   uint64 Properties(uint64 props) const;
+//   uint64_t Properties(uint64_t props) const;
 // };
 //
 // We include a various state map versions below. One dimension of variation is
@@ -141,7 +150,9 @@ void StateMap(const Fst<A> &ifst, MutableFst<B> *ofst, C *mapper) {
     return;
   }
   // Adds all states.
-  if (ifst.Properties(kExpanded, false)) ofst->ReserveStates(CountStates(ifst));
+  if (std::optional<typename A::StateId> num_states = ifst.NumStatesIfKnown()) {
+    ofst->ReserveStates(*num_states);
+  }
   for (StateIterator<Fst<A>> siter(ifst); !siter.Done(); siter.Next()) {
     ofst->AddState();
   }
@@ -287,9 +298,9 @@ class StateMapFstImpl : public CacheImpl<B> {
     CacheImpl<B>::InitArcIterator(state, data);
   }
 
-  uint64 Properties() const override { return Properties(kFstProperties); }
+  uint64_t Properties() const override { return Properties(kFstProperties); }
 
-  uint64 Properties(uint64 mask) const override {
+  uint64_t Properties(uint64_t mask) const override {
     if ((mask & kError) && (fst_->Properties(kError, false) ||
                             (mapper_->Properties(0) & kError))) {
       SetProperties(kError, kError);
@@ -439,7 +450,7 @@ class IdentityStateMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const { return props; }
+  uint64_t Properties(uint64_t props) const { return props; }
 
  private:
   const Fst<Arc> &fst_;
@@ -503,7 +514,7 @@ class ArcSumMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const {
+  uint64_t Properties(uint64_t props) const {
     return props & kArcSortProperties & kDeleteArcsProperties &
            kWeightInvariantProperties;
   }
@@ -585,7 +596,7 @@ class ArcUniqueMapper {
     return MAP_COPY_SYMBOLS;
   }
 
-  uint64 Properties(uint64 props) const {
+  uint64_t Properties(uint64_t props) const {
     return props & kArcSortProperties & kDeleteArcsProperties;
   }
 

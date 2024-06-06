@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,9 @@
 #include <fst/mapped-file.h>
 
 #include <fcntl.h>
-#include <sys/types.h>
+
+#include <cstddef>
+#include <cstdint>
 
 #ifdef _WIN32
 #include <io.h>         // for _get_osfhandle, _open
@@ -34,8 +36,9 @@
 #include <cerrno>
 #include <cstring>
 #include <ios>
-#include <limits>
+#include <istream>
 #include <memory>
+#include <string>
 
 #include <fst/log.h>
 
@@ -71,8 +74,10 @@ MappedFile::~MappedFile() {
   }
 }
 
-MappedFile *MappedFile::Map(std::istream &istrm, bool memorymap,
-                            const std::string &source, size_t size) {
+MappedFile * MappedFile::Map(std::istream &istrm,
+                                             bool memorymap,
+                                             const std::string &source,
+                                             size_t size) {
   const auto spos = istrm.tellg();
   VLOG(2) << "memorymap: " << (memorymap ? "true" : "false") << " source: \""
           << source << "\""
@@ -122,11 +127,13 @@ MappedFile *MappedFile::Map(std::istream &istrm, bool memorymap,
   return mf.release();
 }
 
-MappedFile *MappedFile::MapFromFileDescriptor(int fd, size_t pos, size_t size) {
+MappedFile * MappedFile::MapFromFileDescriptor(int fd,
+                                                               size_t pos,
+                                                               size_t size) {
 #ifdef _WIN32
   SYSTEM_INFO sysInfo;
   GetSystemInfo(&sysInfo);
-  const DWORD pagesize = sysInfo.dwPageSize;
+  const DWORD pagesize = sysInfo.dwAllocationGranularity;
 #else
   const int pagesize = sysconf(_SC_PAGESIZE);
 #endif  // _WIN32
@@ -145,18 +152,23 @@ MappedFile *MappedFile::MapFromFileDescriptor(int fd, size_t pos, size_t size) {
     LOG(ERROR) << "Invalid file descriptor fd=" << fd;
     return nullptr;
   }
+  const DWORD max_size_hi =
+      sizeof(size_t) > sizeof(DWORD) ? upsize >> (CHAR_BIT * sizeof(DWORD)) : 0;
+  const DWORD max_size_lo = upsize & DWORD_MAX;
   HANDLE file_mapping = CreateFileMappingA(file, nullptr, PAGE_READONLY,
-                                           upsize >> (8 * sizeof(DWORD)),
-                                           upsize & DWORD_MAX, nullptr);
+                                           max_size_hi, max_size_lo, nullptr);
   if (file_mapping == INVALID_HANDLE_VALUE) {
     LOG(ERROR) << "Can't create mapping for fd=" << fd << " size=" << upsize
                << ": " << GetLastError();
     return nullptr;
   }
 
+  const DWORD offset_pos_hi =
+      sizeof(size_t) > sizeof(DWORD) ? offset_pos >> (CHAR_BIT * sizeof(DWORD))
+                                     : 0;
+  const DWORD offset_pos_lo = offset_pos & DWORD_MAX;
   void *map = MapViewOfFile(file_mapping, FILE_MAP_READ,
-                            offset_pos >> (8 * sizeof(DWORD)),
-                            offset_pos & DWORD_MAX, upsize);
+                            offset_pos_hi, offset_pos_lo, upsize);
   if (!map) {
     LOG(ERROR) << "mmap failed for fd=" << fd << " size=" << upsize
                << " offset=" << offset_pos << ": " << GetLastError();
@@ -207,9 +219,5 @@ MappedFile *MappedFile::Borrow(void *data) {
   region.offset = 0;
   return new MappedFile(region);
 }
-
-constexpr size_t MappedFile::kArchAlignment;
-
-constexpr size_t MappedFile::kMaxReadChunk;
 
 }  // namespace fst

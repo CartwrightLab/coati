@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -25,14 +25,20 @@
 #ifndef FST_SIGNED_LOG_WEIGHT_H_
 #define FST_SIGNED_LOG_WEIGHT_H_
 
+#include <climits>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
 #include <random>
+#include <string>
 
-#include <fst/types.h>
-
+#include <fst/log.h>
 #include <fst/float-weight.h>
 #include <fst/pair-weight.h>
 #include <fst/product-weight.h>
-
+#include <fst/util.h>
+#include <fst/weight.h>
 
 namespace fst {
 template <class T>
@@ -90,7 +96,7 @@ class SignedLogWeightTpl : public PairWeight<TropicalWeight, LogWeightTpl<T>> {
   bool Member() const { return PairWeight<W1, W2>::Member(); }
 
   // Neither idempotent nor path.
-  static constexpr uint64 Properties() {
+  static constexpr uint64_t Properties() {
     return kLeftSemiring | kRightSemiring | kCommutative;
   }
 
@@ -585,7 +591,7 @@ class WeightGenerate<SignedLogWeightTpl<T>> {
   using W1 = typename Weight::W1;
   using W2 = typename Weight::W2;
 
-  explicit WeightGenerate(uint64 seed = std::random_device()(),
+  explicit WeightGenerate(uint64_t seed = std::random_device()(),
                           bool allow_zero = true,
                           size_t num_random_weights = kNumRandomWeights)
       : rand_(seed),

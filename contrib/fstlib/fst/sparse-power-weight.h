@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -21,14 +21,14 @@
 #ifndef FST_SPARSE_POWER_WEIGHT_H_
 #define FST_SPARSE_POWER_WEIGHT_H_
 
+#include <climits>
+#include <cstddef>
+#include <cstdint>
 #include <random>
 #include <string>
 
-#include <fst/types.h>
-
 #include <fst/sparse-tuple-weight.h>
 #include <fst/weight.h>
-
 
 namespace fst {
 
@@ -51,7 +51,7 @@ class SparsePowerWeight : public SparseTupleWeight<W, K> {
   using Base = SparseTupleWeight<W, K>;
   using ReverseWeight = SparsePowerWeight<typename W::ReverseWeight, K>;
 
-  SparsePowerWeight() {}
+  SparsePowerWeight() = default;
 
   explicit SparsePowerWeight(const Base &weight) : Base(weight) {}
 
@@ -84,7 +84,7 @@ class SparsePowerWeight : public SparseTupleWeight<W, K> {
   static const std::string &Type() {
     static const std::string *const type = [] {
       std::string type = W::Type() + "_^n";
-      if (sizeof(K) != sizeof(uint32)) {
+      if (sizeof(K) != sizeof(uint32_t)) {
         type += "_" + std::to_string(CHAR_BIT * sizeof(K));
       }
       return new std::string(type);
@@ -92,7 +92,7 @@ class SparsePowerWeight : public SparseTupleWeight<W, K> {
     return *type;
   }
 
-  static constexpr uint64 Properties() {
+  static constexpr uint64_t Properties() {
     return W::Properties() &
            (kLeftSemiring | kRightSemiring | kCommutative | kIdempotent);
   }
@@ -207,7 +207,7 @@ class WeightGenerate<SparsePowerWeight<W, K>> {
   using Weight = SparsePowerWeight<W, K>;
   using Generate = WeightGenerate<W>;
 
-  explicit WeightGenerate(uint64 seed = std::random_device()(),
+  explicit WeightGenerate(uint64_t seed = std::random_device()(),
                           bool allow_zero = true, size_t sparse_power_rank = 3)
       : generate_(seed, allow_zero), sparse_power_rank_(sparse_power_rank) {}
 

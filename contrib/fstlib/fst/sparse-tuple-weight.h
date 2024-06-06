@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -29,14 +29,17 @@
 #define FST_SPARSE_TUPLE_WEIGHT_H_
 
 #include <algorithm>
+#include <cstddef>
+#include <functional>
+#include <istream>
 #include <list>
+#include <ostream>
 #include <stack>
 #include <string>
 #include <utility>
 
-
+#include <fst/util.h>
 #include <fst/weight.h>
-
 
 namespace fst {
 
@@ -56,7 +59,7 @@ class SparseTupleWeight {
   using Weight = W;
   using Index = K;
 
-  constexpr static K kNoKey = -1;
+  static constexpr K kNoKey = -1;
 
   SparseTupleWeight() { Init(); }
 
@@ -283,10 +286,6 @@ class SparseTupleWeight {
 
   friend class SparseTupleWeightIterator<W, K>;
 };
-
-// Declare storage for kNoKey since it is passed by reference.
-template <class W, class K>
-constexpr K SparseTupleWeight<W, K>::kNoKey;
 
 template <class W, class K>
 class SparseTupleWeightIterator {

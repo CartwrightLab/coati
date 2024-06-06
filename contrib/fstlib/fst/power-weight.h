@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -20,14 +20,13 @@
 #ifndef FST_POWER_WEIGHT_H_
 #define FST_POWER_WEIGHT_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <random>
 #include <string>
 
-#include <fst/types.h>
-
 #include <fst/tuple-weight.h>
 #include <fst/weight.h>
-
 
 namespace fst {
 
@@ -45,7 +44,7 @@ class PowerWeight : public TupleWeight<W, n> {
  public:
   using ReverseWeight = PowerWeight<typename W::ReverseWeight, n>;
 
-  PowerWeight() {}
+  PowerWeight() = default;
 
   explicit PowerWeight(const TupleWeight<W, n> &weight)
       : TupleWeight<W, n>(weight) {}
@@ -80,7 +79,7 @@ class PowerWeight : public TupleWeight<W, n> {
     return *type;
   }
 
-  static constexpr uint64 Properties() {
+  static constexpr uint64_t Properties() {
     return W::Properties() &
            (kLeftSemiring | kRightSemiring | kCommutative | kIdempotent);
   }
@@ -168,7 +167,7 @@ class WeightGenerate<PowerWeight<W, n>> {
   using Weight = PowerWeight<W, n>;
   using Generate = WeightGenerate<W>;
 
-  explicit WeightGenerate(uint64 seed = std::random_device()(),
+  explicit WeightGenerate(uint64_t seed = std::random_device()(),
                           bool allow_zero = true)
       : generate_(seed, allow_zero) {}
 

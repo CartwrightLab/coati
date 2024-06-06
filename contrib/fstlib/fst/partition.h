@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -21,11 +21,11 @@
 #define FST_PARTITION_H_
 
 #include <algorithm>
+#include <cstddef>
+#include <type_traits>
 #include <vector>
 
-
 #include <fst/queue.h>
-
 
 namespace fst {
 namespace internal {
@@ -65,8 +65,11 @@ class PartitionIterator;
 // a subsequent call to FinalizeSplit()
 template <typename T>
 class Partition {
+  static_assert(std::is_signed_v<T> && std::is_integral_v<T>,
+                "T must be a signed integer type");
+
  public:
-  Partition() {}
+  Partition() = default;
 
   explicit Partition(T num_elements) { Initialize(num_elements); }
 

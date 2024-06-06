@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -20,13 +20,15 @@
 #ifndef FST_REWEIGHT_H_
 #define FST_REWEIGHT_H_
 
+#include <cstdint>
 #include <vector>
 
 #include <fst/log.h>
-
+#include <fst/fst.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
-
+#include <fst/util.h>
+#include <fst/weight.h>
 
 namespace fst {
 
@@ -64,7 +66,7 @@ void Reweight(MutableFst<Arc> *fst,
     fst->SetProperties(kError, kError);
     return;
   }
-  const uint64 input_props = fst->Properties(kFstProperties, false);
+  const uint64_t input_props = fst->Properties(kFstProperties, false);
   StateIterator<MutableFst<Arc>> siter(*fst);
   for (; !siter.Done(); siter.Next()) {
     const auto s = siter.Value();
@@ -138,7 +140,7 @@ void Reweight(MutableFst<Arc> *fst,
     }
   }
   fst->SetProperties(ReweightProperties(input_props, added_start_epsilon) |
-                     fst->Properties(kFstProperties, false),
+                         fst->Properties(kFstProperties, false),
                      kFstProperties);
 }
 

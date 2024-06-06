@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -20,24 +20,29 @@
 #ifndef FST_STRING_WEIGHT_H_
 #define FST_STRING_WEIGHT_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <ios>
+#include <istream>
 #include <list>
+#include <optional>
+#include <ostream>
 #include <random>
 #include <string>
 #include <vector>
 
-#include <fst/types.h>
-
+#include <fst/log.h>
 #include <fst/product-weight.h>
 #include <fst/union-weight.h>
+#include <fst/util.h>
 #include <fst/weight.h>
 #include <string_view>
 
-
 namespace fst {
 
-constexpr int kStringInfinity = -1;       // Label for the infinite string.
-constexpr int kStringBad = -2;            // Label for a non-string.
-constexpr char kStringSeparator[] = "_";  // Label separator in strings.
+inline constexpr int kStringInfinity = -1;     // Label for the infinite string.
+inline constexpr int kStringBad = -2;          // Label for a non-string.
+inline constexpr char kStringSeparator = '_';  // Label separator in strings.
 
 // Determines whether to use left or right string semiring. Includes a
 // 'restricted' version that signals an error if proper prefixes/suffixes
@@ -68,7 +73,7 @@ class StringWeight {
   friend class StringWeightIterator<StringWeight>;
   friend class StringWeightReverseIterator<StringWeight>;
 
-  StringWeight() {}
+  StringWeight() = default;
 
   template <typename Iterator>
   StringWeight(const Iterator begin, const Iterator end) {
@@ -112,7 +117,7 @@ class StringWeight {
 
   ReverseWeight Reverse() const;
 
-  static constexpr uint64 Properties() {
+  static constexpr uint64_t Properties() {
     return kIdempotent |
            (S == STRING_LEFT ? kLeftSemiring
                              : (S == STRING_RIGHT
@@ -234,9 +239,9 @@ class StringWeightReverseIterator {
 template <typename Label, StringType S>
 inline std::istream &StringWeight<Label, S>::Read(std::istream &strm) {
   Clear();
-  int32 size;
+  int32_t size;
   ReadType(strm, &size);
-  for (int32 i = 0; i < size; ++i) {
+  for (int32_t i = 0; i < size; ++i) {
     Label label;
     ReadType(strm, &label);
     PushBack(label);
@@ -246,7 +251,7 @@ inline std::istream &StringWeight<Label, S>::Read(std::istream &strm) {
 
 template <typename Label, StringType S>
 inline std::ostream &StringWeight<Label, S>::Write(std::ostream &strm) const {
-  const int32 size = Size();
+  const int32_t size = Size();
   WriteType(strm, size);
   for (Iterator iter(*this); !iter.Done(); iter.Next()) {
     WriteType(strm, iter.Value());
@@ -336,7 +341,7 @@ inline std::istream &operator>>(std::istream &strm,
     weight = Weight::One();
   } else {
     weight.Clear();
-    for (std::string_view sv : SplitString(str, kStringSeparator, false)) {
+    for (std::string_view sv : StrSplit(str, kStringSeparator)) {
       auto maybe_label = ParseInt64(sv);
       if (!maybe_label.has_value()) {
         strm.clear(std::ios::badbit);
@@ -510,7 +515,7 @@ class WeightGenerate<StringWeight<Label, S>> {
  public:
   using Weight = StringWeight<Label, S>;
 
-  explicit WeightGenerate(uint64 seed = std::random_device()(),
+  explicit WeightGenerate(uint64_t seed = std::random_device()(),
                           bool allow_zero = true,
                           size_t alphabet_size = kNumRandomWeights,
                           size_t max_string_length = kNumRandomWeights)
@@ -578,11 +583,11 @@ struct GallicWeight
 
   using ProductWeight<SW, W>::Properties;
 
-  GallicWeight() {}
+  GallicWeight() = default;
 
   GallicWeight(SW w1, W w2) : ProductWeight<SW, W>(w1, w2) {}
 
-  explicit GallicWeight(const std::string &s, int *nread = nullptr)
+  explicit GallicWeight(std::string_view s, int *nread = nullptr)
       : ProductWeight<SW, W>(s, nread) {}
 
   explicit GallicWeight(const ProductWeight<SW, W> &w)
@@ -667,7 +672,7 @@ class WeightGenerate<GallicWeight<Label, W, G>>
   using Generate = WeightGenerate<
       ProductWeight<StringWeight<Label, GallicStringType(G)>, W>>;
 
-  explicit WeightGenerate(uint64 seed = std::random_device()(),
+  explicit WeightGenerate(uint64_t seed = std::random_device()(),
                           bool allow_zero = true)
       : generate_(seed, allow_zero) {}
 
@@ -728,7 +733,7 @@ struct GallicWeight<Label, W, GALLIC>
 
   using UW::Properties;
 
-  GallicWeight() {}
+  GallicWeight() = default;
 
   // Copy constructor.
   // NOLINTNEXTLINE(google-explicit-constructor)
@@ -741,7 +746,7 @@ struct GallicWeight<Label, W, GALLIC>
 
   GallicWeight(SW w1, W w2) : UW(GW(w1, w2)) {}
 
-  explicit GallicWeight(const std::string &str, int *nread = nullptr)
+  explicit GallicWeight(std::string_view str, int *nread = nullptr)
       : UW(str, nread) {}
 
   static const GallicWeight<Label, W, GALLIC> &Zero() {
@@ -814,7 +819,7 @@ class WeightGenerate<GallicWeight<Label, W, GALLIC>>
       WeightGenerate<UnionWeight<GallicWeight<Label, W, GALLIC_RESTRICT>,
                                  GallicUnionWeightOptions<Label, W>>>;
 
-  explicit WeightGenerate(uint64 seed = std::random_device()(),
+  explicit WeightGenerate(uint64_t seed = std::random_device()(),
                           bool allow_zero = true)
       : generate_(seed, allow_zero) {}
 

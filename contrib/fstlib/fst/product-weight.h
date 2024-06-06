@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -20,15 +20,13 @@
 #ifndef FST_PRODUCT_WEIGHT_H_
 #define FST_PRODUCT_WEIGHT_H_
 
+#include <cstdint>
 #include <random>
 #include <string>
 #include <utility>
 
-#include <fst/types.h>
-
 #include <fst/pair-weight.h>
 #include <fst/weight.h>
-
 
 namespace fst {
 
@@ -39,7 +37,7 @@ class ProductWeight : public PairWeight<W1, W2> {
   using ReverseWeight =
       ProductWeight<typename W1::ReverseWeight, typename W2::ReverseWeight>;
 
-  ProductWeight() {}
+  ProductWeight() = default;
 
   explicit ProductWeight(const PairWeight<W1, W2> &weight)
       : PairWeight<W1, W2>(weight) {}
@@ -68,7 +66,7 @@ class ProductWeight : public PairWeight<W1, W2> {
     return *type;
   }
 
-  static constexpr uint64 Properties() {
+  static constexpr uint64_t Properties() {
     return W1::Properties() & W2::Properties() &
            (kLeftSemiring | kRightSemiring | kCommutative | kIdempotent);
   }
@@ -110,7 +108,7 @@ class Adder<ProductWeight<W1, W2>> {
  public:
   using Weight = ProductWeight<W1, W2>;
 
-  Adder() {}
+  Adder() = default;
 
   explicit Adder(Weight w) : adder1_(w.Value1()), adder2_(w.Value2()) {}
 
@@ -141,7 +139,7 @@ class WeightGenerate<ProductWeight<W1, W2>> {
   using Weight = ProductWeight<W1, W2>;
   using Generate = WeightGenerate<PairWeight<W1, W2>>;
 
-  explicit WeightGenerate(uint64 seed = std::random_device()(),
+  explicit WeightGenerate(uint64_t seed = std::random_device()(),
                           bool allow_zero = true)
       : generate_(seed, allow_zero) {}
 

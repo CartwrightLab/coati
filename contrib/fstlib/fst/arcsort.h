@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -20,16 +20,22 @@
 #ifndef FST_ARCSORT_H_
 #define FST_ARCSORT_H_
 
+#include <sys/types.h>
+
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <string>
+#include <tuple>
 #include <vector>
 
-#include <fst/types.h>
-
+#include <fst/arc-map.h>
+#include <fst/arc.h>
 #include <fst/cache.h>
+#include <fst/fst.h>
+#include <fst/mutable-fst.h>
+#include <fst/properties.h>
 #include <fst/state-map.h>
-#include <fst/test-properties.h>
-
 
 namespace fst {
 
@@ -61,7 +67,7 @@ class ArcSortMapper {
     for (ArcIterator<Fst<Arc>> aiter(fst_, s); !aiter.Done(); aiter.Next()) {
       arcs_.push_back(aiter.Value());
     }
-    std::sort(arcs_.begin(), arcs_.end(), comp_);
+    std::stable_sort(arcs_.begin(), arcs_.end(), comp_);
   }
 
   bool Done() const { return i_ >= arcs_.size(); }
@@ -74,7 +80,7 @@ class ArcSortMapper {
 
   MapSymbolsAction OutputSymbolsAction() const { return MAP_COPY_SYMBOLS; }
 
-  uint64 Properties(uint64 props) const { return comp_.Properties(props); }
+  uint64_t Properties(uint64_t props) const { return comp_.Properties(props); }
 
  private:
   const Fst<Arc> &fst_;
@@ -89,7 +95,7 @@ class ArcSortMapper {
 // This version modifies its input. Comparison function objects ILabelCompare
 // and OLabelCompare are provided by the library. In general, Compare must meet
 // the requirements for a  comparison function object (e.g., similar to those
-// used by std::sort). It must also have a member Properties(uint64) that
+// used by std::sort). It must also have a member Properties(uint64_t) that
 // specifies the known properties of the sorted FST; it takes as argument the
 // input FST's known properties before the sort.
 //
@@ -111,7 +117,7 @@ using ArcSortFstOptions = CacheOptions;
 // This version is a delayed FST. Comparsion function objects ILabelCompare and
 // OLabelCompare are provided by the library. In general, Compare must meet the
 // requirements for a comparision function object (e.g., similar to those
-// used by std::sort). It must also have a member Properties(uint64) that
+// used by std::sort). It must also have a member Properties(uint64_t) that
 // specifies the known properties of the sorted FST; it takes as argument the
 // input FST's known properties.
 //
@@ -185,14 +191,14 @@ class ArcIterator<ArcSortFst<Arc, Compare>>
 template <class Arc>
 class ILabelCompare {
  public:
-  constexpr ILabelCompare() {}
+  constexpr ILabelCompare() = default;
 
   constexpr bool operator()(const Arc &lhs, const Arc &rhs) const {
     return std::forward_as_tuple(lhs.ilabel, lhs.olabel) <
            std::forward_as_tuple(rhs.ilabel, rhs.olabel);
   }
 
-  constexpr uint64 Properties(uint64 props) const {
+  constexpr uint64_t Properties(uint64_t props) const {
     return (props & kArcSortProperties) | kILabelSorted |
            (props & kAcceptor ? kOLabelSorted : 0);
   }
@@ -202,14 +208,14 @@ class ILabelCompare {
 template <class Arc>
 class OLabelCompare {
  public:
-  constexpr OLabelCompare() {}
+  constexpr OLabelCompare() = default;
 
   constexpr bool operator()(const Arc &lhs, const Arc &rhs) const {
     return std::forward_as_tuple(lhs.olabel, lhs.ilabel) <
            std::forward_as_tuple(rhs.olabel, rhs.ilabel);
   }
 
-  constexpr uint64 Properties(uint64 props) const {
+  constexpr uint64_t Properties(uint64_t props) const {
     return (props & kArcSortProperties) | kOLabelSorted |
            (props & kAcceptor ? kILabelSorted : 0);
   }

@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -20,13 +20,14 @@
 #ifndef FST_RMFINALEPSILON_H_
 #define FST_RMFINALEPSILON_H_
 
+#include <cstdint>
 #include <vector>
 
-#include <fst/types.h>
-
+#include <fst/cc-visitors.h>
 #include <fst/connect.h>
+#include <fst/dfs-visit.h>
+#include <fst/fst.h>
 #include <fst/mutable-fst.h>
-
 #include <unordered_set>
 
 namespace fst {
@@ -39,7 +40,7 @@ void RmFinalEpsilon(MutableFst<Arc> *fst) {
   // Determines the coaccesibility of states.
   std::vector<bool> access;
   std::vector<bool> coaccess;
-  uint64 props = 0;
+  uint64_t props = 0;
   SccVisitor<Arc> scc_visitor(nullptr, &access, &coaccess, &props);
   DfsVisit(*fst, &scc_visitor);
   // Finds potential list of removable final states. These are final states that

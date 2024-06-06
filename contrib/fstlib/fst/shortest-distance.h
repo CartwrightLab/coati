@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -24,19 +24,23 @@
 #include <vector>
 
 #include <fst/log.h>
-
+#include <fst/arc.h>
 #include <fst/arcfilter.h>
 #include <fst/cache.h>
 #include <fst/equal.h>
+#include <fst/expanded-fst.h>
+#include <fst/fst.h>
+#include <fst/properties.h>
 #include <fst/queue.h>
 #include <fst/reverse.h>
-#include <fst/test-properties.h>
-
+#include <fst/util.h>
+#include <fst/vector-fst.h>
+#include <fst/weight.h>
 
 namespace fst {
 
 // A representable float for shortest distance and shortest path algorithms.
-constexpr float kShortestDelta = 1e-6;
+inline constexpr float kShortestDelta = 1e-6;
 
 template <class Arc, class Queue, class ArcFilter>
 struct ShortestDistanceOptions {
@@ -95,12 +99,11 @@ class ShortestDistanceState {
         source_id_(0),
         error_(false) {
     distance_->clear();
-    if (fst.Properties(kExpanded, false) == kExpanded) {
-      const auto num_states = CountStates(fst);
-      distance_->reserve(num_states);
-      adder_.reserve(num_states);
-      radder_.reserve(num_states);
-      enqueued_.reserve(num_states);
+    if (std::optional<StateId> num_states = fst.NumStatesIfKnown()) {
+      distance_->reserve(*num_states);
+      adder_.reserve(*num_states);
+      radder_.reserve(*num_states);
+      enqueued_.reserve(*num_states);
     }
   }
 
@@ -116,14 +119,14 @@ class ShortestDistanceState {
       radder_.push_back(Adder<Weight>());
       enqueued_.push_back(false);
     }
-    FSTDCHECK_LT(index, distance_->size());
+    DCHECK_LT(index, distance_->size());
   }
 
   void EnsureSourcesIndexIsValid(std::size_t index) {
     while (sources_.size() <= index) {
       sources_.push_back(kNoStateId);
     }
-    FSTDCHECK_LT(index, sources_.size());
+    DCHECK_LT(index, sources_.size());
   }
 
   const Fst<Arc> &fst_;
@@ -323,7 +326,7 @@ void ShortestDistance(const Fst<Arc> &fst,
       distance->assign(1, Arc::Weight::NoWeight());
       return;
     }
-    FSTDCHECK_GE(rdistance.size(), 1);  // reversing added one state
+    DCHECK_GE(rdistance.size(), 1);  // reversing added one state
     distance->reserve(rdistance.size() - 1);
     while (distance->size() < rdistance.size() - 1) {
       distance->push_back(rdistance[distance->size() + 1].Reverse());

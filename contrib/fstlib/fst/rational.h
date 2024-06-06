@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -22,14 +22,20 @@
 #define FST_RATIONAL_H_
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include <fst/types.h>
-
+#include <fst/cache.h>
+#include <fst/fst.h>
+#include <fst/impl-to-fst.h>
 #include <fst/mutable-fst.h>
+#include <fst/properties.h>
 #include <fst/replace.h>
-#include <fst/test-properties.h>
+#include <fst/vector-fst.h>
 
 namespace fst {
 
@@ -108,10 +114,10 @@ class RationalFstImpl : public FstImpl<A> {
     return Replace()->NumOutputEpsilons(s);
   }
 
-  uint64 Properties() const override { return Properties(kFstProperties); }
+  uint64_t Properties() const override { return Properties(kFstProperties); }
 
   // Sets error if found, and returns other FST impl properties.
-  uint64 Properties(uint64 mask) const override {
+  uint64_t Properties(uint64_t mask) const override {
     if ((mask & kError) && Replace()->Properties(kError, false)) {
       SetProperties(kError, kError);
     }

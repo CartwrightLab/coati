@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -21,17 +21,20 @@
 #define FST_SYNCHRONIZE_H_
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
-#include <fst/types.h>
-
 #include <fst/cache.h>
-#include <fst/test-properties.h>
-
+#include <fst/fst.h>
+#include <fst/impl-to-fst.h>
+#include <fst/mutable-fst.h>
+#include <fst/properties.h>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -64,11 +67,16 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
   using CacheBaseImpl<CacheState<Arc>>::SetFinal;
   using CacheBaseImpl<CacheState<Arc>>::SetStart;
 
-  using String = std::basic_string<Label>;
-  using StringView = std::basic_string_view<Label>;
+  // To avoid using `std::char_traits<Label>`, which is not guaranteed to exist,
+  // use `char32_t` for the backing strings instead of `Label`.  We should
+  // probably use our own traits type instead.
+  static_assert(sizeof(Label) <= sizeof(char32_t),
+                "Label must fit in 32 bits.  This is a hack.");
+  using String = std::basic_string<char32_t>;
+  using StringView = std::basic_string_view<char32_t>;
 
   struct Element {
-    Element() {}
+    Element() = default;
 
     Element(StateId state_, StringView i, StringView o)
         : state(state_), istring(i), ostring(o) {}
@@ -139,10 +147,10 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
     return CacheImpl<Arc>::NumOutputEpsilons(s);
   }
 
-  uint64 Properties() const override { return Properties(kFstProperties); }
+  uint64_t Properties() const override { return Properties(kFstProperties); }
 
   // Sets error if found, returning other FST impl properties.
-  uint64 Properties(uint64 mask) const override {
+  uint64_t Properties(uint64_t mask) const override {
     if ((mask & kError) && fst_->Properties(kError, false)) {
       SetProperties(kError, kError);
     }
@@ -188,18 +196,19 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
   }
 
   StringView FindString(String &&str) {
-    const auto insert_result = string_set_.insert(std::forward<String>(str));
-    return *insert_result.first;
+    const auto [str_it, unused] = string_set_.insert(std::forward<String>(str));
+    return *str_it;
   }
 
   // Finds state corresponding to an element. Creates new state if element
   // is not found.
   StateId FindState(const Element &element) {
-    const auto insert_result = element_map_.emplace(element, elements_.size());
-    if (insert_result.second) {
+    const auto &[iter, inserted] =
+        element_map_.emplace(element, elements_.size());
+    if (inserted) {
       elements_.push_back(element);
     }
-    return insert_result.first->second;
+    return iter->second;
   }
 
   // Computes the outgoing transitions from a state, creating new destination

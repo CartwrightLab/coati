@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -20,19 +20,23 @@
 #ifndef FST_EQUAL_H_
 #define FST_EQUAL_H_
 
+#include <cstdint>
+#include <string>
+
 #include <fst/log.h>
-
 #include <fst/fst.h>
-#include <fst/test-properties.h>
-
+#include <fst/properties.h>
+#include <fst/symbol-table.h>
+#include <fst/util.h>
+#include <fst/weight.h>
 
 namespace fst {
 
-constexpr uint8 kEqualFsts = 0x01;
-constexpr uint8 kEqualFstTypes = 0x02;
-constexpr uint8 kEqualCompatProperties = 0x04;
-constexpr uint8 kEqualCompatSymbols = 0x08;
-constexpr uint8 kEqualAll =
+inline constexpr uint8_t kEqualFsts = 0x01;
+inline constexpr uint8_t kEqualFstTypes = 0x02;
+inline constexpr uint8_t kEqualCompatProperties = 0x04;
+inline constexpr uint8_t kEqualCompatSymbols = 0x08;
+inline constexpr uint8_t kEqualAll =
     kEqualFsts | kEqualFstTypes | kEqualCompatProperties | kEqualCompatSymbols;
 
 class WeightApproxEqual {
@@ -57,7 +61,7 @@ class WeightApproxEqual {
 // (etype & kEqualCompatSymbols).
 template <class Arc, class WeightEqual>
 bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, WeightEqual weight_equal,
-           uint8 etype = kEqualFsts) {
+           uint8_t etype = kEqualFsts) {
   if ((etype & kEqualFstTypes) && (fst1.Type() != fst2.Type())) {
     VLOG(1) << "Equal: Mismatched FST types (" << fst1.Type()
             << " != " << fst2.Type() << ")";
@@ -162,7 +166,7 @@ bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, WeightEqual weight_equal,
 
 template <class Arc>
 bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, float delta = kDelta,
-           uint8 etype = kEqualFsts) {
+           uint8_t etype = kEqualFsts) {
   return Equal(fst1, fst2, WeightApproxEqual(delta), etype);
 }
 
@@ -172,7 +176,7 @@ bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, float delta = kDelta,
 // the instantiation will fail.
 template <class Arc>
 bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, double delta,
-           uint8 etype = kEqualFsts) {
+           uint8_t etype = kEqualFsts) {
   return Equal(fst1, fst2, WeightApproxEqual(static_cast<float>(delta)), etype);
 }
 

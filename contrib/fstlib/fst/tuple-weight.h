@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -22,16 +22,17 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <istream>
+#include <ostream>
 #include <string>
 #include <vector>
 
 #include <fst/flags.h>
-#include <fst/types.h>
 #include <fst/log.h>
-
 #include <fst/weight.h>
-
 
 namespace fst {
 
@@ -90,7 +91,7 @@ class TupleWeight {
   }
 
   size_t Hash() const {
-    uint64 hash = 0;
+    uint64_t hash = 0;
     for (size_t i = 0; i < n; ++i) hash = 5 * hash + values_[i].Hash();
     return size_t(hash);
   }

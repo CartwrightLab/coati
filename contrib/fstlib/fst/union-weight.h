@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -22,17 +22,20 @@
 #ifndef FST_UNION_WEIGHT_H_
 #define FST_UNION_WEIGHT_H_
 
+#include <climits>
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
+#include <istream>
 #include <list>
+#include <ostream>
 #include <random>
 #include <sstream>
 #include <string>
 #include <utility>
 
-#include <fst/types.h>
-
+#include <fst/util.h>
 #include <fst/weight.h>
-
 
 namespace fst {
 
@@ -67,10 +70,8 @@ namespace fst {
 
 template <class W, class O>
 class UnionWeight;
-
 template <class W, class O>
 class UnionWeightIterator;
-
 template <class W, class O>
 class UnionWeightReverseIterator;
 
@@ -124,7 +125,7 @@ class UnionWeight {
     return *type;
   }
 
-  static constexpr uint64 Properties() {
+  static constexpr uint64_t Properties() {
     return W::Properties() &
            (kLeftSemiring | kRightSemiring | kCommutative | kIdempotent);
   }
@@ -276,7 +277,7 @@ class UnionWeightReverseIterator {
 template <class W, class O>
 inline std::istream &UnionWeight<W, O>::Read(std::istream &istrm) {
   Clear();
-  int32 size;
+  int32_t size;
   ReadType(istrm, &size);
   for (int i = 0; i < size; ++i) {
     W weight;
@@ -288,7 +289,7 @@ inline std::istream &UnionWeight<W, O>::Read(std::istream &istrm) {
 
 template <class W, class O>
 inline std::ostream &UnionWeight<W, O>::Write(std::ostream &ostrm) const {
-  const int32 size = Size();
+  const int32_t size = Size();
   WriteType(ostrm, size);
   for (UnionWeightIterator<W, O> it(*this); !it.Done(); it.Next()) {
     WriteType(ostrm, it.Value());
@@ -491,7 +492,7 @@ class WeightGenerate<UnionWeight<W, O>> {
   using Weight = UnionWeight<W, O>;
   using Generate = WeightGenerate<W>;
 
-  explicit WeightGenerate(uint64 seed = std::random_device()(),
+  explicit WeightGenerate(uint64_t seed = std::random_device()(),
                           bool allow_zero = true,
                           size_t num_random_weights = kNumRandomWeights)
       : rand_(seed),

@@ -1,4 +1,4 @@
-// Copyright 2005-2020 Google LLC
+// Copyright 2005-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the 'License');
 // you may not use this file except in compliance with the License.
@@ -21,13 +21,17 @@
 
 #include <cctype>
 #include <charconv>
+#include <cstddef>
+#include <cstdint>
+#include <istream>
+#include <optional>
+#include <ostream>
 #include <sstream>
 #include <string>
+#include <system_error>
 
 #include <fst/flags.h>
-#include <fst/types.h>
 #include <fst/log.h>
-#include <fst/mapped-file.h>
 #include <string_view>
 #include <optional>
 
@@ -39,37 +43,27 @@ DEFINE_bool(fst_error_fatal, true,
 
 namespace fst {
 
-std::vector<std::string_view> SplitString(const std::string_view line,
-                                           const std::string_view delim,
-                                           const bool omit_empty_strings) {
-  std::vector<std::string_view> vec;
-  size_t prev_pos = 0, pos = 0;
-  while (pos <= line.length()) {
-    pos = line.find_first_of(delim, pos);
-    if (pos == std::string_view::npos) {
-      pos = line.length();
-    }
-    if (!omit_empty_strings || pos != prev_pos)
-      vec.push_back(line.substr(prev_pos, pos - prev_pos));
-    prev_pos = ++pos;
-  }
-  return vec;
-}
-
-std::optional<int64> ParseInt64(std::string_view s) {
-  int64 n;
-  if (const auto [p, ec] = std::from_chars(s.begin(), s.end(), n);
-      ec != std::errc() || p != s.end()) {
+std::optional<int64_t> ParseInt64(std::string_view s, int base) {
+  // Portability note: std::from_chars does not play nicely with string_view
+  // using Microsoft Visual Studio Compiler. The string_view's begin() and end()
+  // do not return implicit char pointers on this platforms. Using data()
+  // and size() instead should be more portable.
+  //
+  // See: https://stackoverflow.com/questions/61203317/stdfrom-chars-doenst-compile-under-msvc
+  int64_t n;
+  if (const auto [p, ec] =
+          std::from_chars(s.data(), s.data() + s.size(), n, /*base=*/base);
+      ec != std::errc() || p != (s.data() + s.size())) {
     return std::nullopt;
   }
   return n;
 }
 
-int64 StrToInt64(std::string_view s, std::string_view source, size_t nline,
-                 bool allow_negative, bool *error) {
+int64_t StrToInt64(std::string_view s, std::string_view source, size_t nline,
+                   bool * error) {
   if (error) *error = false;
-  const std::optional<int64> maybe_n = ParseInt64(s);
-  if (!maybe_n.has_value() || (!allow_negative && *maybe_n < 0)) {
+  const std::optional<int64_t> maybe_n = ParseInt64(s);
+  if (!maybe_n.has_value()) {
     FSTERROR() << "StrToInt64: Bad integer = " << s << "\", source = " << source
                << ", line = " << nline;
     if (error) *error = true;
@@ -91,7 +85,7 @@ void ConvertToLegalCSymbol(std::string *s) {
 bool AlignInput(std::istream &strm, size_t align) {
   char c;
   for (size_t i = 0; i < align; ++i) {
-    int64 pos = strm.tellg();
+    int64_t pos = strm.tellg();
     if (pos < 0) {
       LOG(ERROR) << "AlignInput: Can't determine stream position";
       return false;
@@ -106,7 +100,7 @@ bool AlignInput(std::istream &strm, size_t align) {
 // can't align.
 bool AlignOutput(std::ostream &strm, size_t align) {
   for (size_t i = 0; i < align; ++i) {
-    int64 pos = strm.tellp();
+    int64_t pos = strm.tellp();
     if (pos < 0) {
       LOG(ERROR) << "AlignOutput: Can't determine stream position";
       return false;
