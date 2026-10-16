@@ -1,2 +1,3 @@
 option('benchmark', type : 'boolean', value : false, description : 'Build benchmark tests')
 option('test', type : 'boolean', value : true, description : 'Build unit tests')
+option('system_openfst', type : 'feature', value : 'auto', description : 'Use an installed OpenFst, 1.8.4 or later (auto: when one works; otherwise Meson downloads OpenFst 1.8.5)')

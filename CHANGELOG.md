@@ -1,5 +1,14 @@
 # COATi Release Notes and Changelog
 
+## Unreleased
+
+### Notes for Developers
+ - OpenFst is no longer bundled. An installed OpenFst (1.8.4 or later) is
+   used when a test program links against it; otherwise Meson downloads and
+   builds OpenFst 1.8.5 (`subprojects/openfst.wrap`).
+   `-Dsystem_openfst=disabled` always uses the download,
+   `-Dsystem_openfst=enabled` requires the installed one.
+
 ## v1.0 (May 2023)
 
 ### Features

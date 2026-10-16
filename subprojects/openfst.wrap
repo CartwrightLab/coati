@@ -1,0 +1,9 @@
+[wrap-file]
+directory = openfst-1.8.5
+source_url = https://www.openfst.org/twiki/pub/FST/FstDownload/openfst-1.8.5.tar.gz
+source_filename = openfst-1.8.5.tar.gz
+source_hash = 895f98d04e98815b6c5c6b94427d112300f2996f14687b2a2bd536d9bd0ff7ec
+patch_directory = openfst
+
+[provide]
+fst = fst_dep

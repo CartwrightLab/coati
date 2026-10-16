@@ -27,6 +27,9 @@ Source code for the most recent beta versions is available at <https://github.co
 * [Meson 0.59+](https://mesonbuild.com/)
 * [Ninja 1.8.2+](https://ninja-build.org/)
 * [Boost 1.47+](http://www.boost.org/)
+* [OpenFst 1.8.4+](https://www.openfst.org/) -- optional: without one,
+  Meson downloads and builds OpenFst 1.8.5 (`-Dsystem_openfst=disabled`
+  always does)
 
 ### Compiling
 ```bash

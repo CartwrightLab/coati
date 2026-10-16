@@ -10,18 +10,4 @@ librandom_dep = declare_dependency(
     link_with : librandom
 )
 
-fstlib = static_library(
-    'fstlib', ['fstlib/compat.cc', 'fstlib/encode.cc', 'fstlib/flags.cc',
-    'fstlib/fst-types.cc', 'fstlib/fst.cc', 'fstlib/mapped-file.cc',
-    'fstlib/properties.cc', 'fstlib/symbol-table-ops.cc',
-    'fstlib/symbol-table.cc', 'fstlib/util.cc', 'fstlib/weight.cc'],
-  include_directories : include_directories('fstlib'),
-  override_options : 'warning_level=0'
-)
-
-fstlib_dep = declare_dependency(
-  include_directories : include_directories('fstlib', is_system : true),
-  link_with : fstlib
-)
-
 cli_dep = declare_dependency(include_directories : include_directories('CLI', is_system : true))

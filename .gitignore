@@ -38,7 +38,7 @@ build*
 subprojects/*
 !/subprojects/*.wrap
 !/subprojects/doctest
-!/subprojects/fstlib
+!/subprojects/packagefiles
 
 # Meson log files
 */meson-info/*

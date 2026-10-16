@@ -56,6 +56,51 @@ json_dep = dependency('json',
   include_type : 'system'  
 )
 
+# OpenFst: an installed one when it works, else OpenFst 1.8.5 downloaded and
+# built by Meson (subprojects/openfst.wrap). OpenFst installs no pkg-config
+# or CMake file, so an installed library is used only if a program using
+# OpenFst the way COATi does links against it. 1.8.2 and 1.8.3 do not: their
+# fst/fst.h assigns a raw pointer to a std::unique_ptr, which current
+# compilers reject.
+openfst_check = '''
+#include <fst/fstlib.h>
+
+int main() {
+  fst::StdVectorFst a;
+  const auto s = a.AddState();
+  const auto t = a.AddState();
+  a.SetStart(s);
+  a.AddArc(s, fst::StdArc(1, 1, 0.5, t));
+  a.SetFinal(t, 0.0);
+  fst::EncodeMapper<fst::StdArc> encoder(fst::kEncodeLabels);
+  fst::Encode(&a, &encoder);
+  fst::Decode(&a, encoder);
+  fst::StdVectorFst b;
+  fst::Compose(a, a, &b);
+  fst::StdVectorFst path;
+  fst::ShortestPath(b, &path);
+  fst::SymbolTable symbols;
+  symbols.AddSymbol("A");
+  return fst::Verify(path) && symbols.Find("A") == 0 ? 0 : 1;
+}
+'''
+cxx = meson.get_compiler('cpp')
+openfst_opt = get_option('system_openfst')
+fst_dep = dependency('', required : false)
+if not openfst_opt.disabled()
+  fst_lib = cxx.find_library('fst', has_headers : ['fst/fstlib.h'],
+    required : openfst_opt)
+  if fst_lib.found() and cxx.links(openfst_check, dependencies : fst_lib,
+      name : 'installed OpenFst works with COATi')
+    fst_dep = fst_lib
+  elif openfst_opt.enabled()
+    error('system_openfst=enabled, but no installed OpenFst (1.8.4 or later) links a test program')
+  endif
+endif
+if not fst_dep.found()
+  fst_dep = subproject('openfst').get_variable('fst_dep')
+endif
+
 subdir('lib')
 
 progs=['alignpair', 'genseed', 'msa', 'version', 'sample', 'format']
