@@ -26,7 +26,7 @@
 
 #include "verb.hpp"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     {
         auto check = coati::verb::check_version_number();
         if(check != EXIT_SUCCESS) {

@@ -60,8 +60,8 @@ namespace coati {
  * @param[in] aln coati::alignment_t alignment parameters.
  */
 template <class S, class W>
-void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
-                  const alignment_t &aln) {
+void forward_impl(W& work, const seq_view_t& a, const seq_view_t& b,
+                  const alignment_t& aln) {
     // calculate log(1-g) log(1-e) log(g) log(e)
     float_t no_gap = S::from_linear_1mf(aln.gap.open);
     float_t gap_stop = S::from_linear_1mf(aln.gap.extend);
@@ -146,8 +146,8 @@ void forward_impl(W &work, const seq_view_t &a, const seq_view_t &b,
  * @param[in] b coati::seq_view_t encoded descendant sequence.
  * @param[in] aln coati::alignment_t alignment parameters.
  */
-void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
-             const alignment_t &aln) {
+void forward(align_pair_work_t& work, const seq_view_t& a, const seq_view_t& b,
+             const alignment_t& aln) {
     coati::forward_impl<coati::semiring::log>(work, a, b, aln);
 }
 
@@ -159,8 +159,8 @@ void forward(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
  * @param[in] b coati::seq_view_t encoded descendant sequence.
  * @param[in] aln coati::alignment_t alignment parameters.
  */
-void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
-                 const seq_view_t &b, const alignment_t &aln) {
+void forward_mem(align_pair_work_mem_t& work, const seq_view_t& a,
+                 const seq_view_t& b, const alignment_t& aln) {
     coati::forward_impl<coati::semiring::log>(work, a, b, aln);
 }
 
@@ -176,8 +176,8 @@ void forward_mem(align_pair_work_mem_t &work, const seq_view_t &a,
  * @param[in] b coati::seq_view_t encoded descendant sequence.
  * @param[in] aln coati::alignment_t alignment parameters.
  */
-void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
-             const alignment_t &aln) {
+void viterbi(align_pair_work_t& work, const seq_view_t& a, const seq_view_t& b,
+             const alignment_t& aln) {
     coati::forward_impl<coati::semiring::tropical>(work, a, b, aln);
 }
 
@@ -192,8 +192,8 @@ void viterbi(align_pair_work_t &work, const seq_view_t &a, const seq_view_t &b,
  * @param[in] b coati::seq_view_t encoded descendant sequence.
  * @param[in] aln coati::alignment_t alignment parameters.
  */
-void viterbi_mem(align_pair_work_mem_t &work, const seq_view_t &a,
-                 const seq_view_t &b, const alignment_t &aln) {
+void viterbi_mem(align_pair_work_mem_t& work, const seq_view_t& a,
+                 const seq_view_t& b, const alignment_t& aln) {
     coati::forward_impl<coati::semiring::tropical>(work, a, b, aln);
 }
 
@@ -247,8 +247,8 @@ AlnState max_mi(float_t mch, float_t ins) {
  *
  */
 template <class S>
-void traceback(const align_pair_work_mem_t &work, const std::string &a,
-               const std::string &b, alignment_t &aln, size_t look_back) {
+void traceback(const align_pair_work_mem_t& work, const std::string& a,
+               const std::string& b, alignment_t& aln, size_t look_back) {
     size_t i = static_cast<int>(work.mch.rows() - 1);
     size_t j = static_cast<int>(work.mch.cols() - 1);
 
@@ -316,8 +316,8 @@ void traceback(const align_pair_work_mem_t &work, const std::string &a,
  * @param[in] look_back std::size_t gap unit length.
  *
  */
-void traceback_viterbi(const align_pair_work_mem_t &work, const std::string &a,
-                       const std::string &b, alignment_t &aln,
+void traceback_viterbi(const align_pair_work_mem_t& work, const std::string& a,
+                       const std::string& b, alignment_t& aln,
                        size_t look_back) {
     traceback<coati::semiring::tropical>(work, a, b, aln, look_back);
 }
@@ -398,9 +398,9 @@ std::pair<AlnState, float> sample_mi(float log_mch, float log_ins, float p) {
  * @param[in] rand coati::random_t random number generator object.
  *
  */
-void sampleback(const align_pair_work_t &work, const std::string &a,
-                const std::string &b, alignment_t &aln, size_t look_back,
-                random_t &rand) {
+void sampleback(const align_pair_work_t& work, const std::string& a,
+                const std::string& b, alignment_t& aln, size_t look_back,
+                random_t& rand) {
     size_t i = work.mch_mch.rows() - 1;
     size_t j = work.mch_mch.cols() - 1;
 
