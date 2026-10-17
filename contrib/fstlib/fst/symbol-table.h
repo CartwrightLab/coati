@@ -537,7 +537,7 @@ class SymbolTable {
   void MutateCheck() {
     if (impl_.use_count() == 1 || !impl_->IsMutable()) return;
     std::unique_ptr<internal::SymbolTableImplBase> copy = impl_->Copy();
-    CHECK(copy != nullptr);
+    FSTCHECK(copy != nullptr);
     impl_ = std::move(copy);
   }
 

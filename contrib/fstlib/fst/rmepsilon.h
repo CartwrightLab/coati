@@ -244,7 +244,7 @@ void RmEpsilon(MutableFst<Arc>* fst,
     states.resize(order.size());
     for (StateId i = 0; i < order.size(); i++) states[order[i]] = i;
   } else {
-    uint64_t props;
+    uint64_t props = 0;
     std::vector<StateId> scc;
     SccVisitor<Arc> scc_visitor(&scc, nullptr, nullptr, &props);
     DfsVisit(*fst, &scc_visitor, EpsilonArcFilter<Arc>());

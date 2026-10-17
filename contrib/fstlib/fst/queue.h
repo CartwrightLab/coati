@@ -667,7 +667,7 @@ class AutoQueue : public QueueBase<S> {
       queue_ = std::make_unique<LifoQueue<StateId>>();
       VLOG(2) << "AutoQueue: using LIFO discipline";
     } else {
-      uint64_t properties;
+      uint64_t properties = 0;
       // Decomposes into strongly-connected components.
       SccVisitor<Arc> scc_visitor(&scc_, nullptr, nullptr, &properties);
       DfsVisit(fst, &scc_visitor, filter);

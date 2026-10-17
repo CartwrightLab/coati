@@ -63,13 +63,13 @@ inline void FstCheck(bool x, std::string_view expr, std::string_view file,
   }
 }
 
-#define CHECK(x) FstCheck(static_cast<bool>(x), #x, __FILE__, __LINE__)
-#define CHECK_EQ(x, y) CHECK((x) == (y))
-#define CHECK_LT(x, y) CHECK((x) < (y))
-#define CHECK_GT(x, y) CHECK((x) > (y))
-#define CHECK_LE(x, y) CHECK((x) <= (y))
-#define CHECK_GE(x, y) CHECK((x) >= (y))
-#define CHECK_NE(x, y) CHECK((x) != (y))
+#define FSTCHECK(x) FstCheck(static_cast<bool>(x), #x, __FILE__, __LINE__)
+#define FSTCHECK_EQ(x, y) FSTCHECK((x) == (y))
+#define FSTCHECK_LT(x, y) FSTCHECK((x) < (y))
+#define FSTCHECK_GT(x, y) FSTCHECK((x) > (y))
+#define FSTCHECK_LE(x, y) FSTCHECK((x) <= (y))
+#define FSTCHECK_GE(x, y) FSTCHECK((x) >= (y))
+#define FSTCHECK_NE(x, y) FSTCHECK((x) != (y))
 
 // Debug checks.
 #define DCHECK(x) assert(x)

@@ -9235,7 +9235,7 @@ template <class CharT> CLI11_INLINE void App::parse_char_t(int argc, const CharT
     std::vector<std::string> args;
     args.reserve(static_cast<std::size_t>(argc) - 1U);
     for(auto i = static_cast<std::size_t>(argc) - 1U; i > 0U; --i)
-        args.emplace_back(detail::maybe_narrow(argv[i]));
+        args.emplace_back(detail::maybe_narrow(argv[i])); // NOLINT(clang-analyzer-security.ArrayBound)
 
     parse(std::move(args));
 }

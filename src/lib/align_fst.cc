@@ -171,6 +171,7 @@ TEST_CASE("fst_alignment") {
         std::stringstream ss;
         ss << infile.rdbuf();
         std::string s = ss.str();
+        (void)s;
         CHECK_EQ(s, R"({
   "alignment": {
     "1": "CTCTGGATAGTG",

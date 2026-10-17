@@ -413,6 +413,7 @@ TEST_CASE("write_output") {
         std::stringstream ss;
         ss << infile.rdbuf();
         std::string s1 = ss.str();
+        (void)s1;
         CHECK_EQ(s1, R"({
   "alignment": {
     "anc": "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTT",

@@ -272,7 +272,17 @@ TEST_CASE("marg_alignment") {
         aln.output = "test-marg_alignment-score.fasta";
         aln.score = true;
 
-        REQUIRE(marg_alignment(aln));
+        std::ostringstream output;
+        bool result;
+        {
+            std::streambuf* old_buffer = std::cout.rdbuf(output.rdbuf());
+            result = marg_alignment(aln);
+            std::cout.rdbuf(old_buffer);
+        }
+        (void)result;
+
+        REQUIRE(result);
+        CHECK_EQ(output.str(), "1.50914\n");
         CHECK(std::filesystem::remove("test-marg.fasta"));
     }
     SUBCASE("Score alignment diff length - fail") {

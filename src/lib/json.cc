@@ -186,6 +186,7 @@ TEST_CASE("write-json") {
         std::stringstream ss;
         ss << infile.rdbuf();
         std::string s1 = ss.str();
+        (void)s1;
         CHECK_EQ(s1, R"({
   "alignment": {
     "a": "ATGTCTTCTCACAAGACA",
@@ -243,6 +244,7 @@ TEST_CASE("write-json-sample") {
         std::stringstream ss;
         ss << infile.rdbuf();
         std::string s1 = ss.str();
+        (void)s1;
         CHECK_EQ(s1, R"([
 {
   "alignment": {
@@ -265,6 +267,7 @@ TEST_CASE("write-json-sample") {
         std::stringstream ss;
         ss << infile.rdbuf();
         std::string s1 = ss.str();
+        (void)s1;
         CHECK_EQ(s1, R"([
 {
   "alignment": {

@@ -44,8 +44,9 @@ int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
         extract_seqs(format, aln.data);
     }
 
-    if(format.preserve_phase) {      // padd gaps to preserve phase
-        if(format.padding == "-") {  // padding char cannot be same as gap char
+    if(format.preserve_phase) {      // pad gaps to preserve phase
+        if(format.padding == "-" ||  // padding char cannot be same as gap char
+           format.padding.empty()) {
             throw std::invalid_argument("Invalid padding character " +
                                         format.padding + " .");
         }
@@ -58,15 +59,16 @@ int format_sequences(coati::format_t& format, coati::alignment_t& aln) {
             }
             len = len % 3;
             // add 1 or 2 padding chars so that next codon starts in frame
-            for(size_t i = 0; i < aln.data.size(); i++) {
-                switch(len) {
-                case 1:
-                    aln.seq(i).insert(pos, format.padding, 0, len);
-                case 2:
-                    aln.seq(i).insert(pos, format.padding, 0, len);
+            if(len == 1) {
+                for(size_t i = 0; i < aln.data.size(); i++) {
+                    aln.seq(i).insert(pos, 2, format.padding[0]);
+                }
+            } else if(len == 2) {
+                for(size_t i = 0; i < aln.data.size(); i++) {
+                    aln.seq(i).insert(pos, 1, format.padding[0]);
                 }
             }
-            pos = aln.seq(0).find('-', pos++);  // find next gap (insertion)
+            pos = aln.seq(0).find('-', pos);  // find next gap (insertion)
         }
     }
 

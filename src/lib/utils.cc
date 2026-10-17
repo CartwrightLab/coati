@@ -892,7 +892,7 @@ std::string process_alignment(coati::alignment_t& aln) {
         int cod = cod_int(last_cod);
         if(cod == 48 || cod == 50 || cod == 56) {
             aln.data.stops.emplace_back(last_cod);
-            std::cerr << i << " " << last_cod << "\n";
+            // std::cerr << i << " " << last_cod << "\n";
             aln.data.seqs[i][pos1] = '-';
             aln.data.seqs[i][pos2] = '-';
             aln.data.seqs[i][pos3] = '-';
@@ -1093,6 +1093,7 @@ TEST_CASE("restore_end_stops") {
     // data.stops size != 2
     coati::data_t d;
     coati::gap_t gap;  // NOLINT
+    (void)gap;         // silence unused variable warning
     d.stops = {""};
     CHECK_THROWS_AS(restore_end_stops(d, gap), std::runtime_error);
 }

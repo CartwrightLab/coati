@@ -42,20 +42,15 @@ using x3::lit;
 using x3::ascii::char_;
 
 // rule declaration
-// NOLINTNEXTLINE(cert-err58-cpp)
+// NOLINTBEGIN(bugprone-throwing-static-initialization)
 x3::rule<class label, std::string> const label = "label";
-// NOLINTNEXTLINE(cert-err58-cpp)
 x3::rule<class ilabel, std::string> const ilabel = "ilabel";
-// NOLINTNEXTLINE(cert-err58-cpp)
 x3::rule<class length, float> const length = "length";
-// NOLINTNEXTLINE(cert-err58-cpp)
 x3::rule<class leaf, coati::tree::tree_t> const leaf = "leaf";
-// NOLINTNEXTLINE(cert-err58-cpp)
 x3::rule<class inode, coati::tree::tree_t> const inode = "inode";
-// NOLINTNEXTLINE(cert-err58-cpp)
 x3::rule<class node, coati::tree::tree_t> const node = "node";
-// NOLINTNEXTLINE(cert-err58-cpp)
 x3::rule<class tree, coati::tree::tree_t> const tree = "tree";
+// NOLINTEND(bugprone-throwing-static-initialization)
 
 // semantic actions
 auto const make_leaf = [](auto& ctx) {
@@ -82,17 +77,18 @@ auto const make_inode = [](auto& ctx) {
 };
 
 // rule definition
-auto const tree_def = node >> -lit(';');             // NOLINT(cert-err58-cpp)
-auto const node_def = leaf | inode;                  // NOLINT(cert-err58-cpp)
-auto const leaf_def = (label >> length)[make_leaf];  // NOLINT(cert-err58-cpp)
-auto const inode_def =                               // NOLINT(cert-err58-cpp)
-    (('(' >> (node % ',') >> ')') >> ilabel >>
-     length)[make_inode];  // NOLINT(cert-err58-cpp)
+// NOLINTBEGIN(bugprone-throwing-static-initialization)
+auto const tree_def = node >> -lit(';');
+auto const node_def = leaf | inode;
+auto const leaf_def = (label >> length)[make_leaf];
+auto const inode_def =
+    (('(' >> (node % ',') >> ')') >> ilabel >> length)[make_inode];
 
-auto const label_def = +char_("-0-9A-Za-z/%_.");  // NOLINT(cert-err58-cpp)
+auto const label_def = +char_("-0-9A-Za-z/%_.");
 
-auto const ilabel_def = label | attr("");             // NOLINT(cert-err58-cpp)
-auto const length_def = (':' >> float_) | attr(0.0);  // NOLINT(cert-err58-cpp)
+auto const ilabel_def = label | attr("");
+auto const length_def = (':' >> float_) | attr(0.0);
+// NOLINTEND(bugprone-throwing-static-initialization)
 
 BOOST_SPIRIT_DEFINE(label);   // NOLINT(performance-unnecessary-value-param)
 BOOST_SPIRIT_DEFINE(ilabel);  // NOLINT(performance-unnecessary-value-param)
@@ -235,7 +231,7 @@ TEST_CASE("parse_newick") {
         CHECK_EQ(tree[6].parent, 0);
     }
     SUBCASE("empty tree - fail") {
-        std::string tree{""};
+        std::string tree{""};  // NOLINT
         CHECK_THROWS_AS(parse_newick(tree), std::runtime_error);
     }
 }

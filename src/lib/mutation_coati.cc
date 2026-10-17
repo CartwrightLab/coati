@@ -91,9 +91,7 @@ coati::Matrixf mg94_p(float br_len, float omega,
 
         float rowSum = 0.0;
         for(uint8_t j = 0; j < 61; j++) {
-            if(i == j) {
-                Q(i, j) = 0;
-            } else if(coati::utils::cod_distance(i, j) > 1) {
+            if(i == j || coati::utils::cod_distance(i, j) > 1) {
                 Q(i, j) = 0;
             } else {
                 w = ((amino_group[i] == amino_group[j]) ? 1 : omega);
@@ -175,12 +173,12 @@ coati::Matrixf marginal_p(const coati::Matrixf& P,
             for(int pos = 0; pos < 3; pos++) {
                 marg = 0.f;
                 if(msub == coati::MarginalSubst::SUM) {
-                    for(uint8_t i = 0; i < P.cols(); i++) {
+                    for(size_t i = 0; i < P.cols(); i++) {
                         marg += (get_nuc(i, pos) == nuc ? P(cod, i) : 0.0f);
                     }
                 } else if(msub == coati::MarginalSubst::MAX) {
                     auto tmp{0.f};
-                    for(uint8_t i = 0; i < P.cols(); i++) {
+                    for(size_t i = 0; i < P.cols(); i++) {
                         tmp = (get_nuc(i, pos) == nuc ? P(cod, i) : 0.0f);
                         if(tmp > marg) {
                             marg = tmp;
@@ -234,7 +232,7 @@ TEST_CASE("marginal_p") {
 void ambiguous_sum_p(coati::Matrixf& p) {
     using coati::utils::log_sum_exp;
     size_t row{0};
-    for(int cod = 0; cod < 61; cod++) {
+    for(size_t cod = 0; cod < 61; cod++) {
         for(size_t pos = 0; pos < 3; pos++) {
             row = cod * 3 + pos;
             // R: purine       A or G
@@ -275,7 +273,7 @@ void ambiguous_sum_p(coati::Matrixf& p) {
  */
 void ambiguous_best_p(coati::Matrixf& p) {
     size_t row{0};
-    for(int cod = 0; cod < 61; cod++) {
+    for(size_t cod = 0; cod < 61; cod++) {
         for(size_t pos = 0; pos < 3; pos++) {
             row = cod * 3 + pos;
 
