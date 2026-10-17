@@ -75,7 +75,7 @@ jobs:
         run: meson test -C build/debug --verbose --print-errorlogs
 
       - name: Generate coverage report
-        run: meson compile -C build/debug coverage-xml --verbose
+        run: ninja -C builddir/debug coverage-xml --verbose
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
