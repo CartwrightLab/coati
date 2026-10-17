@@ -21,7 +21,6 @@
 #define FST_FLOAT_WEIGHT_H_
 
 #include <algorithm>
-#include <climits>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -32,22 +31,20 @@
 #include <limits>
 #include <ostream>
 #include <random>
-#include <sstream>
 #include <string>
 #include <type_traits>
 
 #include <fst/log.h>
-#include <fst/util.h>
-#include <fst/weight.h>
 #include <fst/compat.h>
 #include <string_view>
+#include <fst/util.h>
+#include <fst/weight.h>
 
 namespace fst {
 
 namespace internal {
-// TODO(wolfsonkin): Replace with `std::isnan` if and when that ends up
-// constexpr. For context, see
-// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p0533r6.pdf.
+// `std::isnan` is not `constexpr` until C++23.
+// TODO(wolfsonkin): Replace with `std::isnan` when C++23 can be used.
 template <class T>
 inline constexpr bool IsNan(T value) {
   return value != value;
@@ -75,11 +72,12 @@ class FloatWeightTpl {
 
   FloatWeightTpl() noexcept = default;
 
-  constexpr FloatWeightTpl(T f) : value_(f) {}  // NOLINT
+  // TODO(b/485292469): Enable "explicit" when dependent code is resolved.
+  /* explicit */ constexpr FloatWeightTpl(T f) : value_(f) {}
 
-  std::istream &Read(std::istream &strm) { return ReadType(strm, &value_); }
+  std::istream& Read(std::istream& strm) { return ReadType(strm, &value_); }
 
-  std::ostream &Write(std::ostream &strm) const {
+  std::ostream& Write(std::ostream& strm) const {
     return WriteType(strm, value_);
   }
 
@@ -93,10 +91,10 @@ class FloatWeightTpl {
     return hash;
   }
 
-  constexpr const T &Value() const { return value_; }
+  constexpr const T& Value() const { return value_; }
 
  protected:
-  void SetValue(const T &f) { value_ = f; }
+  void SetValue(const T& f) { value_ = f; }
 
   static constexpr std::string_view GetPrecisionString() {
     return sizeof(T) == 4   ? ""
@@ -114,8 +112,8 @@ class FloatWeightTpl {
 using FloatWeight = FloatWeightTpl<float>;
 
 template <class T>
-constexpr bool operator==(const FloatWeightTpl<T> &w1,
-                          const FloatWeightTpl<T> &w2) {
+constexpr bool operator==(const FloatWeightTpl<T>& w1,
+                          const FloatWeightTpl<T>& w2) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(__SSE2_MATH__)
 // With i387 instructions, excess precision on a weight in an 80-bit
 // register may cause it to compare unequal to that same weight when
@@ -130,30 +128,30 @@ constexpr bool operator==(const FloatWeightTpl<T> &w1,
 // comparisons like FloatWeightTpl<float> == float compile. If only the
 // templated version exists, the FloatWeightTpl<float>(float) conversion
 // won't be found.
-constexpr bool operator==(const FloatWeightTpl<float> &w1,
-                          const FloatWeightTpl<float> &w2) {
-  return operator==<float>(w1, w2);
+constexpr bool operator==(const FloatWeightTpl<float>& w1,
+                          const FloatWeightTpl<float>& w2) {
+  return operator== <float>(w1, w2);
 }
 
-constexpr bool operator==(const FloatWeightTpl<double> &w1,
-                          const FloatWeightTpl<double> &w2) {
-  return operator==<double>(w1, w2);
+constexpr bool operator==(const FloatWeightTpl<double>& w1,
+                          const FloatWeightTpl<double>& w2) {
+  return operator== <double>(w1, w2);
 }
 
 template <class T>
-constexpr bool operator!=(const FloatWeightTpl<T> &w1,
-                          const FloatWeightTpl<T> &w2) {
+constexpr bool operator!=(const FloatWeightTpl<T>& w1,
+                          const FloatWeightTpl<T>& w2) {
   return !(w1 == w2);
 }
 
-constexpr bool operator!=(const FloatWeightTpl<float> &w1,
-                          const FloatWeightTpl<float> &w2) {
-  return operator!=<float>(w1, w2);
+constexpr bool operator!=(const FloatWeightTpl<float>& w1,
+                          const FloatWeightTpl<float>& w2) {
+  return operator!= <float>(w1, w2);
 }
 
-constexpr bool operator!=(const FloatWeightTpl<double> &w1,
-                          const FloatWeightTpl<double> &w2) {
-  return operator!=<double>(w1, w2);
+constexpr bool operator!=(const FloatWeightTpl<double>& w1,
+                          const FloatWeightTpl<double>& w2) {
+  return operator!= <double>(w1, w2);
 }
 
 template <class T>
@@ -162,14 +160,14 @@ constexpr bool FloatApproxEqual(T w1, T w2, float delta = kDelta) {
 }
 
 template <class T>
-constexpr bool ApproxEqual(const FloatWeightTpl<T> &w1,
-                           const FloatWeightTpl<T> &w2, float delta = kDelta) {
+constexpr bool ApproxEqual(const FloatWeightTpl<T>& w1,
+                           const FloatWeightTpl<T>& w2, float delta = kDelta) {
   return FloatApproxEqual(w1.Value(), w2.Value(), delta);
 }
 
 template <class T>
-inline std::ostream &operator<<(std::ostream &strm,
-                                const FloatWeightTpl<T> &w) {
+inline std::ostream& operator<<(std::ostream& strm,
+                                const FloatWeightTpl<T>& w) {
   if (w.Value() == FloatLimits<T>::PosInfinity()) {
     return strm << "Infinity";
   } else if (w.Value() == FloatLimits<T>::NegInfinity()) {
@@ -182,7 +180,7 @@ inline std::ostream &operator<<(std::ostream &strm,
 }
 
 template <class T>
-inline std::istream &operator>>(std::istream &strm, FloatWeightTpl<T> &w) {
+inline std::istream& operator>>(std::istream& strm, FloatWeightTpl<T>& w) {
   std::string s;
   strm >> s;
   if (s == "Infinity") {
@@ -190,7 +188,7 @@ inline std::istream &operator>>(std::istream &strm, FloatWeightTpl<T> &w) {
   } else if (s == "-Infinity") {
     w = FloatWeightTpl<T>(FloatLimits<T>::NegInfinity());
   } else {
-    char *p;
+    char* p;
     T f = strtod(s.c_str(), &p);
     if (p < s.c_str() + s.size()) {
       strm.clear(std::ios::badbit);
@@ -212,18 +210,23 @@ class TropicalWeightTpl : public FloatWeightTpl<T> {
 
   TropicalWeightTpl() noexcept : FloatWeightTpl<T>() {}
 
-  constexpr TropicalWeightTpl(T f) : FloatWeightTpl<T>(f) {}
+  // TODO(b/485292469): Enable "explicit" when dependent code is resolved.
+  /* explicit */ constexpr TropicalWeightTpl(T f) : FloatWeightTpl<T>(f) {}
 
-  static constexpr TropicalWeightTpl<T> Zero() { return Limits::PosInfinity(); }
-
-  static constexpr TropicalWeightTpl<T> One() { return 0; }
-
-  static constexpr TropicalWeightTpl<T> NoWeight() {
-    return Limits::NumberBad();
+  static constexpr TropicalWeightTpl<T> Zero() {
+    return TropicalWeightTpl<T>(Limits::PosInfinity());
   }
 
-  static const std::string &Type() {
-    static const std::string *const type = new std::string(
+  static constexpr TropicalWeightTpl<T> One() {
+    return TropicalWeightTpl<T>(0);
+  }
+
+  static constexpr TropicalWeightTpl<T> NoWeight() {
+    return TropicalWeightTpl<T>(Limits::NumberBad());
+  }
+
+  static const std::string& Type() {
+    static const std::string* const type = new std::string(
         fst::StrCat("tropical", FloatWeightTpl<T>::GetPrecisionString()));
     return *type;
   }
@@ -268,8 +271,8 @@ class TropicalWeightTpl : public FloatWeightTpl<T> {
 using TropicalWeight = TropicalWeightTpl<float>;
 
 template <class T>
-constexpr TropicalWeightTpl<T> Plus(const TropicalWeightTpl<T> &w1,
-                                    const TropicalWeightTpl<T> &w2) {
+constexpr TropicalWeightTpl<T> Plus(const TropicalWeightTpl<T>& w1,
+                                    const TropicalWeightTpl<T>& w2) {
   return (!w1.Member() || !w2.Member()) ? TropicalWeightTpl<T>::NoWeight()
          : w1.Value() < w2.Value()      ? w1
                                         : w2;
@@ -277,19 +280,19 @@ constexpr TropicalWeightTpl<T> Plus(const TropicalWeightTpl<T> &w1,
 
 // See comment at operator==(FloatWeightTpl<float>, FloatWeightTpl<float>)
 // for why these overloads are present.
-constexpr TropicalWeightTpl<float> Plus(const TropicalWeightTpl<float> &w1,
-                                        const TropicalWeightTpl<float> &w2) {
+constexpr TropicalWeightTpl<float> Plus(const TropicalWeightTpl<float>& w1,
+                                        const TropicalWeightTpl<float>& w2) {
   return Plus<float>(w1, w2);
 }
 
-constexpr TropicalWeightTpl<double> Plus(const TropicalWeightTpl<double> &w1,
-                                         const TropicalWeightTpl<double> &w2) {
+constexpr TropicalWeightTpl<double> Plus(const TropicalWeightTpl<double>& w1,
+                                         const TropicalWeightTpl<double>& w2) {
   return Plus<double>(w1, w2);
 }
 
 template <class T>
-constexpr TropicalWeightTpl<T> Times(const TropicalWeightTpl<T> &w1,
-                                     const TropicalWeightTpl<T> &w2) {
+constexpr TropicalWeightTpl<T> Times(const TropicalWeightTpl<T>& w1,
+                                     const TropicalWeightTpl<T>& w2) {
   // The following is safe in the context of the Tropical (and Log) semiring
   // for all IEEE floating point values, including infinities and NaNs,
   // because:
@@ -312,19 +315,19 @@ constexpr TropicalWeightTpl<T> Times(const TropicalWeightTpl<T> &w1,
   return TropicalWeightTpl<T>(w1.Value() + w2.Value());
 }
 
-constexpr TropicalWeightTpl<float> Times(const TropicalWeightTpl<float> &w1,
-                                         const TropicalWeightTpl<float> &w2) {
+constexpr TropicalWeightTpl<float> Times(const TropicalWeightTpl<float>& w1,
+                                         const TropicalWeightTpl<float>& w2) {
   return Times<float>(w1, w2);
 }
 
-constexpr TropicalWeightTpl<double> Times(const TropicalWeightTpl<double> &w1,
-                                          const TropicalWeightTpl<double> &w2) {
+constexpr TropicalWeightTpl<double> Times(const TropicalWeightTpl<double>& w1,
+                                          const TropicalWeightTpl<double>& w2) {
   return Times<double>(w1, w2);
 }
 
 template <class T>
-constexpr TropicalWeightTpl<T> Divide(const TropicalWeightTpl<T> &w1,
-                                      const TropicalWeightTpl<T> &w2,
+constexpr TropicalWeightTpl<T> Divide(const TropicalWeightTpl<T>& w1,
+                                      const TropicalWeightTpl<T>& w2,
                                       DivideType typ = DIVIDE_ANY) {
   // The following is safe in the context of the Tropical (and Log) semiring
   // for all IEEE floating point values, including infinities and NaNs,
@@ -353,14 +356,14 @@ constexpr TropicalWeightTpl<T> Divide(const TropicalWeightTpl<T> &w1,
   return w2.Member() ? Weight(w1.Value() - w2.Value()) : Weight::NoWeight();
 }
 
-constexpr TropicalWeightTpl<float> Divide(const TropicalWeightTpl<float> &w1,
-                                          const TropicalWeightTpl<float> &w2,
+constexpr TropicalWeightTpl<float> Divide(const TropicalWeightTpl<float>& w1,
+                                          const TropicalWeightTpl<float>& w2,
                                           DivideType typ = DIVIDE_ANY) {
   return Divide<float>(w1, w2, typ);
 }
 
-constexpr TropicalWeightTpl<double> Divide(const TropicalWeightTpl<double> &w1,
-                                           const TropicalWeightTpl<double> &w2,
+constexpr TropicalWeightTpl<double> Divide(const TropicalWeightTpl<double>& w1,
+                                           const TropicalWeightTpl<double>& w2,
                                            DivideType typ = DIVIDE_ANY) {
   return Divide<double>(w1, w2, typ);
 }
@@ -397,8 +400,8 @@ constexpr TropicalWeightTpl<double> Divide(const TropicalWeightTpl<double> &w1,
 // specialization.
 
 template <class T, class V, bool Enable = !std::is_same_v<V, size_t>,
-          typename std::enable_if_t<Enable> * = nullptr>
-constexpr TropicalWeightTpl<T> Power(const TropicalWeightTpl<T> &w, V n) {
+          typename std::enable_if_t<Enable>* = nullptr>
+constexpr TropicalWeightTpl<T> Power(const TropicalWeightTpl<T>& w, V n) {
   using Weight = TropicalWeightTpl<T>;
   return (!w.Member() || internal::IsNan(n)) ? Weight::NoWeight()
          : (n == 0 || w == Weight::One())    ? Weight::One()
@@ -410,13 +413,13 @@ constexpr TropicalWeightTpl<T> Power(const TropicalWeightTpl<T> &w, V n) {
 
 template <>
 constexpr TropicalWeightTpl<float> Power<TropicalWeightTpl<float>>(
-    const TropicalWeightTpl<float> &weight, size_t n) {
+    const TropicalWeightTpl<float>& weight, size_t n) {
   return Power<float, size_t, true>(weight, n);
 }
 
 template <>
 constexpr TropicalWeightTpl<double> Power<TropicalWeightTpl<double>>(
-    const TropicalWeightTpl<double> &weight, size_t n) {
+    const TropicalWeightTpl<double>& weight, size_t n) {
   return Power<double, size_t, true>(weight, n);
 }
 
@@ -431,16 +434,21 @@ class LogWeightTpl : public FloatWeightTpl<T> {
 
   LogWeightTpl() noexcept : FloatWeightTpl<T>() {}
 
-  constexpr LogWeightTpl(T f) : FloatWeightTpl<T>(f) {}
+  // TODO(b/485292469): Add explicit when nlp/grm/sfst is updated.
+  /* explicit */ constexpr LogWeightTpl(T f) : FloatWeightTpl<T>(f) {}
 
-  static constexpr LogWeightTpl Zero() { return Limits::PosInfinity(); }
+  static constexpr LogWeightTpl Zero() {
+    return LogWeightTpl(Limits::PosInfinity());
+  }
 
-  static constexpr LogWeightTpl One() { return 0; }
+  static constexpr LogWeightTpl One() { return LogWeightTpl(0); }
 
-  static constexpr LogWeightTpl NoWeight() { return Limits::NumberBad(); }
+  static constexpr LogWeightTpl NoWeight() {
+    return LogWeightTpl(Limits::NumberBad());
+  }
 
-  static const std::string &Type() {
-    static const std::string *const type = new std::string(
+  static const std::string& Type() {
+    static const std::string* const type = new std::string(
         fst::StrCat("log", FloatWeightTpl<T>::GetPrecisionString()));
     return *type;
   }
@@ -450,15 +458,15 @@ class LogWeightTpl : public FloatWeightTpl<T> {
     return Limits::NegInfinity() < Value();
   }
 
-  LogWeightTpl<T> Quantize(float delta = kDelta) const {
+  LogWeightTpl Quantize(float delta = kDelta) const {
     if (!Member() || Value() == Limits::PosInfinity()) {
       return *this;
     } else {
-      return LogWeightTpl<T>(std::floor(Value() / delta + 0.5F) * delta);
+      return LogWeightTpl(std::floor(Value() / delta + 0.5F) * delta);
     }
   }
 
-  constexpr LogWeightTpl<T> Reverse() const { return *this; }
+  constexpr LogWeightTpl Reverse() const { return *this; }
 
   static constexpr uint64_t Properties() {
     return kLeftSemiring | kRightSemiring | kCommutative;
@@ -489,7 +497,7 @@ inline double LogNegExp(double x) {
 // Kahan compensated summation provides an error bound that is
 // independent of the number of addends. Assumes b >= a;
 // c is the compensation.
-inline double KahanLogSum(double a, double b, double *c) {
+inline double KahanLogSum(double a, double b, double* c) {
   DCHECK_GE(b, a);
   double y = -LogPosExp(b - a) - *c;
   double t = a + y;
@@ -501,7 +509,7 @@ inline double KahanLogSum(double a, double b, double *c) {
 // Kahan compensated summation provides an error bound that is
 // independent of the number of addends. Assumes b > a;
 // c is the compensation.
-inline double KahanLogDiff(double a, double b, double *c) {
+inline double KahanLogDiff(double a, double b, double* c) {
   DCHECK_GT(b, a);
   double y = -LogNegExp(b - a) - *c;
   double t = a + y;
@@ -512,8 +520,8 @@ inline double KahanLogDiff(double a, double b, double *c) {
 }  // namespace internal
 
 template <class T>
-inline LogWeightTpl<T> Plus(const LogWeightTpl<T> &w1,
-                            const LogWeightTpl<T> &w2) {
+inline LogWeightTpl<T> Plus(const LogWeightTpl<T>& w1,
+                            const LogWeightTpl<T>& w2) {
   using Limits = FloatLimits<T>;
   const T f1 = w1.Value();
   const T f2 = w2.Value();
@@ -528,74 +536,74 @@ inline LogWeightTpl<T> Plus(const LogWeightTpl<T> &w1,
   }
 }
 
-inline LogWeightTpl<float> Plus(const LogWeightTpl<float> &w1,
-                                const LogWeightTpl<float> &w2) {
+inline LogWeightTpl<float> Plus(const LogWeightTpl<float>& w1,
+                                const LogWeightTpl<float>& w2) {
   return Plus<float>(w1, w2);
 }
 
-inline LogWeightTpl<double> Plus(const LogWeightTpl<double> &w1,
-                                 const LogWeightTpl<double> &w2) {
+inline LogWeightTpl<double> Plus(const LogWeightTpl<double>& w1,
+                                 const LogWeightTpl<double>& w2) {
   return Plus<double>(w1, w2);
 }
 
 // Returns NoWeight if w1 < w2 (w1.Value() > w2.Value()).
 template <class T>
-inline LogWeightTpl<T> Minus(const LogWeightTpl<T> &w1,
-                             const LogWeightTpl<T> &w2) {
+inline LogWeightTpl<T> Minus(const LogWeightTpl<T>& w1,
+                             const LogWeightTpl<T>& w2) {
   using Limits = FloatLimits<T>;
   const T f1 = w1.Value();
   const T f2 = w2.Value();
   if (f1 > f2) return LogWeightTpl<T>::NoWeight();
-  if (f2 == Limits::PosInfinity()) return f1;
+  if (f2 == Limits::PosInfinity()) return w1;
   const T d = f2 - f1;
-  if (d == Limits::PosInfinity()) return f1;
-  return f1 - internal::LogNegExp(d);
+  if (d == Limits::PosInfinity()) return w1;
+  return LogWeightTpl<T>(f1 - internal::LogNegExp(d));
 }
 
-inline LogWeightTpl<float> Minus(const LogWeightTpl<float> &w1,
-                                 const LogWeightTpl<float> &w2) {
+inline LogWeightTpl<float> Minus(const LogWeightTpl<float>& w1,
+                                 const LogWeightTpl<float>& w2) {
   return Minus<float>(w1, w2);
 }
 
-inline LogWeightTpl<double> Minus(const LogWeightTpl<double> &w1,
-                                  const LogWeightTpl<double> &w2) {
+inline LogWeightTpl<double> Minus(const LogWeightTpl<double>& w1,
+                                  const LogWeightTpl<double>& w2) {
   return Minus<double>(w1, w2);
 }
 
 template <class T>
-constexpr LogWeightTpl<T> Times(const LogWeightTpl<T> &w1,
-                                const LogWeightTpl<T> &w2) {
+constexpr LogWeightTpl<T> Times(const LogWeightTpl<T>& w1,
+                                const LogWeightTpl<T>& w2) {
   // The comments for Times(Tropical...) above apply here unchanged.
   return LogWeightTpl<T>(w1.Value() + w2.Value());
 }
 
-constexpr LogWeightTpl<float> Times(const LogWeightTpl<float> &w1,
-                                    const LogWeightTpl<float> &w2) {
+constexpr LogWeightTpl<float> Times(const LogWeightTpl<float>& w1,
+                                    const LogWeightTpl<float>& w2) {
   return Times<float>(w1, w2);
 }
 
-constexpr LogWeightTpl<double> Times(const LogWeightTpl<double> &w1,
-                                     const LogWeightTpl<double> &w2) {
+constexpr LogWeightTpl<double> Times(const LogWeightTpl<double>& w1,
+                                     const LogWeightTpl<double>& w2) {
   return Times<double>(w1, w2);
 }
 
 template <class T>
-constexpr LogWeightTpl<T> Divide(const LogWeightTpl<T> &w1,
-                                 const LogWeightTpl<T> &w2,
+constexpr LogWeightTpl<T> Divide(const LogWeightTpl<T>& w1,
+                                 const LogWeightTpl<T>& w2,
                                  DivideType typ = DIVIDE_ANY) {
   // The comments for Divide(Tropical...) above apply here unchanged.
   using Weight = LogWeightTpl<T>;
   return w2.Member() ? Weight(w1.Value() - w2.Value()) : Weight::NoWeight();
 }
 
-constexpr LogWeightTpl<float> Divide(const LogWeightTpl<float> &w1,
-                                     const LogWeightTpl<float> &w2,
+constexpr LogWeightTpl<float> Divide(const LogWeightTpl<float>& w1,
+                                     const LogWeightTpl<float>& w2,
                                      DivideType typ = DIVIDE_ANY) {
   return Divide<float>(w1, w2, typ);
 }
 
-constexpr LogWeightTpl<double> Divide(const LogWeightTpl<double> &w1,
-                                      const LogWeightTpl<double> &w2,
+constexpr LogWeightTpl<double> Divide(const LogWeightTpl<double>& w1,
+                                      const LogWeightTpl<double>& w2,
                                       DivideType typ = DIVIDE_ANY) {
   return Divide<double>(w1, w2, typ);
 }
@@ -603,8 +611,8 @@ constexpr LogWeightTpl<double> Divide(const LogWeightTpl<double> &w1,
 // The comments for Power<>(Tropical...) above apply here unchanged.
 
 template <class T, class V, bool Enable = !std::is_same_v<V, size_t>,
-          typename std::enable_if_t<Enable> * = nullptr>
-constexpr LogWeightTpl<T> Power(const LogWeightTpl<T> &w, V n) {
+          typename std::enable_if_t<Enable>* = nullptr>
+constexpr LogWeightTpl<T> Power(const LogWeightTpl<T>& w, V n) {
   using Weight = LogWeightTpl<T>;
   return (!w.Member() || internal::IsNan(n)) ? Weight::NoWeight()
          : (n == 0 || w == Weight::One())    ? Weight::One()
@@ -616,13 +624,13 @@ constexpr LogWeightTpl<T> Power(const LogWeightTpl<T> &w, V n) {
 
 template <>
 constexpr LogWeightTpl<float> Power<LogWeightTpl<float>>(
-    const LogWeightTpl<float> &weight, size_t n) {
+    const LogWeightTpl<float>& weight, size_t n) {
   return Power<float, size_t, true>(weight, n);
 }
 
 template <>
 constexpr LogWeightTpl<double> Power<LogWeightTpl<double>>(
-    const LogWeightTpl<double> &weight, size_t n) {
+    const LogWeightTpl<double>& weight, size_t n) {
   return Power<double, size_t, true>(weight, n);
 }
 
@@ -634,7 +642,7 @@ class Adder<LogWeightTpl<T>> {
 
   explicit Adder(Weight w = Weight::Zero()) : sum_(w.Value()), c_(0.0) {}
 
-  Weight Add(const Weight &w) {
+  Weight Add(const Weight& w) {
     using Limits = FloatLimits<T>;
     const T f = w.Value();
     if (f == Limits::PosInfinity()) {
@@ -673,16 +681,19 @@ class RealWeightTpl : public FloatWeightTpl<T> {
 
   RealWeightTpl() noexcept : FloatWeightTpl<T>() {}
 
-  constexpr RealWeightTpl(T f) : FloatWeightTpl<T>(f) {}
+  // TODO(b/485292469): Make explicit when //nlp/grm2/fst is fixed.
+  /* explicit */ constexpr RealWeightTpl(T f) : FloatWeightTpl<T>(f) {}
 
-  static constexpr RealWeightTpl Zero() { return 0; }
+  static constexpr RealWeightTpl Zero() { return RealWeightTpl(0); }
 
-  static constexpr RealWeightTpl One() { return 1; }
+  static constexpr RealWeightTpl One() { return RealWeightTpl(1); }
 
-  static constexpr RealWeightTpl NoWeight() { return Limits::NumberBad(); }
+  static constexpr RealWeightTpl NoWeight() {
+    return RealWeightTpl(Limits::NumberBad());
+  }
 
-  static const std::string &Type() {
-    static const std::string *const type = new std::string(
+  static const std::string& Type() {
+    static const std::string* const type = new std::string(
         fst::StrCat("real", FloatWeightTpl<T>::GetPrecisionString()));
     return *type;
   }
@@ -692,15 +703,15 @@ class RealWeightTpl : public FloatWeightTpl<T> {
     return Limits::NegInfinity() < Value();
   }
 
-  RealWeightTpl<T> Quantize(float delta = kDelta) const {
+  RealWeightTpl Quantize(float delta = kDelta) const {
     if (!Member() || Value() == Limits::PosInfinity()) {
       return *this;
     } else {
-      return RealWeightTpl<T>(std::floor(Value() / delta + 0.5F) * delta);
+      return RealWeightTpl(std::floor(Value() / delta + 0.5F) * delta);
     }
   }
 
-  constexpr RealWeightTpl<T> Reverse() const { return *this; }
+  constexpr RealWeightTpl Reverse() const { return *this; }
 
   static constexpr uint64_t Properties() {
     return kLeftSemiring | kRightSemiring | kCommutative;
@@ -718,7 +729,7 @@ namespace internal {
 // a + b = KahanRealSum(a, b, ...).
 // Kahan compensated summation provides an error bound that is
 // independent of the number of addends. c is the compensation.
-inline double KahanRealSum(double a, double b, double *c) {
+inline double KahanRealSum(double a, double b, double* c) {
   double y = b - *c;
   double t = a + y;
   *c = (t - a) - y;
@@ -729,75 +740,75 @@ inline double KahanRealSum(double a, double b, double *c) {
 
 // The comments for Times(Tropical...) above apply here unchanged.
 template <class T>
-inline RealWeightTpl<T> Plus(const RealWeightTpl<T> &w1,
-                             const RealWeightTpl<T> &w2) {
+inline RealWeightTpl<T> Plus(const RealWeightTpl<T>& w1,
+                             const RealWeightTpl<T>& w2) {
   const T f1 = w1.Value();
   const T f2 = w2.Value();
   return RealWeightTpl<T>(f1 + f2);
 }
 
-inline RealWeightTpl<float> Plus(const RealWeightTpl<float> &w1,
-                                 const RealWeightTpl<float> &w2) {
+inline RealWeightTpl<float> Plus(const RealWeightTpl<float>& w1,
+                                 const RealWeightTpl<float>& w2) {
   return Plus<float>(w1, w2);
 }
 
-inline RealWeightTpl<double> Plus(const RealWeightTpl<double> &w1,
-                                  const RealWeightTpl<double> &w2) {
+inline RealWeightTpl<double> Plus(const RealWeightTpl<double>& w1,
+                                  const RealWeightTpl<double>& w2) {
   return Plus<double>(w1, w2);
 }
 
 template <class T>
-inline RealWeightTpl<T> Minus(const RealWeightTpl<T> &w1,
-                              const RealWeightTpl<T> &w2) {
+inline RealWeightTpl<T> Minus(const RealWeightTpl<T>& w1,
+                              const RealWeightTpl<T>& w2) {
   // The comments for Divide(Tropical...) above apply here unchanged.
   const T f1 = w1.Value();
   const T f2 = w2.Value();
   return RealWeightTpl<T>(f1 - f2);
 }
 
-inline RealWeightTpl<float> Minus(const RealWeightTpl<float> &w1,
-                                  const RealWeightTpl<float> &w2) {
+inline RealWeightTpl<float> Minus(const RealWeightTpl<float>& w1,
+                                  const RealWeightTpl<float>& w2) {
   return Minus<float>(w1, w2);
 }
 
-inline RealWeightTpl<double> Minus(const RealWeightTpl<double> &w1,
-                                   const RealWeightTpl<double> &w2) {
+inline RealWeightTpl<double> Minus(const RealWeightTpl<double>& w1,
+                                   const RealWeightTpl<double>& w2) {
   return Minus<double>(w1, w2);
 }
 
 // The comments for Times(Tropical...) above apply here similarly.
 template <class T>
-constexpr RealWeightTpl<T> Times(const RealWeightTpl<T> &w1,
-                                 const RealWeightTpl<T> &w2) {
+constexpr RealWeightTpl<T> Times(const RealWeightTpl<T>& w1,
+                                 const RealWeightTpl<T>& w2) {
   return RealWeightTpl<T>(w1.Value() * w2.Value());
 }
 
-constexpr RealWeightTpl<float> Times(const RealWeightTpl<float> &w1,
-                                     const RealWeightTpl<float> &w2) {
+constexpr RealWeightTpl<float> Times(const RealWeightTpl<float>& w1,
+                                     const RealWeightTpl<float>& w2) {
   return Times<float>(w1, w2);
 }
 
-constexpr RealWeightTpl<double> Times(const RealWeightTpl<double> &w1,
-                                      const RealWeightTpl<double> &w2) {
+constexpr RealWeightTpl<double> Times(const RealWeightTpl<double>& w1,
+                                      const RealWeightTpl<double>& w2) {
   return Times<double>(w1, w2);
 }
 
 template <class T>
-constexpr RealWeightTpl<T> Divide(const RealWeightTpl<T> &w1,
-                                  const RealWeightTpl<T> &w2,
+constexpr RealWeightTpl<T> Divide(const RealWeightTpl<T>& w1,
+                                  const RealWeightTpl<T>& w2,
                                   DivideType typ = DIVIDE_ANY) {
   using Weight = RealWeightTpl<T>;
   return w2.Member() ? Weight(w1.Value() / w2.Value()) : Weight::NoWeight();
 }
 
-constexpr RealWeightTpl<float> Divide(const RealWeightTpl<float> &w1,
-                                      const RealWeightTpl<float> &w2,
+constexpr RealWeightTpl<float> Divide(const RealWeightTpl<float>& w1,
+                                      const RealWeightTpl<float>& w2,
                                       DivideType typ = DIVIDE_ANY) {
   return Divide<float>(w1, w2, typ);
 }
 
-constexpr RealWeightTpl<double> Divide(const RealWeightTpl<double> &w1,
-                                       const RealWeightTpl<double> &w2,
+constexpr RealWeightTpl<double> Divide(const RealWeightTpl<double>& w1,
+                                       const RealWeightTpl<double>& w2,
                                        DivideType typ = DIVIDE_ANY) {
   return Divide<double>(w1, w2, typ);
 }
@@ -805,8 +816,8 @@ constexpr RealWeightTpl<double> Divide(const RealWeightTpl<double> &w1,
 // The comments for Power<>(Tropical...) above apply here unchanged.
 
 template <class T, class V, bool Enable = !std::is_same_v<V, size_t>,
-          typename std::enable_if_t<Enable> * = nullptr>
-constexpr RealWeightTpl<T> Power(const RealWeightTpl<T> &w, V n) {
+          typename std::enable_if_t<Enable>* = nullptr>
+constexpr RealWeightTpl<T> Power(const RealWeightTpl<T>& w, V n) {
   using Weight = RealWeightTpl<T>;
   return (!w.Member() || internal::IsNan(n)) ? Weight::NoWeight()
          : (n == 0 || w == Weight::One())    ? Weight::One()
@@ -818,13 +829,13 @@ constexpr RealWeightTpl<T> Power(const RealWeightTpl<T> &w, V n) {
 
 template <>
 constexpr RealWeightTpl<float> Power<RealWeightTpl<float>>(
-    const RealWeightTpl<float> &weight, size_t n) {
+    const RealWeightTpl<float>& weight, size_t n) {
   return Power<float, size_t, true>(weight, n);
 }
 
 template <>
 constexpr RealWeightTpl<double> Power<RealWeightTpl<double>>(
-    const RealWeightTpl<double> &weight, size_t n) {
+    const RealWeightTpl<double>& weight, size_t n) {
   return Power<double, size_t, true>(weight, n);
 }
 
@@ -836,13 +847,13 @@ class Adder<RealWeightTpl<T>> {
 
   explicit Adder(Weight w = Weight::Zero()) : sum_(w.Value()), c_(0.0) {}
 
-  Weight Add(const Weight &w) {
+  Weight Add(const Weight& w) {
     using Limits = FloatLimits<T>;
     const T f = w.Value();
     if (f == Limits::PosInfinity()) {
       sum_ = f;
     } else if (sum_ == Limits::PosInfinity()) {
-      return sum_;
+      return Sum();
     } else {
       sum_ = internal::KahanRealSum(sum_, f, &c_);
     }
@@ -872,16 +883,22 @@ class MinMaxWeightTpl : public FloatWeightTpl<T> {
 
   MinMaxWeightTpl() noexcept : FloatWeightTpl<T>() {}
 
-  constexpr MinMaxWeightTpl(T f) : FloatWeightTpl<T>(f) {}  // NOLINT
+  explicit constexpr MinMaxWeightTpl(T f) : FloatWeightTpl<T>(f) {}
 
-  static constexpr MinMaxWeightTpl Zero() { return Limits::PosInfinity(); }
+  static constexpr MinMaxWeightTpl Zero() {
+    return MinMaxWeightTpl(Limits::PosInfinity());
+  }
 
-  static constexpr MinMaxWeightTpl One() { return Limits::NegInfinity(); }
+  static constexpr MinMaxWeightTpl One() {
+    return MinMaxWeightTpl(Limits::NegInfinity());
+  }
 
-  static constexpr MinMaxWeightTpl NoWeight() { return Limits::NumberBad(); }
+  static constexpr MinMaxWeightTpl NoWeight() {
+    return MinMaxWeightTpl(Limits::NumberBad());
+  }
 
-  static const std::string &Type() {
-    static const std::string *const type = new std::string(
+  static const std::string& Type() {
+    static const std::string* const type = new std::string(
         fst::StrCat("minmax", FloatWeightTpl<T>::GetPrecisionString()));
     return *type;
   }
@@ -889,17 +906,17 @@ class MinMaxWeightTpl : public FloatWeightTpl<T> {
   // Fails for IEEE NaN.
   constexpr bool Member() const { return !internal::IsNan(Value()); }
 
-  MinMaxWeightTpl<T> Quantize(float delta = kDelta) const {
+  MinMaxWeightTpl Quantize(float delta = kDelta) const {
     // If one of infinities, or a NaN.
     if (!Member() || Value() == Limits::NegInfinity() ||
         Value() == Limits::PosInfinity()) {
       return *this;
     } else {
-      return MinMaxWeightTpl<T>(std::floor(Value() / delta + 0.5F) * delta);
+      return MinMaxWeightTpl(std::floor(Value() / delta + 0.5F) * delta);
     }
   }
 
-  constexpr MinMaxWeightTpl<T> Reverse() const { return *this; }
+  constexpr MinMaxWeightTpl Reverse() const { return *this; }
 
   static constexpr uint64_t Properties() {
     return kLeftSemiring | kRightSemiring | kCommutative | kIdempotent | kPath;
@@ -911,58 +928,58 @@ using MinMaxWeight = MinMaxWeightTpl<float>;
 
 // Min.
 template <class T>
-constexpr MinMaxWeightTpl<T> Plus(const MinMaxWeightTpl<T> &w1,
-                                  const MinMaxWeightTpl<T> &w2) {
+constexpr MinMaxWeightTpl<T> Plus(const MinMaxWeightTpl<T>& w1,
+                                  const MinMaxWeightTpl<T>& w2) {
   return (!w1.Member() || !w2.Member()) ? MinMaxWeightTpl<T>::NoWeight()
          : w1.Value() < w2.Value()      ? w1
                                         : w2;
 }
 
-constexpr MinMaxWeightTpl<float> Plus(const MinMaxWeightTpl<float> &w1,
-                                      const MinMaxWeightTpl<float> &w2) {
+constexpr MinMaxWeightTpl<float> Plus(const MinMaxWeightTpl<float>& w1,
+                                      const MinMaxWeightTpl<float>& w2) {
   return Plus<float>(w1, w2);
 }
 
-constexpr MinMaxWeightTpl<double> Plus(const MinMaxWeightTpl<double> &w1,
-                                       const MinMaxWeightTpl<double> &w2) {
+constexpr MinMaxWeightTpl<double> Plus(const MinMaxWeightTpl<double>& w1,
+                                       const MinMaxWeightTpl<double>& w2) {
   return Plus<double>(w1, w2);
 }
 
 // Max.
 template <class T>
-constexpr MinMaxWeightTpl<T> Times(const MinMaxWeightTpl<T> &w1,
-                                   const MinMaxWeightTpl<T> &w2) {
+constexpr MinMaxWeightTpl<T> Times(const MinMaxWeightTpl<T>& w1,
+                                   const MinMaxWeightTpl<T>& w2) {
   return (!w1.Member() || !w2.Member()) ? MinMaxWeightTpl<T>::NoWeight()
          : w1.Value() >= w2.Value()     ? w1
                                         : w2;
 }
 
-constexpr MinMaxWeightTpl<float> Times(const MinMaxWeightTpl<float> &w1,
-                                       const MinMaxWeightTpl<float> &w2) {
+constexpr MinMaxWeightTpl<float> Times(const MinMaxWeightTpl<float>& w1,
+                                       const MinMaxWeightTpl<float>& w2) {
   return Times<float>(w1, w2);
 }
 
-constexpr MinMaxWeightTpl<double> Times(const MinMaxWeightTpl<double> &w1,
-                                        const MinMaxWeightTpl<double> &w2) {
+constexpr MinMaxWeightTpl<double> Times(const MinMaxWeightTpl<double>& w1,
+                                        const MinMaxWeightTpl<double>& w2) {
   return Times<double>(w1, w2);
 }
 
 // Defined only for special cases.
 template <class T>
-constexpr MinMaxWeightTpl<T> Divide(const MinMaxWeightTpl<T> &w1,
-                                    const MinMaxWeightTpl<T> &w2,
+constexpr MinMaxWeightTpl<T> Divide(const MinMaxWeightTpl<T>& w1,
+                                    const MinMaxWeightTpl<T>& w2,
                                     DivideType typ = DIVIDE_ANY) {
   return w1.Value() >= w2.Value() ? w1 : MinMaxWeightTpl<T>::NoWeight();
 }
 
-constexpr MinMaxWeightTpl<float> Divide(const MinMaxWeightTpl<float> &w1,
-                                        const MinMaxWeightTpl<float> &w2,
+constexpr MinMaxWeightTpl<float> Divide(const MinMaxWeightTpl<float>& w1,
+                                        const MinMaxWeightTpl<float>& w2,
                                         DivideType typ = DIVIDE_ANY) {
   return Divide<float>(w1, w2, typ);
 }
 
-constexpr MinMaxWeightTpl<double> Divide(const MinMaxWeightTpl<double> &w1,
-                                         const MinMaxWeightTpl<double> &w2,
+constexpr MinMaxWeightTpl<double> Divide(const MinMaxWeightTpl<double>& w1,
+                                         const MinMaxWeightTpl<double>& w2,
                                          DivideType typ = DIVIDE_ANY) {
   return Divide<double>(w1, w2, typ);
 }
@@ -970,105 +987,117 @@ constexpr MinMaxWeightTpl<double> Divide(const MinMaxWeightTpl<double> &w1,
 // Converts to tropical.
 template <>
 struct WeightConvert<LogWeight, TropicalWeight> {
-  constexpr TropicalWeight operator()(const LogWeight &w) const {
-    return w.Value();
+  constexpr TropicalWeight operator()(const LogWeight& w) const {
+    return TropicalWeight(w.Value());
   }
 };
 
 template <>
 struct WeightConvert<Log64Weight, TropicalWeight> {
-  constexpr TropicalWeight operator()(const Log64Weight &w) const {
-    return w.Value();
+  constexpr TropicalWeight operator()(const Log64Weight& w) const {
+    return TropicalWeight(w.Value());
   }
 };
 
 // Converts to log.
 template <>
 struct WeightConvert<TropicalWeight, LogWeight> {
-  constexpr LogWeight operator()(const TropicalWeight &w) const {
-    return w.Value();
+  constexpr LogWeight operator()(const TropicalWeight& w) const {
+    return LogWeight(w.Value());
   }
 };
 
 template <>
 struct WeightConvert<RealWeight, LogWeight> {
-  LogWeight operator()(const RealWeight &w) const { return -log(w.Value()); }
+  LogWeight operator()(const RealWeight& w) const {
+    return LogWeight(-log(w.Value()));
+  }
 };
 
 template <>
 struct WeightConvert<Real64Weight, LogWeight> {
-  LogWeight operator()(const Real64Weight &w) const { return -log(w.Value()); }
+  LogWeight operator()(const Real64Weight& w) const {
+    return LogWeight(-log(w.Value()));
+  }
 };
 
 template <>
 struct WeightConvert<Log64Weight, LogWeight> {
-  constexpr LogWeight operator()(const Log64Weight &w) const {
-    return w.Value();
+  constexpr LogWeight operator()(const Log64Weight& w) const {
+    return LogWeight(w.Value());
   }
 };
 
 // Converts to log64.
 template <>
 struct WeightConvert<TropicalWeight, Log64Weight> {
-  constexpr Log64Weight operator()(const TropicalWeight &w) const {
-    return w.Value();
+  constexpr Log64Weight operator()(const TropicalWeight& w) const {
+    return Log64Weight(w.Value());
   }
 };
 
 template <>
 struct WeightConvert<RealWeight, Log64Weight> {
-  Log64Weight operator()(const RealWeight &w) const { return -log(w.Value()); }
+  Log64Weight operator()(const RealWeight& w) const {
+    return Log64Weight(-log(w.Value()));
+  }
 };
 
 template <>
 struct WeightConvert<Real64Weight, Log64Weight> {
-  Log64Weight operator()(const Real64Weight &w) const {
-    return -log(w.Value());
+  Log64Weight operator()(const Real64Weight& w) const {
+    return Log64Weight(-log(w.Value()));
   }
 };
 
 template <>
 struct WeightConvert<LogWeight, Log64Weight> {
-  constexpr Log64Weight operator()(const LogWeight &w) const {
-    return w.Value();
+  constexpr Log64Weight operator()(const LogWeight& w) const {
+    return Log64Weight(w.Value());
   }
 };
 
 // Converts to real.
 template <>
 struct WeightConvert<LogWeight, RealWeight> {
-  RealWeight operator()(const LogWeight &w) const { return exp(-w.Value()); }
+  RealWeight operator()(const LogWeight& w) const {
+    return RealWeight(exp(-w.Value()));
+  }
 };
 
 template <>
 struct WeightConvert<Log64Weight, RealWeight> {
-  RealWeight operator()(const Log64Weight &w) const { return exp(-w.Value()); }
+  RealWeight operator()(const Log64Weight& w) const {
+    return RealWeight(exp(-w.Value()));
+  }
 };
 
 template <>
 struct WeightConvert<Real64Weight, RealWeight> {
-  constexpr RealWeight operator()(const Real64Weight &w) const {
-    return w.Value();
+  constexpr RealWeight operator()(const Real64Weight& w) const {
+    return RealWeight(w.Value());
   }
 };
 
 // Converts to real64
 template <>
 struct WeightConvert<LogWeight, Real64Weight> {
-  Real64Weight operator()(const LogWeight &w) const { return exp(-w.Value()); }
+  Real64Weight operator()(const LogWeight& w) const {
+    return Real64Weight(exp(-w.Value()));
+  }
 };
 
 template <>
 struct WeightConvert<Log64Weight, Real64Weight> {
-  Real64Weight operator()(const Log64Weight &w) const {
-    return exp(-w.Value());
+  Real64Weight operator()(const Log64Weight& w) const {
+    return Real64Weight(exp(-w.Value()));
   }
 };
 
 template <>
 struct WeightConvert<RealWeight, Real64Weight> {
-  constexpr Real64Weight operator()(const RealWeight &w) const {
-    return w.Value();
+  constexpr Real64Weight operator()(const RealWeight& w) const {
+    return Real64Weight(w.Value());
   }
 };
 

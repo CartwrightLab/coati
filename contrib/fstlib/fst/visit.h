@@ -21,7 +21,6 @@
 #define FST_VISIT_H_
 
 #include <cstdint>
-#include <new>
 #include <vector>
 
 #include <fst/arcfilter.h>
@@ -74,7 +73,7 @@ namespace fst {
 // considered. If 'access_only' is true, performs visitation only to states
 // accessible from the initial state.
 template <class FST, class Visitor, class Queue, class ArcFilter>
-void Visit(const FST &fst, Visitor *visitor, Queue *queue, ArcFilter filter,
+void Visit(const FST& fst, Visitor* visitor, Queue* queue, ArcFilter filter,
            bool access_only = false) {
   using Arc = typename FST::Arc;
   using StateId = typename Arc::StateId;
@@ -91,7 +90,7 @@ void Visit(const FST &fst, Visitor *visitor, Queue *queue, ArcFilter filter,
   // We destroy an iterator as soon as possible and mark it so.
   static constexpr uint8_t kArcIterDone = 0x08;
   std::vector<uint8_t> state_status;
-  std::vector<ArcIterator<FST> *> arc_iterator;
+  std::vector<ArcIterator<FST>*> arc_iterator;
   MemoryPool<ArcIterator<FST>> aiter_pool;
   // Exact number of states if known, otherwise lower bound.
   StateId nstates = fst.NumStatesIfKnown().value_or(start + 1);
@@ -119,7 +118,7 @@ void Visit(const FST &fst, Visitor *visitor, Queue *queue, ArcFilter filter,
         arc_iterator[state] = new (&aiter_pool) ArcIterator<FST>(fst, state);
       }
       // Deletes arc iterator if done.
-      auto *aiter = arc_iterator[state];
+      auto* aiter = arc_iterator[state];
       if ((aiter && aiter->Done()) || !visit) {
         Destroy(aiter, &aiter_pool);
         arc_iterator[state] = nullptr;
@@ -132,7 +131,7 @@ void Visit(const FST &fst, Visitor *visitor, Queue *queue, ArcFilter filter,
         state_status[state] = kBlackState;
         continue;
       }
-      const auto &arc = aiter->Value();
+      const auto& arc = aiter->Value();
       if (arc.nextstate >= state_status.size()) {
         nstates = arc.nextstate + 1;
         state_status.resize(nstates, kWhiteState);
@@ -182,7 +181,7 @@ void Visit(const FST &fst, Visitor *visitor, Queue *queue, ArcFilter filter,
 }
 
 template <class Arc, class Visitor, class Queue>
-inline void Visit(const Fst<Arc> &fst, Visitor *visitor, Queue *queue) {
+inline void Visit(const Fst<Arc>& fst, Visitor* visitor, Queue* queue) {
   Visit(fst, visitor, queue, AnyArcFilter<Arc>());
 }
 
@@ -193,9 +192,9 @@ class CopyVisitor {
   using Arc = A;
   using StateId = typename Arc::StateId;
 
-  explicit CopyVisitor(MutableFst<Arc> *ofst) : ifst_(nullptr), ofst_(ofst) {}
+  explicit CopyVisitor(MutableFst<Arc>* ofst) : ifst_(nullptr), ofst_(ofst) {}
 
-  void InitVisit(const Fst<A> &ifst) {
+  void InitVisit(const Fst<A>& ifst) {
     ifst_ = &ifst;
     ofst_->DeleteStates();
     ofst_->SetStart(ifst_->Start());
@@ -206,17 +205,17 @@ class CopyVisitor {
     return true;
   }
 
-  bool WhiteArc(StateId state, const Arc &arc) {
+  bool WhiteArc(StateId state, const Arc& arc) {
     ofst_->AddArc(state, arc);
     return true;
   }
 
-  bool GreyArc(StateId state, const Arc &arc) {
+  bool GreyArc(StateId state, const Arc& arc) {
     ofst_->AddArc(state, arc);
     return true;
   }
 
-  bool BlackArc(StateId state, const Arc &arc) {
+  bool BlackArc(StateId state, const Arc& arc) {
     ofst_->AddArc(state, arc);
     return true;
   }
@@ -228,8 +227,8 @@ class CopyVisitor {
   void FinishVisit() {}
 
  private:
-  const Fst<Arc> *ifst_;
-  MutableFst<Arc> *ofst_;
+  const Fst<Arc>* ifst_;
+  MutableFst<Arc>* ofst_;
 };
 
 // Visits input FST up to a state limit following queue order.
@@ -242,7 +241,7 @@ class PartialVisitor {
   explicit PartialVisitor(StateId maxvisit)
       : fst_(nullptr), maxvisit_(maxvisit) {}
 
-  void InitVisit(const Fst<A> &ifst) {
+  void InitVisit(const Fst<A>& ifst) {
     fst_ = &ifst;
     ninit_ = 0;
     nfinish_ = 0;
@@ -253,11 +252,11 @@ class PartialVisitor {
     return ninit_ <= maxvisit_;
   }
 
-  bool WhiteArc(StateId state, const Arc &arc) { return true; }
+  bool WhiteArc(StateId state, const Arc& arc) { return true; }
 
-  bool GreyArc(StateId state, const Arc &arc) { return true; }
+  bool GreyArc(StateId state, const Arc& arc) { return true; }
 
-  bool BlackArc(StateId state, const Arc &arc) { return true; }
+  bool BlackArc(StateId state, const Arc& arc) { return true; }
 
   void FinishState(StateId state) {
     fst_->Final(state);  // Visits super-final arc.
@@ -271,7 +270,7 @@ class PartialVisitor {
   StateId NumFinished() { return nfinish_; }
 
  private:
-  const Fst<Arc> *fst_;
+  const Fst<Arc>* fst_;
   StateId maxvisit_;
   StateId ninit_;
   StateId nfinish_;
@@ -286,14 +285,14 @@ class PartialCopyVisitor : public CopyVisitor<A> {
 
   using CopyVisitor<A>::WhiteArc;
 
-  PartialCopyVisitor(MutableFst<Arc> *ofst, StateId maxvisit,
+  PartialCopyVisitor(MutableFst<Arc>* ofst, StateId maxvisit,
                      bool copy_grey = true, bool copy_black = true)
       : CopyVisitor<A>(ofst),
         maxvisit_(maxvisit),
         copy_grey_(copy_grey),
         copy_black_(copy_black) {}
 
-  void InitVisit(const Fst<A> &ifst) {
+  void InitVisit(const Fst<A>& ifst) {
     CopyVisitor<A>::InitVisit(ifst);
     ninit_ = 0;
     nfinish_ = 0;
@@ -305,12 +304,12 @@ class PartialCopyVisitor : public CopyVisitor<A> {
     return ninit_ <= maxvisit_;
   }
 
-  bool GreyArc(StateId state, const Arc &arc) {
+  bool GreyArc(StateId state, const Arc& arc) {
     if (copy_grey_) return CopyVisitor<A>::GreyArc(state, arc);
     return true;
   }
 
-  bool BlackArc(StateId state, const Arc &arc) {
+  bool BlackArc(StateId state, const Arc& arc) {
     if (copy_black_) return CopyVisitor<A>::BlackArc(state, arc);
     return true;
   }

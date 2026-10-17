@@ -22,11 +22,9 @@
 
 #include <cstddef>
 #include <cstdlib>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
-#include <fst/log.h>
 #include <fst/arcfilter.h>
 #include <fst/fst.h>
 #include <fst/heap.h>
@@ -40,8 +38,8 @@ namespace internal {
 template <class StateId, class Weight>
 class PruneCompare {
  public:
-  PruneCompare(const std::vector<Weight> &idistance,
-               const std::vector<Weight> &fdistance)
+  PruneCompare(const std::vector<Weight>& idistance,
+               const std::vector<Weight>& fdistance)
       : idistance_(idistance), fdistance_(fdistance) {}
 
   bool operator()(const StateId x, const StateId y) const {
@@ -59,8 +57,8 @@ class PruneCompare {
     return s < fdistance_.size() ? fdistance_[s] : Weight::Zero();
   }
 
-  const std::vector<Weight> &idistance_;
-  const std::vector<Weight> &fdistance_;
+  const std::vector<Weight>& idistance_;
+  const std::vector<Weight>& fdistance_;
   NaturalLess<Weight> less_;
 };
 
@@ -71,10 +69,10 @@ struct PruneOptions {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  explicit PruneOptions(const Weight &weight_threshold = Weight::Zero(),
+  explicit PruneOptions(const Weight& weight_threshold = Weight::Zero(),
                         StateId state_threshold = kNoStateId,
                         ArcFilter filter = ArcFilter(),
-                        std::vector<Weight> *distance = nullptr,
+                        std::vector<Weight>* distance = nullptr,
                         float delta = kDelta, bool threshold_initial = false)
       : weight_threshold(std::move(weight_threshold)),
         state_threshold(state_threshold),
@@ -90,7 +88,7 @@ struct PruneOptions {
   // Arc filter.
   ArcFilter filter;
   // If non-zero, passes in pre-computed shortest distance to final states.
-  const std::vector<Weight> *distance;
+  const std::vector<Weight>* distance;
   // Determines the degree of convergence required when computing shortest
   // distances.
   float delta;
@@ -111,7 +109,7 @@ struct PruneOptions {
 //
 //   Plus(weight, Weight::One()) == Weight::One()
 template <class Arc, class ArcFilter>
-void Prune(MutableFst<Arc> *fst, const PruneOptions<Arc, ArcFilter> &opts =
+void Prune(MutableFst<Arc>* fst, const PruneOptions<Arc, ArcFilter>& opts =
                                      PruneOptions<Arc, ArcFilter>()) {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
@@ -125,7 +123,7 @@ void Prune(MutableFst<Arc> *fst, const PruneOptions<Arc, ArcFilter> &opts =
     tmp.reserve(ns);
     ShortestDistance(*fst, &tmp, true, opts.delta);
   }
-  const auto *fdistance = opts.distance ? opts.distance : &tmp;
+  const auto* fdistance = opts.distance ? opts.distance : &tmp;
   if ((opts.state_threshold == 0) || (fdistance->size() <= fst->Start()) ||
       ((*fdistance)[fst->Start()] == Weight::Zero())) {
     fst->DeleteStates();
@@ -203,7 +201,7 @@ void Prune(MutableFst<Arc> *fst, const PruneOptions<Arc, ArcFilter> &opts =
 //
 //   Plus(weight, Weight::One()) == Weight::One()
 template <class Arc>
-void Prune(MutableFst<Arc> *fst, typename Arc::Weight weight_threshold,
+void Prune(MutableFst<Arc>* fst, typename Arc::Weight weight_threshold,
            typename Arc::StateId state_threshold = kNoStateId,
            float delta = kDelta) {
   const PruneOptions<Arc, AnyArcFilter<Arc>> opts(
@@ -224,8 +222,8 @@ void Prune(MutableFst<Arc> *fst, typename Arc::Weight weight_threshold,
 //   Plus(weight, Weight::One()) == Weight::One()
 template <class Arc, class ArcFilter>
 void Prune(
-    const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
-    const PruneOptions<Arc, ArcFilter> &opts = PruneOptions<Arc, ArcFilter>()) {
+    const Fst<Arc>& ifst, MutableFst<Arc>* ofst,
+    const PruneOptions<Arc, ArcFilter>& opts = PruneOptions<Arc, ArcFilter>()) {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
   static_assert(IsPath<Weight>::value, "Weight must have path property.");
@@ -242,7 +240,7 @@ void Prune(
   std::vector<Weight> idistance;
   std::vector<Weight> tmp;
   if (!opts.distance) ShortestDistance(ifst, &tmp, true, opts.delta);
-  const auto *fdistance = opts.distance ? opts.distance : &tmp;
+  const auto* fdistance = opts.distance ? opts.distance : &tmp;
   if ((fdistance->size() <= ifst.Start()) ||
       ((*fdistance)[ifst.Start()] == Weight::Zero())) {
     return;
@@ -275,7 +273,7 @@ void Prune(
       ofst->SetFinal(copy[s], ifst.Final(s));
     }
     for (ArcIterator<Fst<Arc>> aiter(ifst, s); !aiter.Done(); aiter.Next()) {
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       if (!opts.filter(arc)) continue;
       const auto weight =
           Times(Times(idistance[s], arc.weight),
@@ -324,7 +322,7 @@ void Prune(
 //
 // Plus(weight, Weight::One()) = Weight::One();
 template <class Arc>
-void Prune(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
+void Prune(const Fst<Arc>& ifst, MutableFst<Arc>* ofst,
            typename Arc::Weight weight_threshold,
            typename Arc::StateId state_threshold = kNoStateId,
            float delta = kDelta) {

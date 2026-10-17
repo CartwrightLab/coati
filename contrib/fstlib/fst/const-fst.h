@@ -29,20 +29,17 @@
 #include <memory>
 #include <ostream>
 #include <string>
-#include <vector>
 
 #include <fst/log.h>
+#include <string_view>
 #include <fst/arc.h>
 #include <fst/expanded-fst.h>
-#include <fst/float-weight.h>
 #include <fst/fst-decl.h>
 #include <fst/fst.h>
-#include <fst/impl-to-fst.h>
 #include <fst/mapped-file.h>
 #include <fst/properties.h>
 #include <fst/test-properties.h>
 #include <fst/util.h>
-#include <string_view>
 
 namespace fst {
 
@@ -50,7 +47,7 @@ template <class A, class Unsigned>
 class ConstFst;
 
 template <class F, class G>
-void Cast(const F &, G *);
+void Cast(const F&, G*);
 
 namespace internal {
 
@@ -78,7 +75,7 @@ class ConstFstImpl : public FstImpl<A> {
     SetProperties(kNullProperties | kStaticProperties);
   }
 
-  explicit ConstFstImpl(const Fst<Arc> &fst);
+  explicit ConstFstImpl(const Fst<Arc>& fst);
 
   StateId Start() const { return start_; }
 
@@ -92,18 +89,18 @@ class ConstFstImpl : public FstImpl<A> {
 
   size_t NumOutputEpsilons(StateId s) const { return states_[s].noepsilons; }
 
-  static ConstFstImpl *Read(std::istream &strm, const FstReadOptions &opts);
+  static ConstFstImpl* Read(std::istream& strm, const FstReadOptions& opts);
 
-  const Arc *Arcs(StateId s) const { return arcs_ + states_[s].pos; }
+  const Arc* Arcs(StateId s) const { return arcs_ + states_[s].pos; }
 
   // Provide information needed for generic state iterator.
-  void InitStateIterator(StateIteratorData<Arc> *data) const {
+  void InitStateIterator(StateIteratorData<Arc>* data) const {
     data->base = nullptr;
     data->nstates = nstates_;
   }
 
   // Provide information needed for the generic arc iterator.
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) const {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) const {
     data->base = nullptr;
     data->arcs = arcs_ + states_[s].pos;
     data->narcs = states_[s].narcs;
@@ -137,18 +134,18 @@ class ConstFstImpl : public FstImpl<A> {
 
   std::unique_ptr<MappedFile> states_region_;  // Mapped file for states.
   std::unique_ptr<MappedFile> arcs_region_;    // Mapped file for arcs.
-  ConstState *states_ = nullptr;               // States representation.
-  Arc *arcs_ = nullptr;                        // Arcs representation.
+  ConstState* states_ = nullptr;               // States representation.
+  Arc* arcs_ = nullptr;                        // Arcs representation.
   size_t narcs_ = 0;                           // Number of arcs.
   StateId nstates_ = 0;                        // Number of states.
   StateId start_ = kNoStateId;                 // Initial state.
 
-  ConstFstImpl(const ConstFstImpl &) = delete;
-  ConstFstImpl &operator=(const ConstFstImpl &) = delete;
+  ConstFstImpl(const ConstFstImpl&) = delete;
+  ConstFstImpl& operator=(const ConstFstImpl&) = delete;
 };
 
 template <class Arc, class Unsigned>
-ConstFstImpl<Arc, Unsigned>::ConstFstImpl(const Fst<Arc> &fst) {
+ConstFstImpl<Arc, Unsigned>::ConstFstImpl(const Fst<Arc>& fst) {
   std::string type = "const";
   if (sizeof(Unsigned) != sizeof(uint32_t)) {
     type += std::to_string(CHAR_BIT * sizeof(Unsigned));
@@ -164,8 +161,8 @@ ConstFstImpl<Arc, Unsigned>::ConstFstImpl(const Fst<Arc> &fst) {
   }
   states_region_.reset(MappedFile::AllocateType<ConstState>(nstates_));
   arcs_region_.reset(MappedFile::AllocateType<Arc>(narcs_));
-  states_ = static_cast<ConstState *>(states_region_->mutable_data());
-  arcs_ = static_cast<Arc *>(arcs_region_->mutable_data());
+  states_ = static_cast<ConstState*>(states_region_->mutable_data());
+  arcs_ = static_cast<Arc*>(arcs_region_->mutable_data());
   size_t pos = 0;
   for (StateId s = 0; s < nstates_; ++s) {
     states_[s].final_weight = fst.Final(s);
@@ -174,7 +171,7 @@ ConstFstImpl<Arc, Unsigned>::ConstFstImpl(const Fst<Arc> &fst) {
     states_[s].niepsilons = 0;
     states_[s].noepsilons = 0;
     for (ArcIterator<Fst<Arc>> aiter(fst, s); !aiter.Done(); aiter.Next()) {
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       ++states_[s].narcs;
       if (arc.ilabel == 0) ++states_[s].niepsilons;
       if (arc.olabel == 0) ++states_[s].noepsilons;
@@ -192,8 +189,8 @@ ConstFstImpl<Arc, Unsigned>::ConstFstImpl(const Fst<Arc> &fst) {
 }
 
 template <class Arc, class Unsigned>
-ConstFstImpl<Arc, Unsigned> *ConstFstImpl<Arc, Unsigned>::Read(
-    std::istream &strm, const FstReadOptions &opts) {
+ConstFstImpl<Arc, Unsigned>* ConstFstImpl<Arc, Unsigned>::Read(
+    std::istream& strm, const FstReadOptions& opts) {
   auto impl = std::make_unique<ConstFstImpl>();
   FstHeader hdr;
   if (!impl->ReadHeader(strm, opts, kMinFileVersion, &hdr)) return nullptr;
@@ -216,7 +213,7 @@ ConstFstImpl<Arc, Unsigned> *ConstFstImpl<Arc, Unsigned>::Read(
     return nullptr;
   }
   impl->states_ =
-      static_cast<ConstState *>(impl->states_region_->mutable_data());
+      static_cast<ConstState*>(impl->states_region_->mutable_data());
   if ((hdr.GetFlags() & FstHeader::IS_ALIGNED) && !AlignInput(strm)) {
     LOG(ERROR) << "ConstFst::Read: Alignment failed: " << opts.source;
     return nullptr;
@@ -228,7 +225,7 @@ ConstFstImpl<Arc, Unsigned> *ConstFstImpl<Arc, Unsigned>::Read(
     LOG(ERROR) << "ConstFst::Read: Read failed: " << opts.source;
     return nullptr;
   }
-  impl->arcs_ = static_cast<Arc *>(impl->arcs_region_->mutable_data());
+  impl->arcs_ = static_cast<Arc*>(impl->arcs_region_->mutable_data());
   return impl.release();
 }
 
@@ -242,91 +239,91 @@ ConstFstImpl<Arc, Unsigned> *ConstFstImpl<Arc, Unsigned>::Read(
 // ConstFst is thread-safe.
 template <class A, class Unsigned>
 class ConstFst : public ImplToExpandedFst<internal::ConstFstImpl<A, Unsigned>> {
+  using Base = ImplToExpandedFst<internal::ConstFstImpl<A, Unsigned>>;
+
  public:
   using Arc = A;
   using StateId = typename Arc::StateId;
 
-  using Impl = internal::ConstFstImpl<A, Unsigned>;
+  using typename Base::Impl;
   using ConstState = typename Impl::ConstState;
 
   friend class StateIterator<ConstFst<Arc, Unsigned>>;
   friend class ArcIterator<ConstFst<Arc, Unsigned>>;
 
   template <class F, class G>
-  void friend Cast(const F &, G *);
+  void friend Cast(const F&, G*);
 
-  ConstFst() : ImplToExpandedFst<Impl>(std::make_shared<Impl>()) {}
+  ConstFst() : Base(std::make_shared<Impl>()) {}
 
-  explicit ConstFst(const Fst<Arc> &fst)
-      : ImplToExpandedFst<Impl>(std::make_shared<Impl>(fst)) {}
+  explicit ConstFst(const Fst<Arc>& fst) : Base(std::make_shared<Impl>(fst)) {}
 
-  ConstFst(const ConstFst &fst, bool unused_safe = false)
-      : ImplToExpandedFst<Impl>(fst.GetSharedImpl()) {}
+  ConstFst(const ConstFst& fst, bool unused_safe = false)
+      : Base(fst.GetSharedImpl()) {}
 
   // Gets a copy of this ConstFst. See Fst<>::Copy() for further doc.
-  ConstFst *Copy(bool safe = false) const override {
+  ConstFst* Copy(bool safe = false) const override {
     return new ConstFst(*this, safe);
   }
 
   // Reads a ConstFst from an input stream, returning nullptr on error.
-  static ConstFst *Read(std::istream &strm, const FstReadOptions &opts) {
-    auto *impl = Impl::Read(strm, opts);
+  static ConstFst* Read(std::istream& strm, const FstReadOptions& opts) {
+    auto* impl = Impl::Read(strm, opts);
     return impl ? new ConstFst(std::shared_ptr<Impl>(impl)) : nullptr;
   }
 
   // Read a ConstFst from a file; return nullptr on error; empty source reads
   // from standard input.
-  static ConstFst *Read(std::string_view source) {
-    auto *impl = ImplToExpandedFst<Impl>::Read(source);
+  static ConstFst* Read(std::string_view source) {
+    auto* impl = Base::Read(source);
     return impl ? new ConstFst(std::shared_ptr<Impl>(impl)) : nullptr;
   }
 
-  bool Write(std::ostream &strm, const FstWriteOptions &opts) const override {
+  bool Write(std::ostream& strm, const FstWriteOptions& opts) const override {
     return WriteFst(*this, strm, opts);
   }
 
-  bool Write(const std::string &source) const override {
+  bool Write(const std::string& source) const override {
     return Fst<Arc>::WriteFile(source);
   }
 
   template <class FST>
-  static bool WriteFst(const FST &fst, std::ostream &strm,
-                       const FstWriteOptions &opts);
+  static bool WriteFst(const FST& fst, std::ostream& strm,
+                       const FstWriteOptions& opts);
 
-  void InitStateIterator(StateIteratorData<Arc> *data) const override {
+  void InitStateIterator(StateIteratorData<Arc>* data) const override {
     GetImpl()->InitStateIterator(data);
   }
 
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) const override {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) const override {
     GetImpl()->InitArcIterator(s, data);
   }
 
  private:
-  explicit ConstFst(std::shared_ptr<Impl> impl)
-      : ImplToExpandedFst<Impl>(impl) {}
+  explicit ConstFst(std::shared_ptr<Impl> impl) : Base(impl) {}
 
-  using ImplToFst<Impl, ExpandedFst<Arc>>::GetImpl;
+  using Base::GetImpl;
 
   // Uses overloading to extract the type of the argument.
-  static const Impl *GetImplIfConstFst(const ConstFst &const_fst) {
+  static const Impl* GetImplIfConstFst(const ConstFst& const_fst) {
     return const_fst.GetImpl();
   }
 
   // NB: this does not give privileged treatment to subtypes of ConstFst.
   template <typename FST>
-  static Impl *GetImplIfConstFst(const FST &fst) {
+  static Impl* GetImplIfConstFst(const FST& fst) {
     return nullptr;
   }
 
-  ConstFst &operator=(const ConstFst &) = delete;
+  ConstFst& operator=(const ConstFst&) = delete;
 };
 
 // Writes FST in Const format, potentially with a pass over the machine before
 // writing to compute number of states and arcs.
 template <class Arc, class Unsigned>
 template <class FST>
-bool ConstFst<Arc, Unsigned>::WriteFst(const FST &fst, std::ostream &strm,
-                                       const FstWriteOptions &opts) {
+bool ConstFst<Arc, Unsigned>::WriteFst(const FST& fst, std::ostream& strm,
+                                       const FstWriteOptions& opts) {
   const auto file_version =
       opts.align ? internal::ConstFstImpl<Arc, Unsigned>::kAlignedFileVersion
                  : internal::ConstFstImpl<Arc, Unsigned>::kFileVersion;
@@ -334,7 +331,7 @@ bool ConstFst<Arc, Unsigned>::WriteFst(const FST &fst, std::ostream &strm,
   size_t num_states = 0;  // Ditto.
   std::streamoff start_offset = 0;
   bool update_header = true;
-  if (const auto *impl = GetImplIfConstFst(fst)) {
+  if (const auto* impl = GetImplIfConstFst(fst)) {
     num_arcs = impl->narcs_;
     num_states = impl->nstates_;
     update_header = false;
@@ -375,7 +372,7 @@ bool ConstFst<Arc, Unsigned>::WriteFst(const FST &fst, std::ostream &strm,
     state.narcs = fst.NumArcs(s);
     state.niepsilons = fst.NumInputEpsilons(s);
     state.noepsilons = fst.NumOutputEpsilons(s);
-    strm.write(reinterpret_cast<const char *>(&state), sizeof(state));
+    strm.write(reinterpret_cast<const char*>(&state), sizeof(state));
     pos += state.narcs;
     ++states;
   }
@@ -387,8 +384,8 @@ bool ConstFst<Arc, Unsigned>::WriteFst(const FST &fst, std::ostream &strm,
   for (StateIterator<FST> siter(fst); !siter.Done(); siter.Next()) {
     for (ArcIterator<FST> aiter(fst, siter.Value()); !aiter.Done();
          aiter.Next()) {
-      const auto &arc = aiter.Value();
-      strm.write(reinterpret_cast<const char *>(&arc), sizeof(arc));
+      const auto& arc = aiter.Value();
+      strm.write(reinterpret_cast<const char*>(&arc), sizeof(arc));
     }
   }
   strm.flush();
@@ -419,7 +416,7 @@ class StateIterator<ConstFst<Arc, Unsigned>> {
  public:
   using StateId = typename Arc::StateId;
 
-  explicit StateIterator(const ConstFst<Arc, Unsigned> &fst)
+  explicit StateIterator(const ConstFst<Arc, Unsigned>& fst)
       : nstates_(fst.GetImpl()->NumStates()), s_(0) {}
 
   bool Done() const { return s_ >= nstates_; }
@@ -442,14 +439,14 @@ class ArcIterator<ConstFst<Arc, Unsigned>> {
  public:
   using StateId = typename Arc::StateId;
 
-  ArcIterator(const ConstFst<Arc, Unsigned> &fst, StateId s)
+  ArcIterator(const ConstFst<Arc, Unsigned>& fst, StateId s)
       : arcs_(fst.GetImpl()->Arcs(s)),
         narcs_(fst.GetImpl()->NumArcs(s)),
         i_(0) {}
 
   bool Done() const { return i_ >= narcs_; }
 
-  const Arc &Value() const { return arcs_[i_]; }
+  const Arc& Value() const { return arcs_[i_]; }
 
   void Next() { ++i_; }
 
@@ -464,7 +461,7 @@ class ArcIterator<ConstFst<Arc, Unsigned>> {
   void SetFlags(uint8_t, uint8_t) {}
 
  private:
-  const Arc *arcs_;
+  const Arc* arcs_;
   size_t narcs_;
   size_t i_;
 };

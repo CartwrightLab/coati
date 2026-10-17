@@ -25,7 +25,6 @@
 #include <cstdlib>
 #include <vector>
 
-#include <fst/log.h>
 #include <fst/connect.h>
 #include <fst/dfs-visit.h>
 #include <fst/fst.h>
@@ -54,8 +53,8 @@ class IntervalReachVisitor {
   using ISet = S;
   using Interval = typename ISet::Interval;
 
-  IntervalReachVisitor(const Fst<Arc> &fst, std::vector<S> *isets,
-                       std::vector<Index> *state2index)
+  IntervalReachVisitor(const Fst<Arc>& fst, std::vector<S>* isets,
+                       std::vector<Index>* state2index)
       : fst_(fst),
         isets_(isets),
         state2index_(state2index),
@@ -64,14 +63,14 @@ class IntervalReachVisitor {
     isets_->clear();
   }
 
-  void InitVisit(const Fst<Arc> &) { error_ = false; }
+  void InitVisit(const Fst<Arc>&) { error_ = false; }
 
   bool InitState(StateId s, StateId r) {
     while (isets_->size() <= s) isets_->push_back(S());
     while (state2index_->size() <= s) state2index_->push_back(-1);
     if (fst_.Final(s) != Weight::Zero()) {
       // Create tree interval.
-      auto *intervals = (*isets_)[s].MutableIntervals();
+      auto* intervals = (*isets_)[s].MutableIntervals();
       if (index_ < 0) {  // Uses state2index_ map to set index.
         if (fst_.NumArcs(s) > 0) {
           FSTERROR() << "IntervalReachVisitor: state2index map must be empty "
@@ -94,23 +93,23 @@ class IntervalReachVisitor {
     return true;
   }
 
-  constexpr bool TreeArc(StateId, const Arc &) const { return true; }
+  constexpr bool TreeArc(StateId, const Arc&) const { return true; }
 
-  bool BackArc(StateId s, const Arc &arc) {
+  bool BackArc(StateId s, const Arc& arc) {
     FSTERROR() << "IntervalReachVisitor: Cyclic input";
     error_ = true;
     return false;
   }
 
-  bool ForwardOrCrossArc(StateId s, const Arc &arc) {
+  bool ForwardOrCrossArc(StateId s, const Arc& arc) {
     // Non-tree interval.
     (*isets_)[s].Union((*isets_)[arc.nextstate]);
     return true;
   }
 
-  void FinishState(StateId s, StateId p, const Arc *) {
+  void FinishState(StateId s, StateId p, const Arc*) {
     if (index_ >= 0 && fst_.Final(s) != Weight::Zero()) {
-      auto *intervals = (*isets_)[s].MutableIntervals();
+      auto* intervals = (*isets_)[s].MutableIntervals();
       (*intervals)[0].end = index_;  // Updates tree interval end.
     }
     (*isets_)[s].Normalize();
@@ -124,9 +123,9 @@ class IntervalReachVisitor {
   bool Error() const { return error_; }
 
  private:
-  const Fst<Arc> &fst_;
-  std::vector<ISet> *isets_;
-  std::vector<Index> *state2index_;
+  const Fst<Arc>& fst_;
+  std::vector<ISet>* isets_;
+  std::vector<Index>* state2index_;
   Index index_;
   bool error_;
 };
@@ -146,7 +145,7 @@ class StateReachable {
   using ISet = S;
   using Interval = typename ISet::Interval;
 
-  explicit StateReachable(const Fst<Arc> &fst) : error_(false) {
+  explicit StateReachable(const Fst<Arc>& fst) : error_(false) {
     if (fst.Properties(kAcyclic, true)) {
       AcyclicStateReachable(fst);
     } else {
@@ -154,7 +153,7 @@ class StateReachable {
     }
   }
 
-  explicit StateReachable(const StateReachable<Arc> &reachable) {
+  explicit StateReachable(const StateReachable<Arc>& reachable) {
     FSTERROR() << "Copy constructor for state reachable class "
                << "not implemented.";
     error_ = true;
@@ -176,23 +175,23 @@ class StateReachable {
   }
 
   // Access to the state-to-index mapping. Unassigned states have index -1.
-  std::vector<Index> &State2Index() { return state2index_; }
+  std::vector<Index>& State2Index() { return state2index_; }
 
   // Access to the interval sets. These specify the reachability to the final
   // states as intervals of the final state indices.
-  const std::vector<ISet> &IntervalSets() { return isets_; }
+  const std::vector<ISet>& IntervalSets() { return isets_; }
 
   bool Error() const { return error_; }
 
  private:
-  void AcyclicStateReachable(const Fst<Arc> &fst) {
+  void AcyclicStateReachable(const Fst<Arc>& fst) {
     IntervalReachVisitor<Arc, StateId, ISet> reach_visitor(fst, &isets_,
                                                            &state2index_);
     DfsVisit(fst, &reach_visitor);
     if (reach_visitor.Error()) error_ = true;
   }
 
-  void CyclicStateReachable(const Fst<Arc> &fst) {
+  void CyclicStateReachable(const Fst<Arc>& fst) {
     // Finds state reachability on the acyclic condensation FST.
     VectorFst<Arc> cfst;
     std::vector<StateId> scc;
@@ -232,7 +231,7 @@ class StateReachable {
   std::vector<Index> state2index_;  // Finds index for a final state.
   bool error_;
 
-  StateReachable &operator=(const StateReachable &) = delete;
+  StateReachable& operator=(const StateReachable&) = delete;
 };
 
 }  // namespace fst

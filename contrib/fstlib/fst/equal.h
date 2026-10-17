@@ -21,7 +21,6 @@
 #define FST_EQUAL_H_
 
 #include <cstdint>
-#include <string>
 
 #include <fst/log.h>
 #include <fst/fst.h>
@@ -46,7 +45,7 @@ class WeightApproxEqual {
   // We use two weight types to avoid some conflicts caused by
   // conversions.
   template <class Weight1, class Weight2>
-  bool operator()(const Weight1 &w1, const Weight2 &w2) const {
+  bool operator()(const Weight1& w1, const Weight2& w2) const {
     return ApproxEqual(w1, w2, delta_);
   }
 
@@ -60,7 +59,7 @@ class WeightApproxEqual {
 // (etype & kEqualCompatProperties) and of symbol tables
 // (etype & kEqualCompatSymbols).
 template <class Arc, class WeightEqual>
-bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, WeightEqual weight_equal,
+bool Equal(const Fst<Arc>& fst1, const Fst<Arc>& fst2, WeightEqual weight_equal,
            uint8_t etype = kEqualFsts) {
   if ((etype & kEqualFstTypes) && (fst1.Type() != fst2.Type())) {
     VLOG(1) << "Equal: Mismatched FST types (" << fst1.Type()
@@ -102,8 +101,8 @@ bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, WeightEqual weight_equal,
       VLOG(1) << "Equal: Mismatched states (" << s1 << "!= " << s2 << ")";
       return false;
     }
-    const auto &final1 = fst1.Final(s1);
-    const auto &final2 = fst2.Final(s2);
+    const auto& final1 = fst1.Final(s1);
+    const auto& final2 = fst2.Final(s2);
     if (!weight_equal(final1, final2)) {
       VLOG(1) << "Equal: Mismatched final weights at state " << s1 << " ("
               << final1 << " != " << final2 << ")";
@@ -116,8 +115,8 @@ bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, WeightEqual weight_equal,
         VLOG(1) << "Equal: Mismatched number of arcs at state " << s1;
         return false;
       }
-      const auto &arc1 = aiter1.Value();
-      const auto &arc2 = aiter2.Value();
+      const auto& arc1 = aiter1.Value();
+      const auto& arc2 = aiter2.Value();
       if (arc1.ilabel != arc2.ilabel) {
         VLOG(1) << "Equal: Mismatched arc input labels at state " << s1
                 << ", arc " << a << " (" << arc1.ilabel << " != " << arc2.ilabel
@@ -165,7 +164,7 @@ bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, WeightEqual weight_equal,
 }
 
 template <class Arc>
-bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, float delta = kDelta,
+bool Equal(const Fst<Arc>& fst1, const Fst<Arc>& fst2, float delta = kDelta,
            uint8_t etype = kEqualFsts) {
   return Equal(fst1, fst2, WeightApproxEqual(delta), etype);
 }
@@ -175,7 +174,7 @@ bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, float delta = kDelta,
 // since it is a better match than double -> float narrowing, but
 // the instantiation will fail.
 template <class Arc>
-bool Equal(const Fst<Arc> &fst1, const Fst<Arc> &fst2, double delta,
+bool Equal(const Fst<Arc>& fst1, const Fst<Arc>& fst2, double delta,
            uint8_t etype = kEqualFsts) {
   return Equal(fst1, fst2, WeightApproxEqual(static_cast<float>(delta)), etype);
 }

@@ -23,11 +23,7 @@
 #include <cstddef>
 #include <list>
 #include <memory>
-#include <utility>
 #include <vector>
-
-#include <fst/log.h>
-#include <fstream>
 
 namespace fst {
 
@@ -62,7 +58,7 @@ class MemoryArenaImpl : public MemoryArenaBase {
         fst::make_unique_for_overwrite<std::byte[]>(block_size_));
   }
 
-  void *Allocate(size_t size) {
+  void* Allocate(size_t size) {
     const auto byte_size = size * kObjectSize;
     if (byte_size * kAllocFit > block_size_) {
       // Large block; adds new large block.
@@ -77,7 +73,7 @@ class MemoryArenaImpl : public MemoryArenaBase {
           fst::make_unique_for_overwrite<std::byte[]>(block_size_));
     }
     // Fits; uses current block.
-    auto *ptr = &blocks_.front()[block_pos_];
+    auto* ptr = &blocks_.front()[block_pos_];
     block_pos_ += byte_size;
     return ptr;
   }
@@ -116,27 +112,27 @@ class MemoryPoolImpl : public MemoryPoolBase {
 
   struct Link {
     std::byte buf[kObjectSize];
-    Link *next;
+    Link* next;
   };
 
   explicit MemoryPoolImpl(size_t pool_size)
       : mem_arena_(pool_size), free_list_(nullptr) {}
 
-  void *Allocate() {
-    Link *link;
+  void* Allocate() {
+    Link* link;
     if (free_list_ == nullptr) {
-      link = static_cast<Link *>(mem_arena_.Allocate(1));
+      link = static_cast<Link*>(mem_arena_.Allocate(1));
       link->next = nullptr;
     } else {
       link = free_list_;
       free_list_ = link->next;
     }
-    return fst::implicit_cast<std::byte *>(link->buf);
+    return fst::implicit_cast<std::byte*>(link->buf);
   }
 
-  void Free(void *ptr) {
+  void Free(void* ptr) {
     if (ptr) {
-      auto *link = static_cast<Link *>(ptr);
+      auto* link = static_cast<Link*>(ptr);
       link->next = free_list_;
       free_list_ = link;
     }
@@ -146,10 +142,10 @@ class MemoryPoolImpl : public MemoryPoolBase {
 
  private:
   MemoryArena<Link> mem_arena_;
-  Link *free_list_;  // Not owned.
+  Link* free_list_;  // Not owned.
 
-  MemoryPoolImpl(const MemoryPoolImpl &) = delete;
-  MemoryPoolImpl &operator=(const MemoryPoolImpl &) = delete;
+  MemoryPoolImpl(const MemoryPoolImpl&) = delete;
+  MemoryPoolImpl& operator=(const MemoryPoolImpl&) = delete;
 };
 
 }  // namespace internal
@@ -158,8 +154,8 @@ class MemoryPoolImpl : public MemoryPoolBase {
 // All memory is freed when the class is deleted. The result of Allocate() will
 // be suitably memory-aligned. Combined with placement operator new and destroy
 // functions for the T class, this can be used to improve allocation efficiency.
-// See nlp/fst/lib/visit.h (global new) and nlp/fst/lib/dfs-visit.h (class new)
-// for examples.
+// See third_party/openfst/lib/visit.h (global new) and
+// third_party/openfst/lib/dfs-visit.h (class new) for examples.
 template <typename T>
 class MemoryPool : public internal::MemoryPoolImpl<sizeof(T)> {
  public:
@@ -176,13 +172,13 @@ class MemoryArenaCollection {
       : block_size_(block_size) {}
 
   template <typename T>
-  MemoryArena<T> *Arena() {
+  MemoryArena<T>* Arena() {
     if (sizeof(T) >= arenas_.size()) arenas_.resize(sizeof(T) + 1);
-    auto &arena = arenas_[sizeof(T)];
+    auto& arena = arenas_[sizeof(T)];
     if (arena == nullptr) {
       arena = std::make_unique<MemoryArena<T>>(block_size_);
     }
-    return down_cast<MemoryArena<T> *>(arena.get());
+    return down_cast<MemoryArena<T>*>(arena.get());
   }
 
   size_t BlockSize() const { return block_size_; }
@@ -200,11 +196,11 @@ class MemoryPoolCollection {
       : pool_size_(pool_size) {}
 
   template <typename T>
-  MemoryPool<T> *Pool() {
+  MemoryPool<T>* Pool() {
     if (sizeof(T) >= pools_.size()) pools_.resize(sizeof(T) + 1);
-    auto &pool = pools_[sizeof(T)];
+    auto& pool = pools_[sizeof(T)];
     if (pool == nullptr) pool = std::make_unique<MemoryPool<T>>(pool_size_);
-    return down_cast<MemoryPool<T> *>(pool.get());
+    return down_cast<MemoryPool<T>*>(pool.get());
   }
 
   size_t PoolSize() const { return pool_size_; }
@@ -234,39 +230,39 @@ class BlockAllocator {
       : arenas_(std::make_shared<MemoryArenaCollection>(block_size)) {}
 
   template <typename U>
-  explicit BlockAllocator(const BlockAllocator<U> &arena_alloc)
+  explicit BlockAllocator(const BlockAllocator<U>& arena_alloc)
       : arenas_(arena_alloc.Arenas()) {}
 
-  T *allocate(size_type n, const void *hint = nullptr) {
+  T* allocate(size_type n, const void* hint = nullptr) {
     if (n * kAllocFit <= kAllocSize) {
-      return static_cast<T *>(Arena()->Allocate(n));
+      return static_cast<T*>(Arena()->Allocate(n));
     } else {
       auto allocator = Allocator();
       return std::allocator_traits<Allocator>::allocate(allocator, n, hint);
     }
   }
 
-  void deallocate(T *p, size_type n) {
+  void deallocate(T* p, size_type n) {
     if (n * kAllocFit > kAllocSize) Allocator().deallocate(p, n);
   }
 
   std::shared_ptr<MemoryArenaCollection> Arenas() const { return arenas_; }
 
  private:
-  MemoryArena<T> *Arena() { return arenas_->Arena<T>(); }
+  MemoryArena<T>* Arena() { return arenas_->Arena<T>(); }
 
   std::shared_ptr<MemoryArenaCollection> arenas_;
 };
 
 template <typename T, typename U>
-bool operator==(const BlockAllocator<T> &alloc1,
-                const BlockAllocator<U> &alloc2) {
+bool operator==(const BlockAllocator<T>& alloc1,
+                const BlockAllocator<U>& alloc2) {
   return false;
 }
 
 template <typename T, typename U>
-bool operator!=(const BlockAllocator<T> &alloc1,
-                const BlockAllocator<U> &alloc2) {
+bool operator!=(const BlockAllocator<T>& alloc1,
+                const BlockAllocator<U>& alloc2) {
   return true;
 }
 
@@ -289,31 +285,31 @@ class PoolAllocator {
       : pools_(std::make_shared<MemoryPoolCollection>(pool_size)) {}
 
   template <typename U>
-  explicit PoolAllocator(const PoolAllocator<U> &pool_alloc)
+  explicit PoolAllocator(const PoolAllocator<U>& pool_alloc)
       : pools_(pool_alloc.Pools()) {}
 
-  T *allocate(size_type n, const void *hint = nullptr) {
+  T* allocate(size_type n, const void* hint = nullptr) {
     if (n == 1) {
-      return static_cast<T *>(Pool<1>()->Allocate());
+      return static_cast<T*>(Pool<1>()->Allocate());
     } else if (n == 2) {
-      return static_cast<T *>(Pool<2>()->Allocate());
+      return static_cast<T*>(Pool<2>()->Allocate());
     } else if (n <= 4) {
-      return static_cast<T *>(Pool<4>()->Allocate());
+      return static_cast<T*>(Pool<4>()->Allocate());
     } else if (n <= 8) {
-      return static_cast<T *>(Pool<8>()->Allocate());
+      return static_cast<T*>(Pool<8>()->Allocate());
     } else if (n <= 16) {
-      return static_cast<T *>(Pool<16>()->Allocate());
+      return static_cast<T*>(Pool<16>()->Allocate());
     } else if (n <= 32) {
-      return static_cast<T *>(Pool<32>()->Allocate());
+      return static_cast<T*>(Pool<32>()->Allocate());
     } else if (n <= 64) {
-      return static_cast<T *>(Pool<64>()->Allocate());
+      return static_cast<T*>(Pool<64>()->Allocate());
     } else {
       auto allocator = Allocator();
       return std::allocator_traits<Allocator>::allocate(allocator, n, hint);
     }
   }
 
-  void deallocate(T *p, size_type n) {
+  void deallocate(T* p, size_type n) {
     if (n == 1) {
       Pool<1>()->Free(p);
     } else if (n == 2) {
@@ -342,7 +338,7 @@ class PoolAllocator {
   };
 
   template <int n>
-  MemoryPool<TN<n>> *Pool() {
+  MemoryPool<TN<n>>* Pool() {
     return pools_->Pool<TN<n>>();
   }
 
@@ -350,14 +346,14 @@ class PoolAllocator {
 };
 
 template <typename T, typename U>
-bool operator==(const PoolAllocator<T> &alloc1,
-                const PoolAllocator<U> &alloc2) {
+bool operator==(const PoolAllocator<T>& alloc1,
+                const PoolAllocator<U>& alloc2) {
   return false;
 }
 
 template <typename T, typename U>
-bool operator!=(const PoolAllocator<T> &alloc1,
-                const PoolAllocator<U> &alloc2) {
+bool operator!=(const PoolAllocator<T>& alloc1,
+                const PoolAllocator<U>& alloc2) {
   return true;
 }
 

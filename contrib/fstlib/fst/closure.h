@@ -20,14 +20,8 @@
 #ifndef FST_CLOSURE_H_
 #define FST_CLOSURE_H_
 
-#include <algorithm>
-#include <vector>
-
 #include <fst/arc.h>
-#include <fst/cache.h>
-#include <fst/float-weight.h>
 #include <fst/fst.h>
-#include <fst/impl-to-fst.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
 #include <fst/rational.h>
@@ -48,7 +42,7 @@ namespace fst {
 //
 // where V is the number of states.
 template <class Arc>
-void Closure(MutableFst<Arc> *fst, ClosureType closure_type) {
+void Closure(MutableFst<Arc>* fst, ClosureType closure_type) {
   using Weight = typename Arc::Weight;
   const auto props = fst->Properties(kFstProperties, false);
   const auto start = fst->Start();
@@ -72,14 +66,14 @@ void Closure(MutableFst<Arc> *fst, ClosureType closure_type) {
 // Computes the concatenative closure. This version modifies its
 // RationalFst input.
 template <class Arc>
-void Closure(RationalFst<Arc> *fst, ClosureType closure_type) {
+void Closure(RationalFst<Arc>* fst, ClosureType closure_type) {
   fst->GetMutableImpl()->AddClosure(closure_type);
 }
 
 struct ClosureFstOptions : RationalFstOptions {
   ClosureType type;
 
-  explicit ClosureFstOptions(const RationalFstOptions &opts,
+  explicit ClosureFstOptions(const RationalFstOptions& opts,
                              ClosureType type = CLOSURE_STAR)
       : RationalFstOptions(opts), type(type) {}
 
@@ -101,37 +95,37 @@ struct ClosureFstOptions : RationalFstOptions {
 // input state or arc is assumed and exclusive of caching.
 template <class A>
 class ClosureFst : public RationalFst<A> {
+  using Base = RationalFst<A>;
+
  public:
   using Arc = A;
 
-  ClosureFst(const Fst<Arc> &fst, ClosureType closure_type) {
+  ClosureFst(const Fst<Arc>& fst, ClosureType closure_type) {
     GetMutableImpl()->InitClosure(fst, closure_type);
   }
 
-  ClosureFst(const Fst<Arc> &fst, const ClosureFstOptions &opts)
-      : RationalFst<A>(opts) {
+  ClosureFst(const Fst<Arc>& fst, const ClosureFstOptions& opts) : Base(opts) {
     GetMutableImpl()->InitClosure(fst, opts.type);
   }
 
   // See Fst<>::Copy() for doc.
-  ClosureFst(const ClosureFst &fst, bool safe = false)
-      : RationalFst<A>(fst, safe) {}
+  ClosureFst(const ClosureFst& fst, bool safe = false) : Base(fst, safe) {}
 
   // Gets a copy of this ClosureFst. See Fst<>::Copy() for further doc.
-  ClosureFst *Copy(bool safe = false) const override {
+  ClosureFst* Copy(bool safe = false) const override {
     return new ClosureFst(*this, safe);
   }
 
  private:
-  using ImplToFst<internal::RationalFstImpl<Arc>>::GetImpl;
-  using ImplToFst<internal::RationalFstImpl<Arc>>::GetMutableImpl;
+  using Base::GetImpl;
+  using Base::GetMutableImpl;
 };
 
 // Specialization for ClosureFst.
 template <class Arc>
 class StateIterator<ClosureFst<Arc>> : public StateIterator<RationalFst<Arc>> {
  public:
-  explicit StateIterator(const ClosureFst<Arc> &fst)
+  explicit StateIterator(const ClosureFst<Arc>& fst)
       : StateIterator<RationalFst<Arc>>(fst) {}
 };
 
@@ -141,7 +135,7 @@ class ArcIterator<ClosureFst<Arc>> : public ArcIterator<RationalFst<Arc>> {
  public:
   using StateId = typename Arc::StateId;
 
-  ArcIterator(const ClosureFst<Arc> &fst, StateId s)
+  ArcIterator(const ClosureFst<Arc>& fst, StateId s)
       : ArcIterator<RationalFst<Arc>>(fst, s) {}
 };
 

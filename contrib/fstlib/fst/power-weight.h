@@ -46,7 +46,7 @@ class PowerWeight : public TupleWeight<W, n> {
 
   PowerWeight() = default;
 
-  explicit PowerWeight(const TupleWeight<W, n> &weight)
+  explicit PowerWeight(const TupleWeight<W, n>& weight)
       : TupleWeight<W, n>(weight) {}
 
   template <class Iterator>
@@ -54,27 +54,27 @@ class PowerWeight : public TupleWeight<W, n> {
 
   // Initialize component `index` to `weight`; initialize all other components
   // to `default_weight`
-  PowerWeight(size_t index, const W &weight,
-              const W &default_weight = W::Zero())
+  PowerWeight(size_t index, const W& weight,
+              const W& default_weight = W::Zero())
       : TupleWeight<W, n>(index, weight, default_weight) {}
 
-  static const PowerWeight &Zero() {
+  static const PowerWeight& Zero() {
     static const PowerWeight zero(TupleWeight<W, n>::Zero());
     return zero;
   }
 
-  static const PowerWeight &One() {
+  static const PowerWeight& One() {
     static const PowerWeight one(TupleWeight<W, n>::One());
     return one;
   }
 
-  static const PowerWeight &NoWeight() {
+  static const PowerWeight& NoWeight() {
     static const PowerWeight no_weight(TupleWeight<W, n>::NoWeight());
     return no_weight;
   }
 
-  static const std::string &Type() {
-    static const std::string *const type =
+  static const std::string& Type() {
+    static const std::string* const type =
         new std::string(W::Type() + "_^" + std::to_string(n));
     return *type;
   }
@@ -95,8 +95,8 @@ class PowerWeight : public TupleWeight<W, n> {
 
 // Semiring plus operation.
 template <class W, size_t n>
-inline PowerWeight<W, n> Plus(const PowerWeight<W, n> &w1,
-                              const PowerWeight<W, n> &w2) {
+inline PowerWeight<W, n> Plus(const PowerWeight<W, n>& w1,
+                              const PowerWeight<W, n>& w2) {
   PowerWeight<W, n> result;
   for (size_t i = 0; i < n; ++i) {
     result.SetValue(i, Plus(w1.Value(i), w2.Value(i)));
@@ -106,8 +106,8 @@ inline PowerWeight<W, n> Plus(const PowerWeight<W, n> &w1,
 
 // Semiring times operation.
 template <class W, size_t n>
-inline PowerWeight<W, n> Times(const PowerWeight<W, n> &w1,
-                               const PowerWeight<W, n> &w2) {
+inline PowerWeight<W, n> Times(const PowerWeight<W, n>& w1,
+                               const PowerWeight<W, n>& w2) {
   PowerWeight<W, n> result;
   for (size_t i = 0; i < n; ++i) {
     result.SetValue(i, Times(w1.Value(i), w2.Value(i)));
@@ -117,8 +117,8 @@ inline PowerWeight<W, n> Times(const PowerWeight<W, n> &w1,
 
 // Semiring divide operation.
 template <class W, size_t n>
-inline PowerWeight<W, n> Divide(const PowerWeight<W, n> &w1,
-                                const PowerWeight<W, n> &w2,
+inline PowerWeight<W, n> Divide(const PowerWeight<W, n>& w1,
+                                const PowerWeight<W, n>& w2,
                                 DivideType type = DIVIDE_ANY) {
   PowerWeight<W, n> result;
   for (size_t i = 0; i < n; ++i) {
@@ -129,8 +129,8 @@ inline PowerWeight<W, n> Divide(const PowerWeight<W, n> &w1,
 
 // Semimodule left scalar product.
 template <class W, size_t n>
-inline PowerWeight<W, n> Times(const W &scalar,
-                               const PowerWeight<W, n> &weight) {
+inline PowerWeight<W, n> Times(const W& scalar,
+                               const PowerWeight<W, n>& weight) {
   PowerWeight<W, n> result;
   for (size_t i = 0; i < n; ++i) {
     result.SetValue(i, Times(scalar, weight.Value(i)));
@@ -140,8 +140,8 @@ inline PowerWeight<W, n> Times(const W &scalar,
 
 // Semimodule right scalar product.
 template <class W, size_t n>
-inline PowerWeight<W, n> Times(const PowerWeight<W, n> &weight,
-                               const W &scalar) {
+inline PowerWeight<W, n> Times(const PowerWeight<W, n>& weight,
+                               const W& scalar) {
   PowerWeight<W, n> result;
   for (size_t i = 0; i < n; ++i) {
     result.SetValue(i, Times(weight.Value(i), scalar));
@@ -151,7 +151,7 @@ inline PowerWeight<W, n> Times(const PowerWeight<W, n> &weight,
 
 // Semimodule dot product.
 template <class W, size_t n>
-inline W DotProduct(const PowerWeight<W, n> &w1, const PowerWeight<W, n> &w2) {
+inline W DotProduct(const PowerWeight<W, n>& w1, const PowerWeight<W, n>& w2) {
   W result(W::Zero());
   for (size_t i = 0; i < n; ++i) {
     result = Plus(result, Times(w1.Value(i), w2.Value(i)));

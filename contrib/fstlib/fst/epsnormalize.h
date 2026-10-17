@@ -49,14 +49,14 @@ enum EpsNormalizeType { EPS_NORM_INPUT, EPS_NORM_OUTPUT };
 // algorithms for weighted transducers. International Journal of Computer
 // Science, 13(1): 129-143, 2002.
 template <class Arc>
-void EpsNormalize(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
+void EpsNormalize(const Fst<Arc>& ifst, MutableFst<Arc>* ofst,
                   EpsNormalizeType type = EPS_NORM_INPUT) {
   EpsNormalize<Arc, GALLIC>(ifst, ofst, type);
 }
 
 // Same as above, except allows specifying explicitly the gallic weight type.
 template <class Arc, GallicType G>
-void EpsNormalize(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
+void EpsNormalize(const Fst<Arc>& ifst, MutableFst<Arc>* ofst,
                   EpsNormalizeType type) {
   VectorFst<GallicArc<Arc, G>> gfst;
   std::unique_ptr<SymbolTable> symbols;

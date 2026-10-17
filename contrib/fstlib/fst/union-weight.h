@@ -17,7 +17,7 @@
 //
 // Union weight set and associated semiring operation definitions.
 //
-// TODO(riley): add in normalizer functor.
+// TODO: add in normalizer functor.
 
 #ifndef FST_UNION_WEIGHT_H_
 #define FST_UNION_WEIGHT_H_
@@ -76,7 +76,7 @@ template <class W, class O>
 class UnionWeightReverseIterator;
 
 template <class W, class O>
-bool operator==(const UnionWeight<W, O> &, const UnionWeight<W, O> &);
+bool operator==(const UnionWeight<W, O>&, const UnionWeight<W, O>&);
 
 // Semiring that uses Times() and One() from W and union and the empty set
 // for Plus() and Zero(), respectively. Template argument O specifies the union
@@ -103,24 +103,24 @@ class UnionWeight {
     if (!weight.Member()) rest_.push_back(W::NoWeight());
   }
 
-  static const UnionWeight &Zero() {
-    static const auto *const zero = new UnionWeight;
+  static const UnionWeight& Zero() {
+    static const auto* const zero = new UnionWeight;
     return *zero;
   }
 
-  static const UnionWeight &One() {
-    static const auto *const one = new UnionWeight(W::One());
+  static const UnionWeight& One() {
+    static const auto* const one = new UnionWeight(W::One());
     return *one;
   }
 
-  static const UnionWeight &NoWeight() {
-    static const auto *const no_weight =
+  static const UnionWeight& NoWeight() {
+    static const auto* const no_weight =
         new UnionWeight(W::Zero(), W::NoWeight());
     return *no_weight;
   }
 
-  static const std::string &Type() {
-    static const std::string *const type =
+  static const std::string& Type() {
+    static const std::string* const type =
         new std::string(W::Type() + "_union");
     return *type;
   }
@@ -132,9 +132,9 @@ class UnionWeight {
 
   bool Member() const;
 
-  std::istream &Read(std::istream &strm);
+  std::istream& Read(std::istream& strm);
 
-  std::ostream &Write(std::ostream &strm) const;
+  std::ostream& Write(std::ostream& strm) const;
 
   size_t Hash() const;
 
@@ -154,7 +154,7 @@ class UnionWeight {
 
   size_t Size() const { return first_.Member() ? rest_.size() + 1 : 0; }
 
-  const W &Back() const { return rest_.empty() ? first_ : rest_.back(); }
+  const W& Back() const { return rest_.empty() ? first_ : rest_.back(); }
 
   // When srt is true, assumes elements added sorted w.r.t Compare and merging
   // of weights performed as needed. Otherwise, just ensures first_ is the
@@ -166,7 +166,7 @@ class UnionWeight {
   void Sort() { rest_.sort(comp_); }
 
  private:
-  W &Back() {
+  W& Back() {
     if (rest_.empty()) {
       return first_;
     } else {
@@ -189,7 +189,7 @@ void UnionWeight<W, O>::PushBack(W weight, bool srt) {
   } else if (!first_.Member()) {
     first_ = std::move(weight);
   } else if (srt) {
-    auto &back = Back();
+    auto& back = Back();
     if (comp_(back, weight)) {
       rest_.push_back(std::move(weight));
     } else {
@@ -209,7 +209,7 @@ void UnionWeight<W, O>::PushBack(W weight, bool srt) {
 template <class W, class O>
 class UnionWeightIterator {
  public:
-  explicit UnionWeightIterator(const UnionWeight<W, O> &weight)
+  explicit UnionWeightIterator(const UnionWeight<W, O>& weight)
       : first_(weight.first_),
         rest_(weight.rest_),
         init_(true),
@@ -217,7 +217,7 @@ class UnionWeightIterator {
 
   bool Done() const { return init_ ? !first_.Member() : it_ == rest_.end(); }
 
-  const W &Value() const { return init_ ? first_ : *it_; }
+  const W& Value() const { return init_ ? first_ : *it_; }
 
   void Next() {
     if (init_) {
@@ -233,8 +233,8 @@ class UnionWeightIterator {
   }
 
  private:
-  const W &first_;
-  const std::list<W> &rest_;
+  const W& first_;
+  const std::list<W>& rest_;
   bool init_;  // in the initialized state?
   typename std::list<W>::const_iterator it_;
 };
@@ -243,7 +243,7 @@ class UnionWeightIterator {
 template <typename L, class O>
 class UnionWeightReverseIterator {
  public:
-  explicit UnionWeightReverseIterator(const UnionWeight<L, O> &weight)
+  explicit UnionWeightReverseIterator(const UnionWeight<L, O>& weight)
       : first_(weight.first_),
         rest_(weight.rest_),
         fin_(!first_.Member()),
@@ -251,7 +251,7 @@ class UnionWeightReverseIterator {
 
   bool Done() const { return fin_; }
 
-  const L &Value() const { return it_ == rest_.rend() ? first_ : *it_; }
+  const L& Value() const { return it_ == rest_.rend() ? first_ : *it_; }
 
   void Next() {
     if (it_ == rest_.rend()) {
@@ -267,15 +267,15 @@ class UnionWeightReverseIterator {
   }
 
  private:
-  const L &first_;
-  const std::list<L> &rest_;
+  const L& first_;
+  const std::list<L>& rest_;
   bool fin_;  // in the final state?
   typename std::list<L>::const_reverse_iterator it_;
 };
 
 // UnionWeight member functions follow that require UnionWeightIterator.
 template <class W, class O>
-inline std::istream &UnionWeight<W, O>::Read(std::istream &istrm) {
+inline std::istream& UnionWeight<W, O>::Read(std::istream& istrm) {
   Clear();
   int32_t size;
   ReadType(istrm, &size);
@@ -288,7 +288,7 @@ inline std::istream &UnionWeight<W, O>::Read(std::istream &istrm) {
 }
 
 template <class W, class O>
-inline std::ostream &UnionWeight<W, O>::Write(std::ostream &ostrm) const {
+inline std::ostream& UnionWeight<W, O>::Write(std::ostream& ostrm) const {
   const int32_t size = Size();
   WriteType(ostrm, size);
   for (UnionWeightIterator<W, O> it(*this); !it.Done(); it.Next()) {
@@ -339,8 +339,8 @@ inline size_t UnionWeight<W, O>::Hash() const {
 
 // Requires union weight has been canonicalized.
 template <class W, class O>
-inline bool operator==(const UnionWeight<W, O> &w1,
-                       const UnionWeight<W, O> &w2) {
+inline bool operator==(const UnionWeight<W, O>& w1,
+                       const UnionWeight<W, O>& w2) {
   if (w1.Size() != w2.Size()) return false;
   UnionWeightIterator<W, O> it1(w1);
   UnionWeightIterator<W, O> it2(w2);
@@ -352,15 +352,15 @@ inline bool operator==(const UnionWeight<W, O> &w1,
 
 // Requires union weight has been canonicalized.
 template <class W, class O>
-inline bool operator!=(const UnionWeight<W, O> &w1,
-                       const UnionWeight<W, O> &w2) {
+inline bool operator!=(const UnionWeight<W, O>& w1,
+                       const UnionWeight<W, O>& w2) {
   return !(w1 == w2);
 }
 
 // Requires union weight has been canonicalized.
 template <class W, class O>
-inline bool ApproxEqual(const UnionWeight<W, O> &w1,
-                        const UnionWeight<W, O> &w2, float delta = kDelta) {
+inline bool ApproxEqual(const UnionWeight<W, O>& w1,
+                        const UnionWeight<W, O>& w2, float delta = kDelta) {
   if (w1.Size() != w2.Size()) return false;
   UnionWeightIterator<W, O> it1(w1);
   UnionWeightIterator<W, O> it2(w2);
@@ -371,8 +371,8 @@ inline bool ApproxEqual(const UnionWeight<W, O> &w1,
 }
 
 template <class W, class O>
-inline std::ostream &operator<<(std::ostream &ostrm,
-                                const UnionWeight<W, O> &weight) {
+inline std::ostream& operator<<(std::ostream& ostrm,
+                                const UnionWeight<W, O>& weight) {
   UnionWeightIterator<W, O> it(weight);
   if (it.Done()) {
     return ostrm << "EmptySet";
@@ -388,8 +388,8 @@ inline std::ostream &operator<<(std::ostream &ostrm,
 }
 
 template <class W, class O>
-inline std::istream &operator>>(std::istream &istrm,
-                                UnionWeight<W, O> &weight) {
+inline std::istream& operator>>(std::istream& istrm,
+                                UnionWeight<W, O>& weight) {
   std::string s;
   istrm >> s;
   if (s == "EmptySet") {
@@ -413,8 +413,8 @@ inline std::istream &operator>>(std::istream &istrm,
 }
 
 template <class W, class O>
-inline UnionWeight<W, O> Plus(const UnionWeight<W, O> &w1,
-                              const UnionWeight<W, O> &w2) {
+inline UnionWeight<W, O> Plus(const UnionWeight<W, O>& w1,
+                              const UnionWeight<W, O>& w2) {
   if (!w1.Member() || !w2.Member()) return UnionWeight<W, O>::NoWeight();
   if (w1 == UnionWeight<W, O>::Zero()) return w2;
   if (w2 == UnionWeight<W, O>::Zero()) return w1;
@@ -439,8 +439,8 @@ inline UnionWeight<W, O> Plus(const UnionWeight<W, O> &w1,
 }
 
 template <class W, class O>
-inline UnionWeight<W, O> Times(const UnionWeight<W, O> &w1,
-                               const UnionWeight<W, O> &w2) {
+inline UnionWeight<W, O> Times(const UnionWeight<W, O>& w1,
+                               const UnionWeight<W, O>& w2) {
   if (!w1.Member() || !w2.Member()) return UnionWeight<W, O>::NoWeight();
   if (w1 == UnionWeight<W, O>::Zero() || w2 == UnionWeight<W, O>::Zero()) {
     return UnionWeight<W, O>::Zero();
@@ -460,8 +460,8 @@ inline UnionWeight<W, O> Times(const UnionWeight<W, O> &w1,
 }
 
 template <class W, class O>
-inline UnionWeight<W, O> Divide(const UnionWeight<W, O> &w1,
-                                const UnionWeight<W, O> &w2, DivideType typ) {
+inline UnionWeight<W, O> Divide(const UnionWeight<W, O>& w1,
+                                const UnionWeight<W, O>& w2, DivideType typ) {
   if (!w1.Member() || !w2.Member()) return UnionWeight<W, O>::NoWeight();
   if (w1 == UnionWeight<W, O>::Zero() || w2 == UnionWeight<W, O>::Zero()) {
     return UnionWeight<W, O>::Zero();

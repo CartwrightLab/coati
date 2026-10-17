@@ -33,13 +33,12 @@
 #include <fst/flags.h>
 #include <fst/log.h>
 #include <string_view>
-#include <optional>
 
 // Utility flag definitions
 
 DEFINE_bool(fst_error_fatal, true,
-            "FST errors are fatal; o.w. return objects flagged as bad: "
-            "e.g., FSTs: kError property set, FST weights: not a Member()");
+          "FST errors are fatal; o.w. return objects flagged as bad: "
+          "e.g., FSTs: kError property set, FST weights: not a Member()");
 
 namespace fst {
 
@@ -49,7 +48,8 @@ std::optional<int64_t> ParseInt64(std::string_view s, int base) {
   // do not return implicit char pointers on this platforms. Using data()
   // and size() instead should be more portable.
   //
-  // See: https://stackoverflow.com/questions/61203317/stdfrom-chars-doenst-compile-under-msvc
+  // See:
+  // https://stackoverflow.com/questions/61203317/stdfrom-chars-doenst-compile-under-msvc
   int64_t n;
   if (const auto [p, ec] =
           std::from_chars(s.data(), s.data() + s.size(), n, /*base=*/base);
@@ -60,7 +60,7 @@ std::optional<int64_t> ParseInt64(std::string_view s, int base) {
 }
 
 int64_t StrToInt64(std::string_view s, std::string_view source, size_t nline,
-                   bool * error) {
+                   bool*  error) {
   if (error) *error = false;
   const std::optional<int64_t> maybe_n = ParseInt64(s);
   if (!maybe_n.has_value()) {
@@ -72,7 +72,7 @@ int64_t StrToInt64(std::string_view s, std::string_view source, size_t nline,
   return *maybe_n;
 }
 
-void ConvertToLegalCSymbol(std::string *s) {
+void ConvertToLegalCSymbol(std::string* s) {
   for (auto it = s->begin(); it != s->end(); ++it) {
     if (!isalnum(*it)) {
       *it = '_';
@@ -82,7 +82,7 @@ void ConvertToLegalCSymbol(std::string *s) {
 
 // Skips over input characters to align to 'align' bytes. Returns false if can't
 // align.
-bool AlignInput(std::istream &strm, size_t align) {
+bool AlignInput(std::istream& strm, size_t align) {
   char c;
   for (size_t i = 0; i < align; ++i) {
     int64_t pos = strm.tellg();
@@ -98,7 +98,7 @@ bool AlignInput(std::istream &strm, size_t align) {
 
 // Write null output characters to align to 'align' bytes. Returns false if
 // can't align.
-bool AlignOutput(std::ostream &strm, size_t align) {
+bool AlignOutput(std::ostream& strm, size_t align) {
   for (size_t i = 0; i < align; ++i) {
     int64_t pos = strm.tellp();
     if (pos < 0) {
@@ -111,8 +111,7 @@ bool AlignOutput(std::ostream &strm, size_t align) {
   return true;
 }
 
-int AlignBufferWithOutputStream(std::ostream &strm,
-                                std::ostringstream &buffer,
+int AlignBufferWithOutputStream(std::ostream& strm, std::ostringstream& buffer,
                                 size_t align) {
   const auto strm_pos = strm.tellp();
   if (strm_pos == -1) {

@@ -25,7 +25,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <string>
 #include <tuple>
 #include <vector>
 
@@ -48,12 +47,12 @@ class ArcSortMapper {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  constexpr ArcSortMapper(const Fst<Arc> &fst, const Compare &comp)
+  constexpr ArcSortMapper(const Fst<Arc>& fst, const Compare& comp)
       : fst_(fst), comp_(comp), i_(0) {}
 
   // Allows updating Fst argument; pass only if changed.
-  ArcSortMapper(const ArcSortMapper<Arc, Compare> &mapper,
-                const Fst<Arc> *fst = nullptr)
+  ArcSortMapper(const ArcSortMapper<Arc, Compare>& mapper,
+                const Fst<Arc>* fst = nullptr)
       : fst_(fst ? *fst : mapper.fst_), comp_(mapper.comp_), i_(0) {}
 
   StateId Start() { return fst_.Start(); }
@@ -72,7 +71,7 @@ class ArcSortMapper {
 
   bool Done() const { return i_ >= arcs_.size(); }
 
-  const Arc &Value() const { return arcs_[i_]; }
+  const Arc& Value() const { return arcs_[i_]; }
 
   void Next() { ++i_; }
 
@@ -83,12 +82,12 @@ class ArcSortMapper {
   uint64_t Properties(uint64_t props) const { return comp_.Properties(props); }
 
  private:
-  const Fst<Arc> &fst_;
-  const Compare &comp_;
+  const Fst<Arc>& fst_;
+  const Compare& comp_;
   std::vector<Arc> arcs_;
   ssize_t i_;  // current arc position
 
-  ArcSortMapper &operator=(const ArcSortMapper &) = delete;
+  ArcSortMapper& operator=(const ArcSortMapper&) = delete;
 };
 
 // Sorts the arcs in an FST according to function object 'comp' of type Compare.
@@ -106,7 +105,7 @@ class ArcSortMapper {
 //
 // where v = # of states and d = maximum out-degree.
 template <class Arc, class Compare>
-void ArcSort(MutableFst<Arc> *fst, Compare comp) {
+void ArcSort(MutableFst<Arc>* fst, Compare comp) {
   ArcSortMapper<Arc, Compare> mapper(*fst, comp);
   StateMap(fst, mapper);
 }
@@ -137,20 +136,20 @@ class ArcSortFst : public StateMapFst<Arc, Arc, ArcSortMapper<Arc, Compare>> {
   using StateId = typename Arc::StateId;
   using Mapper = ArcSortMapper<Arc, Compare>;
 
-  ArcSortFst(const Fst<Arc> &fst, const Compare &comp)
+  ArcSortFst(const Fst<Arc>& fst, const Compare& comp)
       : StateMapFst<Arc, Arc, Mapper>(fst,
                                       ArcSortMapper<Arc, Compare>(fst, comp)) {}
 
-  ArcSortFst(const Fst<Arc> &fst, const Compare &comp,
-             const ArcSortFstOptions &opts)
+  ArcSortFst(const Fst<Arc>& fst, const Compare& comp,
+             const ArcSortFstOptions& opts)
       : StateMapFst<Arc, Arc, Mapper>(fst, Mapper(fst, comp), opts) {}
 
   // See Fst<>::Copy() for doc.
-  ArcSortFst(const ArcSortFst &fst, bool safe = false)
+  ArcSortFst(const ArcSortFst& fst, bool safe = false)
       : StateMapFst<Arc, Arc, Mapper>(fst, safe) {}
 
   // Gets a copy of this ArcSortFst. See Fst<>::Copy() for further doc.
-  ArcSortFst *Copy(bool safe = false) const override {
+  ArcSortFst* Copy(bool safe = false) const override {
     return new ArcSortFst(*this, safe);
   }
 
@@ -172,7 +171,7 @@ template <class Arc, class Compare>
 class StateIterator<ArcSortFst<Arc, Compare>>
     : public StateIterator<StateMapFst<Arc, Arc, ArcSortMapper<Arc, Compare>>> {
  public:
-  explicit StateIterator(const ArcSortFst<Arc, Compare> &fst)
+  explicit StateIterator(const ArcSortFst<Arc, Compare>& fst)
       : StateIterator<StateMapFst<Arc, Arc, ArcSortMapper<Arc, Compare>>>(fst) {
   }
 };
@@ -182,7 +181,7 @@ template <class Arc, class Compare>
 class ArcIterator<ArcSortFst<Arc, Compare>>
     : public ArcIterator<StateMapFst<Arc, Arc, ArcSortMapper<Arc, Compare>>> {
  public:
-  ArcIterator(const ArcSortFst<Arc, Compare> &fst, typename Arc::StateId s)
+  ArcIterator(const ArcSortFst<Arc, Compare>& fst, typename Arc::StateId s)
       : ArcIterator<StateMapFst<Arc, Arc, ArcSortMapper<Arc, Compare>>>(fst,
                                                                         s) {}
 };
@@ -193,7 +192,7 @@ class ILabelCompare {
  public:
   constexpr ILabelCompare() = default;
 
-  constexpr bool operator()(const Arc &lhs, const Arc &rhs) const {
+  constexpr bool operator()(const Arc& lhs, const Arc& rhs) const {
     return std::forward_as_tuple(lhs.ilabel, lhs.olabel) <
            std::forward_as_tuple(rhs.ilabel, rhs.olabel);
   }
@@ -210,7 +209,7 @@ class OLabelCompare {
  public:
   constexpr OLabelCompare() = default;
 
-  constexpr bool operator()(const Arc &lhs, const Arc &rhs) const {
+  constexpr bool operator()(const Arc& lhs, const Arc& rhs) const {
     return std::forward_as_tuple(lhs.olabel, lhs.ilabel) <
            std::forward_as_tuple(rhs.olabel, rhs.ilabel);
   }

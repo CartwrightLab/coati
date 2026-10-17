@@ -20,23 +20,22 @@
 #ifndef FST_SYNCHRONIZE_H_
 #define FST_SYNCHRONIZE_H_
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
+#include <unordered_map>
+#include <unordered_set>
+#include <fst/flags.h>
 #include <fst/cache.h>
 #include <fst/fst.h>
 #include <fst/impl-to-fst.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
-#include <unordered_map>
-#include <unordered_set>
 
 namespace fst {
 
@@ -88,7 +87,7 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
     // values are owned by the hash set string_set_.
   };
 
-  SynchronizeFstImpl(const Fst<Arc> &fst, const SynchronizeFstOptions &opts)
+  SynchronizeFstImpl(const Fst<Arc>& fst, const SynchronizeFstOptions& opts)
       : CacheImpl<Arc>(opts), fst_(fst.Copy()) {
     SetType("synchronize");
     const auto props = fst.Properties(kFstProperties, false);
@@ -97,7 +96,7 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
     SetOutputSymbols(fst.OutputSymbols());
   }
 
-  SynchronizeFstImpl(const SynchronizeFstImpl &impl)
+  SynchronizeFstImpl(const SynchronizeFstImpl& impl)
       : CacheImpl<Arc>(impl), fst_(impl.fst_->Copy(true)) {
     SetType("synchronize");
     SetProperties(impl.Properties(), kCopyProperties);
@@ -118,7 +117,7 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
 
   Weight Final(StateId s) {
     if (!HasFinal(s)) {
-      const auto &element = elements_[s];
+      const auto& element = elements_[s];
       const auto weight = element.state == kNoStateId
                               ? Weight::One()
                               : fst_->Final(element.state);
@@ -157,7 +156,7 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
     return FstImpl<Arc>::Properties(mask);
   }
 
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) {
     if (!HasArcs(s)) Expand(s);
     CacheImpl<Arc>::InitArcIterator(s, data);
   }
@@ -195,15 +194,15 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
     }
   }
 
-  StringView FindString(String &&str) {
+  StringView FindString(String&& str) {
     const auto [str_it, unused] = string_set_.insert(std::forward<String>(str));
     return *str_it;
   }
 
   // Finds state corresponding to an element. Creates new state if element
   // is not found.
-  StateId FindState(const Element &element) {
-    const auto &[iter, inserted] =
+  StateId FindState(const Element& element) {
+    const auto& [iter, inserted] =
         element_map_.emplace(element, elements_.size());
     if (inserted) {
       elements_.push_back(element);
@@ -218,7 +217,7 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
     if (element.state != kNoStateId) {
       for (ArcIterator<Fst<Arc>> aiter(*fst_, element.state); !aiter.Done();
            aiter.Next()) {
-        const auto &arc = aiter.Value();
+        const auto& arc = aiter.Value();
         if (!Empty(element.istring, arc.ilabel) &&
             !Empty(element.ostring, arc.olabel)) {
           StringView istring = Cdr(element.istring, arc.ilabel);
@@ -251,7 +250,7 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
   // Equality function for Elements; assumes strings have been hashed.
   class ElementEqual {
    public:
-    bool operator()(const Element &x, const Element &y) const {
+    bool operator()(const Element& x, const Element& y) const {
       return x.state == y.state && x.istring.data() == y.istring.data() &&
              x.ostring.data() == y.ostring.data();
     }
@@ -260,7 +259,7 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
   // Hash function for Elements to FST states.
   class ElementKey {
    public:
-    size_t operator()(const Element &x) const {
+    size_t operator()(const Element& x) const {
       size_t key = x.state;
       key = (key << 1) ^ x.istring.size();
       for (Label label : x.istring) {
@@ -322,6 +321,8 @@ class SynchronizeFstImpl : public CacheImpl<Arc> {
 // counting, delegating most methods to ImplToFst.
 template <class A>
 class SynchronizeFst : public ImplToFst<internal::SynchronizeFstImpl<A>> {
+  using Base = ImplToFst<internal::SynchronizeFstImpl<A>>;
+
  public:
   using Arc = A;
   using StateId = typename Arc::StateId;
@@ -329,35 +330,35 @@ class SynchronizeFst : public ImplToFst<internal::SynchronizeFstImpl<A>> {
 
   using Store = DefaultCacheStore<Arc>;
   using State = typename Store::State;
-  using Impl = internal::SynchronizeFstImpl<A>;
+  using typename Base::Impl;
 
   friend class ArcIterator<SynchronizeFst<A>>;
   friend class StateIterator<SynchronizeFst<A>>;
 
-  explicit SynchronizeFst(const Fst<A> &fst, const SynchronizeFstOptions &opts =
+  explicit SynchronizeFst(const Fst<A>& fst, const SynchronizeFstOptions& opts =
                                                  SynchronizeFstOptions())
-      : ImplToFst<Impl>(std::make_shared<Impl>(fst, opts)) {}
+      : Base(std::make_shared<Impl>(fst, opts)) {}
 
   // See Fst<>::Copy() for doc.
-  SynchronizeFst(const SynchronizeFst &fst, bool safe = false)
-      : ImplToFst<Impl>(fst, safe) {}
+  SynchronizeFst(const SynchronizeFst& fst, bool safe = false)
+      : Base(fst, safe) {}
 
   // Gets a copy of this SynchronizeFst. See Fst<>::Copy() for further doc.
-  SynchronizeFst *Copy(bool safe = false) const override {
+  SynchronizeFst* Copy(bool safe = false) const override {
     return new SynchronizeFst(*this, safe);
   }
 
-  inline void InitStateIterator(StateIteratorData<Arc> *data) const override;
+  inline void InitStateIterator(StateIteratorData<Arc>* data) const override;
 
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) const override {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) const override {
     GetMutableImpl()->InitArcIterator(s, data);
   }
 
  private:
-  using ImplToFst<Impl>::GetImpl;
-  using ImplToFst<Impl>::GetMutableImpl;
+  using Base::GetImpl;
+  using Base::GetMutableImpl;
 
-  SynchronizeFst &operator=(const SynchronizeFst &) = delete;
+  SynchronizeFst& operator=(const SynchronizeFst&) = delete;
 };
 
 // Specialization for SynchronizeFst.
@@ -365,7 +366,7 @@ template <class Arc>
 class StateIterator<SynchronizeFst<Arc>>
     : public CacheStateIterator<SynchronizeFst<Arc>> {
  public:
-  explicit StateIterator(const SynchronizeFst<Arc> &fst)
+  explicit StateIterator(const SynchronizeFst<Arc>& fst)
       : CacheStateIterator<SynchronizeFst<Arc>>(fst, fst.GetMutableImpl()) {}
 };
 
@@ -376,7 +377,7 @@ class ArcIterator<SynchronizeFst<Arc>>
  public:
   using StateId = typename Arc::StateId;
 
-  ArcIterator(const SynchronizeFst<Arc> &fst, StateId s)
+  ArcIterator(const SynchronizeFst<Arc>& fst, StateId s)
       : CacheArcIterator<SynchronizeFst<Arc>>(fst.GetMutableImpl(), s) {
     if (!fst.GetImpl()->HasArcs(s)) fst.GetMutableImpl()->Expand(s);
   }
@@ -384,7 +385,7 @@ class ArcIterator<SynchronizeFst<Arc>>
 
 template <class Arc>
 inline void SynchronizeFst<Arc>::InitStateIterator(
-    StateIteratorData<Arc> *data) const {
+    StateIteratorData<Arc>* data) const {
   data->base = std::make_unique<StateIterator<SynchronizeFst<Arc>>>(*this);
 }
 
@@ -407,7 +408,7 @@ inline void SynchronizeFst<Arc>::InitStateIterator(
 // Mohri, M. 2003. Edit-distance of weighted automata: General definitions and
 // algorithms. International Journal of Computer Science 14(6): 957-982.
 template <class Arc>
-void Synchronize(const Fst<Arc> &ifst, MutableFst<Arc> *ofst) {
+void Synchronize(const Fst<Arc>& ifst, MutableFst<Arc>* ofst) {
   // Caches only the last state for fastest copy.
   const SynchronizeFstOptions opts(FST_FLAGS_fst_default_cache_gc,
                                    0);

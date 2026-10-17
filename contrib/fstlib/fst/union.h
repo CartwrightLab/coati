@@ -21,16 +21,13 @@
 #define FST_UNION_H_
 
 #include <algorithm>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include <fst/log.h>
 #include <fst/arc.h>
-#include <fst/cache.h>
 #include <fst/expanded-fst.h>
-#include <fst/float-weight.h>
 #include <fst/fst.h>
-#include <fst/impl-to-fst.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
 #include <fst/rational.h>
@@ -52,7 +49,7 @@ namespace fst {
 // where Vi is the number of states, and Ei is the number of arcs, in the ith
 // FST.
 template <class Arc>
-void Union(MutableFst<Arc> *fst1, const Fst<Arc> &fst2) {
+void Union(MutableFst<Arc>* fst1, const Fst<Arc>& fst2) {
   // Checks for symbol table compatibility.
   if (!CompatSymbols(fst1->InputSymbols(), fst2.InputSymbols()) ||
       !CompatSymbols(fst1->OutputSymbols(), fst2.OutputSymbols())) {
@@ -106,15 +103,15 @@ void Union(MutableFst<Arc> *fst1, const Fst<Arc> &fst2) {
 // Same as the above but can handle arbitrarily many right-hand-side FSTs,
 // preallocating the states.
 template <class Arc>
-void Union(MutableFst<Arc> *fst1, const std::vector<const Fst<Arc> *> &fsts2) {
+void Union(MutableFst<Arc>* fst1, const std::vector<const Fst<Arc>*>& fsts2) {
   // We add 1 just in case fst1 has an initial cycle.
   fst1->ReserveStates(1 + fst1->NumStates() + CountStates(fsts2));
-  for (const auto *fst2 : fsts2) Union(fst1, *fst2);
+  for (const auto* fst2 : fsts2) Union(fst1, *fst2);
 }
 
 // Computes the union of two FSTs, modifying the RationalFst argument.
 template <class Arc>
-void Union(RationalFst<Arc> *fst1, const Fst<Arc> &fst2) {
+void Union(RationalFst<Arc>* fst1, const Fst<Arc>& fst2) {
   fst1->GetMutableImpl()->AddUnion(fst2);
 }
 
@@ -135,40 +132,41 @@ using UnionFstOptions = RationalFstOptions;
 // arc is assumed and exclusive of caching.
 template <class A>
 class UnionFst : public RationalFst<A> {
+  using Base = RationalFst<A>;
+
  public:
   using Arc = A;
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  UnionFst(const Fst<Arc> &fst1, const Fst<Arc> &fst2) {
+  UnionFst(const Fst<Arc>& fst1, const Fst<Arc>& fst2) {
     GetMutableImpl()->InitUnion(fst1, fst2);
   }
 
-  UnionFst(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
-           const UnionFstOptions &opts)
-      : RationalFst<Arc>(opts) {
+  UnionFst(const Fst<Arc>& fst1, const Fst<Arc>& fst2,
+           const UnionFstOptions& opts)
+      : Base(opts) {
     GetMutableImpl()->InitUnion(fst1, fst2);
   }
 
   // See Fst<>::Copy() for doc.
-  UnionFst(const UnionFst &fst, bool safe = false)
-      : RationalFst<Arc>(fst, safe) {}
+  UnionFst(const UnionFst& fst, bool safe = false) : Base(fst, safe) {}
 
   // Gets a copy of this UnionFst. See Fst<>::Copy() for further doc.
-  UnionFst *Copy(bool safe = false) const override {
+  UnionFst* Copy(bool safe = false) const override {
     return new UnionFst(*this, safe);
   }
 
  private:
-  using ImplToFst<internal::RationalFstImpl<Arc>>::GetImpl;
-  using ImplToFst<internal::RationalFstImpl<Arc>>::GetMutableImpl;
+  using Base::GetImpl;
+  using Base::GetMutableImpl;
 };
 
 // Specialization for UnionFst.
 template <class Arc>
 class StateIterator<UnionFst<Arc>> : public StateIterator<RationalFst<Arc>> {
  public:
-  explicit StateIterator(const UnionFst<Arc> &fst)
+  explicit StateIterator(const UnionFst<Arc>& fst)
       : StateIterator<RationalFst<Arc>>(fst) {}
 };
 
@@ -178,7 +176,7 @@ class ArcIterator<UnionFst<Arc>> : public ArcIterator<RationalFst<Arc>> {
  public:
   using StateId = typename Arc::StateId;
 
-  ArcIterator(const UnionFst<Arc> &fst, StateId s)
+  ArcIterator(const UnionFst<Arc>& fst, StateId s)
       : ArcIterator<RationalFst<Arc>>(fst, s) {}
 };
 

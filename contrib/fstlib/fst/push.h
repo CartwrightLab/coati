@@ -43,7 +43,7 @@ namespace fst {
 // state when reverse is true and from the initial state otherwise.
 template <class Arc>
 typename Arc::Weight ComputeTotalWeight(
-    const Fst<Arc> &fst, const std::vector<typename Arc::Weight> &distance,
+    const Fst<Arc>& fst, const std::vector<typename Arc::Weight>& distance,
     bool reverse) {
   if (reverse) {
     return fst.Start() < distance.size() ? distance[fst.Start()]
@@ -60,7 +60,7 @@ typename Arc::Weight ComputeTotalWeight(
 // is also divided at the final state if at_final is true and at the initial
 // state otherwise.
 template <class Arc>
-void RemoveWeight(MutableFst<Arc> *fst, const typename Arc::Weight &weight,
+void RemoveWeight(MutableFst<Arc>* fst, const typename Arc::Weight& weight,
                   bool at_final) {
   using Weight = typename Arc::Weight;
   if ((weight == Weight::One()) || (weight == Weight::Zero())) return;
@@ -91,7 +91,7 @@ void RemoveWeight(MutableFst<Arc> *fst, const typename Arc::Weight &weight,
 // Weight needs to be left distributive when pushing towards the initial state
 // and right distributive when pushing towards the final states.
 template <class Arc>
-void Push(MutableFst<Arc> *fst, ReweightType type = REWEIGHT_TO_INITIAL,
+void Push(MutableFst<Arc>* fst, ReweightType type = REWEIGHT_TO_INITIAL,
           float delta = kShortestDelta, bool remove_total_weight = false) {
   using Weight = typename Arc::Weight;
   std::vector<Weight> distance;
@@ -118,7 +118,7 @@ inline constexpr uint8_t kPushRemoveCommonAffix = 0x08;
 // weights towards the initial state, and right distribution when pushing
 // weights towards the final states.
 template <class Arc, ReweightType rtype>
-void Push(const Fst<Arc> &ifst, MutableFst<Arc> *ofst, uint8_t ptype,
+void Push(const Fst<Arc>& ifst, MutableFst<Arc>* ofst, uint8_t ptype,
           float delta = kShortestDelta) {
   using Label = typename Arc::Label;
   using Weight = typename Arc::Weight;

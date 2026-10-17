@@ -26,20 +26,18 @@
 #include <functional>
 #include <list>
 #include <memory>
-#include <new>
 #include <utility>
 #include <vector>
 
+#include <unordered_map>
 #include <fst/flags.h>
+#include <functional>
 #include <fst/log.h>
 #include <fst/fst.h>
 #include <fst/memory.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
 #include <fst/util.h>
-#include <fst/vector-fst.h>
-#include <unordered_map>
-#include <functional>
 
 DECLARE_bool(fst_default_cache_gc);
 DECLARE_int64(fst_default_cache_gc_limit);
@@ -63,16 +61,16 @@ template <class CacheStore>
 struct CacheImplOptions {
   bool gc;            // Enables GC.
   size_t gc_limit;    // Number of bytes allowed before GC.
-  CacheStore *store;  // Cache store.
+  CacheStore* store;  // Cache store.
   bool own_store;     // Should CacheImpl takes ownership of the store?
 
   explicit CacheImplOptions(
       bool gc = FST_FLAGS_fst_default_cache_gc,
       size_t gc_limit = FST_FLAGS_fst_default_cache_gc_limit,
-      CacheStore *store = nullptr)
+      CacheStore* store = nullptr)
       : gc(gc), gc_limit(gc_limit), store(store), own_store(true) {}
 
-  explicit CacheImplOptions(const CacheOptions &opts)
+  explicit CacheImplOptions(const CacheOptions& opts)
       : gc(opts.gc), gc_limit(opts.gc_limit), store(nullptr), own_store(true) {}
 };
 
@@ -98,7 +96,7 @@ class CacheState {
       ArcAllocator>::template rebind_alloc<CacheState<A, M>>;
 
   // Provides STL allocator for arcs.
-  explicit CacheState(const ArcAllocator &alloc)
+  explicit CacheState(const ArcAllocator& alloc)
       : final_weight_(Weight::Zero()),
         niepsilons_(0),
         noepsilons_(0),
@@ -106,7 +104,7 @@ class CacheState {
         flags_(0),
         ref_count_(0) {}
 
-  CacheState(const CacheState<A> &state, const ArcAllocator &alloc)
+  CacheState(const CacheState<A>& state, const ArcAllocator& alloc)
       : final_weight_(state.Final()),
         niepsilons_(state.NumInputEpsilons()),
         noepsilons_(state.NumOutputEpsilons()),
@@ -131,10 +129,10 @@ class CacheState {
 
   size_t NumArcs() const { return arcs_.size(); }
 
-  const Arc &GetArc(size_t n) const { return arcs_[n]; }
+  const Arc& GetArc(size_t n) const { return arcs_[n]; }
 
   // Used by the ArcIterator<Fst<Arc>> efficient implementation.
-  const Arc *Arcs() const { return !arcs_.empty() ? &arcs_[0] : nullptr; }
+  const Arc* Arcs() const { return !arcs_.empty() ? &arcs_[0] : nullptr; }
 
   // Accesses flags; used by the caller.
   uint8_t Flags() const { return flags_; }
@@ -150,36 +148,36 @@ class CacheState {
 
   // Adds one arc at a time with all needed book-keeping; use PushArc and
   // SetArcs for a more efficient alternative.
-  void AddArc(const Arc &arc) {
+  void AddArc(const Arc& arc) {
     IncrementNumEpsilons(arc);
     arcs_.push_back(arc);
   }
 
-  void AddArc(Arc &&arc) {
+  void AddArc(Arc&& arc) {
     IncrementNumEpsilons(arc);
     arcs_.push_back(std::move(arc));
   }
 
   // Adds one arc at a time with delayed book-keeping; finalize with SetArcs().
-  void PushArc(const Arc &arc) { arcs_.push_back(arc); }
+  void PushArc(const Arc& arc) { arcs_.push_back(arc); }
 
-  void PushArc(Arc &&arc) { arcs_.push_back(std::move(arc)); }
+  void PushArc(Arc&& arc) { arcs_.push_back(std::move(arc)); }
 
   // Adds one arc at a time with delayed book-keeping; finalize with SetArcs().
   template <class... T>
-  void EmplaceArc(T &&...ctor_args) {
+  void EmplaceArc(T&&... ctor_args) {
     arcs_.emplace_back(std::forward<T>(ctor_args)...);
   }
 
   // Finalizes arcs book-keeping; call only once.
   void SetArcs() {
-    for (const auto &arc : arcs_) {
+    for (const auto& arc : arcs_) {
       IncrementNumEpsilons(arc);
     }
   }
 
   // Modifies nth arc.
-  void SetArc(const Arc &arc, size_t n) {
+  void SetArc(const Arc& arc, size_t n) {
     if (arcs_[n].ilabel == 0) --niepsilons_;
     if (arcs_[n].olabel == 0) --noepsilons_;
     IncrementNumEpsilons(arc);
@@ -214,15 +212,15 @@ class CacheState {
   int DecrRefCount() const { return --ref_count_; }
 
   // Used by the ArcIterator<Fst<Arc>> efficient implementation.
-  int *MutableRefCount() const { return &ref_count_; }
+  int* MutableRefCount() const { return &ref_count_; }
 
   // Used for state class allocation.
-  void *operator new(size_t size, StateAllocator *alloc) {
+  void* operator new(size_t size, StateAllocator* alloc) {
     return alloc->allocate(1);
   }
 
   // For state destruction and memory freeing.
-  static void Destroy(CacheState<Arc> *state, StateAllocator *alloc) {
+  static void Destroy(CacheState<Arc>* state, StateAllocator* alloc) {
     if (state) {
       state->~CacheState<Arc>();
       alloc->deallocate(state, 1);
@@ -231,7 +229,7 @@ class CacheState {
 
  private:
   // Update the number of epsilons as a result of having added an arc.
-  void IncrementNumEpsilons(const Arc &arc) {
+  void IncrementNumEpsilons(const Arc& arc) {
     if (arc.ilabel == 0) ++niepsilons_;
     if (arc.olabel == 0) ++noepsilons_;
   }
@@ -316,12 +314,12 @@ class VectorCacheStore {
   using StateList = std::list<StateId, PoolAllocator<StateId>>;
 
   // Required constructors/assignment operators.
-  explicit VectorCacheStore(const CacheOptions &opts) : cache_gc_(opts.gc) {
+  explicit VectorCacheStore(const CacheOptions& opts) : cache_gc_(opts.gc) {
     Clear();
     Reset();
   }
 
-  VectorCacheStore(const VectorCacheStore<S> &store)
+  VectorCacheStore(const VectorCacheStore<S>& store)
       : cache_gc_(store.cache_gc_) {
     CopyStates(store);
     Reset();
@@ -329,7 +327,7 @@ class VectorCacheStore {
 
   ~VectorCacheStore() { Clear(); }
 
-  VectorCacheStore &operator=(const VectorCacheStore &store) {
+  VectorCacheStore& operator=(const VectorCacheStore& store) {
     if (this != &store) {
       CopyStates(store);
       Reset();
@@ -342,13 +340,13 @@ class VectorCacheStore {
   }
 
   // Returns nullptr if state is not stored.
-  const State *GetState(StateId s) const {
+  const State* GetState(StateId s) const {
     return InBounds(s) ? state_vec_[s] : nullptr;
   }
 
   // Creates state if state is not stored.
-  State *GetMutableState(StateId s) {
-    State *state = nullptr;
+  State* GetMutableState(StateId s) {
+    State* state = nullptr;
     if (InBounds(s)) {
       state = state_vec_[s];
     } else {
@@ -363,21 +361,21 @@ class VectorCacheStore {
   }
 
   // Similar to State::AddArc() but updates cache store book-keeping
-  void AddArc(State *state, const Arc &arc) { state->AddArc(arc); }
+  void AddArc(State* state, const Arc& arc) { state->AddArc(arc); }
 
   // Similar to State::SetArcs() but updates cache store book-keeping; call
   // only once.
-  void SetArcs(State *state) { state->SetArcs(); }
+  void SetArcs(State* state) { state->SetArcs(); }
 
   // Deletes all arcs.
-  void DeleteArcs(State *state) { state->DeleteArcs(); }
+  void DeleteArcs(State* state) { state->DeleteArcs(); }
 
   // Deletes some arcs.
-  void DeleteArcs(State *state, size_t n) { state->DeleteArcs(n); }
+  void DeleteArcs(State* state, size_t n) { state->DeleteArcs(n); }
 
   // Deletes all cached states.
   void Clear() {
-    for (State *s : state_vec_) {
+    for (State* s : state_vec_) {
       State::Destroy(s, &state_alloc_);
     }
     state_vec_.clear();
@@ -386,7 +384,7 @@ class VectorCacheStore {
 
   StateId CountStates() const {
     return std::count_if(state_vec_.begin(), state_vec_.end(),
-                         [](const State *s) { return s != nullptr; });
+                         [](const State* s) { return s != nullptr; });
   }
 
   // Iterates over cached states (in an arbitrary order); only works if GC is
@@ -407,12 +405,12 @@ class VectorCacheStore {
   }
 
  private:
-  void CopyStates(const VectorCacheStore<State> &store) {
+  void CopyStates(const VectorCacheStore<State>& store) {
     Clear();
     state_vec_.reserve(store.state_vec_.size());
     for (size_t s = 0; s < store.state_vec_.size(); ++s) {
-      State *state = nullptr;
-      const auto *store_state = store.state_vec_[s];
+      State* state = nullptr;
+      const auto* store_state = store.state_vec_[s];
       if (store_state) {
         state = new (&state_alloc_) State(*store_state, arc_alloc_);
         if (cache_gc_) state_list_.push_back(s);
@@ -422,7 +420,7 @@ class VectorCacheStore {
   }
 
   bool cache_gc_;                               // Supports iteration when true.
-  std::vector<State *> state_vec_;              // Vector of states (or null).
+  std::vector<State*> state_vec_;               // Vector of states (or null).
   StateList state_list_;                        // List of states.
   typename StateList::iterator iter_;           // State list iterator.
   typename State::StateAllocator state_alloc_;  // For state allocation.
@@ -438,24 +436,24 @@ class HashCacheStore {
   using StateId = typename Arc::StateId;
 
   using StateMap =
-      std::unordered_map<StateId, State *, std::hash<StateId>,
+      std::unordered_map<StateId, State*, std::hash<StateId>,
                           std::equal_to<StateId>,
-                          PoolAllocator<std::pair<const StateId, State *>>>;
+                          PoolAllocator<std::pair<const StateId, State*>>>;
 
   // Required constructors/assignment operators.
-  explicit HashCacheStore(const CacheOptions &opts) {
+  explicit HashCacheStore(const CacheOptions& opts) {
     Clear();
     Reset();
   }
 
-  HashCacheStore(const HashCacheStore<S> &store) {
+  HashCacheStore(const HashCacheStore<S>& store) {
     CopyStates(store);
     Reset();
   }
 
   ~HashCacheStore() { Clear(); }
 
-  HashCacheStore &operator=(const HashCacheStore &store) {
+  HashCacheStore& operator=(const HashCacheStore& store) {
     if (this != &store) {
       CopyStates(store);
       Reset();
@@ -464,34 +462,34 @@ class HashCacheStore {
   }
 
   // Returns nullptr if state is not stored.
-  const State *GetState(StateId s) const {
+  const State* GetState(StateId s) const {
     const auto it = state_map_.find(s);
     return it != state_map_.end() ? it->second : nullptr;
   }
 
   // Creates state if state is not stored.
-  State *GetMutableState(StateId s) {
-    auto *&state = state_map_[s];
+  State* GetMutableState(StateId s) {
+    auto*& state = state_map_[s];
     if (!state) state = new (&state_alloc_) State(arc_alloc_);
     return state;
   }
 
   // Similar to State::AddArc() but updates cache store book-keeping.
-  void AddArc(State *state, const Arc &arc) { state->AddArc(arc); }
+  void AddArc(State* state, const Arc& arc) { state->AddArc(arc); }
 
   // Similar to State::SetArcs() but updates internal cache size; call only
   // once.
-  void SetArcs(State *state) { state->SetArcs(); }
+  void SetArcs(State* state) { state->SetArcs(); }
 
   // Deletes all arcs.
-  void DeleteArcs(State *state) { state->DeleteArcs(); }
+  void DeleteArcs(State* state) { state->DeleteArcs(); }
 
   // Deletes some arcs.
-  void DeleteArcs(State *state, size_t n) { state->DeleteArcs(n); }
+  void DeleteArcs(State* state, size_t n) { state->DeleteArcs(n); }
 
   // Deletes all cached states.
   void Clear() {
-    for (auto &[unused_state_id, state_ptr] : state_map_) {
+    for (auto& [unused_state_id, state_ptr] : state_map_) {
       State::Destroy(state_ptr, &state_alloc_);
     }
     state_map_.clear();
@@ -515,9 +513,9 @@ class HashCacheStore {
   }
 
  private:
-  void CopyStates(const HashCacheStore<State> &store) {
+  void CopyStates(const HashCacheStore<State>& store) {
     Clear();
-    for (auto &[state_id, state_ptr] : store.state_map_) {
+    for (auto& [state_id, state_ptr] : store.state_map_) {
       state_map_[state_id] = new (&state_alloc_) State(*state_ptr, arc_alloc_);
     }
   }
@@ -547,13 +545,13 @@ class FirstCacheStore {
   using StateId = typename Arc::StateId;
 
   // Required constructors/assignment operators.
-  explicit FirstCacheStore(const CacheOptions &opts)
+  explicit FirstCacheStore(const CacheOptions& opts)
       : store_(opts),
         cache_gc_(opts.gc_limit == 0),  // opts.gc ignored historically.
         cache_first_state_id_(kNoStateId),
         cache_first_state_(nullptr) {}
 
-  FirstCacheStore(const FirstCacheStore<CacheStore> &store)
+  FirstCacheStore(const FirstCacheStore<CacheStore>& store)
       : store_(store.store_),
         cache_gc_(store.cache_gc_),
         cache_first_state_id_(store.cache_first_state_id_),
@@ -561,8 +559,8 @@ class FirstCacheStore {
                                ? store_.GetMutableState(0)
                                : nullptr) {}
 
-  FirstCacheStore<CacheStore> &operator=(
-      const FirstCacheStore<CacheStore> &store) {
+  FirstCacheStore<CacheStore>& operator=(
+      const FirstCacheStore<CacheStore>& store) {
     if (this != &store) {
       store_ = store.store_;
       cache_gc_ = store.cache_gc_;
@@ -575,14 +573,14 @@ class FirstCacheStore {
   }
 
   // Returns nullptr if state is not stored.
-  const State *GetState(StateId s) const {
+  const State* GetState(StateId s) const {
     // store_ state 0 may hold first cached state; the rest are shifted by 1.
     return s == cache_first_state_id_ ? cache_first_state_
                                       : store_.GetState(s + 1);
   }
 
   // Creates state if state is not stored.
-  State *GetMutableState(StateId s) {
+  State* GetMutableState(StateId s) {
     // store_ state 0 used to hold first cached state; the rest are shifted by
     // 1.
     if (cache_first_state_id_ == s) {
@@ -605,22 +603,22 @@ class FirstCacheStore {
         cache_gc_ = false;                            // Disables GC.
       }
     }
-    auto *state = store_.GetMutableState(s + 1);
+    auto* state = store_.GetMutableState(s + 1);
     return state;
   }
 
   // Similar to State::AddArc() but updates cache store book-keeping.
-  void AddArc(State *state, const Arc &arc) { store_.AddArc(state, arc); }
+  void AddArc(State* state, const Arc& arc) { store_.AddArc(state, arc); }
 
   // Similar to State::SetArcs() but updates internal cache size; call only
   // once.
-  void SetArcs(State *state) { store_.SetArcs(state); }
+  void SetArcs(State* state) { store_.SetArcs(state); }
 
   // Deletes all arcs
-  void DeleteArcs(State *state) { store_.DeleteArcs(state); }
+  void DeleteArcs(State* state) { store_.DeleteArcs(state); }
 
   // Deletes some arcs
-  void DeleteArcs(State *state, size_t n) { store_.DeleteArcs(state, n); }
+  void DeleteArcs(State* state, size_t n) { store_.DeleteArcs(state, n); }
 
   // Deletes all cached states
   void Clear() {
@@ -658,7 +656,7 @@ class FirstCacheStore {
   CacheStore store_;              // Underlying store.
   bool cache_gc_;                 // GC enabled.
   StateId cache_first_state_id_;  // First cached state ID.
-  State *cache_first_state_;      // First cached state.
+  State* cache_first_state_;      // First cached state.
 };
 
 // This class implements mark-sweep garbage collection on an underlying cache
@@ -675,7 +673,7 @@ class GCCacheStore {
   using StateId = typename Arc::StateId;
 
   // Required constructors/assignment operators.
-  explicit GCCacheStore(const CacheOptions &opts)
+  explicit GCCacheStore(const CacheOptions& opts)
       : store_(opts),
         cache_gc_request_(opts.gc),
         cache_limit_(opts.gc_limit > kMinCacheLimit ? opts.gc_limit
@@ -684,11 +682,11 @@ class GCCacheStore {
         cache_size_(0) {}
 
   // Returns 0 if state is not stored.
-  const State *GetState(StateId s) const { return store_.GetState(s); }
+  const State* GetState(StateId s) const { return store_.GetState(s); }
 
   // Creates state if state is not stored
-  State *GetMutableState(StateId s) {
-    auto *state = store_.GetMutableState(s);
+  State* GetMutableState(StateId s) {
+    auto* state = store_.GetMutableState(s);
     if (cache_gc_request_ && !(state->Flags() & kCacheInit)) {
       state->SetFlags(kCacheInit, kCacheInit);
       cache_size_ += sizeof(State) + state->NumArcs() * sizeof(Arc);
@@ -700,7 +698,7 @@ class GCCacheStore {
   }
 
   // Similar to State::AddArc() but updates cache store book-keeping.
-  void AddArc(State *state, const Arc &arc) {
+  void AddArc(State* state, const Arc& arc) {
     store_.AddArc(state, arc);
     if (cache_gc_ && (state->Flags() & kCacheInit)) {
       cache_size_ += sizeof(Arc);
@@ -710,7 +708,7 @@ class GCCacheStore {
 
   // Similar to State::SetArcs() but updates internal cache size; call only
   // once.
-  void SetArcs(State *state) {
+  void SetArcs(State* state) {
     store_.SetArcs(state);
     if (cache_gc_ && (state->Flags() & kCacheInit)) {
       cache_size_ += state->NumArcs() * sizeof(Arc);
@@ -719,7 +717,7 @@ class GCCacheStore {
   }
 
   // Deletes all arcs.
-  void DeleteArcs(State *state) {
+  void DeleteArcs(State* state) {
     if (cache_gc_ && (state->Flags() & kCacheInit)) {
       cache_size_ -= state->NumArcs() * sizeof(Arc);
     }
@@ -727,7 +725,7 @@ class GCCacheStore {
   }
 
   // Deletes some arcs.
-  void DeleteArcs(State *state, size_t n) {
+  void DeleteArcs(State* state, size_t n) {
     if (cache_gc_ && (state->Flags() & kCacheInit)) {
       cache_size_ -= n * sizeof(Arc);
     }
@@ -755,7 +753,7 @@ class GCCacheStore {
   // Deletes current state and advances to next.
   void Delete() {
     if (cache_gc_) {
-      const auto *state = store_.GetState(Value());
+      const auto* state = store_.GetState(Value());
       if (state->Flags() & kCacheInit) {
         cache_size_ -= sizeof(State) + state->NumArcs() * sizeof(Arc);
       }
@@ -768,7 +766,7 @@ class GCCacheStore {
   // cache_fraction * cache_limit_ bytes are cached. If that fails to free
   // enough, attempts to uncaching recently visited states as well. If still
   // unable to free enough memory, then widens cache_limit_.
-  void GC(const State *current, bool free_recent, float cache_fraction = 0.666);
+  void GC(const State* current, bool free_recent, float cache_fraction = 0.666);
 
   // Returns the current cache size in bytes or 0 if GC is disabled.
   size_t CacheSize() const { return cache_size_; }
@@ -787,7 +785,7 @@ class GCCacheStore {
 };
 
 template <class CacheStore>
-void GCCacheStore<CacheStore>::GC(const State *current, bool free_recent,
+void GCCacheStore<CacheStore>::GC(const State* current, bool free_recent,
                                   float cache_fraction) {
   if (!cache_gc_) return;
   VLOG(2) << "GCCacheStore: Enter GC: object = "
@@ -798,7 +796,7 @@ void GCCacheStore<CacheStore>::GC(const State *current, bool free_recent,
   size_t cache_target = cache_fraction * cache_limit_;
   store_.Reset();
   while (!store_.Done()) {
-    auto *state = store_.GetMutableState(store_.Value());
+    auto* state = store_.GetMutableState(store_.Value());
     if (cache_size_ > cache_target && state->RefCount() == 0 &&
         (free_recent || !(state->Flags() & kCacheRecent)) && state != current) {
       if (state->Flags() & kCacheInit) {
@@ -837,9 +835,17 @@ template <class Arc>
 class DefaultCacheStore
     : public GCCacheStore<FirstCacheStore<VectorCacheStore<CacheState<Arc>>>> {
  public:
-  explicit DefaultCacheStore(const CacheOptions &opts)
+  explicit DefaultCacheStore(const CacheOptions& opts)
       : GCCacheStore<FirstCacheStore<VectorCacheStore<CacheState<Arc>>>>(opts) {
   }
+};
+
+template <class Arc>
+class GCHashCacheStore
+    : public GCCacheStore<FirstCacheStore<HashCacheStore<CacheState<Arc>>>> {
+ public:
+  explicit GCHashCacheStore(const CacheOptions& opts)
+      : GCCacheStore<FirstCacheStore<HashCacheStore<CacheState<Arc>>>>(opts) {}
 };
 
 namespace internal {
@@ -865,7 +871,7 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
   using FstImpl<Arc>::Type;
   using FstImpl<Arc>::Properties;
 
-  explicit CacheBaseImpl(const CacheOptions &opts = CacheOptions())
+  explicit CacheBaseImpl(const CacheOptions& opts = CacheOptions())
       : has_start_(false),
         cache_start_(kNoStateId),
         nknown_states_(0),
@@ -877,7 +883,7 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
         new_cache_store_(true),
         own_cache_store_(true) {}
 
-  explicit CacheBaseImpl(const CacheImplOptions<CacheStore> &opts)
+  explicit CacheBaseImpl(const CacheImplOptions<CacheStore>& opts)
       : has_start_(false),
         cache_start_(kNoStateId),
         nknown_states_(0),
@@ -893,7 +899,7 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
 
   // Preserve gc parameters. If preserve_cache is true, also preserves
   // cache data.
-  CacheBaseImpl(const CacheBaseImpl<State, CacheStore> &impl,
+  CacheBaseImpl(const CacheBaseImpl<State, CacheStore>& impl,
                 bool preserve_cache = false)
       : FstImpl<Arc>(),
         has_start_(false),
@@ -928,7 +934,7 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
   }
 
   void SetFinal(StateId s, Weight weight = Weight::One()) {
-    auto *state = cache_store_->GetMutableState(s);
+    auto* state = cache_store_->GetMutableState(s);
     state->SetFinal(std::move(weight));
     static constexpr auto flags = kCacheFinal | kCacheRecent;
     state->SetFlags(flags, flags);
@@ -937,13 +943,13 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
   // Adds a single arc to a state but delays cache book-keeping. SetArcs must
   // be called when all PushArc and EmplaceArc calls at a state are complete.
   // Do not mix with calls to AddArc.
-  void PushArc(StateId s, const Arc &arc) {
-    auto *state = cache_store_->GetMutableState(s);
+  void PushArc(StateId s, const Arc& arc) {
+    auto* state = cache_store_->GetMutableState(s);
     state->PushArc(arc);
   }
 
-  void PushArc(StateId s, Arc &&arc) {
-    auto *state = cache_store_->GetMutableState(s);
+  void PushArc(StateId s, Arc&& arc) {
+    auto* state = cache_store_->GetMutableState(s);
     state->PushArc(std::move(arc));
   }
 
@@ -951,19 +957,19 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
   // be called when all PushArc and EmplaceArc calls at a state are complete.
   // Do not mix with calls to AddArc.
   template <class... T>
-  void EmplaceArc(StateId s, T &&...ctor_args) {
-    auto *state = cache_store_->GetMutableState(s);
+  void EmplaceArc(StateId s, T&&... ctor_args) {
+    auto* state = cache_store_->GetMutableState(s);
     state->EmplaceArc(std::forward<T>(ctor_args)...);
   }
 
   // Marks arcs of a state as cached and does cache book-keeping after all
   // calls to PushArc have been completed. Do not mix with calls to AddArc.
   void SetArcs(StateId s) {
-    auto *state = cache_store_->GetMutableState(s);
+    auto* state = cache_store_->GetMutableState(s);
     cache_store_->SetArcs(state);
     const auto narcs = state->NumArcs();
     for (size_t a = 0; a < narcs; ++a) {
-      const auto &arc = state->GetArc(a);
+      const auto& arc = state->GetArc(a);
       if (arc.nextstate >= nknown_states_) nknown_states_ = arc.nextstate + 1;
     }
     SetExpandedState(s);
@@ -972,17 +978,17 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
   }
 
   void ReserveArcs(StateId s, size_t n) {
-    auto *state = cache_store_->GetMutableState(s);
+    auto* state = cache_store_->GetMutableState(s);
     state->ReserveArcs(n);
   }
 
   void DeleteArcs(StateId s) {
-    auto *state = cache_store_->GetMutableState(s);
+    auto* state = cache_store_->GetMutableState(s);
     cache_store_->DeleteArcs(state);
   }
 
   void DeleteArcs(StateId s, size_t n) {
-    auto *state = cache_store_->GetMutableState(s);
+    auto* state = cache_store_->GetMutableState(s);
     cache_store_->DeleteArcs(state, n);
   }
 
@@ -1003,7 +1009,7 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
 
   // Is the final weight of the state cached?
   bool HasFinal(StateId s) const {
-    const auto *state = cache_store_->GetState(s);
+    const auto* state = cache_store_->GetState(s);
     if (state && state->Flags() & kCacheFinal) {
       state->SetFlags(kCacheRecent, kCacheRecent);
       return true;
@@ -1014,7 +1020,7 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
 
   // Are arcs of the state cached?
   bool HasArcs(StateId s) const {
-    const auto *state = cache_store_->GetState(s);
+    const auto* state = cache_store_->GetState(s);
     if (state && state->Flags() & kCacheArcs) {
       state->SetFlags(kCacheRecent, kCacheRecent);
       return true;
@@ -1026,28 +1032,28 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
   StateId Start() const { return cache_start_; }
 
   Weight Final(StateId s) const {
-    const auto *state = cache_store_->GetState(s);
+    const auto* state = cache_store_->GetState(s);
     return state->Final();
   }
 
   size_t NumArcs(StateId s) const {
-    const auto *state = cache_store_->GetState(s);
+    const auto* state = cache_store_->GetState(s);
     return state->NumArcs();
   }
 
   size_t NumInputEpsilons(StateId s) const {
-    const auto *state = cache_store_->GetState(s);
+    const auto* state = cache_store_->GetState(s);
     return state->NumInputEpsilons();
   }
 
   size_t NumOutputEpsilons(StateId s) const {
-    const auto *state = cache_store_->GetState(s);
+    const auto* state = cache_store_->GetState(s);
     return state->NumOutputEpsilons();
   }
 
   // Provides information needed for generic arc iterator.
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) const {
-    const auto *state = cache_store_->GetState(s);
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) const {
+    const auto* state = cache_store_->GetState(s);
     data->base = nullptr;
     data->narcs = state->NumArcs();
     data->arcs = state->Arcs();
@@ -1098,9 +1104,9 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
     }
   }
 
-  const CacheStore *GetCacheStore() const { return cache_store_; }
+  const CacheStore* GetCacheStore() const { return cache_store_; }
 
-  CacheStore *GetCacheStore() { return cache_store_; }
+  CacheStore* GetCacheStore() { return cache_store_; }
 
   // Caching on/off switch, limit and size accessors.
 
@@ -1117,11 +1123,11 @@ class CacheBaseImpl : public FstImpl<typename State::Arc> {
   mutable StateId max_expanded_state_id_;    // Maximum ever-expanded state ID
   bool cache_gc_;                            // GC enabled.
   size_t cache_limit_;       // Number of bytes allowed before GC.
-  CacheStore *cache_store_;  // The store of cached states.
+  CacheStore* cache_store_;  // The store of cached states.
   bool new_cache_store_;     // Was the store was created by class?
   bool own_cache_store_;     // Is the store owned by class?
 
-  CacheBaseImpl &operator=(const CacheBaseImpl &impl) = delete;
+  CacheBaseImpl& operator=(const CacheBaseImpl& impl) = delete;
 };
 
 // A CacheBaseImpl with the default cache state type.
@@ -1132,14 +1138,14 @@ class CacheImpl : public CacheBaseImpl<CacheState<Arc>> {
 
   CacheImpl() = default;
 
-  explicit CacheImpl(const CacheOptions &opts)
+  explicit CacheImpl(const CacheOptions& opts)
       : CacheBaseImpl<CacheState<Arc>>(opts) {}
 
-  CacheImpl(const CacheImpl<Arc> &impl, bool preserve_cache = false)
+  CacheImpl(const CacheImpl<Arc>& impl, bool preserve_cache = false)
       : CacheBaseImpl<State>(impl, preserve_cache) {}
 
  private:
-  CacheImpl &operator=(const CacheImpl &impl) = delete;
+  CacheImpl& operator=(const CacheImpl& impl) = delete;
 };
 
 }  // namespace internal
@@ -1161,7 +1167,7 @@ class CacheStateIterator : public StateIteratorBase<typename FST::Arc> {
   using State = typename Store::State;
   using Impl = internal::CacheBaseImpl<State, Store>;
 
-  CacheStateIterator(const FST &fst, Impl *impl)
+  CacheStateIterator(const FST& fst, Impl* impl)
       : fst_(fst), impl_(impl), s_(0) {
     fst_.Start();  // Forces start state.
   }
@@ -1189,8 +1195,8 @@ class CacheStateIterator : public StateIteratorBase<typename FST::Arc> {
   void Reset() final { s_ = 0; }
 
  private:
-  const FST &fst_;
-  Impl *impl_;
+  const FST& fst_;
+  Impl* impl_;
   StateId s_;
 };
 
@@ -1207,7 +1213,7 @@ class CacheArcIterator {
   using State = typename Store::State;
   using Impl = internal::CacheBaseImpl<State, Store>;
 
-  CacheArcIterator(Impl *impl, StateId s) : i_(0) {
+  CacheArcIterator(Impl* impl, StateId s) : i_(0) {
     state_ = impl->GetCacheStore()->GetMutableState(s);
     state_->IncrRefCount();
   }
@@ -1216,7 +1222,7 @@ class CacheArcIterator {
 
   bool Done() const { return i_ >= state_->NumArcs(); }
 
-  const Arc &Value() const { return state_->GetArc(i_); }
+  const Arc& Value() const { return state_->GetArc(i_); }
 
   void Next() { ++i_; }
 
@@ -1231,11 +1237,11 @@ class CacheArcIterator {
   void SetFlags(uint8_t flags, uint8_t mask) {}
 
  private:
-  const State *state_;
+  const State* state_;
   size_t i_;
 
-  CacheArcIterator(const CacheArcIterator &) = delete;
-  CacheArcIterator &operator=(const CacheArcIterator &) = delete;
+  CacheArcIterator(const CacheArcIterator&) = delete;
+  CacheArcIterator& operator=(const CacheArcIterator&) = delete;
 };
 
 // Use this to make a mutable arc iterator for a CacheBaseImpl-derived FST,
@@ -1253,7 +1259,7 @@ class CacheMutableArcIterator
   using Impl = internal::CacheBaseImpl<State, Store>;
 
   // User must call MutateCheck() in the constructor.
-  CacheMutableArcIterator(Impl *impl, StateId s) : i_(0), s_(s), impl_(impl) {
+  CacheMutableArcIterator(Impl* impl, StateId s) : i_(0), s_(s), impl_(impl) {
     state_ = impl_->GetCacheStore()->GetMutableState(s_);
     state_->IncrRefCount();
   }
@@ -1262,7 +1268,7 @@ class CacheMutableArcIterator
 
   bool Done() const final { return i_ >= state_->NumArcs(); }
 
-  const Arc &Value() const final { return state_->GetArc(i_); }
+  const Arc& Value() const final { return state_->GetArc(i_); }
 
   void Next() final { ++i_; }
 
@@ -1272,7 +1278,7 @@ class CacheMutableArcIterator
 
   void Seek(size_t a) final { i_ = a; }
 
-  void SetValue(const Arc &arc) final { state_->SetArc(arc, i_); }
+  void SetValue(const Arc& arc) final { state_->SetArc(arc, i_); }
 
   uint8_t Flags() const final { return kArcValueFlags; }
 
@@ -1281,11 +1287,11 @@ class CacheMutableArcIterator
  private:
   size_t i_;
   StateId s_;
-  Impl *impl_;
-  State *state_;
+  Impl* impl_;
+  State* state_;
 
-  CacheMutableArcIterator(const CacheMutableArcIterator &) = delete;
-  CacheMutableArcIterator &operator=(const CacheMutableArcIterator &) = delete;
+  CacheMutableArcIterator(const CacheMutableArcIterator&) = delete;
+  CacheMutableArcIterator& operator=(const CacheMutableArcIterator&) = delete;
 };
 
 // Wrap existing CacheStore implementation to use with ExpanderFst.
@@ -1297,12 +1303,12 @@ class ExpanderCacheStore {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  explicit ExpanderCacheStore(const CacheOptions &opts = CacheOptions())
+  explicit ExpanderCacheStore(const CacheOptions& opts = CacheOptions())
       : store_(opts) {}
 
   template <class Expander>
-  State *FindOrExpand(Expander &expander, StateId s) {
-    auto *state = store_.GetMutableState(s);
+  State* FindOrExpand(Expander& expander, StateId s) {
+    auto* state = store_.GetMutableState(s);
     if (state->Flags()) {
       state->SetFlags(kCacheRecent, kCacheRecent);
     } else {
@@ -1318,13 +1324,13 @@ class ExpanderCacheStore {
   CacheStore store_;
 
   struct StateBuilder {
-    State *state;
+    State* state;
 
-    explicit StateBuilder(State *state_) : state(state_) {}
+    explicit StateBuilder(State* state_) : state(state_) {}
 
-    void AddArc(const Arc &arc) { state->PushArc(arc); }
+    void AddArc(const Arc& arc) { state->PushArc(arc); }
 
-    void AddArc(Arc &&arc) { state->PushArc(std::move(arc)); }
+    void AddArc(Arc&& arc) { state->PushArc(std::move(arc)); }
 
     void SetFinal(Weight weight = Weight::One()) {
       state->SetFinal(std::move(weight));

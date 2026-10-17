@@ -19,7 +19,6 @@
 #include <ostream>
 #include <string>
 
-#include <fst/log.h>
 #include <fst/util.h>
 
 namespace fst {
@@ -35,40 +34,36 @@ struct ErrorWeight {
   bool Member() const { return false; }
   ErrorWeight Quantize(float = 0.0) const { return ErrorWeight(); }
   ReverseWeight Reverse() const { return ErrorWeight(); }
-  void Write(std::ostream &) const { }
+  void Write(std::ostream&) const {}
 
   static constexpr uint64_t Properties() { return 0; }
   static ErrorWeight Zero() { return ErrorWeight(); }
   static ErrorWeight One() { return ErrorWeight(); }
   static ErrorWeight NoWeight() { return ErrorWeight(); }
 
-  static const std::string &Type() {
-    static const auto *const type = new std::string("error");
+  static const std::string& Type() {
+    static const auto* const type = new std::string("error");
     return *type;
   }
 };
 
-inline bool operator==(const ErrorWeight &, const ErrorWeight &) {
-  return false;
-}
-inline bool operator!=(const ErrorWeight &, const ErrorWeight &) {
-  return false;
-}
+inline bool operator==(const ErrorWeight&, const ErrorWeight&) { return false; }
+inline bool operator!=(const ErrorWeight&, const ErrorWeight&) { return false; }
 
-inline bool ApproxEqual(const ErrorWeight &, const ErrorWeight &, float) {
+inline bool ApproxEqual(const ErrorWeight&, const ErrorWeight&, float) {
   return false;
 }
-inline ErrorWeight Plus(const ErrorWeight &, const ErrorWeight &) {
+inline ErrorWeight Plus(const ErrorWeight&, const ErrorWeight&) {
   return ErrorWeight();
 }
-inline ErrorWeight Times(const ErrorWeight &, const ErrorWeight &) {
+inline ErrorWeight Times(const ErrorWeight&, const ErrorWeight&) {
   return ErrorWeight();
 }
-inline ErrorWeight Divide(const ErrorWeight &, const ErrorWeight &) {
+inline ErrorWeight Divide(const ErrorWeight&, const ErrorWeight&) {
   return ErrorWeight();
 }
 
-inline std::ostream &operator<<(std::ostream &strm, const ErrorWeight &) {
+inline std::ostream& operator<<(std::ostream& strm, const ErrorWeight&) {
   return strm;
 }
 

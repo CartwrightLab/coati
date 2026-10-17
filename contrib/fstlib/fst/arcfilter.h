@@ -29,14 +29,14 @@ namespace fst {
 template <class Arc>
 class AnyArcFilter {
  public:
-  bool operator()(const Arc &arc) const { return true; }
+  bool operator()(const Arc& arc) const { return true; }
 };
 
 // True for (input/output) epsilon arcs.
 template <class Arc>
 class EpsilonArcFilter {
  public:
-  bool operator()(const Arc &arc) const {
+  bool operator()(const Arc& arc) const {
     return arc.ilabel == 0 && arc.olabel == 0;
   }
 };
@@ -45,14 +45,14 @@ class EpsilonArcFilter {
 template <class Arc>
 class InputEpsilonArcFilter {
  public:
-  bool operator()(const Arc &arc) const { return arc.ilabel == 0; }
+  bool operator()(const Arc& arc) const { return arc.ilabel == 0; }
 };
 
 // True for output epsilon arcs.
 template <class Arc>
 class OutputEpsilonArcFilter {
  public:
-  bool operator()(const Arc &arc) const { return arc.olabel == 0; }
+  bool operator()(const Arc& arc) const { return arc.olabel == 0; }
 };
 
 // True if specified label matches (doesn't match) when keep_match is
@@ -66,7 +66,7 @@ class LabelArcFilter {
                           bool keep_match = true)
       : label_(label), match_input_(match_input), keep_match_(keep_match) {}
 
-  bool operator()(const Arc &arc) const {
+  bool operator()(const Arc& arc) const {
     const bool match = (match_input_ ? arc.ilabel : arc.olabel) == label_;
     return keep_match_ ? match : !match;
   }
@@ -86,7 +86,7 @@ class MultiLabelArcFilter {
   explicit MultiLabelArcFilter(bool match_input = true, bool keep_match = true)
       : match_input_(match_input), keep_match_(keep_match) {}
 
-  bool operator()(const Arc &arc) const {
+  bool operator()(const Arc& arc) const {
     const Label label = match_input_ ? arc.ilabel : arc.olabel;
     const bool match = labels_.Find(label) != labels_.End();
     return keep_match_ ? match : !match;

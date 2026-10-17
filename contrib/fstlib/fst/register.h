@@ -25,10 +25,9 @@
 #include <type_traits>
 
 #include <fst/compat.h>
-#include <fst/log.h>
+#include <string_view>
 #include <fst/generic-register.h>
 #include <fst/util.h>
-#include <string_view>
 
 namespace fst {
 
@@ -43,8 +42,9 @@ class FstRegisterer;
 // This class represents a single entry in a FstRegister
 template <class Arc>
 struct FstRegisterEntry {
-  using Reader = Fst<Arc> *(*)(std::istream &istrm, const FstReadOptions &opts);
-  using Converter = Fst<Arc> *(*)(const Fst<Arc> &fst);
+  using Reader = Fst<Arc>* (*)(std::istream & istrm,
+                               const FstReadOptions& opts);
+  using Converter = Fst<Arc>* (*)(const Fst<Arc>& fst);
 
   Reader reader;
   Converter converter;
@@ -95,7 +95,7 @@ class FstRegisterer : public GenericRegisterer<FstRegister<typename FST::Arc>> {
                                                           BuildEntry()) {}
 
  private:
-  static Fst<Arc> *ReadGeneric(std::istream &strm, const FstReadOptions &opts) {
+  static Fst<Arc>* ReadGeneric(std::istream& strm, const FstReadOptions& opts) {
     static_assert(std::is_base_of_v<Fst<Arc>, FST>,
                   "FST class does not inherit from Fst<Arc>");
     return FST::Read(strm, opts);
@@ -105,7 +105,7 @@ class FstRegisterer : public GenericRegisterer<FstRegister<typename FST::Arc>> {
     return Entry(&ReadGeneric, &FstRegisterer<FST>::Convert);
   }
 
-  static Fst<Arc> *Convert(const Fst<Arc> &fst) { return new FST(fst); }
+  static Fst<Arc>* Convert(const Fst<Arc>& fst) { return new FST(fst); }
 };
 
 // Convenience macro to generate a static FstRegisterer instance.
@@ -113,16 +113,16 @@ class FstRegisterer : public GenericRegisterer<FstRegister<typename FST::Arc>> {
 // Users SHOULD NOT register within the fst namespace. To register an
 // FST for StdArc, for example, use:
 // namespace example {
-// using fst::StdArc;
+// using ::fst::StdArc;
 // REGISTER_FST(MyFst, StdArc);
 // }  // namespace example
 #define REGISTER_FST(FST, Arc) \
-  static fst::FstRegisterer<FST<Arc>> FST##_##Arc##_registerer
+  static ::fst::FstRegisterer<FST<Arc>> FST##_##Arc##_registerer
 
 // Converts an FST to the specified type.
 template <class Arc>
-Fst<Arc> *Convert(const Fst<Arc> &fst, std::string_view fst_type) {
-  auto *reg = FstRegister<Arc>::GetRegister();
+Fst<Arc>* Convert(const Fst<Arc>& fst, std::string_view fst_type) {
+  auto* reg = FstRegister<Arc>::GetRegister();
   const auto converter = reg->GetConverter(fst_type);
   if (!converter) {
     FSTERROR() << "Fst::Convert: Unknown FST type " << fst_type << " (arc type "

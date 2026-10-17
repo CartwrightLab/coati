@@ -62,15 +62,15 @@ template <class Arc, class M = Matcher<Fst<Arc>>,
           class StateTable =
               GenericComposeStateTable<Arc, typename Filter::FilterState>>
 struct ComposeFstOptions : public CacheOptions {
-  M *matcher1;              // FST1 matcher.
-  M *matcher2;              // FST2 matcher.
-  Filter *filter;           // Composition filter.
-  StateTable *state_table;  // Composition state table.
+  M* matcher1;              // FST1 matcher.
+  M* matcher2;              // FST2 matcher.
+  Filter* filter;           // Composition filter.
+  StateTable* state_table;  // Composition state table.
 
-  explicit ComposeFstOptions(const CacheOptions &opts = CacheOptions(),
-                             M *matcher1 = nullptr, M *matcher2 = nullptr,
-                             Filter *filter = nullptr,
-                             StateTable *state_table = nullptr)
+  explicit ComposeFstOptions(const CacheOptions& opts = CacheOptions(),
+                             M* matcher1 = nullptr, M* matcher2 = nullptr,
+                             Filter* filter = nullptr,
+                             StateTable* state_table = nullptr)
       : CacheOptions(opts),
         matcher1(matcher1),
         matcher2(matcher2),
@@ -98,18 +98,18 @@ template <class M1, class M2, class Filter = SequenceComposeFilter<M1, M2>,
               typename M1::Arc, typename Filter::FilterState>,
           class CacheStore = DefaultCacheStore<typename M1::Arc>>
 struct ComposeFstImplOptions : public CacheImplOptions<CacheStore> {
-  M1 *matcher1;    // FST1 matcher (see matcher.h)....
-  M2 *matcher2;    // FST2 matcher.
-  Filter *filter;  // Composition filter (see compose-filter.h).
-  StateTable
-      *state_table;      // Composition state table (see compose-state-table.h).
+  M1* matcher1;    // FST1 matcher (see matcher.h)....
+  M2* matcher2;    // FST2 matcher.
+  Filter* filter;  // Composition filter (see compose-filter.h).
+  StateTable*
+      state_table;       // Composition state table (see compose-state-table.h).
   bool own_state_table;  // ComposeFstImpl takes ownership of 'state_table'?
   bool allow_noncommute;  // Allow non-commutative weights
 
-  explicit ComposeFstImplOptions(const CacheOptions &opts,
-                                 M1 *matcher1 = nullptr, M2 *matcher2 = nullptr,
-                                 Filter *filter = nullptr,
-                                 StateTable *state_table = nullptr)
+  explicit ComposeFstImplOptions(const CacheOptions& opts,
+                                 M1* matcher1 = nullptr, M2* matcher2 = nullptr,
+                                 Filter* filter = nullptr,
+                                 StateTable* state_table = nullptr)
       : CacheImplOptions<CacheStore>(opts),
         matcher1(matcher1),
         matcher2(matcher2),
@@ -118,10 +118,10 @@ struct ComposeFstImplOptions : public CacheImplOptions<CacheStore> {
         own_state_table(true),
         allow_noncommute(false) {}
 
-  explicit ComposeFstImplOptions(const CacheImplOptions<CacheStore> &opts,
-                                 M1 *matcher1 = nullptr, M2 *matcher2 = nullptr,
-                                 Filter *filter = nullptr,
-                                 StateTable *state_table = nullptr)
+  explicit ComposeFstImplOptions(const CacheImplOptions<CacheStore>& opts,
+                                 M1* matcher1 = nullptr, M2* matcher2 = nullptr,
+                                 Filter* filter = nullptr,
+                                 StateTable* state_table = nullptr)
       : CacheImplOptions<CacheStore>(opts),
         matcher1(matcher1),
         matcher2(matcher2),
@@ -168,19 +168,19 @@ class ComposeFstImplBase
   using CacheImpl::SetFinal;
   using CacheImpl::SetStart;
 
-  explicit ComposeFstImplBase(const CacheImplOptions<CacheStore> &opts)
+  explicit ComposeFstImplBase(const CacheImplOptions<CacheStore>& opts)
       : CacheImpl(opts) {}
 
-  explicit ComposeFstImplBase(const CacheOptions &opts) : CacheImpl(opts) {}
+  explicit ComposeFstImplBase(const CacheOptions& opts) : CacheImpl(opts) {}
 
-  ComposeFstImplBase(const ComposeFstImplBase &impl) : CacheImpl(impl, true) {
+  ComposeFstImplBase(const ComposeFstImplBase& impl) : CacheImpl(impl, true) {
     SetType(impl.Type());
     SetProperties(impl.Properties(), kCopyProperties);
     SetInputSymbols(impl.InputSymbols());
     SetOutputSymbols(impl.OutputSymbols());
   }
 
-  virtual ComposeFstImplBase *Copy() const = 0;
+  virtual ComposeFstImplBase* Copy() const = 0;
 
   ~ComposeFstImplBase() override = default;
 
@@ -214,12 +214,12 @@ class ComposeFstImplBase
     return CacheImpl::NumOutputEpsilons(s);
   }
 
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) {
     if (!HasArcs(s)) Expand(s);
     CacheImpl::InitArcIterator(s, data);
   }
 
-  virtual MatcherBase<Arc> *InitMatcher(const F &fst,
+  virtual MatcherBase<Arc>* InitMatcher(const F& fst,
                                         MatchType match_type) const {
     // Use the default matcher if no override is provided.
     return nullptr;
@@ -263,11 +263,11 @@ class ComposeFstImpl
   using FstImpl<Arc>::SetProperties;
 
   template <class M1, class M2>
-  ComposeFstImpl(const FST1 &fst1, const FST2 &fst2,
+  ComposeFstImpl(const FST1& fst1, const FST2& fst2,
                  const ComposeFstImplOptions<M1, M2, Filter, StateTable,
-                                             CacheStore> &opts);
+                                             CacheStore>& opts);
 
-  ComposeFstImpl(const ComposeFstImpl &impl)
+  ComposeFstImpl(const ComposeFstImpl& impl)
       : ComposeFstImplBase<Arc, CacheStore>(impl),
         filter_(new Filter(*impl.filter_, true)),
         matcher1_(filter_->GetMatcher1()),
@@ -282,7 +282,7 @@ class ComposeFstImpl
     if (own_state_table_) delete state_table_;
   }
 
-  ComposeFstImpl *Copy() const override { return new ComposeFstImpl(*this); }
+  ComposeFstImpl* Copy() const override { return new ComposeFstImpl(*this); }
 
   uint64_t Properties() const override { return Properties(kFstProperties); }
 
@@ -302,7 +302,7 @@ class ComposeFstImpl
   // Arranges it so that the first arg to OrderedExpand is the Fst
   // that will be matched on.
   void Expand(StateId s) override {
-    const auto &tuple = state_table_->Tuple(s);
+    const auto& tuple = state_table_->Tuple(s);
     const auto s1 = tuple.StateId1();
     const auto s2 = tuple.StateId2();
     filter_->SetState(s1, s2, tuple.GetFilterState());
@@ -313,27 +313,27 @@ class ComposeFstImpl
     }
   }
 
-  const FST1 &GetFst1() const { return fst1_; }
+  const FST1& GetFst1() const { return fst1_; }
 
-  const FST2 &GetFst2() const { return fst2_; }
+  const FST2& GetFst2() const { return fst2_; }
 
-  const Matcher1 *GetMatcher1() const { return matcher1_; }
+  const Matcher1* GetMatcher1() const { return matcher1_; }
 
-  Matcher1 *GetMatcher1() { return matcher1_; }
+  Matcher1* GetMatcher1() { return matcher1_; }
 
-  const Matcher2 *GetMatcher2() const { return matcher2_; }
+  const Matcher2* GetMatcher2() const { return matcher2_; }
 
-  Matcher2 *GetMatcher2() { return matcher2_; }
+  Matcher2* GetMatcher2() { return matcher2_; }
 
-  const Filter *GetFilter() const { return filter_.get(); }
+  const Filter* GetFilter() const { return filter_.get(); }
 
-  Filter *GetFilter() { return filter_.get(); }
+  Filter* GetFilter() { return filter_.get(); }
 
-  const StateTable *GetStateTable() const { return state_table_; }
+  const StateTable* GetStateTable() const { return state_table_; }
 
-  StateTable *GetStateTable() { return state_table_; }
+  StateTable* GetStateTable() { return state_table_; }
 
-  MatcherBase<Arc> *InitMatcher(const ComposeFst<Arc, CacheStore> &fst,
+  MatcherBase<Arc>* InitMatcher(const ComposeFst<Arc, CacheStore>& fst,
                                 MatchType match_type) const override {
     const auto test_props = match_type == MATCH_INPUT
                                 ? kFstProperties & ~kILabelInvariantProperties
@@ -358,8 +358,8 @@ class ComposeFstImpl
   // determines whether the input or output label of arcs at 'sb' is
   // the one to match on.
   template <class FST, class Matcher>
-  void OrderedExpand(StateId s, const Fst<Arc> &, StateId sa, const FST &fstb,
-                     StateId sb, Matcher *matchera, bool match_input) {
+  void OrderedExpand(StateId s, const Fst<Arc>&, StateId sa, const FST& fstb,
+                     StateId sb, Matcher* matchera, bool match_input) {
     matchera->SetState(sa);
     // First processes non-consuming symbols (e.g., epsilons) on FSTA.
     const Arc loop(match_input ? 0 : kNoLabel, match_input ? kNoLabel : 0,
@@ -374,17 +374,17 @@ class ComposeFstImpl
 
   // Matches a single transition from 'fstb' against 'fata' at 's'.
   template <class Matcher>
-  void MatchArc(StateId s, Matcher *matchera, const Arc &arc,
+  void MatchArc(StateId s, Matcher* matchera, const Arc& arc,
                 bool match_input) {
     if (matchera->Find(match_input ? arc.olabel : arc.ilabel)) {
       for (; !matchera->Done(); matchera->Next()) {
         auto arca = matchera->Value();
         auto arcb = arc;
         if (match_input) {
-          const auto &fs = filter_->FilterArc(&arcb, &arca);
+          const auto& fs = filter_->FilterArc(&arcb, &arca);
           if (fs != FilterState::NoState()) AddArc(s, arcb, arca, fs);
         } else {
-          const auto &fs = filter_->FilterArc(&arca, &arcb);
+          const auto& fs = filter_->FilterArc(&arca, &arcb);
           if (fs != FilterState::NoState()) AddArc(s, arca, arcb, fs);
         }
       }
@@ -392,8 +392,8 @@ class ComposeFstImpl
   }
 
   // Add a matching transition at 's'.
-  void AddArc(StateId s, const Arc &arc1, const Arc &arc2,
-              const FilterState &f) {
+  void AddArc(StateId s, const Arc& arc1, const Arc& arc2,
+              const FilterState& f) {
     const StateTuple tuple(arc1.nextstate, arc2.nextstate, f);
     CacheImpl::EmplaceArc(s, arc1.ilabel, arc2.olabel,
                           Times(arc1.weight, arc2.weight),
@@ -405,13 +405,13 @@ class ComposeFstImpl
     if (s1 == kNoStateId) return kNoStateId;
     const auto s2 = fst2_.Start();
     if (s2 == kNoStateId) return kNoStateId;
-    const auto &fs = filter_->Start();
+    const auto& fs = filter_->Start();
     const StateTuple tuple(s1, s2, fs);
     return state_table_->FindState(tuple);
   }
 
   Weight ComputeFinal(StateId s) override {
-    const auto &tuple = state_table_->Tuple(s);
+    const auto& tuple = state_table_->Tuple(s);
     const auto s1 = tuple.StateId1();
     auto final1 = matcher1_->Final(s1);
     if (final1 == Weight::Zero()) return final1;
@@ -451,11 +451,11 @@ class ComposeFstImpl
   void SetMatchType();
 
   std::unique_ptr<Filter> filter_;
-  Matcher1 *matcher1_;  // Borrowed reference.
-  Matcher2 *matcher2_;  // Borrowed reference.
-  const FST1 &fst1_;
-  const FST2 &fst2_;
-  StateTable *state_table_;
+  Matcher1* matcher1_;  // Borrowed reference.
+  Matcher2* matcher2_;  // Borrowed reference.
+  const FST1& fst1_;
+  const FST2& fst2_;
+  StateTable* state_table_;
   bool own_state_table_;
 
   MatchType match_type_;
@@ -464,8 +464,8 @@ class ComposeFstImpl
 template <class CacheStore, class Filter, class StateTable>
 template <class M1, class M2>
 ComposeFstImpl<CacheStore, Filter, StateTable>::ComposeFstImpl(
-    const FST1 &fst1, const FST2 &fst2,
-    const ComposeFstImplOptions<M1, M2, Filter, StateTable, CacheStore> &opts)
+    const FST1& fst1, const FST2& fst2,
+    const ComposeFstImplOptions<M1, M2, Filter, StateTable, CacheStore>& opts)
     : ComposeFstImplBase<Arc, CacheStore>(opts),
       filter_(opts.filter
                   ? opts.filter
@@ -574,6 +574,8 @@ void ComposeFstImpl<CacheStore, Filter, StateTable>::SetMatchType() {
 template <class A, class CacheStore /* = DefaultCacheStore<A> */>
 class ComposeFst
     : public ImplToFst<internal::ComposeFstImplBase<A, CacheStore>> {
+  using Base = ImplToFst<internal::ComposeFstImplBase<A, CacheStore>>;
+
  public:
   using Arc = A;
   using StateId = typename Arc::StateId;
@@ -582,7 +584,7 @@ class ComposeFst
   using Store = CacheStore;
   using State = typename CacheStore::State;
 
-  using Impl = internal::ComposeFstImplBase<A, CacheStore>;
+  using typename Base::Impl;
 
   friend class ArcIterator<ComposeFst<Arc, CacheStore>>;
   friend class StateIterator<ComposeFst<Arc, CacheStore>>;
@@ -590,17 +592,17 @@ class ComposeFst
   friend class ComposeFstMatcher;
 
   // Compose specifying only caching options.
-  ComposeFst(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
-             const CacheOptions &opts = CacheOptions())
-      : ImplToFst<Impl>(CreateBase(fst1, fst2, opts)) {}
+  ComposeFst(const Fst<Arc>& fst1, const Fst<Arc>& fst2,
+             const CacheOptions& opts = CacheOptions())
+      : Base(CreateBase(fst1, fst2, opts)) {}
 
   // Compose specifying one shared matcher type M. Requires that the input FSTs
   // and matcher FST types be Fst<Arc>. Recommended for best code-sharing and
   // matcher compatibility.
   template <class Matcher, class Filter, class StateTuple>
-  ComposeFst(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
-             const ComposeFstOptions<Arc, Matcher, Filter, StateTuple> &opts)
-      : ImplToFst<Impl>(CreateBase1(fst1, fst2, opts)) {}
+  ComposeFst(const Fst<Arc>& fst1, const Fst<Arc>& fst2,
+             const ComposeFstOptions<Arc, Matcher, Filter, StateTuple>& opts)
+      : Base(CreateBase1(fst1, fst2, opts)) {}
 
   // Compose specifying two matcher types Matcher1 and Matcher2. Requires input
   // FST (of the same Arc type, but o.w. arbitrary) match the corresponding
@@ -608,44 +610,44 @@ class ComposeFst
   // specialized applications due to potential code bloat and matcher
   // incompatibilities.
   template <class Matcher1, class Matcher2, class Filter, class StateTuple>
-  ComposeFst(const typename Matcher1::FST &fst1,
-             const typename Matcher2::FST &fst2,
+  ComposeFst(const typename Matcher1::FST& fst1,
+             const typename Matcher2::FST& fst2,
              const ComposeFstImplOptions<Matcher1, Matcher2, Filter, StateTuple,
-                                         CacheStore> &opts)
-      : ImplToFst<Impl>(CreateBase2(fst1, fst2, opts)) {}
+                                         CacheStore>& opts)
+      : Base(CreateBase2(fst1, fst2, opts)) {}
 
   // See Fst<>::Copy() for doc.
-  ComposeFst(const ComposeFst &fst, bool safe = false)
-      : ImplToFst<Impl>(safe ? std::shared_ptr<Impl>(fst.GetImpl()->Copy())
-                             : fst.GetSharedImpl()) {}
+  ComposeFst(const ComposeFst& fst, bool safe = false)
+      : Base(safe ? std::shared_ptr<Impl>(fst.GetImpl()->Copy())
+                  : fst.GetSharedImpl()) {}
 
   // Get a copy of this ComposeFst. See Fst<>::Copy() for further doc.
-  ComposeFst *Copy(bool safe = false) const override {
+  ComposeFst* Copy(bool safe = false) const override {
     return new ComposeFst(*this, safe);
   }
 
-  inline void InitStateIterator(StateIteratorData<Arc> *data) const override;
+  inline void InitStateIterator(StateIteratorData<Arc>* data) const override;
 
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) const override {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) const override {
     GetMutableImpl()->InitArcIterator(s, data);
   }
 
-  MatcherBase<Arc> *InitMatcher(MatchType match_type) const override {
+  MatcherBase<Arc>* InitMatcher(MatchType match_type) const override {
     return GetImpl()->InitMatcher(*this, match_type);
   }
 
  protected:
-  using ImplToFst<Impl>::GetImpl;
-  using ImplToFst<Impl>::GetMutableImpl;
+  using Base::GetImpl;
+  using Base::GetMutableImpl;
 
-  explicit ComposeFst(std::shared_ptr<Impl> impl) : ImplToFst<Impl>(impl) {}
+  explicit ComposeFst(std::shared_ptr<Impl> impl) : Base(impl) {}
 
   // Create compose implementation specifying two matcher types.
   template <class Matcher1, class Matcher2, class Filter, class StateTuple>
   static std::shared_ptr<Impl> CreateBase2(
-      const typename Matcher1::FST &fst1, const typename Matcher2::FST &fst2,
+      const typename Matcher1::FST& fst1, const typename Matcher2::FST& fst2,
       const ComposeFstImplOptions<Matcher1, Matcher2, Filter, StateTuple,
-                                  CacheStore> &opts) {
+                                  CacheStore>& opts) {
     auto impl = std::make_shared<
         internal::ComposeFstImpl<CacheStore, Filter, StateTuple>>(fst1, fst2,
                                                                   opts);
@@ -665,8 +667,8 @@ class ComposeFst
   // input and matcher FST types be Fst<Arc>.
   template <class Matcher, class Filter, class StateTuple>
   static std::shared_ptr<Impl> CreateBase1(
-      const Fst<Arc> &fst1, const Fst<Arc> &fst2,
-      const ComposeFstOptions<Arc, Matcher, Filter, StateTuple> &opts) {
+      const Fst<Arc>& fst1, const Fst<Arc>& fst2,
+      const ComposeFstOptions<Arc, Matcher, Filter, StateTuple>& opts) {
     ComposeFstImplOptions<Matcher, Matcher, Filter, StateTuple, CacheStore>
         nopts(opts, opts.matcher1, opts.matcher2, opts.filter,
               opts.state_table);
@@ -674,9 +676,9 @@ class ComposeFst
   }
 
   // Create compose implementation specifying no matcher type.
-  static std::shared_ptr<Impl> CreateBase(const Fst<Arc> &fst1,
-                                          const Fst<Arc> &fst2,
-                                          const CacheOptions &opts) {
+  static std::shared_ptr<Impl> CreateBase(const Fst<Arc>& fst1,
+                                          const Fst<Arc>& fst2,
+                                          const CacheOptions& opts) {
     switch (LookAheadMatchType(fst1, fst2)) {  // Check for lookahead matchers
       default:
       case MATCH_NONE: {  // Default composition (no look-ahead).
@@ -699,7 +701,7 @@ class ComposeFst
   }
 
  private:
-  ComposeFst &operator=(const ComposeFst &fst) = delete;
+  ComposeFst& operator=(const ComposeFst& fst) = delete;
 };
 
 // Specialization for ComposeFst.
@@ -707,7 +709,7 @@ template <class Arc, class CacheStore>
 class StateIterator<ComposeFst<Arc, CacheStore>>
     : public CacheStateIterator<ComposeFst<Arc, CacheStore>> {
  public:
-  explicit StateIterator(const ComposeFst<Arc, CacheStore> &fst)
+  explicit StateIterator(const ComposeFst<Arc, CacheStore>& fst)
       : CacheStateIterator<ComposeFst<Arc, CacheStore>>(fst,
                                                         fst.GetMutableImpl()) {}
 };
@@ -719,7 +721,7 @@ class ArcIterator<ComposeFst<Arc, CacheStore>>
  public:
   using StateId = typename Arc::StateId;
 
-  ArcIterator(const ComposeFst<Arc, CacheStore> &fst, StateId s)
+  ArcIterator(const ComposeFst<Arc, CacheStore>& fst, StateId s)
       : CacheArcIterator<ComposeFst<Arc, CacheStore>>(fst.GetMutableImpl(), s) {
     if (!fst.GetImpl()->HasArcs(s)) fst.GetMutableImpl()->Expand(s);
   }
@@ -727,7 +729,7 @@ class ArcIterator<ComposeFst<Arc, CacheStore>>
 
 template <class Arc, class CacheStore>
 inline void ComposeFst<Arc, CacheStore>::InitStateIterator(
-    StateIteratorData<Arc> *data) const {
+    StateIteratorData<Arc>* data) const {
   data->base =
       std::make_unique<StateIterator<ComposeFst<Arc, CacheStore>>>(*this);
 }
@@ -752,11 +754,11 @@ class ComposeFstMatcher : public MatcherBase<typename CacheStore::Arc> {
 
   // The compose FST arg must match the filter and state table types.
   // This makes a copy of the FST.
-  ComposeFstMatcher(const ComposeFst<Arc, CacheStore> &fst,
+  ComposeFstMatcher(const ComposeFst<Arc, CacheStore>& fst,
                     MatchType match_type)
       : owned_fst_(fst.Copy()),
         fst_(*owned_fst_),
-        impl_(down_cast<const Impl *>(fst_.GetImpl())),
+        impl_(down_cast<const Impl*>(fst_.GetImpl())),
         s_(kNoStateId),
         match_type_(match_type),
         matcher1_(impl_->matcher1_->Copy()),
@@ -768,10 +770,10 @@ class ComposeFstMatcher : public MatcherBase<typename CacheStore::Arc> {
 
   // The compose FST arg must match the filter and state table types.
   // This doesn't copy the FST (although it may copy components).
-  ComposeFstMatcher(const ComposeFst<Arc, CacheStore> *fst,
+  ComposeFstMatcher(const ComposeFst<Arc, CacheStore>* fst,
                     MatchType match_type)
       : fst_(*fst),
-        impl_(down_cast<const Impl *>(fst_.GetImpl())),
+        impl_(down_cast<const Impl*>(fst_.GetImpl())),
         s_(kNoStateId),
         match_type_(match_type),
         matcher1_(impl_->matcher1_->Copy()),
@@ -783,11 +785,11 @@ class ComposeFstMatcher : public MatcherBase<typename CacheStore::Arc> {
 
   // This makes a copy of the FST.
   ComposeFstMatcher(
-      const ComposeFstMatcher<CacheStore, Filter, StateTable> &matcher,
+      const ComposeFstMatcher<CacheStore, Filter, StateTable>& matcher,
       bool safe = false)
       : owned_fst_(matcher.fst_.Copy(safe)),
         fst_(*owned_fst_),
-        impl_(down_cast<const Impl *>(fst_.GetImpl())),
+        impl_(down_cast<const Impl*>(fst_.GetImpl())),
         s_(kNoStateId),
         match_type_(matcher.match_type_),
         matcher1_(matcher.matcher1_->Copy(safe)),
@@ -797,7 +799,7 @@ class ComposeFstMatcher : public MatcherBase<typename CacheStore::Arc> {
     if (match_type_ == MATCH_OUTPUT) std::swap(loop_.ilabel, loop_.olabel);
   }
 
-  ComposeFstMatcher *Copy(bool safe = false) const override {
+  ComposeFstMatcher* Copy(bool safe = false) const override {
     return new ComposeFstMatcher(*this, safe);
   }
 
@@ -821,14 +823,14 @@ class ComposeFstMatcher : public MatcherBase<typename CacheStore::Arc> {
     return MATCH_NONE;
   }
 
-  const Fst<Arc> &GetFst() const override { return fst_; }
+  const Fst<Arc>& GetFst() const override { return fst_; }
 
   uint64_t Properties(uint64_t inprops) const override { return inprops; }
 
   void SetState(StateId s) final {
     if (s_ == s) return;
     s_ = s;
-    const auto &tuple = impl_->state_table_->Tuple(s);
+    const auto& tuple = impl_->state_table_->Tuple(s);
     matcher1_->SetState(tuple.StateId1());
     matcher2_->SetState(tuple.StateId2());
     loop_.nextstate = s_;
@@ -853,7 +855,7 @@ class ComposeFstMatcher : public MatcherBase<typename CacheStore::Arc> {
     return !current_loop_ && matcher1_->Done() && matcher2_->Done();
   }
 
-  const Arc &Value() const final { return current_loop_ ? loop_ : arc_; }
+  const Arc& Value() const final { return current_loop_ ? loop_ : arc_; }
 
   void Next() final {
     if (current_loop_) {
@@ -869,8 +871,8 @@ class ComposeFstMatcher : public MatcherBase<typename CacheStore::Arc> {
 
  private:
   // Processes a match with the filter and creates resulting arc.
-  bool MatchArc(StateId s, Arc *arc1, Arc *arc2) {
-    const auto &fs = impl_->filter_->FilterArc(arc1, arc2);
+  bool MatchArc(StateId s, Arc* arc1, Arc* arc2) {
+    const auto& fs = impl_->filter_->FilterArc(arc1, arc2);
     if (fs == FilterState::NoState()) return false;
     const StateTuple tuple(arc1->nextstate, arc2->nextstate, fs);
     arc_.ilabel = arc1->ilabel;
@@ -882,7 +884,7 @@ class ComposeFstMatcher : public MatcherBase<typename CacheStore::Arc> {
 
   // Finds the first match allowed by the filter.
   template <class MatcherA, class MatcherB>
-  bool FindLabel(Label label, MatcherA *matchera, MatcherB *matcherb) {
+  bool FindLabel(Label label, MatcherA* matchera, MatcherB* matcherb) {
     if (matchera->Find(label)) {
       matcherb->Find(match_type_ == MATCH_INPUT ? matchera->Value().olabel
                                                 : matchera->Value().ilabel);
@@ -894,7 +896,7 @@ class ComposeFstMatcher : public MatcherBase<typename CacheStore::Arc> {
   // Finds the next match allowed by the filter, returning true iff such a
   // match is found.
   template <class MatcherA, class MatcherB>
-  bool FindNext(MatcherA *matchera, MatcherB *matcherb) {
+  bool FindNext(MatcherA* matchera, MatcherB* matcherb) {
     // State when entering this function:
     // 'matchera' is pointed to a match x, y for label x, and a match for y was
     // requested on 'matcherb'.
@@ -936,8 +938,8 @@ class ComposeFstMatcher : public MatcherBase<typename CacheStore::Arc> {
   }
 
   std::unique_ptr<const ComposeFst<Arc, CacheStore>> owned_fst_;
-  const ComposeFst<Arc, CacheStore> &fst_;
-  const Impl *impl_;
+  const ComposeFst<Arc, CacheStore>& fst_;
+  const Impl* impl_;
   StateId s_;
   MatchType match_type_;
   std::unique_ptr<Matcher1> matcher1_;
@@ -1002,9 +1004,9 @@ struct ComposeOptions {
 //     them later in a path since they delay matching and can
 //     introduce non-coaccessible states and transitions.
 template <class Arc>
-void Compose(const Fst<Arc> &ifst1, const Fst<Arc> &ifst2,
-             MutableFst<Arc> *ofst,
-             const ComposeOptions &opts = ComposeOptions()) {
+void Compose(const Fst<Arc>& ifst1, const Fst<Arc>& ifst2,
+             MutableFst<Arc>* ofst,
+             const ComposeOptions& opts = ComposeOptions()) {
   using M = Matcher<Fst<Arc>>;
   // In each case, we cache only the last state for fastest copy.
   switch (opts.filter_type) {

@@ -146,9 +146,6 @@ class IntersectFst;
 template <class Arc>
 class InvertFst;
 
-template <class AArc, class BArc, class Mapper>
-class ArcMapFst;
-
 template <class Arc>
 class ProjectFst;
 

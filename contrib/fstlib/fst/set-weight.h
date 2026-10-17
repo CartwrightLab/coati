@@ -35,11 +35,9 @@
 #include <utility>
 #include <vector>
 
-#include <fst/log.h>
-#include <fst/union-weight.h>
+#include <string_view>
 #include <fst/util.h>
 #include <fst/weight.h>
-#include <string_view>
 
 namespace fst {
 
@@ -91,45 +89,45 @@ class SetWeight {
   explicit SetWeight(Label label) { PushBack(label); }
 
   template <SetType S2>
-  explicit SetWeight(const SetWeight<Label, S2> &w)
+  explicit SetWeight(const SetWeight<Label, S2>& w)
       : first_(w.first_), rest_(w.rest_) {}
 
   template <SetType S2>
-  explicit SetWeight(SetWeight<Label, S2> &&w)
+  explicit SetWeight(SetWeight<Label, S2>&& w)
       : first_(w.first_), rest_(std::move(w.rest_)) {
     w.Clear();
   }
 
   template <SetType S2>
-  SetWeight &operator=(const SetWeight<Label, S2> &w) {
+  SetWeight& operator=(const SetWeight<Label, S2>& w) {
     first_ = w.first_;
     rest_ = w.rest_;
     return *this;
   }
 
   template <SetType S2>
-  SetWeight &operator=(SetWeight<Label, S2> &&w) {
+  SetWeight& operator=(SetWeight<Label, S2>&& w) {
     first_ = w.first_;
     rest_ = std::move(w.rest_);
     w.Clear();
     return *this;
   }
 
-  static const SetWeight &Zero() {
+  static const SetWeight& Zero() {
     return S == SET_UNION_INTERSECT ? EmptySet() : UnivSet();
   }
 
-  static const SetWeight &One() {
+  static const SetWeight& One() {
     return S == SET_UNION_INTERSECT ? UnivSet() : EmptySet();
   }
 
-  static const SetWeight &NoWeight() {
-    static const auto *const no_weight = new SetWeight(Label(kSetBad));
+  static const SetWeight& NoWeight() {
+    static const auto* const no_weight = new SetWeight(Label(kSetBad));
     return *no_weight;
   }
 
-  static const std::string &Type() {
-    static const std::string *const type =
+  static const std::string& Type() {
+    static const std::string* const type =
         new std::string(S == SET_UNION_INTERSECT
                             ? "union_intersect_set"
                             : (S == SET_INTERSECT_UNION
@@ -142,9 +140,9 @@ class SetWeight {
 
   bool Member() const;
 
-  std::istream &Read(std::istream &strm);
+  std::istream& Read(std::istream& strm);
 
-  std::ostream &Write(std::ostream &strm) const;
+  std::ostream& Write(std::ostream& strm) const;
 
   size_t Hash() const;
 
@@ -160,14 +158,14 @@ class SetWeight {
   // provide the access and mutation of the set internal elements.
 
   // The empty set.
-  static const SetWeight &EmptySet() {
-    static const auto *const empty = new SetWeight(Label(kSetEmpty));
+  static const SetWeight& EmptySet() {
+    static const auto* const empty = new SetWeight(Label(kSetEmpty));
     return *empty;
   }
 
   // The univeral set.
-  static const SetWeight &UnivSet() {
-    static const auto *const univ = new SetWeight(Label(kSetUniv));
+  static const SetWeight& UnivSet() {
+    static const auto* const univ = new SetWeight(Label(kSetUniv));
     return *univ;
   }
 
@@ -215,7 +213,7 @@ class SetWeightIterator {
   using Weight = SetWeight_;
   using Label = typename Weight::Label;
 
-  explicit SetWeightIterator(const Weight &w)
+  explicit SetWeightIterator(const Weight& w)
       : first_(w.first_), rest_(w.rest_), init_(true), iter_(rest_.begin()) {}
 
   bool Done() const {
@@ -226,7 +224,7 @@ class SetWeightIterator {
     }
   }
 
-  const Label &Value() const { return init_ ? first_ : *iter_; }
+  const Label& Value() const { return init_ ? first_ : *iter_; }
 
   void Next() {
     if (init_) {
@@ -242,8 +240,8 @@ class SetWeightIterator {
   }
 
  private:
-  const Label &first_;
-  const decltype(Weight::rest_) &rest_;
+  const Label& first_;
+  const decltype(Weight::rest_)& rest_;
   bool init_;  // In the initialized state?
   typename decltype(Weight::rest_)::const_iterator iter_;
 };
@@ -251,7 +249,7 @@ class SetWeightIterator {
 // SetWeight member functions follow that require SetWeightIterator
 
 template <typename Label, SetType S>
-inline std::istream &SetWeight<Label, S>::Read(std::istream &strm) {
+inline std::istream& SetWeight<Label, S>::Read(std::istream& strm) {
   Clear();
   int32_t size;
   ReadType(strm, &size);
@@ -264,7 +262,7 @@ inline std::istream &SetWeight<Label, S>::Read(std::istream &strm) {
 }
 
 template <typename Label, SetType S>
-inline std::ostream &SetWeight<Label, S>::Write(std::ostream &strm) const {
+inline std::ostream& SetWeight<Label, S>::Write(std::ostream& strm) const {
   const int32_t size = Size();
   WriteType(strm, size);
   for (Iterator iter(*this); !iter.Done(); iter.Next()) {
@@ -301,8 +299,8 @@ inline size_t SetWeight<Label, S>::Hash() const {
 
 // Default ==
 template <typename Label, SetType S>
-inline bool operator==(const SetWeight<Label, S> &w1,
-                       const SetWeight<Label, S> &w2) {
+inline bool operator==(const SetWeight<Label, S>& w1,
+                       const SetWeight<Label, S>& w2) {
   if (w1.Size() != w2.Size()) return false;
   using Iterator = typename SetWeight<Label, S>::Iterator;
   Iterator iter1(w1);
@@ -315,8 +313,8 @@ inline bool operator==(const SetWeight<Label, S> &w1,
 
 // Boolean ==
 template <typename Label>
-inline bool operator==(const SetWeight<Label, SET_BOOLEAN> &w1,
-                       const SetWeight<Label, SET_BOOLEAN> &w2) {
+inline bool operator==(const SetWeight<Label, SET_BOOLEAN>& w1,
+                       const SetWeight<Label, SET_BOOLEAN>& w2) {
   // x == kSetEmpty if x \nin {kUnivSet, kSetBad}
   if (!w1.Member() || !w2.Member()) return false;
   using Iterator = typename SetWeight<Label, SET_BOOLEAN>::Iterator;
@@ -330,20 +328,20 @@ inline bool operator==(const SetWeight<Label, SET_BOOLEAN> &w1,
 }
 
 template <typename Label, SetType S>
-inline bool operator!=(const SetWeight<Label, S> &w1,
-                       const SetWeight<Label, S> &w2) {
+inline bool operator!=(const SetWeight<Label, S>& w1,
+                       const SetWeight<Label, S>& w2) {
   return !(w1 == w2);
 }
 
 template <typename Label, SetType S>
-inline bool ApproxEqual(const SetWeight<Label, S> &w1,
-                        const SetWeight<Label, S> &w2, float delta = kDelta) {
+inline bool ApproxEqual(const SetWeight<Label, S>& w1,
+                        const SetWeight<Label, S>& w2, float delta = kDelta) {
   return w1 == w2;
 }
 
 template <typename Label, SetType S>
-inline std::ostream &operator<<(std::ostream &strm,
-                                const SetWeight<Label, S> &weight) {
+inline std::ostream& operator<<(std::ostream& strm,
+                                const SetWeight<Label, S>& weight) {
   typename SetWeight<Label, S>::Iterator iter(weight);
   if (iter.Done()) {
     return strm << "EmptySet";
@@ -361,8 +359,8 @@ inline std::ostream &operator<<(std::ostream &strm,
 }
 
 template <typename Label, SetType S>
-inline std::istream &operator>>(std::istream &strm,
-                                SetWeight<Label, S> &weight) {
+inline std::istream& operator>>(std::istream& strm,
+                                SetWeight<Label, S>& weight) {
   std::string str;
   strm >> str;
   using Weight = SetWeight<Label, S>;
@@ -385,8 +383,8 @@ inline std::istream &operator>>(std::istream &strm,
 }
 
 template <typename Label, SetType S>
-inline SetWeight<Label, S> Union(const SetWeight<Label, S> &w1,
-                                 const SetWeight<Label, S> &w2) {
+inline SetWeight<Label, S> Union(const SetWeight<Label, S>& w1,
+                                 const SetWeight<Label, S>& w2) {
   using Weight = SetWeight<Label, S>;
   using Iterator = typename SetWeight<Label, S>::Iterator;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
@@ -418,8 +416,8 @@ inline SetWeight<Label, S> Union(const SetWeight<Label, S> &w1,
 }
 
 template <typename Label, SetType S>
-inline SetWeight<Label, S> Intersect(const SetWeight<Label, S> &w1,
-                                     const SetWeight<Label, S> &w2) {
+inline SetWeight<Label, S> Intersect(const SetWeight<Label, S>& w1,
+                                     const SetWeight<Label, S>& w2) {
   using Weight = SetWeight<Label, S>;
   using Iterator = typename SetWeight<Label, S>::Iterator;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
@@ -447,8 +445,8 @@ inline SetWeight<Label, S> Intersect(const SetWeight<Label, S> &w1,
 }
 
 template <typename Label, SetType S>
-inline SetWeight<Label, S> Difference(const SetWeight<Label, S> &w1,
-                                      const SetWeight<Label, S> &w2) {
+inline SetWeight<Label, S> Difference(const SetWeight<Label, S>& w1,
+                                      const SetWeight<Label, S>& w2) {
   using Weight = SetWeight<Label, S>;
   using Iterator = typename SetWeight<Label, S>::Iterator;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
@@ -477,16 +475,16 @@ inline SetWeight<Label, S> Difference(const SetWeight<Label, S> &w1,
 
 // Default: Plus = Intersect.
 template <typename Label, SetType S>
-inline SetWeight<Label, S> Plus(const SetWeight<Label, S> &w1,
-                                const SetWeight<Label, S> &w2) {
+inline SetWeight<Label, S> Plus(const SetWeight<Label, S>& w1,
+                                const SetWeight<Label, S>& w2) {
   return Intersect(w1, w2);
 }
 
 // Plus = Union.
 template <typename Label>
 inline SetWeight<Label, SET_UNION_INTERSECT> Plus(
-    const SetWeight<Label, SET_UNION_INTERSECT> &w1,
-    const SetWeight<Label, SET_UNION_INTERSECT> &w2) {
+    const SetWeight<Label, SET_UNION_INTERSECT>& w1,
+    const SetWeight<Label, SET_UNION_INTERSECT>& w2) {
   return Union(w1, w2);
 }
 
@@ -495,8 +493,8 @@ inline SetWeight<Label, SET_UNION_INTERSECT> Plus(
 // has a unique labelled path weight.
 template <typename Label>
 inline SetWeight<Label, SET_INTERSECT_UNION_RESTRICT> Plus(
-    const SetWeight<Label, SET_INTERSECT_UNION_RESTRICT> &w1,
-    const SetWeight<Label, SET_INTERSECT_UNION_RESTRICT> &w2) {
+    const SetWeight<Label, SET_INTERSECT_UNION_RESTRICT>& w1,
+    const SetWeight<Label, SET_INTERSECT_UNION_RESTRICT>& w2) {
   using Weight = SetWeight<Label, SET_INTERSECT_UNION_RESTRICT>;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
   if (w1 == Weight::Zero()) return w2;
@@ -513,8 +511,8 @@ inline SetWeight<Label, SET_INTERSECT_UNION_RESTRICT> Plus(
 // Plus = Or.
 template <typename Label>
 inline SetWeight<Label, SET_BOOLEAN> Plus(
-    const SetWeight<Label, SET_BOOLEAN> &w1,
-    const SetWeight<Label, SET_BOOLEAN> &w2) {
+    const SetWeight<Label, SET_BOOLEAN>& w1,
+    const SetWeight<Label, SET_BOOLEAN>& w2) {
   using Weight = SetWeight<Label, SET_BOOLEAN>;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
   if (w1 == Weight::One()) return w1;
@@ -524,24 +522,24 @@ inline SetWeight<Label, SET_BOOLEAN> Plus(
 
 // Default: Times = Union.
 template <typename Label, SetType S>
-inline SetWeight<Label, S> Times(const SetWeight<Label, S> &w1,
-                                 const SetWeight<Label, S> &w2) {
+inline SetWeight<Label, S> Times(const SetWeight<Label, S>& w1,
+                                 const SetWeight<Label, S>& w2) {
   return Union(w1, w2);
 }
 
 // Times = Intersect.
 template <typename Label>
 inline SetWeight<Label, SET_UNION_INTERSECT> Times(
-    const SetWeight<Label, SET_UNION_INTERSECT> &w1,
-    const SetWeight<Label, SET_UNION_INTERSECT> &w2) {
+    const SetWeight<Label, SET_UNION_INTERSECT>& w1,
+    const SetWeight<Label, SET_UNION_INTERSECT>& w2) {
   return Intersect(w1, w2);
 }
 
 // Times = And.
 template <typename Label>
 inline SetWeight<Label, SET_BOOLEAN> Times(
-    const SetWeight<Label, SET_BOOLEAN> &w1,
-    const SetWeight<Label, SET_BOOLEAN> &w2) {
+    const SetWeight<Label, SET_BOOLEAN>& w1,
+    const SetWeight<Label, SET_BOOLEAN>& w2) {
   using Weight = SetWeight<Label, SET_BOOLEAN>;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
   if (w1 == Weight::One()) return w2;
@@ -550,8 +548,8 @@ inline SetWeight<Label, SET_BOOLEAN> Times(
 
 // Divide = Difference.
 template <typename Label, SetType S>
-inline SetWeight<Label, S> Divide(const SetWeight<Label, S> &w1,
-                                  const SetWeight<Label, S> &w2,
+inline SetWeight<Label, S> Divide(const SetWeight<Label, S>& w1,
+                                  const SetWeight<Label, S>& w2,
                                   DivideType divide_type = DIVIDE_ANY) {
   return Difference(w1, w2);
 }
@@ -560,8 +558,8 @@ inline SetWeight<Label, S> Divide(const SetWeight<Label, S> &w1,
 // dividend == divisor).
 template <typename Label>
 inline SetWeight<Label, SET_UNION_INTERSECT> Divide(
-    const SetWeight<Label, SET_UNION_INTERSECT> &w1,
-    const SetWeight<Label, SET_UNION_INTERSECT> &w2,
+    const SetWeight<Label, SET_UNION_INTERSECT>& w1,
+    const SetWeight<Label, SET_UNION_INTERSECT>& w2,
     DivideType divide_type = DIVIDE_ANY) {
   using Weight = SetWeight<Label, SET_UNION_INTERSECT>;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
@@ -572,8 +570,8 @@ inline SetWeight<Label, SET_UNION_INTERSECT> Divide(
 // Divide = Or Not.
 template <typename Label>
 inline SetWeight<Label, SET_BOOLEAN> Divide(
-    const SetWeight<Label, SET_BOOLEAN> &w1,
-    const SetWeight<Label, SET_BOOLEAN> &w2,
+    const SetWeight<Label, SET_BOOLEAN>& w1,
+    const SetWeight<Label, SET_BOOLEAN>& w2,
     DivideType divide_type = DIVIDE_ANY) {
   using Weight = SetWeight<Label, SET_BOOLEAN>;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
@@ -585,7 +583,7 @@ inline SetWeight<Label, SET_BOOLEAN> Divide(
 // Converts between different set types.
 template <typename Label, SetType S1, SetType S2>
 struct WeightConvert<SetWeight<Label, S1>, SetWeight<Label, S2>> {
-  SetWeight<Label, S2> operator()(const SetWeight<Label, S1> &w1) const {
+  SetWeight<Label, S2> operator()(const SetWeight<Label, S1>& w1) const {
     using Iterator = SetWeightIterator<SetWeight<Label, S1>>;
     SetWeight<Label, S2> w2;
     for (Iterator iter(w1); !iter.Done(); iter.Next())

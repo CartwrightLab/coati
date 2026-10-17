@@ -24,14 +24,13 @@
 #include <optional>
 #include <vector>
 
+#include <unordered_set>
 #include <fst/flags.h>
-#include <fst/log.h>
 #include <fst/cc-visitors.h>
 #include <fst/dfs-visit.h>
 #include <fst/fst.h>
 #include <fst/properties.h>
 #include <fst/util.h>
-#include <unordered_set>
 
 DECLARE_bool(fst_verify_properties);
 
@@ -49,8 +48,8 @@ namespace internal {
 // properties can be used. This routine is seldom called directly; instead it is
 // used to implement fst.Properties(mask, /*test=*/true).
 template <class Arc>
-uint64_t ComputeProperties(const Fst<Arc> &fst, uint64_t mask,
-                           uint64_t *known) {
+uint64_t ComputeProperties(const Fst<Arc>& fst, uint64_t mask,
+                           uint64_t* known) {
   using Label = typename Arc::Label;
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
@@ -98,7 +97,7 @@ uint64_t ComputeProperties(const Fst<Arc> &fst, uint64_t mask,
       }
       bool first_arc = true;
       for (ArcIterator<Fst<Arc>> aiter(fst, s); !aiter.Done(); aiter.Next()) {
-        const auto &arc = aiter.Value();
+        const auto& arc = aiter.Value();
         if (ilabels && ilabels->find(arc.ilabel) != ilabels->end()) {
           comp_props |= kNonIDeterministic;
           comp_props &= ~kIDeterministic;
@@ -186,8 +185,8 @@ uint64_t ComputeProperties(const Fst<Arc> &fst, uint64_t mask,
 // Similar to ComputeProperties, but uses the properties already stored
 // in the FST when possible.
 template <class Arc>
-uint64_t ComputeOrUseStoredProperties(const Fst<Arc> &fst, uint64_t mask,
-                                      uint64_t *known) {
+uint64_t ComputeOrUseStoredProperties(const Fst<Arc>& fst, uint64_t mask,
+                                      uint64_t* known) {
   // Check stored FST properties first.
   const auto fst_props = fst.Properties(kFstProperties, /*test=*/false);
   const auto known_props = KnownProperties(fst_props);
@@ -205,7 +204,7 @@ uint64_t ComputeOrUseStoredProperties(const Fst<Arc> &fst, uint64_t mask,
 // FST_FLAGS_fst_verify_properties is true. This routine is seldom called directly;
 // instead it is used to implement fst.Properties(mask, /*test=*/true).
 template <class Arc>
-uint64_t TestProperties(const Fst<Arc> &fst, uint64_t mask, uint64_t *known) {
+uint64_t TestProperties(const Fst<Arc>& fst, uint64_t mask, uint64_t* known) {
   if (FST_FLAGS_fst_verify_properties) {
     const auto stored_props = fst.Properties(kFstProperties, false);
     const auto computed_props = ComputeProperties(fst, mask, known);
@@ -224,7 +223,7 @@ uint64_t TestProperties(const Fst<Arc> &fst, uint64_t mask, uint64_t *known) {
 // both 'check_mask' and 'test_mask' are computed. This is used to check for
 // newly-added properties that might not be set in old binary files.
 template <class Arc>
-uint64_t CheckProperties(const Fst<Arc> &fst, uint64_t check_mask,
+uint64_t CheckProperties(const Fst<Arc>& fst, uint64_t check_mask,
                          uint64_t test_mask) {
   auto props = fst.Properties(kFstProperties, false);
   if (FST_FLAGS_fst_verify_properties) {

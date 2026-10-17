@@ -33,7 +33,6 @@
 #include <random>
 #include <string>
 
-#include <fst/log.h>
 #include <fst/float-weight.h>
 #include <fst/pair-weight.h>
 #include <fst/product-weight.h>
@@ -54,31 +53,30 @@ class SignedLogWeightTpl : public PairWeight<TropicalWeight, LogWeightTpl<T>> {
   SignedLogWeightTpl() noexcept : PairWeight<W1, W2>() {}
 
   // Conversion from plain LogWeightTpl.
-  // NOLINTNEXTLINE(google-explicit-constructor)
-  SignedLogWeightTpl(const W2 &w2) : PairWeight<W1, W2>(W1(1.0), w2) {}
+  explicit SignedLogWeightTpl(const W2& w2) : PairWeight<W1, W2>(W1(1.0), w2) {}
 
-  explicit SignedLogWeightTpl(const PairWeight<W1, W2> &weight)
+  explicit SignedLogWeightTpl(const PairWeight<W1, W2>& weight)
       : PairWeight<W1, W2>(weight) {}
 
-  SignedLogWeightTpl(const W1 &w1, const W2 &w2) : PairWeight<W1, W2>(w1, w2) {}
+  SignedLogWeightTpl(const W1& w1, const W2& w2) : PairWeight<W1, W2>(w1, w2) {}
 
-  static const SignedLogWeightTpl &Zero() {
+  static const SignedLogWeightTpl& Zero() {
     static const SignedLogWeightTpl zero(W1(1.0), W2::Zero());
     return zero;
   }
 
-  static const SignedLogWeightTpl &One() {
+  static const SignedLogWeightTpl& One() {
     static const SignedLogWeightTpl one(W1(1.0), W2::One());
     return one;
   }
 
-  static const SignedLogWeightTpl &NoWeight() {
+  static const SignedLogWeightTpl& NoWeight() {
     static const SignedLogWeightTpl no_weight(W1(1.0), W2::NoWeight());
     return no_weight;
   }
 
-  static const std::string &Type() {
-    static const std::string *const type =
+  static const std::string& Type() {
+    static const std::string* const type =
         new std::string("signed_log_" + W1::Type() + "_" + W2::Type());
     return *type;
   }
@@ -115,8 +113,8 @@ class SignedLogWeightTpl : public PairWeight<TropicalWeight, LogWeightTpl<T>> {
 };
 
 template <class T>
-inline SignedLogWeightTpl<T> Plus(const SignedLogWeightTpl<T> &w1,
-                                  const SignedLogWeightTpl<T> &w2) {
+inline SignedLogWeightTpl<T> Plus(const SignedLogWeightTpl<T>& w1,
+                                  const SignedLogWeightTpl<T>& w2) {
   using W1 = TropicalWeight;
   using W2 = LogWeightTpl<T>;
   if (!w1.Member() || !w2.Member()) return SignedLogWeightTpl<T>::NoWeight();
@@ -155,55 +153,56 @@ inline SignedLogWeightTpl<T> Plus(const SignedLogWeightTpl<T> &w1,
 }
 
 template <class T>
-inline SignedLogWeightTpl<T> Minus(const SignedLogWeightTpl<T> &w1,
-                                   const SignedLogWeightTpl<T> &w2) {
-  SignedLogWeightTpl<T> minus_w2(-w2.Value1().Value(), w2.Value2());
+inline SignedLogWeightTpl<T> Minus(const SignedLogWeightTpl<T>& w1,
+                                   const SignedLogWeightTpl<T>& w2) {
+  using W1 = typename SignedLogWeightTpl<T>::W1;
+  SignedLogWeightTpl<T> minus_w2(W1(-w2.Value1().Value()), w2.Value2());
   return Plus(w1, minus_w2);
 }
 
 template <class T>
-inline SignedLogWeightTpl<T> Times(const SignedLogWeightTpl<T> &w1,
-                                   const SignedLogWeightTpl<T> &w2) {
-  using W2 = LogWeightTpl<T>;
+inline SignedLogWeightTpl<T> Times(const SignedLogWeightTpl<T>& w1,
+                                   const SignedLogWeightTpl<T>& w2) {
+  using W1 = typename SignedLogWeightTpl<T>::W1;
+  using W2 = typename SignedLogWeightTpl<T>::W2;
   if (!w1.Member() || !w2.Member()) return SignedLogWeightTpl<T>::NoWeight();
   const auto s1 = w1.IsPositive();
   const auto s2 = w2.IsPositive();
   const auto f1 = w1.Value2().Value();
   const auto f2 = w2.Value2().Value();
   if (s1 == s2) {
-    return SignedLogWeightTpl<T>(TropicalWeight(1.0), W2(f1 + f2));
+    return SignedLogWeightTpl<T>(W1(1.0), W2(f1 + f2));
   } else {
-    return SignedLogWeightTpl<T>(TropicalWeight(-1.0), W2(f1 + f2));
+    return SignedLogWeightTpl<T>(W1(-1.0), W2(f1 + f2));
   }
 }
 
 template <class T>
-inline SignedLogWeightTpl<T> Divide(const SignedLogWeightTpl<T> &w1,
-                                    const SignedLogWeightTpl<T> &w2,
+inline SignedLogWeightTpl<T> Divide(const SignedLogWeightTpl<T>& w1,
+                                    const SignedLogWeightTpl<T>& w2,
                                     DivideType typ = DIVIDE_ANY) {
-  using W2 = LogWeightTpl<T>;
+  using W1 = typename SignedLogWeightTpl<T>::W1;
+  using W2 = typename SignedLogWeightTpl<T>::W2;
   if (!w1.Member() || !w2.Member()) return SignedLogWeightTpl<T>::NoWeight();
   const auto s1 = w1.IsPositive();
   const auto s2 = w2.IsPositive();
   const auto f1 = w1.Value2().Value();
   const auto f2 = w2.Value2().Value();
   if (f2 == FloatLimits<T>::PosInfinity()) {
-    return SignedLogWeightTpl<T>(TropicalWeight(1.0),
-                                 W2(FloatLimits<T>::NumberBad()));
+    return SignedLogWeightTpl<T>(W1(1.0), W2(FloatLimits<T>::NumberBad()));
   } else if (f1 == FloatLimits<T>::PosInfinity()) {
-    return SignedLogWeightTpl<T>(TropicalWeight(1.0),
-                                 W2(FloatLimits<T>::PosInfinity()));
+    return SignedLogWeightTpl<T>(W1(1.0), W2(FloatLimits<T>::PosInfinity()));
   } else if (s1 == s2) {
-    return SignedLogWeightTpl<T>(TropicalWeight(1.0), W2(f1 - f2));
+    return SignedLogWeightTpl<T>(W1(1.0), W2(f1 - f2));
   } else {
-    return SignedLogWeightTpl<T>(TropicalWeight(-1.0), W2(f1 - f2));
+    return SignedLogWeightTpl<T>(W1(-1.0), W2(f1 - f2));
   }
 }
 
 template <class T>
-inline bool ApproxEqual(const SignedLogWeightTpl<T> &w1,
-                        const SignedLogWeightTpl<T> &w2, float delta = kDelta) {
-  using W2 = LogWeightTpl<T>;
+inline bool ApproxEqual(const SignedLogWeightTpl<T>& w1,
+                        const SignedLogWeightTpl<T>& w2, float delta = kDelta) {
+  using W2 = typename SignedLogWeightTpl<T>::W2;
   if (w1.IsPositive() == w2.IsPositive()) {
     return ApproxEqual(w1.Value2(), w2.Value2(), delta);
   } else {
@@ -213,9 +212,9 @@ inline bool ApproxEqual(const SignedLogWeightTpl<T> &w1,
 }
 
 template <class T>
-inline bool operator==(const SignedLogWeightTpl<T> &w1,
-                       const SignedLogWeightTpl<T> &w2) {
-  using W2 = LogWeightTpl<T>;
+inline bool operator==(const SignedLogWeightTpl<T>& w1,
+                       const SignedLogWeightTpl<T>& w2) {
+  using W2 = typename SignedLogWeightTpl<T>::W2;
   if (w1.IsPositive() == w2.IsPositive()) {
     return w1.Value2() == w2.Value2();
   } else {
@@ -224,98 +223,99 @@ inline bool operator==(const SignedLogWeightTpl<T> &w1,
 }
 
 template <class T>
-inline bool operator!=(const SignedLogWeightTpl<T> &w1,
-                       const SignedLogWeightTpl<T> &w2) {
+inline bool operator!=(const SignedLogWeightTpl<T>& w1,
+                       const SignedLogWeightTpl<T>& w2) {
   return !(w1 == w2);
 }
 
+// TODO(b/485292469): Revisit this comment when implicit conversion is removed.
 // All functions and operators with a LogWeightTpl arg need to be
 // explicitly specified since the implicit constructor will not be
 // tried in conjunction with function overloading.
 
 template <class T>
-inline SignedLogWeightTpl<T> Plus(const LogWeightTpl<T> &w1,
-                                  const SignedLogWeightTpl<T> &w2) {
+inline SignedLogWeightTpl<T> Plus(const LogWeightTpl<T>& w1,
+                                  const SignedLogWeightTpl<T>& w2) {
   return Plus(SignedLogWeightTpl<T>(w1), w2);
 }
 
 template <class T>
-inline SignedLogWeightTpl<T> Plus(const SignedLogWeightTpl<T> &w1,
-                                  const LogWeightTpl<T> &w2) {
+inline SignedLogWeightTpl<T> Plus(const SignedLogWeightTpl<T>& w1,
+                                  const LogWeightTpl<T>& w2) {
   return Plus(w1, SignedLogWeightTpl<T>(w2));
 }
 
 template <class T>
-inline SignedLogWeightTpl<T> Minus(const LogWeightTpl<T> &w1,
-                                   const SignedLogWeightTpl<T> &w2) {
+inline SignedLogWeightTpl<T> Minus(const LogWeightTpl<T>& w1,
+                                   const SignedLogWeightTpl<T>& w2) {
   return Minus(SignedLogWeightTpl<T>(w1), w2);
 }
 
 template <class T>
-inline SignedLogWeightTpl<T> Minus(const SignedLogWeightTpl<T> &w1,
-                                   const LogWeightTpl<T> &w2) {
+inline SignedLogWeightTpl<T> Minus(const SignedLogWeightTpl<T>& w1,
+                                   const LogWeightTpl<T>& w2) {
   return Minus(w1, SignedLogWeightTpl<T>(w2));
 }
 
 template <class T>
-inline SignedLogWeightTpl<T> Times(const LogWeightTpl<T> &w1,
-                                   const SignedLogWeightTpl<T> &w2) {
+inline SignedLogWeightTpl<T> Times(const LogWeightTpl<T>& w1,
+                                   const SignedLogWeightTpl<T>& w2) {
   return Times(SignedLogWeightTpl<T>(w1), w2);
 }
 
 template <class T>
-inline SignedLogWeightTpl<T> Times(const SignedLogWeightTpl<T> &w1,
-                                   const LogWeightTpl<T> &w2) {
+inline SignedLogWeightTpl<T> Times(const SignedLogWeightTpl<T>& w1,
+                                   const LogWeightTpl<T>& w2) {
   return Times(w1, SignedLogWeightTpl<T>(w2));
 }
 
 template <class T>
-inline SignedLogWeightTpl<T> Divide(const LogWeightTpl<T> &w1,
-                                    const SignedLogWeightTpl<T> &w2,
+inline SignedLogWeightTpl<T> Divide(const LogWeightTpl<T>& w1,
+                                    const SignedLogWeightTpl<T>& w2,
                                     DivideType typ = DIVIDE_ANY) {
   return Divide(SignedLogWeightTpl<T>(w1), w2, typ);
 }
 
 template <class T>
-inline SignedLogWeightTpl<T> Divide(const SignedLogWeightTpl<T> &w1,
-                                    const LogWeightTpl<T> &w2,
+inline SignedLogWeightTpl<T> Divide(const SignedLogWeightTpl<T>& w1,
+                                    const LogWeightTpl<T>& w2,
                                     DivideType typ = DIVIDE_ANY) {
   return Divide(w1, SignedLogWeightTpl<T>(w2), typ);
 }
 
 template <class T>
-inline bool ApproxEqual(const LogWeightTpl<T> &w1,
-                        const SignedLogWeightTpl<T> &w2, float delta = kDelta) {
+inline bool ApproxEqual(const LogWeightTpl<T>& w1,
+                        const SignedLogWeightTpl<T>& w2, float delta = kDelta) {
   return ApproxEqual(LogWeightTpl<T>(w1), w2, delta);
 }
 
 template <class T>
-inline bool ApproxEqual(const SignedLogWeightTpl<T> &w1,
-                        const LogWeightTpl<T> &w2, float delta = kDelta) {
+inline bool ApproxEqual(const SignedLogWeightTpl<T>& w1,
+                        const LogWeightTpl<T>& w2, float delta = kDelta) {
   return ApproxEqual(w1, LogWeightTpl<T>(w2), delta);
 }
 
 template <class T>
-inline bool operator==(const LogWeightTpl<T> &w1,
-                       const SignedLogWeightTpl<T> &w2) {
+inline bool operator==(const LogWeightTpl<T>& w1,
+                       const SignedLogWeightTpl<T>& w2) {
   return SignedLogWeightTpl<T>(w1) == w2;
 }
 
 template <class T>
-inline bool operator==(const SignedLogWeightTpl<T> &w1,
-                       const LogWeightTpl<T> &w2) {
+inline bool operator==(const SignedLogWeightTpl<T>& w1,
+                       const LogWeightTpl<T>& w2) {
   return w1 == SignedLogWeightTpl<T>(w2);
 }
 
 template <class T>
-inline bool operator!=(const LogWeightTpl<T> &w1,
-                       const SignedLogWeightTpl<T> &w2) {
+inline bool operator!=(const LogWeightTpl<T>& w1,
+                       const SignedLogWeightTpl<T>& w2) {
   return SignedLogWeightTpl<T>(w1) != w2;
 }
 
 template <class T>
-inline bool operator!=(const SignedLogWeightTpl<T> &w1,
-                       const LogWeightTpl<T> &w2) {
+inline bool operator!=(const SignedLogWeightTpl<T>& w1,
+                       const LogWeightTpl<T>& w2) {
   return w1 != SignedLogWeightTpl<T>(w2);
 }
 
@@ -346,7 +346,7 @@ class Adder<SignedLogWeightTpl<T>> {
   explicit Adder(Weight w = Weight::Zero())
       : ssum_(w.IsPositive()), sum_(w.Value2().Value()), c_(0.0) {}
 
-  Weight Add(const Weight &w) {
+  Weight Add(const Weight& w) {
     const auto sw = w.IsPositive();
     const auto f = w.Value2().Value();
     const bool equal = (ssum_ == sw);
@@ -399,7 +399,7 @@ class Adder<SignedLogWeightTpl<T>> {
 // Converts to tropical.
 template <>
 struct WeightConvert<SignedLogWeight, TropicalWeight> {
-  TropicalWeight operator()(const SignedLogWeight &weight) const {
+  TropicalWeight operator()(const SignedLogWeight& weight) const {
     if (!SignedLogConvertCheck<SignedLogWeight, TropicalWeight>(weight)) {
       return TropicalWeight::NoWeight();
     }
@@ -409,7 +409,7 @@ struct WeightConvert<SignedLogWeight, TropicalWeight> {
 
 template <>
 struct WeightConvert<SignedLog64Weight, TropicalWeight> {
-  TropicalWeight operator()(const SignedLog64Weight &weight) const {
+  TropicalWeight operator()(const SignedLog64Weight& weight) const {
     if (!SignedLogConvertCheck<SignedLog64Weight, TropicalWeight>(weight)) {
       return TropicalWeight::NoWeight();
     }
@@ -420,7 +420,7 @@ struct WeightConvert<SignedLog64Weight, TropicalWeight> {
 // Converts to log.
 template <>
 struct WeightConvert<SignedLogWeight, LogWeight> {
-  LogWeight operator()(const SignedLogWeight &weight) const {
+  LogWeight operator()(const SignedLogWeight& weight) const {
     if (!SignedLogConvertCheck<SignedLogWeight, LogWeight>(weight)) {
       return LogWeight::NoWeight();
     }
@@ -430,7 +430,7 @@ struct WeightConvert<SignedLogWeight, LogWeight> {
 
 template <>
 struct WeightConvert<SignedLog64Weight, LogWeight> {
-  LogWeight operator()(const SignedLog64Weight &weight) const {
+  LogWeight operator()(const SignedLog64Weight& weight) const {
     if (!SignedLogConvertCheck<SignedLog64Weight, LogWeight>(weight)) {
       return LogWeight::NoWeight();
     }
@@ -441,7 +441,7 @@ struct WeightConvert<SignedLog64Weight, LogWeight> {
 // Converts to log64.
 template <>
 struct WeightConvert<SignedLogWeight, Log64Weight> {
-  Log64Weight operator()(const SignedLogWeight &weight) const {
+  Log64Weight operator()(const SignedLogWeight& weight) const {
     if (!SignedLogConvertCheck<SignedLogWeight, Log64Weight>(weight)) {
       return Log64Weight::NoWeight();
     }
@@ -451,7 +451,7 @@ struct WeightConvert<SignedLogWeight, Log64Weight> {
 
 template <>
 struct WeightConvert<SignedLog64Weight, Log64Weight> {
-  Log64Weight operator()(const SignedLog64Weight &weight) const {
+  Log64Weight operator()(const SignedLog64Weight& weight) const {
     if (!SignedLogConvertCheck<SignedLog64Weight, Log64Weight>(weight)) {
       return Log64Weight::NoWeight();
     }
@@ -462,14 +462,14 @@ struct WeightConvert<SignedLog64Weight, Log64Weight> {
 // Converts to real.
 template <>
 struct WeightConvert<SignedLogWeight, RealWeight> {
-  RealWeight operator()(const SignedLogWeight &weight) const {
+  RealWeight operator()(const SignedLogWeight& weight) const {
     return RealWeight(weight.Value1().Value() * exp(-weight.Value2().Value()));
   }
 };
 
 template <>
 struct WeightConvert<SignedLog64Weight, RealWeight> {
-  RealWeight operator()(const SignedLog64Weight &weight) const {
+  RealWeight operator()(const SignedLog64Weight& weight) const {
     return RealWeight(weight.Value1().Value() * exp(-weight.Value2().Value()));
   }
 };
@@ -477,7 +477,7 @@ struct WeightConvert<SignedLog64Weight, RealWeight> {
 // Converts to real64.
 template <>
 struct WeightConvert<SignedLogWeight, Real64Weight> {
-  Real64Weight operator()(const SignedLogWeight &weight) const {
+  Real64Weight operator()(const SignedLogWeight& weight) const {
     return Real64Weight(weight.Value1().Value() *
                         exp(-weight.Value2().Value()));
   }
@@ -485,7 +485,7 @@ struct WeightConvert<SignedLogWeight, Real64Weight> {
 
 template <>
 struct WeightConvert<SignedLog64Weight, Real64Weight> {
-  Real64Weight operator()(const SignedLog64Weight &weight) const {
+  Real64Weight operator()(const SignedLog64Weight& weight) const {
     return Real64Weight(weight.Value1().Value() *
                         exp(-weight.Value2().Value()));
   }
@@ -494,90 +494,102 @@ struct WeightConvert<SignedLog64Weight, Real64Weight> {
 // Converts to signed log.
 template <>
 struct WeightConvert<TropicalWeight, SignedLogWeight> {
-  SignedLogWeight operator()(const TropicalWeight &weight) const {
-    return SignedLogWeight(1.0, weight.Value());
+  SignedLogWeight operator()(const TropicalWeight& weight) const {
+    return SignedLogWeight(SignedLogWeight::W1(1.0),
+                           SignedLogWeight::W2(weight.Value()));
   }
 };
 
 template <>
 struct WeightConvert<LogWeight, SignedLogWeight> {
-  SignedLogWeight operator()(const LogWeight &weight) const {
-    return SignedLogWeight(1.0, weight.Value());
+  SignedLogWeight operator()(const LogWeight& weight) const {
+    return SignedLogWeight(SignedLogWeight::W1(1.0),
+                           SignedLogWeight::W2(weight.Value()));
   }
 };
 
 template <>
 struct WeightConvert<Log64Weight, SignedLogWeight> {
-  SignedLogWeight operator()(const Log64Weight &weight) const {
-    return SignedLogWeight(1.0, weight.Value());
+  SignedLogWeight operator()(const Log64Weight& weight) const {
+    return SignedLogWeight(SignedLogWeight::W1(1.0),
+                           SignedLogWeight::W2(weight.Value()));
   }
 };
 
 template <>
 struct WeightConvert<RealWeight, SignedLogWeight> {
-  SignedLogWeight operator()(const RealWeight &weight) const {
-    return SignedLogWeight(weight.Value() >= 0 ? 1.0 : -1.0,
-                           -log(std::abs(weight.Value())));
+  SignedLogWeight operator()(const RealWeight& weight) const {
+    return SignedLogWeight(
+        SignedLogWeight::W1(weight.Value() >= 0 ? 1.0 : -1.0),
+        SignedLogWeight::W2(-log(std::abs(weight.Value()))));
   }
 };
 
 template <>
 struct WeightConvert<Real64Weight, SignedLogWeight> {
-  SignedLogWeight operator()(const Real64Weight &weight) const {
-    return SignedLogWeight(weight.Value() >= 0 ? 1.0 : -1.0,
-                           -log(std::abs(weight.Value())));
+  SignedLogWeight operator()(const Real64Weight& weight) const {
+    return SignedLogWeight(
+        SignedLogWeight::W1(weight.Value() >= 0 ? 1.0 : -1.0),
+        SignedLogWeight::W2(-log(std::abs(weight.Value()))));
   }
 };
 
 template <>
 struct WeightConvert<SignedLog64Weight, SignedLogWeight> {
-  SignedLogWeight operator()(const SignedLog64Weight &weight) const {
-    return SignedLogWeight(weight.Value1(), weight.Value2().Value());
+  SignedLogWeight operator()(const SignedLog64Weight& weight) const {
+    return SignedLogWeight(weight.Value1(),
+                           SignedLogWeight::W2(weight.Value2().Value()));
   }
 };
 
 // Converts to signed log64.
 template <>
 struct WeightConvert<TropicalWeight, SignedLog64Weight> {
-  SignedLog64Weight operator()(const TropicalWeight &weight) const {
-    return SignedLog64Weight(1.0, weight.Value());
+  SignedLog64Weight operator()(const TropicalWeight& weight) const {
+    return SignedLog64Weight(SignedLog64Weight::W1(1.0),
+                             Log64Weight(weight.Value()));
   }
 };
 
 template <>
 struct WeightConvert<LogWeight, SignedLog64Weight> {
-  SignedLog64Weight operator()(const LogWeight &weight) const {
-    return SignedLog64Weight(1.0, weight.Value());
+  SignedLog64Weight operator()(const LogWeight& weight) const {
+    return SignedLog64Weight(SignedLog64Weight::W1(1.0),
+                             SignedLog64Weight::W2(weight.Value()));
   }
 };
 
 template <>
 struct WeightConvert<Log64Weight, SignedLog64Weight> {
-  SignedLog64Weight operator()(const Log64Weight &weight) const {
-    return SignedLog64Weight(1.0, weight.Value());
+  SignedLog64Weight operator()(const Log64Weight& weight) const {
+    return SignedLog64Weight(SignedLog64Weight::W1(1.0),
+                             SignedLog64Weight::W2(weight.Value()));
   }
 };
 
 template <>
 struct WeightConvert<RealWeight, SignedLog64Weight> {
-  SignedLog64Weight operator()(const RealWeight &weight) const {
-    return SignedLog64Weight(weight.Value() >= 0 ? 1.0 : -1.0,
-                             -log(std::abs(weight.Value())));
+  SignedLog64Weight operator()(const RealWeight& weight) const {
+    return SignedLog64Weight(
+        SignedLog64Weight::W1(weight.Value() >= 0 ? 1.0 : -1.0),
+        SignedLog64Weight::W2(-log(std::abs(weight.Value()))));
   }
 };
 
 template <>
 struct WeightConvert<Real64Weight, SignedLog64Weight> {
-  SignedLog64Weight operator()(const Real64Weight &weight) const {
-    return SignedLog64Weight(weight.Value() >= 0 ? 1.0 : -1.0,
-                             -log(std::abs(weight.Value())));
+  SignedLog64Weight operator()(const Real64Weight& weight) const {
+    return SignedLog64Weight(
+        SignedLog64Weight::W1(weight.Value() >= 0 ? 1.0 : -1.0),
+        SignedLog64Weight::W2(-log(std::abs(weight.Value()))));
   }
 };
 
 template <>
 struct WeightConvert<SignedLogWeight, SignedLog64Weight> {
-  SignedLog64Weight operator()(const SignedLogWeight &weight) const {
-    return SignedLog64Weight(weight.Value1(), weight.Value2().Value());
+  SignedLog64Weight operator()(const SignedLogWeight& weight) const {
+    return SignedLog64Weight(weight.Value1(),
+                             SignedLog64Weight::W2(weight.Value2().Value()));
   }
 };
 

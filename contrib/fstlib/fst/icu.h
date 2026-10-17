@@ -38,7 +38,7 @@ namespace fst {
 // if necessary. It is possible to use this sensibly with as little as 8 bits
 // of Label precision. This returns `true` deterministically for compatibility.
 template <class Label>
-bool ByteStringToLabels(std::string_view str, std::vector<Label> *labels) {
+bool ByteStringToLabels(std::string_view str, std::vector<Label>* labels) {
   for (const unsigned char ch : str) labels->push_back(ch);
   return true;
 }
@@ -50,7 +50,7 @@ bool ByteStringToLabels(std::string_view str, std::vector<Label> *labels) {
 // from the various Astral Planes. Naturally, it is safe to use this with larger
 // Labels (e.g., 64 bits).
 template <class Label>
-bool UTF8StringToLabels(std::string_view str, std::vector<Label> *labels) {
+bool UTF8StringToLabels(std::string_view str, std::vector<Label>* labels) {
   for (auto it = str.begin(); it != str.end();) {
     int c = *it & 0xff;
     ++it;
@@ -90,7 +90,7 @@ bool UTF8StringToLabels(std::string_view str, std::vector<Label> *labels) {
 }
 
 template <class Label>
-bool LabelsToByteString(const std::vector<Label> &labels, std::string *str) {
+bool LabelsToByteString(const std::vector<Label>& labels, std::string* str) {
   std::ostringstream ostrm;
   for (const char label : labels) {
     if (label != 0) ostrm << label;
@@ -100,7 +100,7 @@ bool LabelsToByteString(const std::vector<Label> &labels, std::string *str) {
 }
 
 template <class Label>
-bool LabelsToUTF8String(const std::vector<Label> &labels, std::string *str) {
+bool LabelsToUTF8String(const std::vector<Label>& labels, std::string* str) {
   std::ostringstream ostrm;
   for (const int32_t label : labels) {
     if (label < 0) {

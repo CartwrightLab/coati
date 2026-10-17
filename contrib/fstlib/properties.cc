@@ -22,7 +22,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <vector>
 
 #include <string_view>
 

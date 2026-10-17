@@ -33,10 +33,10 @@ namespace fst {
 
 // Verifies that an Fst's contents are sane.
 template <class Arc>
-bool Verify(const Fst<Arc> &fst, bool allow_negative_labels = false) {
+bool Verify(const Fst<Arc>& fst, bool allow_negative_labels = false) {
   const auto start = fst.Start();
-  const auto *isyms = fst.InputSymbols();
-  const auto *osyms = fst.OutputSymbols();
+  const auto* isyms = fst.InputSymbols();
+  const auto* osyms = fst.OutputSymbols();
   const auto ns = CountStates(fst);
   if (start == kNoStateId && ns > 0) {
     LOG(ERROR) << "Verify: FST start state ID not set";
@@ -49,7 +49,7 @@ bool Verify(const Fst<Arc> &fst, bool allow_negative_labels = false) {
     auto state = siter.Value();
     size_t na = 0;
     for (ArcIterator<Fst<Arc>> aiter(fst, state); !aiter.Done(); aiter.Next()) {
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       if (!allow_negative_labels && arc.ilabel < 0) {
         LOG(ERROR) << "Verify: FST input label ID of arc at position " << na
                    << " of state " << state << " is negative";

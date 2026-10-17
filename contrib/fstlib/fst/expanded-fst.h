@@ -32,6 +32,7 @@
 #include <vector>
 
 #include <fst/log.h>
+#include <string_view>
 #include <fst/arc.h>
 #include <fstream>
 #include <fst/fst.h>
@@ -55,10 +56,10 @@ class ExpandedFst : public Fst<A> {
   }
 
   // Get a copy of this ExpandedFst. See Fst<>::Copy() for further doc.
-  ExpandedFst *Copy(bool safe = false) const override = 0;
+  ExpandedFst* Copy(bool safe = false) const override = 0;
 
   // Read an ExpandedFst from an input stream; return NULL on error.
-  static ExpandedFst *Read(std::istream &strm, const FstReadOptions &opts) {
+  static ExpandedFst* Read(std::istream& strm, const FstReadOptions& opts) {
     FstReadOptions ropts(opts);
     FstHeader hdr;
     if (ropts.header) {
@@ -78,14 +79,14 @@ class ExpandedFst : public Fst<A> {
                  << "\" (arc type = \"" << A::Type() << "\"): " << ropts.source;
       return nullptr;
     }
-    auto *fst = reader(strm, ropts);
+    auto* fst = reader(strm, ropts);
     if (!fst) return nullptr;
-    return down_cast<ExpandedFst *>(fst);
+    return down_cast<ExpandedFst*>(fst);
   }
 
   // Read an ExpandedFst from a file; return NULL on error.
   // Empty source reads from standard input.
-  static ExpandedFst *Read(std::string_view source) {
+  static ExpandedFst* Read(std::string_view source) {
     if (!source.empty()) {
       std::ifstream strm(std::string(source),
                               std::ios_base::in | std::ios_base::binary);
@@ -104,24 +105,24 @@ namespace internal {
 
 //  ExpandedFst<A> case - abstract methods.
 template <class Arc>
-inline typename Arc::Weight Final(const ExpandedFst<Arc> &fst,
+inline typename Arc::Weight Final(const ExpandedFst<Arc>& fst,
                                   typename Arc::StateId s) {
   return fst.Final(s);
 }
 
 template <class Arc>
-inline ssize_t NumArcs(const ExpandedFst<Arc> &fst, typename Arc::StateId s) {
+inline ssize_t NumArcs(const ExpandedFst<Arc>& fst, typename Arc::StateId s) {
   return fst.NumArcs(s);
 }
 
 template <class Arc>
-inline ssize_t NumInputEpsilons(const ExpandedFst<Arc> &fst,
+inline ssize_t NumInputEpsilons(const ExpandedFst<Arc>& fst,
                                 typename Arc::StateId s) {
   return fst.NumInputEpsilons(s);
 }
 
 template <class Arc>
-inline ssize_t NumOutputEpsilons(const ExpandedFst<Arc> &fst,
+inline ssize_t NumOutputEpsilons(const ExpandedFst<Arc>& fst,
                                  typename Arc::StateId s) {
   return fst.NumOutputEpsilons(s);
 }
@@ -134,9 +135,12 @@ using StdExpandedFst = ExpandedFst<StdArc>;
 // This is a helper class template useful for attaching an ExpandedFst
 // interface to its implementation, handling reference counting. It
 // delegates to ImplToFst the handling of the Fst interface methods.
-template <class Impl, class FST = ExpandedFst<typename Impl::Arc>>
-class ImplToExpandedFst : public ImplToFst<Impl, FST> {
+template <class I, class FST = ExpandedFst<typename I::Arc>>
+class ImplToExpandedFst : public ImplToFst<I, FST> {
+  using Base = ImplToFst<I, FST>;
+
  public:
+  using Impl = I;
   using Arc = typename FST::Arc;
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
@@ -144,21 +148,20 @@ class ImplToExpandedFst : public ImplToFst<Impl, FST> {
   StateId NumStates() const override { return GetImpl()->NumStates(); }
 
  protected:
-  using ImplToFst<Impl, FST>::GetImpl;
+  using Base::GetImpl;
 
-  explicit ImplToExpandedFst(std::shared_ptr<Impl> impl)
-      : ImplToFst<Impl, FST>(impl) {}
+  explicit ImplToExpandedFst(std::shared_ptr<Impl> impl) : Base(impl) {}
 
-  ImplToExpandedFst(const ImplToExpandedFst &fst, bool safe)
-      : ImplToFst<Impl, FST>(fst, safe) {}
+  ImplToExpandedFst(const ImplToExpandedFst& fst, bool safe)
+      : Base(fst, safe) {}
 
-  static Impl *Read(std::istream &strm, const FstReadOptions &opts) {
+  static Impl* Read(std::istream& strm, const FstReadOptions& opts) {
     return Impl::Read(strm, opts);
   }
 
   // Read FST implementation from a file; return NULL on error.
   // Empty source reads from standard input.
-  static Impl *Read(std::string_view source) {
+  static Impl* Read(std::string_view source) {
     if (!source.empty()) {
       std::ifstream strm(std::string(source),
                               std::ios_base::in | std::ios_base::binary);
@@ -176,7 +179,7 @@ class ImplToExpandedFst : public ImplToFst<Impl, FST> {
 // Function to return the number of states in an FST, counting them
 // if necessary.
 template <class Arc>
-typename Arc::StateId CountStates(const Fst<Arc> &fst) {
+typename Arc::StateId CountStates(const Fst<Arc>& fst) {
   if (std::optional<typename Arc::StateId> num_states =
           fst.NumStatesIfKnown()) {
     return *num_states;
@@ -192,15 +195,15 @@ typename Arc::StateId CountStates(const Fst<Arc> &fst) {
 // Function to return the number of states in a vector of FSTs, counting them if
 // necessary.
 template <class Arc>
-typename Arc::StateId CountStates(const std::vector<const Fst<Arc> *> &fsts) {
+typename Arc::StateId CountStates(const std::vector<const Fst<Arc>*>& fsts) {
   typename Arc::StateId nstates = 0;
-  for (const auto *fst : fsts) nstates += CountStates(*fst);
+  for (const auto* fst : fsts) nstates += CountStates(*fst);
   return nstates;
 }
 
 // Function to return the number of arcs in an FST.
 template <class F>
-size_t CountArcs(const F &fst) {
+size_t CountArcs(const F& fst) {
   size_t narcs = 0;
   for (StateIterator<F> siter(fst); !siter.Done(); siter.Next()) {
     narcs += fst.NumArcs(siter.Value());

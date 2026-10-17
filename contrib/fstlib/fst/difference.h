@@ -22,16 +22,13 @@
 
 #include <memory>
 
-#include <fst/log.h>
 #include <fst/arc.h>
 #include <fst/cache.h>
 #include <fst/complement.h>
 #include <fst/compose-filter.h>
 #include <fst/compose.h>
 #include <fst/connect.h>
-#include <fst/float-weight.h>
 #include <fst/fst.h>
-#include <fst/impl-to-fst.h>
 #include <fst/matcher.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
@@ -46,10 +43,10 @@ template <class Arc, class M = Matcher<Fst<Arc>>,
               GenericComposeStateTable<Arc, typename Filter::FilterState>>
 struct DifferenceFstOptions
     : public ComposeFstOptions<Arc, M, Filter, StateTable> {
-  explicit DifferenceFstOptions(const CacheOptions &opts = CacheOptions(),
-                                M *matcher1 = nullptr, M *matcher2 = nullptr,
-                                Filter *filter = nullptr,
-                                StateTable *state_table = nullptr)
+  explicit DifferenceFstOptions(const CacheOptions& opts = CacheOptions(),
+                                M* matcher1 = nullptr, M* matcher2 = nullptr,
+                                Filter* filter = nullptr,
+                                StateTable* state_table = nullptr)
       : ComposeFstOptions<Arc, M, Filter, StateTable>(opts, matcher1, matcher2,
                                                       filter, state_table) {}
 };
@@ -67,17 +64,20 @@ struct DifferenceFstOptions
 // Caveats: same as ComposeFst.
 template <class A>
 class DifferenceFst : public ComposeFst<A> {
+  using Base = ComposeFst<A>;
+
  public:
   using Arc = A;
   using Weight = typename Arc::Weight;
   using StateId = typename Arc::StateId;
+  using typename Base::Impl;
 
-  using ComposeFst<Arc>::CreateBase1;
+  using Base::CreateBase1;
 
   // A - B = A ^ B'.
-  DifferenceFst(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
-                const CacheOptions &opts = CacheOptions())
-      : ComposeFst<Arc>(CreateDifferenceImplWithCacheOpts(fst1, fst2, opts)) {
+  DifferenceFst(const Fst<Arc>& fst1, const Fst<Arc>& fst2,
+                const CacheOptions& opts = CacheOptions())
+      : Base(CreateDifferenceImplWithCacheOpts(fst1, fst2, opts)) {
     if (!fst1.Properties(kAcceptor, true)) {
       FSTERROR() << "DifferenceFst: 1st argument not an acceptor";
       GetImpl()->SetProperties(kError, kError);
@@ -86,10 +86,9 @@ class DifferenceFst : public ComposeFst<A> {
 
   template <class Matcher, class Filter, class StateTable>
   DifferenceFst(
-      const Fst<Arc> &fst1, const Fst<Arc> &fst2,
-      const DifferenceFstOptions<Arc, Matcher, Filter, StateTable> &opts)
-      : ComposeFst<Arc>(
-            CreateDifferenceImplWithDifferenceOpts(fst1, fst2, opts)) {
+      const Fst<Arc>& fst1, const Fst<Arc>& fst2,
+      const DifferenceFstOptions<Arc, Matcher, Filter, StateTable>& opts)
+      : Base(CreateDifferenceImplWithDifferenceOpts(fst1, fst2, opts)) {
     if (!fst1.Properties(kAcceptor, true)) {
       FSTERROR() << "DifferenceFst: 1st argument not an acceptor";
       GetImpl()->SetProperties(kError, kError);
@@ -97,20 +96,19 @@ class DifferenceFst : public ComposeFst<A> {
   }
 
   // See Fst<>::Copy() for doc.
-  DifferenceFst(const DifferenceFst &fst, bool safe = false)
-      : ComposeFst<Arc>(fst, safe) {}
+  DifferenceFst(const DifferenceFst& fst, bool safe = false)
+      : Base(fst, safe) {}
 
   // Get a copy of this DifferenceFst. See Fst<>::Copy() for further doc.
-  DifferenceFst *Copy(bool safe = false) const override {
+  DifferenceFst* Copy(bool safe = false) const override {
     return new DifferenceFst(*this, safe);
   }
 
  private:
-  using Impl = internal::ComposeFstImplBase<Arc>;
-  using ImplToFst<Impl>::GetImpl;
+  using Base::GetImpl;
 
   static std::shared_ptr<Impl> CreateDifferenceImplWithCacheOpts(
-      const Fst<Arc> &fst1, const Fst<Arc> &fst2, const CacheOptions &opts) {
+      const Fst<Arc>& fst1, const Fst<Arc>& fst2, const CacheOptions& opts) {
     using RM = RhoMatcher<Matcher<Fst<A>>>;
     ComplementFst<Arc> cfst(fst2);
     ComposeFstOptions<A, RM> copts(
@@ -121,8 +119,8 @@ class DifferenceFst : public ComposeFst<A> {
 
   template <class Matcher, class Filter, class StateTable>
   static std::shared_ptr<Impl> CreateDifferenceImplWithDifferenceOpts(
-      const Fst<Arc> &fst1, const Fst<Arc> &fst2,
-      const DifferenceFstOptions<Arc, Matcher, Filter, StateTable> &opts) {
+      const Fst<Arc>& fst1, const Fst<Arc>& fst2,
+      const DifferenceFstOptions<Arc, Matcher, Filter, StateTable>& opts) {
     using RM = RhoMatcher<Matcher>;
     ComplementFst<Arc> cfst(fst2);
     ComposeFstOptions<Arc, RM> copts(opts);
@@ -139,7 +137,7 @@ template <class Arc>
 class StateIterator<DifferenceFst<Arc>>
     : public StateIterator<ComposeFst<Arc>> {
  public:
-  explicit StateIterator(const DifferenceFst<Arc> &fst)
+  explicit StateIterator(const DifferenceFst<Arc>& fst)
       : StateIterator<ComposeFst<Arc>>(fst) {}
 };
 
@@ -149,7 +147,7 @@ class ArcIterator<DifferenceFst<Arc>> : public ArcIterator<ComposeFst<Arc>> {
  public:
   using StateId = typename Arc::StateId;
 
-  ArcIterator(const DifferenceFst<Arc> &fst, StateId s)
+  ArcIterator(const DifferenceFst<Arc>& fst, StateId s)
       : ArcIterator<ComposeFst<Arc>>(fst, s) {}
 };
 
@@ -172,9 +170,9 @@ using DifferenceOptions = ComposeOptions;
 //
 // Caveats: same as Compose.
 template <class Arc>
-void Difference(const Fst<Arc> &ifst1, const Fst<Arc> &ifst2,
-                MutableFst<Arc> *ofst,
-                const DifferenceOptions &opts = DifferenceOptions()) {
+void Difference(const Fst<Arc>& ifst1, const Fst<Arc>& ifst2,
+                MutableFst<Arc>* ofst,
+                const DifferenceOptions& opts = DifferenceOptions()) {
   using M = Matcher<Fst<Arc>>;
   // In each case, we cache only the last state for fastest copy.
   switch (opts.filter_type) {

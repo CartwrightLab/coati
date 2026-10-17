@@ -21,7 +21,6 @@
 #define FST_CONNECT_H_
 
 #include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <utility>
 #include <vector>
@@ -44,7 +43,7 @@ namespace fst {
 //
 // where V = # of states and E = # of arcs.
 template <class Arc>
-void Connect(MutableFst<Arc> *fst) {
+void Connect(MutableFst<Arc>* fst) {
   using StateId = typename Arc::StateId;
   std::vector<bool> access;
   std::vector<bool> coaccess;
@@ -64,8 +63,8 @@ void Connect(MutableFst<Arc> *fst) {
 // a single state with transitions between SCCs retained and within SCCs
 // dropped. Also populates 'scc' with a mapping from input to output states.
 template <class Arc>
-void Condense(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
-              std::vector<typename Arc::StateId> *scc) {
+void Condense(const Fst<Arc>& ifst, MutableFst<Arc>* ofst,
+              std::vector<typename Arc::StateId>* scc) {
   using StateId = typename Arc::StateId;
   ofst->DeleteStates();
   uint64_t props = 0;
@@ -85,7 +84,7 @@ void Condense(const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
     if (weight != Arc::Weight::Zero())
       ofst->SetFinal(c, Plus(ofst->Final(c), weight));
     for (ArcIterator<Fst<Arc>> aiter(ifst, s); !aiter.Done(); aiter.Next()) {
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       const auto nextc = (*scc)[arc.nextstate];
       if (nextc != c) {
         Arc condensed_arc = arc;

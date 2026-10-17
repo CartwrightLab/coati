@@ -18,11 +18,9 @@
 // Registration of common FST and arc types.
 
 #include <fst/arc.h>
-#include <fst/cache.h>
 #include <fst/compact-fst.h>
 #include <fst/const-fst.h>
 #include <fst/edit-fst.h>
-#include <fst/float-weight.h>
 #include <fst/register.h>
 #include <fst/vector-fst.h>
 

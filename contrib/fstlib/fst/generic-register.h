@@ -18,18 +18,18 @@
 #ifndef FST_GENERIC_REGISTER_H_
 #define FST_GENERIC_REGISTER_H_
 
-#include <functional>
-
-#include <fst/compat.h>
-#include <string_view>
-#include <fst/lock.h>
 #ifndef FST_NO_DYNAMIC_LINKING
 #include <dlfcn.h>
-#endif
+#include <fst/compat.h>
+#endif  // FST_NO_DYNAMIC_LINKING
+
+#include <functional>
 #include <map>
 #include <string>
 
 #include <fst/log.h>
+#include <string_view>
+#include <fst/lock.h>
 
 // Generic class representing a globally-stored correspondence between
 // objects of KeyType and EntryType.
@@ -49,7 +49,7 @@ namespace fst {
 namespace internal {
 template <class T>
 struct KeyLookupReferenceType {
-  using type = const T &;
+  using type = const T&;
 };
 
 template <>
@@ -65,18 +65,18 @@ class GenericRegister {
   using KeyLookupRef = typename internal::KeyLookupReferenceType<KeyType>::type;
   using Entry = EntryType;
 
-  static RegisterType *GetRegister() {
+  static RegisterType* GetRegister() {
     static auto reg = new RegisterType;
     return reg;
   }
 
-  void SetEntry(const KeyType &key, const EntryType &entry) {
-    MutexLock l(&register_lock_);
+  void SetEntry(const KeyType& key, const EntryType& entry) {
+    MutexLock l(register_lock_);
     register_table_.emplace(key, entry);
   }
 
   EntryType GetEntry(KeyLookupRef key) const {
-    const auto *entry = LookupEntry(key);
+    const auto* entry = LookupEntry(key);
     if (entry) {
       return *entry;
     } else {
@@ -94,7 +94,7 @@ class GenericRegister {
     return EntryType();
 #else
     const auto so_filename = ConvertKeyToSoFilename(key);
-    void *handle = dlopen(so_filename.c_str(), RTLD_LAZY);
+    void* handle = dlopen(so_filename.c_str(), RTLD_LAZY);
     if (handle == nullptr) {
       LOG(ERROR) << "GenericRegister::GetEntry: " << dlerror();
       return EntryType();
@@ -105,7 +105,7 @@ class GenericRegister {
     // We assume that the DSO constructs a static object in its global scope
     // that does the registration. Thus we need only load it, not call any
     // methods.
-    const auto *entry = this->LookupEntry(key);
+    const auto* entry = this->LookupEntry(key);
     if (entry == nullptr) {
       LOG(ERROR) << "GenericRegister::GetEntry: "
                  << "lookup failed in shared object: " << so_filename;
@@ -118,8 +118,8 @@ class GenericRegister {
   // Override this to define how to turn a key into an SO filename.
   virtual std::string ConvertKeyToSoFilename(KeyLookupRef key) const = 0;
 
-  virtual const EntryType *LookupEntry(KeyLookupRef key) const {
-    MutexLock l(&register_lock_);
+  virtual const EntryType* LookupEntry(KeyLookupRef key) const {
+    MutexLock l(register_lock_);
     if (const auto it = register_table_.find(key);
         it != register_table_.end()) {
       return &it->second;

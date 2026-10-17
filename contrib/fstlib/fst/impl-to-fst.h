@@ -21,6 +21,7 @@
 #ifndef FST_IMPL_TO_FST_H_
 #define FST_IMPL_TO_FST_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -37,9 +38,10 @@ namespace fst {
 // Thread-unsafe due to Properties (a const function) calling
 // Impl::SetProperties. TODO(jrosenstock): Make thread-compatible.
 // Impl's copy constructor must produce a thread-safe copy.
-template <class Impl, class FST = Fst<typename Impl::Arc>>
+template <class I, class FST = Fst<typename I::Arc>>
 class ImplToFst : public FST {
  public:
+  using Impl = I;
   using Arc = typename Impl::Arc;
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
@@ -73,13 +75,13 @@ class ImplToFst : public FST {
     }
   }
 
-  const std::string &Type() const override { return impl_->Type(); }
+  const std::string& Type() const override { return impl_->Type(); }
 
-  const SymbolTable *InputSymbols() const override {
+  const SymbolTable* InputSymbols() const override {
     return impl_->InputSymbols();
   }
 
-  const SymbolTable *OutputSymbols() const override {
+  const SymbolTable* OutputSymbols() const override {
     return impl_->OutputSymbols();
   }
 
@@ -90,7 +92,7 @@ class ImplToFst : public FST {
   // otherwise thread-unsafe.
   // This constructor presumes there is a copy constructor for the
   // implementation that produces a thread-safe copy.
-  ImplToFst(const ImplToFst &fst, bool safe) {
+  ImplToFst(const ImplToFst& fst, bool safe) {
     if (safe) {
       impl_ = std::make_shared<Impl>(*(fst.impl_));
     } else {
@@ -100,18 +102,18 @@ class ImplToFst : public FST {
 
   ImplToFst() = delete;
 
-  ImplToFst(const ImplToFst &fst) : impl_(fst.impl_) {}
+  ImplToFst(const ImplToFst& fst) : impl_(fst.impl_) {}
 
-  ImplToFst(ImplToFst &&fst) noexcept : impl_(std::move(fst.impl_)) {
+  ImplToFst(ImplToFst&& fst) noexcept : impl_(std::move(fst.impl_)) {
     fst.impl_ = std::make_shared<Impl>();
   }
 
-  ImplToFst &operator=(const ImplToFst &fst) {
+  ImplToFst& operator=(const ImplToFst& fst) {
     impl_ = fst.impl_;
     return *this;
   }
 
-  ImplToFst &operator=(ImplToFst &&fst) noexcept {
+  ImplToFst& operator=(ImplToFst&& fst) noexcept {
     if (this != &fst) {
       impl_ = std::move(fst.impl_);
       fst.impl_ = std::make_shared<Impl>();
@@ -120,20 +122,20 @@ class ImplToFst : public FST {
   }
 
   // Returns raw pointers to the shared object.
-  const Impl *GetImpl() const { return impl_.get(); }
+  const Impl* GetImpl() const { return impl_.get(); }
 
-  Impl *GetMutableImpl() const { return impl_.get(); }
+  Impl* GetMutableImpl() const { return impl_.get(); }
 
   // Returns a ref-counted smart poiner to the implementation.
   std::shared_ptr<Impl> GetSharedImpl() const { return impl_; }
 
-  bool Unique() const { return impl_.unique(); }
+  bool Unique() const { return impl_.use_count() == 1; }
 
   void SetImpl(std::shared_ptr<Impl> impl) { impl_ = std::move(impl); }
 
  private:
   template <class IFST, class OFST>
-  friend void Cast(const IFST &ifst, OFST *ofst);
+  friend void Cast(const IFST& ifst, OFST* ofst);
 
   std::shared_ptr<Impl> impl_;
 };

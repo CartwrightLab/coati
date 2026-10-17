@@ -23,18 +23,17 @@
 #include <utility>
 
 #include <fst/flags.h>
-#include <fst/log.h>
 #include <fst/util.h>
 
 DEFINE_string(fst_weight_separator, ",",
-              "Character separator between printed composite weights; "
-              "must be a single character");
+          "Character separator between printed composite weights; "
+          "must be a single character");
 
 DEFINE_string(fst_weight_parentheses, "",
-              "Characters enclosing the first weight of a printed composite "
-              "weight (e.g., pair weight, tuple weight and derived classes) to "
-              "ensure proper I/O of nested composite weights; "
-              "must have size 0 (none) or 2 (open and close parenthesis)");
+          "Characters enclosing the first weight of a printed composite "
+          "weight (e.g., pair weight, tuple weight and derived classes) to "
+          "ensure proper I/O of nested composite weights; "
+          "must have size 0 (none) or 2 (open and close parenthesis)");
 
 namespace fst {
 
@@ -80,12 +79,12 @@ CompositeWeightIO::CompositeWeightIO()
 
 }  // namespace internal
 
-CompositeWeightWriter::CompositeWeightWriter(std::ostream &ostrm)
+CompositeWeightWriter::CompositeWeightWriter(std::ostream& ostrm)
     : ostrm_(ostrm) {
   if (error()) ostrm.clear(std::ios::badbit);
 }
 
-CompositeWeightWriter::CompositeWeightWriter(std::ostream &ostrm,
+CompositeWeightWriter::CompositeWeightWriter(std::ostream& ostrm,
                                              char separator,
                                              std::pair<char, char> parentheses)
     : internal::CompositeWeightIO(separator, parentheses), ostrm_(ostrm) {
@@ -104,12 +103,12 @@ void CompositeWeightWriter::WriteEnd() {
   }
 }
 
-CompositeWeightReader::CompositeWeightReader(std::istream &istrm)
+CompositeWeightReader::CompositeWeightReader(std::istream& istrm)
     : istrm_(istrm) {
   if (error()) istrm_.clear(std::ios::badbit);
 }
 
-CompositeWeightReader::CompositeWeightReader(std::istream &istrm,
+CompositeWeightReader::CompositeWeightReader(std::istream& istrm,
                                              char separator,
                                              std::pair<char, char> parentheses)
     : internal::CompositeWeightIO(separator, parentheses), istrm_(istrm) {

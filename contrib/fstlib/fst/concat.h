@@ -20,16 +20,12 @@
 #ifndef FST_CONCAT_H_
 #define FST_CONCAT_H_
 
-#include <algorithm>
+#include <optional>
 #include <vector>
 
-#include <fst/log.h>
 #include <fst/arc.h>
-#include <fst/cache.h>
 #include <fst/expanded-fst.h>
-#include <fst/float-weight.h>
 #include <fst/fst.h>
-#include <fst/impl-to-fst.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
 #include <fst/rational.h>
@@ -52,7 +48,7 @@ namespace fst {
 // where Vi is the number of states, and Ei is the number of arcs, of the ith
 // FST.
 template <class Arc>
-void Concat(MutableFst<Arc> *fst1, const Fst<Arc> &fst2) {
+void Concat(MutableFst<Arc>* fst1, const Fst<Arc>& fst2) {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
   // Checks that the symbol table are compatible.
@@ -103,7 +99,7 @@ void Concat(MutableFst<Arc> *fst1, const Fst<Arc> &fst2) {
 // Computes the concatentation of two FSTs. This version modifies its
 // RationalFst input (in first position).
 template <class Arc>
-void Concat(RationalFst<Arc> *fst1, const Fst<Arc> &fst2) {
+void Concat(RationalFst<Arc>* fst1, const Fst<Arc>& fst2) {
   fst1->GetMutableImpl()->AddConcat(fst2, true);
 }
 
@@ -118,7 +114,7 @@ void Concat(RationalFst<Arc> *fst1, const Fst<Arc> &fst2) {
 // where Vi is the number of states, and Ei is the number of arcs, of the ith
 // FST.
 template <class Arc>
-void Concat(const Fst<Arc> &fst1, MutableFst<Arc> *fst2) {
+void Concat(const Fst<Arc>& fst1, MutableFst<Arc>* fst2) {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
   // Checks that the symbol table are compatible.
@@ -168,15 +164,15 @@ void Concat(const Fst<Arc> &fst1, MutableFst<Arc> *fst2) {
 // Same as the above but can handle arbitrarily many left-hand-side FSTs,
 // preallocating the states.
 template <class Arc>
-void Concat(const std::vector<const Fst<Arc> *> &fsts1, MutableFst<Arc> *fst2) {
+void Concat(const std::vector<const Fst<Arc>*>& fsts1, MutableFst<Arc>* fst2) {
   fst2->ReserveStates(CountStates(fsts1) + fst2->NumStates());
-  for (const auto *fst1 : fsts1) Concat(*fst1, fst2);
+  for (const auto* fst1 : fsts1) Concat(*fst1, fst2);
 }
 
 // Computes the concatentation of two FSTs. This version modifies its
 // RationalFst input (in second position).
 template <class Arc>
-void Concat(const Fst<Arc> &fst1, RationalFst<Arc> *fst2) {
+void Concat(const Fst<Arc>& fst1, RationalFst<Arc>* fst2) {
   fst2->GetMutableImpl()->AddConcat(fst1, false);
 }
 
@@ -197,40 +193,42 @@ using ConcatFstOptions = RationalFstOptions;
 // arc is assumed and exclusive of caching.
 template <class A>
 class ConcatFst : public RationalFst<A> {
+  using Base = RationalFst<A>;
+
  public:
   using Arc = A;
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  ConcatFst(const Fst<Arc> &fst1, const Fst<Arc> &fst2) {
+  ConcatFst(const Fst<Arc>& fst1, const Fst<Arc>& fst2) {
     GetMutableImpl()->InitConcat(fst1, fst2);
   }
 
-  ConcatFst(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
-            const ConcatFstOptions &opts)
+  ConcatFst(const Fst<Arc>& fst1, const Fst<Arc>& fst2,
+            const ConcatFstOptions& opts)
       : RationalFst<Arc>(opts) {
     GetMutableImpl()->InitConcat(fst1, fst2);
   }
 
   // See Fst<>::Copy() for doc.
-  ConcatFst(const ConcatFst &fst, bool safe = false)
+  ConcatFst(const ConcatFst& fst, bool safe = false)
       : RationalFst<Arc>(fst, safe) {}
 
   // Get a copy of this ConcatFst. See Fst<>::Copy() for further doc.
-  ConcatFst *Copy(bool safe = false) const override {
+  ConcatFst* Copy(bool safe = false) const override {
     return new ConcatFst(*this, safe);
   }
 
  private:
-  using ImplToFst<internal::RationalFstImpl<Arc>>::GetImpl;
-  using ImplToFst<internal::RationalFstImpl<Arc>>::GetMutableImpl;
+  using Base::GetImpl;
+  using Base::GetMutableImpl;
 };
 
 // Specialization for ConcatFst.
 template <class Arc>
 class StateIterator<ConcatFst<Arc>> : public StateIterator<RationalFst<Arc>> {
  public:
-  explicit StateIterator(const ConcatFst<Arc> &fst)
+  explicit StateIterator(const ConcatFst<Arc>& fst)
       : StateIterator<RationalFst<Arc>>(fst) {}
 };
 
@@ -240,7 +238,7 @@ class ArcIterator<ConcatFst<Arc>> : public ArcIterator<RationalFst<Arc>> {
  public:
   using StateId = typename Arc::StateId;
 
-  ArcIterator(const ConcatFst<Arc> &fst, StateId s)
+  ArcIterator(const ConcatFst<Arc>& fst, StateId s)
       : ArcIterator<RationalFst<Arc>>(fst, s) {}
 };
 

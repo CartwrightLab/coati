@@ -21,14 +21,12 @@
 #define FST_SHORTEST_DISTANCE_H_
 
 #include <cstddef>
+#include <optional>
 #include <vector>
 
-#include <fst/log.h>
 #include <fst/arc.h>
 #include <fst/arcfilter.h>
-#include <fst/cache.h>
 #include <fst/equal.h>
-#include <fst/expanded-fst.h>
 #include <fst/fst.h>
 #include <fst/properties.h>
 #include <fst/queue.h>
@@ -46,7 +44,7 @@ template <class Arc, class Queue, class ArcFilter>
 struct ShortestDistanceOptions {
   using StateId = typename Arc::StateId;
 
-  Queue *state_queue;    // Queue discipline used; owned by caller.
+  Queue* state_queue;    // Queue discipline used; owned by caller.
   ArcFilter arc_filter;  // Arc filter (e.g., limit to only epsilon graph).
   StateId source;        // If kNoStateId, use the FST's initial state.
   float delta;           // Determines the degree of convergence required
@@ -60,7 +58,7 @@ struct ShortestDistanceOptions {
                          // weights in the FST are between One() and Zero()
                          // according to NaturalLess.
 
-  ShortestDistanceOptions(Queue *state_queue, ArcFilter arc_filter,
+  ShortestDistanceOptions(Queue* state_queue, ArcFilter arc_filter,
                           StateId source = kNoStateId,
                           float delta = kShortestDelta, bool first_path = false)
       : state_queue(state_queue),
@@ -87,8 +85,8 @@ class ShortestDistanceState {
   using Weight = typename Arc::Weight;
 
   ShortestDistanceState(
-      const Fst<Arc> &fst, std::vector<Weight> *distance,
-      const ShortestDistanceOptions<Arc, Queue, ArcFilter> &opts, bool retain)
+      const Fst<Arc>& fst, std::vector<Weight>* distance,
+      const ShortestDistanceOptions<Arc, Queue, ArcFilter>& opts, bool retain)
       : fst_(fst),
         distance_(distance),
         state_queue_(opts.state_queue),
@@ -129,9 +127,9 @@ class ShortestDistanceState {
     DCHECK_LT(index, sources_.size());
   }
 
-  const Fst<Arc> &fst_;
-  std::vector<Weight> *distance_;
-  Queue *state_queue_;
+  const Fst<Arc>& fst_;
+  std::vector<Weight>* distance_;
+  Queue* state_queue_;
   ArcFilter arc_filter_;
   WeightEqual weight_equal_;  // Determines when relaxation stops.
   const bool first_path_;
@@ -195,7 +193,7 @@ void ShortestDistanceState<Arc, Queue, ArcFilter,
     radder_[state].Reset();
     for (ArcIterator<Fst<Arc>> aiter(fst_, state); !aiter.Done();
          aiter.Next()) {
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       const auto nextstate = arc.nextstate;
       if (!arc_filter_(arc)) continue;
       EnsureDistanceIndexIsValid(nextstate);
@@ -209,9 +207,9 @@ void ShortestDistanceState<Arc, Queue, ArcFilter,
           sources_[nextstate] = source_id_;
         }
       }
-      auto &nd = (*distance_)[nextstate];
-      auto &na = adder_[nextstate];
-      auto &nr = radder_[nextstate];
+      auto& nd = (*distance_)[nextstate];
+      auto& na = adder_[nextstate];
+      auto& nr = radder_[nextstate];
       auto weight = Times(r, arc.weight);
       if (!weight_equal_(nd, Plus(nd, weight))) {
         nd = na.Add(weight);
@@ -260,8 +258,8 @@ void ShortestDistanceState<Arc, Queue, ArcFilter,
 // Combinatorics 7(3): 321-350, 2002.
 template <class Arc, class Queue, class ArcFilter>
 void ShortestDistance(
-    const Fst<Arc> &fst, std::vector<typename Arc::Weight> *distance,
-    const ShortestDistanceOptions<Arc, Queue, ArcFilter> &opts) {
+    const Fst<Arc>& fst, std::vector<typename Arc::Weight>* distance,
+    const ShortestDistanceOptions<Arc, Queue, ArcFilter>& opts) {
   internal::ShortestDistanceState<Arc, Queue, ArcFilter> sd_state(fst, distance,
                                                                   opts, false);
   sd_state.ShortestDistance(opts.source);
@@ -299,8 +297,8 @@ void ShortestDistance(
 // shortest-distance problems, Journal of Automata, Languages and
 // Combinatorics 7(3): 321-350, 2002.
 template <class Arc>
-void ShortestDistance(const Fst<Arc> &fst,
-                      std::vector<typename Arc::Weight> *distance,
+void ShortestDistance(const Fst<Arc>& fst,
+                      std::vector<typename Arc::Weight>* distance,
                       bool reverse = false, float delta = kShortestDelta) {
   using StateId = typename Arc::StateId;
   if (!reverse) {
@@ -338,7 +336,7 @@ void ShortestDistance(const Fst<Arc> &fst,
 // shortest-distance from the initial state to the final states. Returns a
 // weight such that Member() is false if an error was encountered.
 template <class Arc>
-typename Arc::Weight ShortestDistance(const Fst<Arc> &fst,
+typename Arc::Weight ShortestDistance(const Fst<Arc>& fst,
                                       float delta = kShortestDelta) {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;

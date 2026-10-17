@@ -53,7 +53,7 @@ class Heap {
   explicit Heap(Compare comp = Compare()) : comp_(comp), size_(0) {}
 
   // Inserts a value into the heap.
-  int Insert(const Value &value) {
+  int Insert(const Value& value) {
     if (size_ < values_.size()) {
       values_[size_] = value;
       pos_[key_[size_]] = size_;
@@ -70,7 +70,7 @@ class Heap {
   // indexed by the key. The position gives the position in the heap array.
   // Once we have the position we can then use the standard heap operations
   // to calculate the parent and child positions.
-  void Update(int key, const Value &value) {
+  void Update(int key, const Value& value) {
     const auto i = pos_[key];
     const bool is_better = comp_(value, values_[Parent(i)]);
     values_[i] = value;
@@ -93,13 +93,13 @@ class Heap {
 
   // Returns the least value w.r.t. the comparison function from the
   // heap.
-  const Value &Top() const {
+  const Value& Top() const {
     DCHECK(!Empty());
     return values_.front();
   }
 
   // Returns the element for the given key.
-  const Value &Get(int key) const {
+  const Value& Get(int key) const {
     DCHECK_LT(key, pos_.size());
     return values_[pos_[key]];
   }
@@ -117,7 +117,7 @@ class Heap {
     key_.reserve(size);
   }
 
-  const Compare &GetCompare() const { return comp_; }
+  const Compare& GetCompare() const { return comp_; }
 
  private:
   // The following private routines are used in a supportive role
@@ -165,7 +165,7 @@ class Heap {
   }
 
   // Inserts (updates) element at subtree rooted at index i.
-  int Insert(const Value &value, int i) {
+  int Insert(const Value& value, int i) {
     int p;
     while (i > 0 && !comp_(values_[p = Parent(i)], value)) {
       Swap(i, p);

@@ -25,10 +25,7 @@
 
 #include <fst/arc-map.h>
 #include <fst/arc.h>
-#include <fst/cache.h>
-#include <fst/float-weight.h>
 #include <fst/fst.h>
-#include <fst/impl-to-fst.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
 #include <fst/symbol-table.h>
@@ -43,7 +40,7 @@ struct InvertMapper {
 
   InvertMapper() = default;
 
-  ToArc operator()(const FromArc &arc) const {
+  ToArc operator()(const FromArc& arc) const {
     return ToArc(arc.olabel, arc.ilabel, arc.weight, arc.nextstate);
   }
 
@@ -70,7 +67,7 @@ struct InvertMapper {
 //
 // where V is the number of states and E is the number of arcs.
 template <class Arc>
-inline void Invert(const Fst<Arc> &ifst, MutableFst<Arc> *ofst) {
+inline void Invert(const Fst<Arc>& ifst, MutableFst<Arc>* ofst) {
   std::unique_ptr<SymbolTable> input(
       ifst.InputSymbols() ? ifst.InputSymbols()->Copy() : nullptr);
   std::unique_ptr<SymbolTable> output(
@@ -82,7 +79,7 @@ inline void Invert(const Fst<Arc> &ifst, MutableFst<Arc> *ofst) {
 
 // Destructive variant of the above.
 template <class Arc>
-inline void Invert(MutableFst<Arc> *fst) {
+inline void Invert(MutableFst<Arc>* fst) {
   std::unique_ptr<SymbolTable> input(
       fst->InputSymbols() ? fst->InputSymbols()->Copy() : nullptr);
   std::unique_ptr<SymbolTable> output(
@@ -105,28 +102,29 @@ inline void Invert(MutableFst<Arc> *fst) {
 // caching.
 template <class A>
 class InvertFst : public ArcMapFst<A, A, InvertMapper<A>> {
+  using Base = ArcMapFst<A, A, InvertMapper<A>>;
+
  public:
   using Arc = A;
 
   using Mapper = InvertMapper<Arc>;
-  using Impl = internal::ArcMapFstImpl<A, A, InvertMapper<A>>;
+  using typename Base::Impl;
 
-  explicit InvertFst(const Fst<Arc> &fst) : ArcMapFst<Arc, Arc, Mapper>(fst) {
+  explicit InvertFst(const Fst<Arc>& fst) : Base(fst) {
     GetMutableImpl()->SetOutputSymbols(fst.InputSymbols());
     GetMutableImpl()->SetInputSymbols(fst.OutputSymbols());
   }
 
   // See Fst<>::Copy() for doc.
-  InvertFst(const InvertFst &fst, bool safe = false)
-      : ArcMapFst<Arc, Arc, Mapper>(fst, safe) {}
+  InvertFst(const InvertFst& fst, bool safe = false) : Base(fst, safe) {}
 
   // Get a copy of this InvertFst. See Fst<>::Copy() for further doc.
-  InvertFst *Copy(bool safe = false) const override {
+  InvertFst* Copy(bool safe = false) const override {
     return new InvertFst(*this, safe);
   }
 
  private:
-  using ImplToFst<Impl>::GetMutableImpl;
+  using Base::GetMutableImpl;
 };
 
 // Specialization for InvertFst.
@@ -134,7 +132,7 @@ template <class Arc>
 class StateIterator<InvertFst<Arc>>
     : public StateIterator<ArcMapFst<Arc, Arc, InvertMapper<Arc>>> {
  public:
-  explicit StateIterator(const InvertFst<Arc> &fst)
+  explicit StateIterator(const InvertFst<Arc>& fst)
       : StateIterator<ArcMapFst<Arc, Arc, InvertMapper<Arc>>>(fst) {}
 };
 
@@ -145,7 +143,7 @@ class ArcIterator<InvertFst<Arc>>
  public:
   using StateId = typename Arc::StateId;
 
-  ArcIterator(const InvertFst<Arc> &fst, StateId s)
+  ArcIterator(const InvertFst<Arc>& fst, StateId s)
       : ArcIterator<ArcMapFst<Arc, Arc, InvertMapper<Arc>>>(fst, s) {}
 };
 

@@ -23,9 +23,7 @@
 #include <sys/types.h>
 
 #include <cstddef>
-#include <deque>
 #include <utility>
-#include <vector>
 
 #include <fst/log.h>
 #include <fst/bi-table.h>
@@ -92,9 +90,9 @@ class HashStateTable : public HashBiTable<typename T::StateId, T, H> {
   explicit HashStateTable(size_t table_size)
       : HashBiTable<StateId, StateTuple, H>(table_size) {}
 
-  StateId FindState(const StateTuple &tuple) { return FindId(tuple); }
+  StateId FindState(const StateTuple& tuple) { return FindId(tuple); }
 
-  const StateTuple &Tuple(StateId s) const { return FindEntry(s); }
+  const StateTuple& Tuple(StateId s) const { return FindEntry(s); }
 };
 
 // An implementation using a hash map for the tuple to state ID mapping. The
@@ -115,9 +113,9 @@ class CompactHashStateTable
   explicit CompactHashStateTable(size_t table_size)
       : CompactHashBiTable<StateId, StateTuple, H>(table_size) {}
 
-  StateId FindState(const StateTuple &tuple) { return FindId(tuple); }
+  StateId FindState(const StateTuple& tuple) { return FindId(tuple); }
 
-  const StateTuple &Tuple(StateId s) const { return FindEntry(s); }
+  const StateTuple& Tuple(StateId s) const { return FindEntry(s); }
 };
 
 // An implementation using a vector for the tuple to state mapping. It is
@@ -136,12 +134,12 @@ class VectorStateTable : public VectorBiTable<typename T::StateId, T, FP> {
   using VectorBiTable<StateId, StateTuple, FP>::Size;
   using VectorBiTable<StateId, StateTuple, FP>::Fingerprint;
 
-  explicit VectorStateTable(const FP &fingerprint = FP(), size_t table_size = 0)
+  explicit VectorStateTable(const FP& fingerprint = FP(), size_t table_size = 0)
       : VectorBiTable<StateId, StateTuple, FP>(fingerprint, table_size) {}
 
-  StateId FindState(const StateTuple &tuple) { return FindId(tuple); }
+  StateId FindState(const StateTuple& tuple) { return FindId(tuple); }
 
-  const StateTuple &Tuple(StateId s) const { return FindEntry(s); }
+  const StateTuple& Tuple(StateId s) const { return FindEntry(s); }
 };
 
 // An implementation using a vector and a compact hash table. The selection
@@ -163,15 +161,15 @@ class VectorHashStateTable
   using VectorHashBiTable<StateId, StateTuple, Select, FP, H>::Fingerprint;
   using VectorHashBiTable<StateId, StateTuple, Select, FP, H>::HashFunction;
 
-  VectorHashStateTable(const Select &select, const FP &fingerprint,
-                       const H &hash, size_t vector_size = 0,
+  VectorHashStateTable(const Select& select, const FP& fingerprint,
+                       const H& hash, size_t vector_size = 0,
                        size_t tuple_size = 0)
       : VectorHashBiTable<StateId, StateTuple, Select, FP, H>(
             select, fingerprint, hash, vector_size, tuple_size) {}
 
-  StateId FindState(const StateTuple &tuple) { return FindId(tuple); }
+  StateId FindState(const StateTuple& tuple) { return FindId(tuple); }
 
-  const StateTuple &Tuple(StateId s) const { return FindEntry(s); }
+  const StateTuple& Tuple(StateId s) const { return FindEntry(s); }
 };
 
 // An implementation using a hash map to map from tuples to state IDs. This
@@ -191,9 +189,9 @@ class ErasableStateTable : public ErasableBiTable<typename T::StateId, T, H> {
 
   ErasableStateTable() : ErasableBiTable<StateId, StateTuple, H>() {}
 
-  StateId FindState(const StateTuple &tuple) { return FindId(tuple); }
+  StateId FindState(const StateTuple& tuple) { return FindId(tuple); }
 
-  const StateTuple &Tuple(StateId s) const { return FindEntry(s); }
+  const StateTuple& Tuple(StateId s) const { return FindEntry(s); }
 };
 
 // The composition state table has the form:
@@ -254,7 +252,7 @@ class DefaultComposeStateTuple {
   DefaultComposeStateTuple()
       : state_pair_(kNoStateId, kNoStateId), fs_(FilterState::NoState()) {}
 
-  DefaultComposeStateTuple(StateId s1, StateId s2, const FilterState &fs)
+  DefaultComposeStateTuple(StateId s1, StateId s2, const FilterState& fs)
       : state_pair_(s1, s2), fs_(fs) {}
 
   StateId StateId1() const { return state_pair_.first; }
@@ -263,17 +261,15 @@ class DefaultComposeStateTuple {
 
   FilterState GetFilterState() const { return fs_; }
 
-  const std::pair<StateId, StateId> &StatePair() const { return state_pair_; }
+  const std::pair<StateId, StateId>& StatePair() const { return state_pair_; }
 
-  friend bool operator==(const DefaultComposeStateTuple &x,
-                         const DefaultComposeStateTuple &y) {
+  friend bool operator==(const DefaultComposeStateTuple& x,
+                         const DefaultComposeStateTuple& y) {
     return (&x == &y) || (x.state_pair_ == y.state_pair_ && x.fs_ == y.fs_);
   }
 
   size_t Hash() const {
-    return static_cast<size_t>(StateId1()) +
-           static_cast<size_t>(StateId2()) * 7853u +
-           GetFilterState().Hash() * 7867u;
+    return HashOf(StateId1(), StateId2(), GetFilterState().Hash());
   }
 
  private:
@@ -291,7 +287,7 @@ class DefaultComposeStateTuple<S, TrivialFilterState> {
 
   DefaultComposeStateTuple() : state_pair_(kNoStateId, kNoStateId) {}
 
-  DefaultComposeStateTuple(StateId s1, StateId s2, const FilterState &)
+  DefaultComposeStateTuple(StateId s1, StateId s2, const FilterState&)
       : state_pair_(s1, s2) {}
 
   StateId StateId1() const { return state_pair_.first; }
@@ -300,14 +296,14 @@ class DefaultComposeStateTuple<S, TrivialFilterState> {
 
   FilterState GetFilterState() const { return FilterState(true); }
 
-  const std::pair<StateId, StateId> &StatePair() const { return state_pair_; }
+  const std::pair<StateId, StateId>& StatePair() const { return state_pair_; }
 
-  friend bool operator==(const DefaultComposeStateTuple &x,
-                         const DefaultComposeStateTuple &y) {
+  friend bool operator==(const DefaultComposeStateTuple& x,
+                         const DefaultComposeStateTuple& y) {
     return (&x == &y) || (x.state_pair_ == y.state_pair_);
   }
 
-  size_t Hash() const { return StateId1() + StateId2() * size_t{7853}; }
+  size_t Hash() const { return HashOf(StateId1(), StateId2()); }
 
  private:
   std::pair<StateId, StateId> state_pair_;
@@ -317,7 +313,7 @@ class DefaultComposeStateTuple<S, TrivialFilterState> {
 template <typename T>
 class ComposeHash {
  public:
-  size_t operator()(const T &t) const { return t.Hash(); }
+  size_t operator()(const T& t) const { return t.Hash(); }
 };
 
 // A HashStateTable over composition tuples.
@@ -330,16 +326,16 @@ class GenericComposeStateTable : public StateTable {
  public:
   using StateId = typename Arc::StateId;
 
-  GenericComposeStateTable(const Fst<Arc> &fst1, const Fst<Arc> &fst2) {}
+  GenericComposeStateTable(const Fst<Arc>& fst1, const Fst<Arc>& fst2) {}
 
-  GenericComposeStateTable(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
+  GenericComposeStateTable(const Fst<Arc>& fst1, const Fst<Arc>& fst2,
                            size_t table_size)
       : StateTable(table_size) {}
 
   constexpr bool Error() const { return false; }
 
  private:
-  GenericComposeStateTable &operator=(const GenericComposeStateTable &table) =
+  GenericComposeStateTable& operator=(const GenericComposeStateTable& table) =
       delete;
 };
 
@@ -358,7 +354,7 @@ class ComposeFingerprint {
   ComposeFingerprint(StateId nstates1, StateId nstates2)
       : mult1_(nstates1), mult2_(nstates1 * nstates2) {}
 
-  size_t operator()(const StateTuple &tuple) const {
+  size_t operator()(const StateTuple& tuple) const {
     return tuple.StateId1() + tuple.StateId2() * mult1_ +
            tuple.GetFilterState().Hash() * mult2_;
   }
@@ -372,14 +368,14 @@ class ComposeFingerprint {
 template <typename StateTuple>
 class ComposeState1Fingerprint {
  public:
-  size_t operator()(const StateTuple &tuple) { return tuple.StateId1(); }
+  size_t operator()(const StateTuple& tuple) { return tuple.StateId1(); }
 };
 
 // Useful when the second composition state determines the tuple.
 template <typename StateTuple>
 class ComposeState2Fingerprint {
  public:
-  size_t operator()(const StateTuple &tuple) { return tuple.StateId2(); }
+  size_t operator()(const StateTuple& tuple) { return tuple.StateId2(); }
 };
 
 // A VectorStateTable over composition tuples. This can be used when the
@@ -394,20 +390,20 @@ class ProductComposeStateTable
   using StateTable =
       VectorStateTable<StateTuple, ComposeFingerprint<StateTuple>>;
 
-  ProductComposeStateTable(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
+  ProductComposeStateTable(const Fst<Arc>& fst1, const Fst<Arc>& fst2,
                            size_t table_size = 0)
       : StateTable(ComposeFingerprint<StateTuple>(CountStates(fst1),
                                                   CountStates(fst2)),
                    table_size) {}
 
   ProductComposeStateTable(
-      const ProductComposeStateTable<Arc, StateTuple> &table)
+      const ProductComposeStateTable<Arc, StateTuple>& table)
       : StateTable(ComposeFingerprint<StateTuple>(table.Fingerprint())) {}
 
   constexpr bool Error() const { return false; }
 
  private:
-  ProductComposeStateTable &operator=(const ProductComposeStateTable &table) =
+  ProductComposeStateTable& operator=(const ProductComposeStateTable& table) =
       delete;
 };
 
@@ -425,7 +421,7 @@ class StringDetComposeStateTable
   using StateTable =
       VectorStateTable<StateTuple, ComposeState1Fingerprint<StateTuple>>;
 
-  StringDetComposeStateTable(const Fst<Arc> &fst1, const Fst<Arc> &fst2)
+  StringDetComposeStateTable(const Fst<Arc>& fst1, const Fst<Arc>& fst2)
       : error_(false) {
     static constexpr auto props2 = kIDeterministic | kNoIEpsilons;
     if (fst1.Properties(kString, true) != kString) {
@@ -439,7 +435,7 @@ class StringDetComposeStateTable
   }
 
   StringDetComposeStateTable(
-      const StringDetComposeStateTable<Arc, StateTuple> &table)
+      const StringDetComposeStateTable<Arc, StateTuple>& table)
       : StateTable(table), error_(table.error_) {}
 
   bool Error() const { return error_; }
@@ -447,7 +443,7 @@ class StringDetComposeStateTable
  private:
   bool error_;
 
-  StringDetComposeStateTable &operator=(const StringDetComposeStateTable &) =
+  StringDetComposeStateTable& operator=(const StringDetComposeStateTable&) =
       delete;
 };
 
@@ -465,7 +461,7 @@ class DetStringComposeStateTable
   using StateTable =
       VectorStateTable<StateTuple, ComposeState2Fingerprint<StateTuple>>;
 
-  DetStringComposeStateTable(const Fst<Arc> &fst1, const Fst<Arc> &fst2)
+  DetStringComposeStateTable(const Fst<Arc>& fst1, const Fst<Arc>& fst2)
       : error_(false) {
     static constexpr auto props = kODeterministic | kNoOEpsilons;
     if (fst1.Properties(props, true) != props) {
@@ -479,7 +475,7 @@ class DetStringComposeStateTable
   }
 
   DetStringComposeStateTable(
-      const DetStringComposeStateTable<Arc, StateTuple> &table)
+      const DetStringComposeStateTable<Arc, StateTuple>& table)
       : StateTable(table), error_(table.error_) {}
 
   bool Error() const { return error_; }
@@ -487,7 +483,7 @@ class DetStringComposeStateTable
  private:
   bool error_;
 
-  DetStringComposeStateTable &operator=(const DetStringComposeStateTable &) =
+  DetStringComposeStateTable& operator=(const DetStringComposeStateTable&) =
       delete;
 };
 
@@ -498,12 +494,12 @@ template <typename Arc, typename StateTuple>
 class ErasableComposeStateTable
     : public ErasableStateTable<StateTuple, ComposeHash<StateTuple>> {
  public:
-  ErasableComposeStateTable(const Fst<Arc> &fst1, const Fst<Arc> &fst2) {}
+  ErasableComposeStateTable(const Fst<Arc>& fst1, const Fst<Arc>& fst2) {}
 
   constexpr bool Error() const { return false; }
 
  private:
-  ErasableComposeStateTable &operator=(const ErasableComposeStateTable &table) =
+  ErasableComposeStateTable& operator=(const ErasableComposeStateTable& table) =
       delete;
 };
 

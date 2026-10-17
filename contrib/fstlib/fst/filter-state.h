@@ -27,7 +27,6 @@
 
 #include <fst/fst-decl.h>  // For optional argument declarations
 #include <fst/fst.h>
-#include <fst/matcher.h>
 
 namespace fst {
 
@@ -70,11 +69,11 @@ class IntegerFilterState {
 
   size_t Hash() const { return static_cast<size_t>(state_); }
 
-  bool operator==(const IntegerFilterState &fs) const {
+  bool operator==(const IntegerFilterState& fs) const {
     return state_ == fs.state_;
   }
 
-  bool operator!=(const IntegerFilterState &fs) const {
+  bool operator!=(const IntegerFilterState& fs) const {
     return state_ != fs.state_;
   }
 
@@ -100,11 +99,11 @@ class WeightFilterState {
 
   size_t Hash() const { return weight_.Hash(); }
 
-  bool operator==(const WeightFilterState &fs) const {
+  bool operator==(const WeightFilterState& fs) const {
     return weight_ == fs.weight_;
   }
 
-  bool operator!=(const WeightFilterState &fs) const {
+  bool operator!=(const WeightFilterState& fs) const {
     return weight_ != fs.weight_;
   }
 
@@ -123,21 +122,21 @@ class ListFilterState {
 
   explicit ListFilterState(T s) { list_.push_front(s); }
 
-  static const ListFilterState NoState() { return ListFilterState(kNoStateId); }
+  static ListFilterState NoState() { return ListFilterState(kNoStateId); }
 
   size_t Hash() const {
     size_t h = 0;
-    for (const auto &elem : list_) h ^= h << 1 ^ elem;
+    for (const auto& elem : list_) h ^= h << 1 ^ elem;
     return h;
   }
 
-  bool operator==(const ListFilterState &fs) const { return list_ == fs.list_; }
+  bool operator==(const ListFilterState& fs) const { return list_ == fs.list_; }
 
-  bool operator!=(const ListFilterState &fs) const { return list_ != fs.list_; }
+  bool operator!=(const ListFilterState& fs) const { return list_ != fs.list_; }
 
-  const std::forward_list<T> &GetState() const { return list_; }
+  const std::forward_list<T>& GetState() const { return list_; }
 
-  std::forward_list<T> *GetMutableState() { return &list_; }
+  std::forward_list<T>* GetMutableState() { return &list_; }
 
  private:
   std::forward_list<T> list_;
@@ -152,7 +151,7 @@ class PairFilterState {
 
   PairFilterState() : fs1_(FS1::NoState()), fs2_(FS2::NoState()) {}
 
-  PairFilterState(const FilterState1 &fs1, const FilterState2 &fs2)
+  PairFilterState(const FilterState1& fs1, const FilterState2& fs2)
       : fs1_(fs1), fs2_(fs2) {}
 
   static const PairFilterState NoState() { return PairFilterState(); }
@@ -164,17 +163,17 @@ class PairFilterState {
     return h1 << lshift ^ h1 >> rshift ^ fs2_.Hash();
   }
 
-  bool operator==(const PairFilterState &fs) const {
+  bool operator==(const PairFilterState& fs) const {
     return fs1_ == fs.fs1_ && fs2_ == fs.fs2_;
   }
 
-  bool operator!=(const PairFilterState &fs) const {
+  bool operator!=(const PairFilterState& fs) const {
     return fs1_ != fs.fs1_ || fs2_ != fs.fs2_;
   }
 
-  const FilterState1 &GetState1() const { return fs1_; }
+  const FilterState1& GetState1() const { return fs1_; }
 
-  const FilterState2 &GetState2() const { return fs2_; }
+  const FilterState2& GetState2() const { return fs2_; }
 
  private:
   FilterState1 fs1_;
@@ -186,15 +185,15 @@ class TrivialFilterState {
  public:
   explicit TrivialFilterState(bool state = false) : state_(state) {}
 
-  static const TrivialFilterState NoState() { return TrivialFilterState(); }
+  static TrivialFilterState NoState() { return TrivialFilterState(); }
 
   size_t Hash() const { return 0; }
 
-  bool operator==(const TrivialFilterState &fs) const {
+  bool operator==(const TrivialFilterState& fs) const {
     return state_ == fs.state_;
   }
 
-  bool operator!=(const TrivialFilterState &fs) const {
+  bool operator!=(const TrivialFilterState& fs) const {
     return state_ != fs.state_;
   }
 

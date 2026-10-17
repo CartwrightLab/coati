@@ -27,14 +27,13 @@
 #include <istream>
 #include <memory>
 #include <ostream>
-#include <string>
 #include <utility>
 
 #include <fst/log.h>
+#include <string_view>
 #include <fst/fst.h>
 #include <fst/properties.h>
 #include <fst/util.h>
-#include <string_view>
 
 namespace fst {
 
@@ -46,11 +45,11 @@ class NullAddOn {
  public:
   NullAddOn() = default;
 
-  static NullAddOn *Read(std::istream &strm, const FstReadOptions &opts) {
+  static NullAddOn* Read(std::istream& strm, const FstReadOptions& opts) {
     return new NullAddOn();
   }
 
-  bool Write(std::ostream &ostrm, const FstWriteOptions &opts) const {
+  bool Write(std::ostream& ostrm, const FstWriteOptions& opts) const {
     return true;
   }
 };
@@ -63,15 +62,15 @@ class AddOnPair {
   AddOnPair(std::shared_ptr<A1> a1, std::shared_ptr<A2> a2)
       : a1_(std::move(a1)), a2_(std::move(a2)) {}
 
-  const A1 *First() const { return a1_.get(); }
+  const A1* First() const { return a1_.get(); }
 
-  const A2 *Second() const { return a2_.get(); }
+  const A2* Second() const { return a2_.get(); }
 
   std::shared_ptr<A1> SharedFirst() const { return a1_; }
 
   std::shared_ptr<A2> SharedSecond() const { return a2_; }
 
-  static AddOnPair *Read(std::istream &istrm, const FstReadOptions &opts) {
+  static AddOnPair* Read(std::istream& istrm, const FstReadOptions& opts) {
     bool have_addon1 = false;
     ReadType(istrm, &have_addon1);
     std::unique_ptr<A1> a1;
@@ -85,7 +84,7 @@ class AddOnPair {
     return new AddOnPair(std::move(a1), std::move(a2));
   }
 
-  bool Write(std::ostream &ostrm, const FstWriteOptions &opts) const {
+  bool Write(std::ostream& ostrm, const FstWriteOptions& opts) const {
     bool have_addon1 = a1_ != nullptr;
     WriteType(ostrm, have_addon1);
     if (have_addon1) a1_->Write(ostrm, opts);
@@ -125,7 +124,7 @@ class AddOnImpl : public FstImpl<typename FST::Arc> {
 
   // We make a thread-safe copy of the FST by default since an FST
   // implementation is expected to not share mutable data between objects.
-  AddOnImpl(const FST &fst, std::string_view type,
+  AddOnImpl(const FST& fst, std::string_view type,
             std::shared_ptr<T> t = nullptr)
       : fst_(fst, true), t_(std::move(t)) {
     SetType(type);
@@ -136,7 +135,7 @@ class AddOnImpl : public FstImpl<typename FST::Arc> {
 
   // Conversion from const Fst<Arc> & to F always copies the underlying
   // implementation.
-  AddOnImpl(const Fst<Arc> &fst, std::string_view type,
+  AddOnImpl(const Fst<Arc>& fst, std::string_view type,
             std::shared_ptr<T> t = nullptr)
       : fst_(fst), t_(std::move(t)) {
     SetType(type);
@@ -147,7 +146,7 @@ class AddOnImpl : public FstImpl<typename FST::Arc> {
 
   // We make a thread-safe copy of the FST by default since an FST
   // implementation is expected to not share mutable data between objects.
-  AddOnImpl(const AddOnImpl &impl) : fst_(impl.fst_, true), t_(impl.t_) {
+  AddOnImpl(const AddOnImpl& impl) : fst_(impl.fst_, true), t_(impl.t_) {
     SetType(impl.Type());
     SetProperties(fst_.Properties(kCopyProperties, false));
     SetInputSymbols(fst_.InputSymbols());
@@ -168,7 +167,7 @@ class AddOnImpl : public FstImpl<typename FST::Arc> {
 
   size_t NumStates() const { return fst_.NumStates(); }
 
-  static AddOnImpl *Read(std::istream &strm, const FstReadOptions &opts) {
+  static AddOnImpl* Read(std::istream& strm, const FstReadOptions& opts) {
     FstReadOptions nopts(opts);
     FstHeader hdr;
     if (!nopts.header) {
@@ -199,7 +198,7 @@ class AddOnImpl : public FstImpl<typename FST::Arc> {
     return new AddOnImpl(*fst, nopts.header->FstType(), t);
   }
 
-  bool Write(std::ostream &strm, const FstWriteOptions &opts) const {
+  bool Write(std::ostream& strm, const FstWriteOptions& opts) const {
     FstHeader hdr;
     FstWriteOptions nopts(opts);
     nopts.write_isymbols = false;  // Allows contained FST to hold any symbols.
@@ -216,19 +215,19 @@ class AddOnImpl : public FstImpl<typename FST::Arc> {
     return true;
   }
 
-  void InitStateIterator(StateIteratorData<Arc> *data) const {
+  void InitStateIterator(StateIteratorData<Arc>* data) const {
     fst_.InitStateIterator(data);
   }
 
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) const {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) const {
     fst_.InitArcIterator(s, data);
   }
 
-  FST &GetFst() { return fst_; }
+  FST& GetFst() { return fst_; }
 
-  const FST &GetFst() const { return fst_; }
+  const FST& GetFst() const { return fst_; }
 
-  const T *GetAddOn() const { return t_.get(); }
+  const T* GetAddOn() const { return t_.get(); }
 
   std::shared_ptr<T> GetSharedAddOn() const { return t_; }
 
@@ -248,7 +247,7 @@ class AddOnImpl : public FstImpl<typename FST::Arc> {
   FST fst_;
   std::shared_ptr<T> t_;
 
-  AddOnImpl &operator=(const AddOnImpl &) = delete;
+  AddOnImpl& operator=(const AddOnImpl&) = delete;
 };
 
 }  // namespace internal

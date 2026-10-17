@@ -23,18 +23,18 @@
 #include <cstdint>
 #include <vector>
 
+#include <unordered_set>
 #include <fst/cc-visitors.h>
 #include <fst/connect.h>
 #include <fst/dfs-visit.h>
 #include <fst/fst.h>
 #include <fst/mutable-fst.h>
-#include <unordered_set>
 
 namespace fst {
 
 // Removes final states that have epsilon-only input arcs.
 template <class Arc>
-void RmFinalEpsilon(MutableFst<Arc> *fst) {
+void RmFinalEpsilon(MutableFst<Arc>* fst) {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
   // Determines the coaccesibility of states.
@@ -52,7 +52,7 @@ void RmFinalEpsilon(MutableFst<Arc> *fst) {
     if (fst->Final(s) != Weight::Zero()) {
       bool future_coaccess = false;
       for (ArcIterator<Fst<Arc>> aiter(*fst, s); !aiter.Done(); aiter.Next()) {
-        const auto &arc = aiter.Value();
+        const auto& arc = aiter.Value();
         if (coaccess[arc.nextstate]) {
           future_coaccess = true;
           break;
@@ -68,7 +68,7 @@ void RmFinalEpsilon(MutableFst<Arc> *fst) {
     auto weight = fst->Final(s);
     arcs.clear();
     for (ArcIterator<Fst<Arc>> aiter(*fst, s); !aiter.Done(); aiter.Next()) {
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       // Next state is in the list of finals.
       if (finals.find(arc.nextstate) != finals.end()) {
         // Sums up all epsilon arcs.
@@ -86,7 +86,7 @@ void RmFinalEpsilon(MutableFst<Arc> *fst) {
     if (arcs.size() < fst->NumArcs(s)) {
       fst->DeleteArcs(s);
       fst->SetFinal(s, weight);
-      for (const auto &arc : arcs) fst->AddArc(s, arc);
+      for (const auto& arc : arcs) fst->AddArc(s, arc);
     }
   }
   Connect(fst);

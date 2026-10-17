@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-/// See www.openfst.org for extensive documentation on this weighted
+// See www.openfst.org for extensive documentation on this weighted
 // finite-state transducer library.
 //
 // Utilities to convert strings into FSTs.
@@ -31,6 +31,8 @@
 
 #include <fst/flags.h>
 #include <fst/log.h>
+#include <fst/compat.h>
+#include <string_view>
 #include <fst/arc.h>
 #include <fst/compact-fst.h>
 #include <fst/fst.h>
@@ -39,8 +41,6 @@
 #include <fst/properties.h>
 #include <fst/symbol-table.h>
 #include <fst/util.h>
-#include <fst/compat.h>
-#include <string_view>
 
 DECLARE_string(fst_field_separator);
 
@@ -48,8 +48,8 @@ namespace fst {
 
 enum class TokenType : uint8_t { SYMBOL = 1, BYTE = 2, UTF8 = 3 };
 
-inline std::ostream &operator<<(std::ostream &strm,
-                                const TokenType &token_type) {
+inline std::ostream& operator<<(std::ostream& strm,
+                                const TokenType& token_type) {
   switch (token_type) {
     case TokenType::BYTE:
       return strm << "byte";
@@ -64,8 +64,8 @@ inline std::ostream &operator<<(std::ostream &strm,
 namespace internal {
 
 template <class Label>
-bool ConvertSymbolToLabel(std::string_view str, const SymbolTable *syms,
-                          Label unknown_label, Label *output) {
+bool ConvertSymbolToLabel(std::string_view str, const SymbolTable* syms,
+                          Label unknown_label, Label* output) {
   int64_t n;
   if (syms) {
     n = syms->Find(str);
@@ -91,8 +91,8 @@ bool ConvertSymbolToLabel(std::string_view str, const SymbolTable *syms,
 
 template <class Label>
 bool ConvertStringToLabels(
-    std::string_view str, TokenType token_type, const SymbolTable *syms,
-    Label unknown_label, std::vector<Label> *labels,
+    std::string_view str, TokenType token_type, const SymbolTable* syms,
+    Label unknown_label, std::vector<Label>* labels,
     std::string_view sep = FST_FLAGS_fst_field_separator) {
   labels->clear();
   switch (token_type) {
@@ -121,8 +121,8 @@ bool ConvertStringToLabels(
 // Additionally, epsilon symbols will be printed only if omit_epsilon
 // is false.
 template <class Label>
-bool LabelsToSymbolString(const std::vector<Label> &labels, std::string *str,
-                          const SymbolTable &syms, std::string_view sep,
+bool LabelsToSymbolString(const std::vector<Label>& labels, std::string* str,
+                          const SymbolTable& syms, std::string_view sep,
                           bool omit_epsilon) {
   std::stringstream ostrm;
   sep.remove_prefix(sep.size() - 1);  // We only respect the final char of sep.
@@ -130,7 +130,7 @@ bool LabelsToSymbolString(const std::vector<Label> &labels, std::string *str,
   for (auto label : labels) {
     if (omit_epsilon && !label) continue;
     ostrm << delim;
-    const std::string &symbol = syms.Find(label);
+    const std::string& symbol = syms.Find(label);
     if (symbol.empty()) {
       LOG(ERROR) << "LabelsToSymbolString: Label " << label
                  << " is not mapped onto any textual symbol in symbol table "
@@ -148,7 +148,7 @@ bool LabelsToSymbolString(const std::vector<Label> &labels, std::string *str,
 // Additionally, epsilon symbols will be printed only if omit_epsilon
 // is false.
 template <class Label>
-bool LabelsToNumericString(const std::vector<Label> &labels, std::string *str,
+bool LabelsToNumericString(const std::vector<Label>& labels, std::string* str,
                            std::string_view sep, bool omit_epsilon) {
   std::stringstream ostrm;
   sep.remove_prefix(sep.size() - 1);  // We only respect the final char of sep.
@@ -167,24 +167,23 @@ bool LabelsToNumericString(const std::vector<Label> &labels, std::string *str,
 
 // Functor for compiling a string in an FST.
 template <class Arc>
-class OPENFST_DEPRECATED("allow_negative is no-op") StringCompiler {
+class StringCompiler {
  public:
   using Label = typename Arc::Label;
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
   explicit StringCompiler(TokenType token_type = TokenType::BYTE,
-                          const SymbolTable *syms = nullptr,
+                          const SymbolTable* syms = nullptr,
                           Label unknown_label = kNoLabel)
       : token_type_(token_type), syms_(syms), unknown_label_(unknown_label) {}
 
   // Compiles string into an FST. With SYMBOL token type, sep is used to
-  // specify the set of char separators between symbols, in addition
-  // of '\n' which is always treated as a separator.
-  // Returns true on success.
+  // specify the set of char separators between symbols, in addition of '\n',
+  // which is always treated as a separator. Returns true on success.
   template <class FST>
   bool operator()(
-      std::string_view str, FST *fst,
+      std::string_view str, FST* fst,
       std::string_view sep = FST_FLAGS_fst_field_separator) const {
     std::vector<Label> labels;
     if (!internal::ConvertStringToLabels(str, token_type_, syms_,
@@ -198,7 +197,7 @@ class OPENFST_DEPRECATED("allow_negative is no-op") StringCompiler {
   // Same as above but allows to specify a weight for the string.
   template <class FST>
   bool operator()(
-      std::string_view str, FST *fst, Weight weight,
+      std::string_view str, FST* fst, Weight weight,
       std::string_view sep = FST_FLAGS_fst_field_separator) const {
     std::vector<Label> labels;
     if (!internal::ConvertStringToLabels(str, token_type_, syms_,
@@ -210,7 +209,7 @@ class OPENFST_DEPRECATED("allow_negative is no-op") StringCompiler {
   }
 
  private:
-  void Compile(const std::vector<Label> &labels, MutableFst<Arc> *fst,
+  void Compile(const std::vector<Label>& labels, MutableFst<Arc>* fst,
                Weight weight = Weight::One()) const {
     fst->DeleteStates();
     auto state = fst->AddState();
@@ -225,16 +224,16 @@ class OPENFST_DEPRECATED("allow_negative is no-op") StringCompiler {
   }
 
   template <class Unsigned>
-  void Compile(const std::vector<Label> &labels,
-               CompactStringFst<Arc, Unsigned> *fst) const {
+  void Compile(const std::vector<Label>& labels,
+               CompactStringFst<Arc, Unsigned>* fst) const {
     using Compactor = typename CompactStringFst<Arc, Unsigned>::Compactor;
     fst->SetCompactor(
         std::make_shared<Compactor>(labels.begin(), labels.end()));
   }
 
   template <class Unsigned>
-  void Compile(const std::vector<Label> &labels,
-               CompactWeightedStringFst<Arc, Unsigned> *fst,
+  void Compile(const std::vector<Label>& labels,
+               CompactWeightedStringFst<Arc, Unsigned>* fst,
                Weight weight = Weight::One()) const {
     std::vector<std::pair<Label, Weight>> compacts;
     compacts.reserve(labels.size() + 1);
@@ -249,11 +248,11 @@ class OPENFST_DEPRECATED("allow_negative is no-op") StringCompiler {
   }
 
   const TokenType token_type_;
-  const SymbolTable *syms_;    // Symbol table (used when token type is symbol).
+  const SymbolTable* syms_;    // Symbol table (used when token type is symbol).
   const Label unknown_label_;  // Label for token missing from symbol table.
 
-  StringCompiler(const StringCompiler &) = delete;
-  StringCompiler &operator=(const StringCompiler &) = delete;
+  StringCompiler(const StringCompiler&) = delete;
+  StringCompiler& operator=(const StringCompiler&) = delete;
 };
 
 // A useful alias when using StdArc.
@@ -265,8 +264,8 @@ using StdStringCompiler = StringCompiler<StdArc>;
 // Project or Invert. Returns true on success. Use only with string FSTs; may
 // loop for non-string FSTs.
 template <class Arc>
-bool StringFstToOutputLabels(const Fst<Arc> &fst,
-                             std::vector<typename Arc::Label> *labels) {
+bool StringFstToOutputLabels(const Fst<Arc>& fst,
+                             std::vector<typename Arc::Label>* labels) {
   labels->clear();
   auto s = fst.Start();
   if (s == kNoStateId) {
@@ -279,7 +278,7 @@ bool StringFstToOutputLabels(const Fst<Arc> &fst,
       LOG(ERROR) << "StringFstToOutputLabels: Does not reach final state";
       return false;
     }
-    const auto &arc = aiter.Value();
+    const auto& arc = aiter.Value();
     labels->push_back(arc.olabel);
     s = arc.nextstate;
     aiter.Next();
@@ -300,9 +299,9 @@ bool StringFstToOutputLabels(const Fst<Arc> &fst,
 // Same as above but also computes the path weight. The output weight parameter
 // is only set if labels extraction is successful.
 template <class Arc>
-bool StringFstToOutputLabels(const Fst<Arc> &fst,
-                             std::vector<typename Arc::Label> *labels,
-                             typename Arc::Weight *weight) {
+bool StringFstToOutputLabels(const Fst<Arc>& fst,
+                             std::vector<typename Arc::Label>* labels,
+                             typename Arc::Weight* weight) {
   labels->clear();
   auto path_weight = Arc::Weight::One();
   auto s = fst.Start();
@@ -317,7 +316,7 @@ bool StringFstToOutputLabels(const Fst<Arc> &fst,
       LOG(ERROR) << "StringFstToOutputLabels: Does not reach final state";
       return false;
     }
-    const auto &arc = aiter.Value();
+    const auto& arc = aiter.Value();
     labels->push_back(arc.olabel);
     path_weight = Times(path_weight, arc.weight);
     s = arc.nextstate;
@@ -344,8 +343,8 @@ bool StringFstToOutputLabels(const Fst<Arc> &fst,
 // is false. Returns true on success.
 template <class Label>
 bool LabelsToString(
-    const std::vector<Label> &labels, std::string *str,
-    TokenType ttype = TokenType::BYTE, const SymbolTable *syms = nullptr,
+    const std::vector<Label>& labels, std::string* str,
+    TokenType ttype = TokenType::BYTE, const SymbolTable* syms = nullptr,
     std::string_view sep = FST_FLAGS_fst_field_separator,
     bool omit_epsilon = true) {
   switch (ttype) {
@@ -373,14 +372,14 @@ class StringPrinter {
   using Weight = typename Arc::Weight;
 
   explicit StringPrinter(TokenType token_type = TokenType::BYTE,
-                         const SymbolTable *syms = nullptr,
+                         const SymbolTable* syms = nullptr,
                          bool omit_epsilon = true)
       : token_type_(token_type), syms_(syms), omit_epsilon_(omit_epsilon) {}
 
   // Converts the FST into a string. With SYMBOL token type, the last character
   // of sep is used as a separator between symbols. Returns true on success.
   bool operator()(
-      const Fst<Arc> &fst, std::string *str,
+      const Fst<Arc>& fst, std::string* str,
       std::string_view sep = FST_FLAGS_fst_field_separator) const {
     std::vector<Label> labels;
     return StringFstToOutputLabels(fst, &labels) &&
@@ -390,7 +389,7 @@ class StringPrinter {
   // Same as above but also computes the path weight. The output weight
   // parameter is only set if labels extraction is successful.
   bool operator()(
-      const Fst<Arc> &fst, std::string *str, Weight *weight,
+      const Fst<Arc>& fst, std::string* str, Weight* weight,
       std::string_view sep = FST_FLAGS_fst_field_separator) const {
     std::vector<Label> labels;
     return StringFstToOutputLabels(fst, &labels, weight) &&
@@ -399,11 +398,11 @@ class StringPrinter {
 
  private:
   const TokenType token_type_;
-  const SymbolTable *syms_;
+  const SymbolTable* syms_;
   const bool omit_epsilon_;
 
-  StringPrinter(const StringPrinter &) = delete;
-  StringPrinter &operator=(const StringPrinter &) = delete;
+  StringPrinter(const StringPrinter&) = delete;
+  StringPrinter& operator=(const StringPrinter&) = delete;
 };
 
 // A useful alias when using StdArc.

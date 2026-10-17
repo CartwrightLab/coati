@@ -19,7 +19,6 @@
 #include <fst/symbol-table-ops.h>
 
 #include <cstdint>
-#include <functional>
 #include <ios>
 #include <map>
 #include <memory>
@@ -35,8 +34,8 @@
 
 namespace fst {
 
-SymbolTable *MergeSymbolTable(const SymbolTable &left, const SymbolTable &right,
-                              bool *right_relabel_output) {
+SymbolTable* MergeSymbolTable(const SymbolTable& left, const SymbolTable& right,
+                              bool* right_relabel_output) {
   // MergeSymbolTable detects several special cases  It will return a reference
   // copied version of SymbolTable of left or right if either symbol table is
   // a superset of the other.
@@ -46,7 +45,7 @@ SymbolTable *MergeSymbolTable(const SymbolTable &left, const SymbolTable &right,
   bool left_has_all = true;
   bool right_has_all = true;
   bool relabel = false;
-  for (const auto &litem : left) {
+  for (const auto& litem : left) {
     merged->AddSymbol(litem.Symbol(), litem.Label());
     if (right_has_all) {
       int64_t key = right.Find(litem.Symbol());
@@ -63,7 +62,7 @@ SymbolTable *MergeSymbolTable(const SymbolTable &left, const SymbolTable &right,
   }
   // Adds all symbols we can from right symbol table.
   std::vector<std::string> conflicts;
-  for (const auto &ritem : right) {
+  for (const auto& ritem : right) {
     int64_t key = merged->Find(ritem.Symbol());
     if (key != -1) {
       // Symbol already exists, maybe with different value.
@@ -83,23 +82,23 @@ SymbolTable *MergeSymbolTable(const SymbolTable &left, const SymbolTable &right,
   if (right_relabel_output) *right_relabel_output = relabel;
   if (left_has_all) return left.Copy();
   // Adds all symbols that conflicted, in order.
-  for (const auto &conflict : conflicts) merged->AddSymbol(conflict);
+  for (const auto& conflict : conflicts) merged->AddSymbol(conflict);
   return merged.release();
 }
 
-SymbolTable *CompactSymbolTable(const SymbolTable &syms) {
+SymbolTable* CompactSymbolTable(const SymbolTable& syms) {
   std::map<int64_t, std::string> sorted;
-  for (const auto &stitem : syms) {
+  for (const auto& stitem : syms) {
     sorted[stitem.Label()] = stitem.Symbol();
   }
   auto compact = std::make_unique<SymbolTable>(syms.Name() + "_compact");
   int64_t newkey = 0;
-  for (const auto &kv : sorted) compact->AddSymbol(kv.second, newkey++);
+  for (const auto& kv : sorted) compact->AddSymbol(kv.second, newkey++);
   return compact.release();
 }
 
-SymbolTable * FstReadSymbols(const std::string &source,
-                                             bool input_symbols) {
+SymbolTable*  FstReadSymbols(const std::string& source,
+                                          bool input_symbols) {
   std::ifstream in(source, std::ios_base::in | std::ios_base::binary);
   if (!in) {
     LOG(ERROR) << "FstReadSymbols: Can't open file " << source;
@@ -133,8 +132,8 @@ SymbolTable * FstReadSymbols(const std::string &source,
   return nullptr;
 }
 
-bool AddAuxiliarySymbols(const std::string &prefix, int64_t start_label,
-                         int64_t nlabels, SymbolTable *syms) {
+bool AddAuxiliarySymbols(const std::string& prefix, int64_t start_label,
+                         int64_t nlabels, SymbolTable* syms) {
   for (int64_t i = 0; i < nlabels; ++i) {
     auto index = i + start_label;
     if (index != syms->AddSymbol(prefix + std::to_string(i), index)) {

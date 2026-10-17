@@ -44,14 +44,15 @@ class LogMessage {
     if (fatal_) exit(1);
   }
 
-  std::ostream &stream() { return std::cerr; }
+  std::ostream& stream() { return std::cerr; }
 
  private:
   bool fatal_;
 };
 
 #define LOG(type) LogMessage(#type).stream()
-#define VLOG(level) if ((level) <= FST_FLAGS_v) LOG(INFO)
+#define VLOG(level) \
+  if ((level) <= FST_FLAGS_v) LOG(INFO)
 
 // Checks.
 inline void FstCheck(bool x, std::string_view expr, std::string_view file,

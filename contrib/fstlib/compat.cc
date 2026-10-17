@@ -94,7 +94,9 @@ internal::StringSplitter StrSplit(std::string_view full, char delim,
 }
 
 namespace {
+
 bool IsAsciiSpace(unsigned char ch) { return std::isspace(ch); }
+
 }  // namespace
 
 std::string_view StripTrailingAsciiWhitespace(std::string_view full) {
@@ -102,7 +104,7 @@ std::string_view StripTrailingAsciiWhitespace(std::string_view full) {
   return full.substr(0, full.rend() - it);
 }
 
-void StripTrailingAsciiWhitespace(std::string *full) {
+void StripTrailingAsciiWhitespace(std::string* full) {
   auto it = std::find_if_not(full->rbegin(), full->rend(), IsAsciiSpace);
   full->erase(full->rend() - it);
 }

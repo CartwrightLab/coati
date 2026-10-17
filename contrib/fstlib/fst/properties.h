@@ -24,7 +24,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <vector>
 
 #include <fst/compat.h>
 #include <fst/log.h>
@@ -333,14 +332,14 @@ inline constexpr uint64_t kFstProperties =
 inline uint64_t SetStartProperties(uint64_t inprops);
 
 template <typename Weight>
-uint64_t SetFinalProperties(uint64_t inprops, const Weight &old_weight,
-                            const Weight &new_weight);
+uint64_t SetFinalProperties(uint64_t inprops, const Weight& old_weight,
+                            const Weight& new_weight);
 
 inline uint64_t AddStateProperties(uint64_t inprops);
 
 template <typename A>
-uint64_t AddArcProperties(uint64_t inprops, typename A::StateId s, const A &arc,
-                          const A *prev_arc);
+uint64_t AddArcProperties(uint64_t inprops, typename A::StateId s, const A& arc,
+                          const A* prev_arc);
 
 inline uint64_t DeleteStatesProperties(uint64_t inprops);
 
@@ -421,8 +420,8 @@ uint64_t DeleteArcsProperties(uint64_t inprops) {
 // Definitions of template functions.
 
 template <typename Weight>
-uint64_t SetFinalProperties(uint64_t inprops, const Weight &old_weight,
-                            const Weight &new_weight) {
+uint64_t SetFinalProperties(uint64_t inprops, const Weight& old_weight,
+                            const Weight& new_weight) {
   auto outprops = inprops;
   if (old_weight != Weight::Zero() && old_weight != Weight::One()) {
     outprops &= ~kWeighted;
@@ -444,7 +443,7 @@ uint64_t SetFinalProperties(uint64_t inprops, const Weight &old_weight,
 //                  if s currently has no arcs.
 template <typename Arc>
 uint64_t AddArcProperties(uint64_t inprops, typename Arc::StateId s,
-                          const Arc &arc, const Arc *prev_arc) {
+                          const Arc& arc, const Arc* prev_arc) {
   using Weight = typename Arc::Weight;
   auto outprops = inprops;
   if (arc.ilabel != arc.olabel) {

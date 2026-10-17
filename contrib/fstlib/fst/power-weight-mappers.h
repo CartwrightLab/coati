@@ -33,8 +33,8 @@ class ToPowerWeightMapper {
 
   explicit ToPowerWeightMapper(Index index = 0) : index_(index) {}
 
-  ToPowerWeight operator()(const FromWeight &w) const {
-    return ToPowerWeight(index_, w.Value());
+  ToPowerWeight operator()(const FromWeight& w) const {
+    return ToPowerWeight(index_, typename ToPowerWeight::Weight(w.Value()));
   }
 
  private:
@@ -52,7 +52,7 @@ class FromPowerWeightMapper {
 
   explicit FromPowerWeightMapper(Index index = 0) : index_(index) {}
 
-  ToWeight operator()(const FromPowerWeight &w) const {
+  ToWeight operator()(const FromPowerWeight& w) const {
     return ToWeight(w.Value(index_));
   }
 
@@ -73,12 +73,12 @@ class ProjectPowerWeightMapper {
 
   explicit ProjectPowerWeightMapper(
       Index from_index = 0, Index to_index = 0,
-      const ComponentWeight &default_weight = ComponentWeight::Zero())
+      const ComponentWeight& default_weight = ComponentWeight::Zero())
       : from_index_(from_index),
         to_index_(to_index),
         default_weight_(default_weight) {}
 
-  PowerWeightT operator()(const PowerWeightT &w) const {
+  PowerWeightT operator()(const PowerWeightT& w) const {
     return PowerWeightT(to_index_, w.Value(from_index_), default_weight_);
   }
 
@@ -98,10 +98,10 @@ class TransformPowerWeightMapper {
   using ToWeight = PowerWeightT;
 
   explicit TransformPowerWeightMapper(
-      const TransformFn &transform = TransformFn())
+      const TransformFn& transform = TransformFn())
       : transform_(transform) {}
 
-  PowerWeightT operator()(const PowerWeightT &w) const { return transform_(w); }
+  PowerWeightT operator()(const PowerWeightT& w) const { return transform_(w); }
 
  private:
   TransformFn transform_;

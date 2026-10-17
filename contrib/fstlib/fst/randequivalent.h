@@ -50,11 +50,11 @@ namespace fst {
 // generated path and checks that these two values are within a user-specified
 // delta. Returns optional error value (when FST_FLAGS_error_fatal = false).
 template <class Arc, class ArcSelector>
-bool RandEquivalent(const Fst<Arc> &fst1, const Fst<Arc> &fst2, int32_t npath,
-                    const RandGenOptions<ArcSelector> &opts,
+bool RandEquivalent(const Fst<Arc>& fst1, const Fst<Arc>& fst2, int32_t npath,
+                    const RandGenOptions<ArcSelector>& opts,
                     float delta = kDelta,
                     uint64_t seed = std::random_device()(),
-                    bool *error = nullptr) {
+                    bool* error = nullptr) {
   using Weight = typename Arc::Weight;
   if (error) *error = false;
   // Checks that the symbol table are compatible.
@@ -79,7 +79,7 @@ bool RandEquivalent(const Fst<Arc> &fst1, const Fst<Arc> &fst2, int32_t npath,
   std::bernoulli_distribution coin(.5);
   for (int32_t n = 0; n < npath; ++n) {
     VectorFst<Arc> path;
-    const auto &fst = coin(rand) ? sfst1 : sfst2;
+    const auto& fst = coin(rand) ? sfst1 : sfst2;
     RandGen(fst, &path, opts);
     VectorFst<Arc> ipath(path);
     VectorFst<Arc> opath(path);
@@ -122,11 +122,11 @@ bool RandEquivalent(const Fst<Arc> &fst1, const Fst<Arc> &fst2, int32_t npath,
 // (no longer than the path_length) using a user-specified seed, optionally
 // indicating an error setting an optional error argument to true.
 template <class Arc>
-bool RandEquivalent(const Fst<Arc> &fst1, const Fst<Arc> &fst2, int32_t npath,
+bool RandEquivalent(const Fst<Arc>& fst1, const Fst<Arc>& fst2, int32_t npath,
                     float delta = kDelta,
                     uint64_t seed = std::random_device()(),
                     int32_t max_length = std::numeric_limits<int32_t>::max(),
-                    bool *error = nullptr) {
+                    bool* error = nullptr) {
   const UniformArcSelector<Arc> uniform_selector(seed);
   const RandGenOptions<UniformArcSelector<Arc>> opts(uniform_selector,
                                                      max_length);

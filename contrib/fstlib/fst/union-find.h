@@ -75,7 +75,7 @@ class UnionFind {
   }
 
   // For testing only.
-  const T &Parent(const T &x) const { return parent_[x]; }
+  const T& Parent(const T& x) const { return parent_[x]; }
 
  private:
   // Links trees rooted in 'x' and 'y'.
@@ -91,9 +91,9 @@ class UnionFind {
     }
   }
 
-  UnionFind(const UnionFind &) = delete;
+  UnionFind(const UnionFind&) = delete;
 
-  UnionFind &operator=(const UnionFind &) = delete;
+  UnionFind& operator=(const UnionFind&) = delete;
 
   std::vector<T> parent_;  // Parent nodes.
   std::vector<int> rank_;  // Rank of an element = min. depth in tree.

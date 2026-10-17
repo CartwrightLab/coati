@@ -24,7 +24,6 @@
 #include <utility>
 #include <vector>
 
-#include <fst/log.h>
 #include <fst/fst.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
@@ -36,7 +35,7 @@ namespace fst {
 // sorting that corresponds to the state ID i before sorting; it must
 // therefore be a permutation of the input FST's states ID sequence.
 template <class Arc>
-void StateSort(MutableFst<Arc> *fst,
+void StateSort(MutableFst<Arc>* fst,
                const std::vector<typename Arc::StateId> &order) {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;

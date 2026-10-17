@@ -22,12 +22,11 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
-#include <fst/cache.h>
 #include <fst/cc-visitors.h>
 #include <fst/dfs-visit.h>
-#include <fst/expanded-fst.h>
 #include <fst/fst.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
@@ -49,7 +48,7 @@ namespace fst {
 // or if it does not belong to any cycle. When require_superinitial is true, a
 // superinitial state is always created.
 template <class FromArc, class ToArc>
-void Reverse(const Fst<FromArc> &ifst, MutableFst<ToArc> *ofst,
+void Reverse(const Fst<FromArc>& ifst, MutableFst<ToArc>* ofst,
              bool require_superinitial = true) {
   using StateId = typename FromArc::StateId;
   using Weight = typename FromArc::Weight;
@@ -109,7 +108,7 @@ void Reverse(const Fst<FromArc> &ifst, MutableFst<ToArc> *ofst,
     }
     for (ArcIterator<Fst<FromArc>> aiter(ifst, is); !aiter.Done();
          aiter.Next()) {
-      const auto &iarc = aiter.Value();
+      const auto& iarc = aiter.Value();
       const auto nos = iarc.nextstate + offset;
       auto weight = iarc.weight.Reverse();
       if (!offset && (nos == ostart)) {

@@ -41,19 +41,18 @@
 #include <vector>
 
 #include <fst/compat.h>
+#include <unordered_map>
 #include <fst/flags.h>
 #include <fst/log.h>
+#include <string_view>
 #include <fstream>
 #include <fst/mapped-file.h>
-#include <unordered_map>
-#include <string_view>
-#include <optional>
 
 // Utility for error handling.
 
 DECLARE_bool(fst_error_fatal);
 
-#define FSTERROR()                                                     \
+#define FSTERROR()                                                           \
   (FST_FLAGS_fst_error_fatal ? LOG(FATAL) : LOG(ERROR))
  
 namespace fst {
@@ -76,28 +75,28 @@ inline constexpr bool IsScalarIOTypeV =
 // Reads types from an input stream.
 
 // Generic case.
-template <class T, typename std::enable_if_t<std::is_class_v<T>, T> * = nullptr>
-inline std::istream &ReadType(std::istream &strm, T *t) {
+template <class T, typename std::enable_if_t<std::is_class_v<T>, T>* = nullptr>
+inline std::istream& ReadType(std::istream& strm, T* t) {
   return t->Read(strm);
 }
 
 // Numeric (boolean, integral, floating-point) or enum case.
-template <class T, typename std::enable_if_t<internal::IsScalarIOTypeV<T>, T>
-                       * = nullptr>
-inline std::istream &ReadType(std::istream &strm, T *t) {
-  return strm.read(reinterpret_cast<char *>(t), sizeof(T));
+template <class T,
+          typename std::enable_if_t<internal::IsScalarIOTypeV<T>, T>* = nullptr>
+inline std::istream& ReadType(std::istream& strm, T* t) {
+  return strm.read(reinterpret_cast<char*>(t), sizeof(T));
 }
 
 // Numeric (boolean, integral, floating-point) or enum case only.
 template <class T>
-inline std::istream &ReadType(std::istream &strm, size_t n, T *t) {
+inline std::istream& ReadType(std::istream& strm, size_t n, T* t) {
   static_assert(internal::IsScalarIOTypeV<T>,
                 "Type not supported for batch read.");
-  return strm.read(reinterpret_cast<char *>(t), sizeof(T) * n);
+  return strm.read(reinterpret_cast<char*>(t), sizeof(T) * n);
 }
 
 // String case.
-inline std::istream &ReadType(std::istream &strm, std::string *s) {
+inline std::istream& ReadType(std::istream& strm, std::string* s) {
   s->clear();
   int32_t ns = 0;
   ReadType(strm, &ns);
@@ -109,36 +108,36 @@ inline std::istream &ReadType(std::istream &strm, std::string *s) {
 
 // Declares types that can be read from an input stream.
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::vector<T...> *c);
+std::istream& ReadType(std::istream& strm, std::vector<T...>* c);
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::list<T...> *c);
+std::istream& ReadType(std::istream& strm, std::list<T...>* c);
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::set<T...> *c);
+std::istream& ReadType(std::istream& strm, std::set<T...>* c);
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::map<T...> *c);
+std::istream& ReadType(std::istream& strm, std::map<T...>* c);
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::unordered_map<T...> *c);
+std::istream& ReadType(std::istream& strm, std::unordered_map<T...>* c);
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::unordered_set<T...> *c);
+std::istream& ReadType(std::istream& strm, std::unordered_set<T...>* c);
 
 // Pair case.
 template <typename S, typename T>
-inline std::istream &ReadType(std::istream &strm, std::pair<S, T> *p) {
+inline std::istream& ReadType(std::istream& strm, std::pair<S, T>* p) {
   ReadType(strm, &p->first);
   ReadType(strm, &p->second);
   return strm;
 }
 
 template <typename S, typename T>
-inline std::istream &ReadType(std::istream &strm, std::pair<const S, T> *p) {
-  ReadType(strm, const_cast<S *>(&p->first));
+inline std::istream& ReadType(std::istream& strm, std::pair<const S, T>* p) {
+  ReadType(strm, const_cast<S*>(&p->first));
   ReadType(strm, &p->second);
   return strm;
 }
 
 namespace internal {
 template <class C, class ReserveFn>
-std::istream &ReadContainerType(std::istream &strm, C *c, ReserveFn reserve) {
+std::istream& ReadContainerType(std::istream& strm, C* c, ReserveFn reserve) {
   c->clear();
   int64_t n = 0;
   ReadType(strm, &n);
@@ -154,17 +153,16 @@ std::istream &ReadContainerType(std::istream &strm, C *c, ReserveFn reserve) {
 
 // Generic vector case.
 template <typename T, class A,
-          typename std::enable_if_t<std::is_class_v<T>, T> * = nullptr>
-inline std::istream &ReadVectorType(std::istream &strm, std::vector<T, A> *c) {
+          typename std::enable_if_t<std::is_class_v<T>, T>* = nullptr>
+inline std::istream& ReadVectorType(std::istream& strm, std::vector<T, A>* c) {
   return internal::ReadContainerType(
       strm, c, [](decltype(c) v, int n) { v->reserve(n); });
 }
 
 // Vector of numerics (boolean, integral, floating-point, char) or enum case.
-template <
-    typename T, class A,
-    typename std::enable_if_t<internal::IsScalarIOTypeV<T>, T> * = nullptr>
-inline std::istream &ReadVectorType(std::istream &strm, std::vector<T, A> *c) {
+template <typename T, class A,
+          typename std::enable_if_t<internal::IsScalarIOTypeV<T>, T>* = nullptr>
+inline std::istream& ReadVectorType(std::istream& strm, std::vector<T, A>* c) {
   c->clear();
   int64_t n = 0;
   ReadType(strm, &n);
@@ -176,43 +174,43 @@ inline std::istream &ReadVectorType(std::istream &strm, std::vector<T, A> *c) {
 }  // namespace internal
 
 template <class T, size_t N>
-std::istream &ReadType(std::istream &strm, std::array<T, N> *c) {
+std::istream& ReadType(std::istream& strm, std::array<T, N>* c) {
   if constexpr (internal::IsScalarIOTypeV<T>) {
     ReadType(strm, c->size(), c->data());
   } else {
-    for (auto &v : *c) ReadType(strm, &v);
+    for (auto& v : *c) ReadType(strm, &v);
   }
   return strm;
 }
 
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::vector<T...> *c) {
+std::istream& ReadType(std::istream& strm, std::vector<T...>* c) {
   return internal::ReadVectorType(strm, c);
 }
 
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::list<T...> *c) {
+std::istream& ReadType(std::istream& strm, std::list<T...>* c) {
   return internal::ReadContainerType(strm, c, [](decltype(c) v, int n) {});
 }
 
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::set<T...> *c) {
+std::istream& ReadType(std::istream& strm, std::set<T...>* c) {
   return internal::ReadContainerType(strm, c, [](decltype(c) v, int n) {});
 }
 
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::map<T...> *c) {
+std::istream& ReadType(std::istream& strm, std::map<T...>* c) {
   return internal::ReadContainerType(strm, c, [](decltype(c) v, int n) {});
 }
 
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::unordered_set<T...> *c) {
+std::istream& ReadType(std::istream& strm, std::unordered_set<T...>* c) {
   return internal::ReadContainerType(
       strm, c, [](decltype(c) v, int n) { v->reserve(n); });
 }
 
 template <class... T>
-std::istream &ReadType(std::istream &strm, std::unordered_map<T...> *c) {
+std::istream& ReadType(std::istream& strm, std::unordered_map<T...>* c) {
   return internal::ReadContainerType(
       strm, c, [](decltype(c) v, int n) { v->reserve(n); });
 }
@@ -224,28 +222,28 @@ template <class T, typename std::enable_if<
                        std::is_class<T>::value &&
                            // `string_view` is handled separately below.
                            !std::is_convertible<T, std::string_view>::value,
-                       T>::type * = nullptr>
-inline std::ostream &WriteType(std::ostream &strm, const T t) {
+                       T>::type* = nullptr>
+inline std::ostream& WriteType(std::ostream& strm, const T t) {
   t.Write(strm);
   return strm;
 }
 
 // Numeric (boolean, integral, floating-point) or enum case.
-template <class T, typename std::enable_if_t<internal::IsScalarIOTypeV<T>, T>
-                       * = nullptr>
-inline std::ostream &WriteType(std::ostream &strm, const T t) {
-  return strm.write(reinterpret_cast<const char *>(&t), sizeof(T));
+template <class T,
+          typename std::enable_if_t<internal::IsScalarIOTypeV<T>, T>* = nullptr>
+inline std::ostream& WriteType(std::ostream& strm, const T t) {
+  return strm.write(reinterpret_cast<const char*>(&t), sizeof(T));
 }
 
 // Numeric (boolean, integral, floating-point) or enum case only.
 template <class T>
-inline std::ostream &WriteType(std::ostream &strm, size_t n, const T *t) {
+inline std::ostream& WriteType(std::ostream& strm, size_t n, const T* t) {
   static_assert(internal::IsScalarIOTypeV<T>,
                 "Type not supported for batch write.");
-  return strm.write(reinterpret_cast<const char *>(t), sizeof(T) * n);
+  return strm.write(reinterpret_cast<const char*>(t), sizeof(T) * n);
 }
 
-inline std::ostream &WriteType(std::ostream &strm, std::string_view s) {
+inline std::ostream& WriteType(std::ostream& strm, std::string_view s) {
   int32_t ns = s.size();
   WriteType(strm, ns);
   return strm.write(s.data(), ns);
@@ -254,26 +252,26 @@ inline std::ostream &WriteType(std::ostream &strm, std::string_view s) {
 // Declares types that can be written to an output stream.
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::vector<T...> &c);
+std::ostream& WriteType(std::ostream& strm, const std::vector<T...>& c);
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::list<T...> &c);
+std::ostream& WriteType(std::ostream& strm, const std::list<T...>& c);
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::set<T...> &c);
+std::ostream& WriteType(std::ostream& strm, const std::set<T...>& c);
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::map<T...> &c);
+std::ostream& WriteType(std::ostream& strm, const std::map<T...>& c);
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::unordered_map<T...> &c);
+std::ostream& WriteType(std::ostream& strm, const std::unordered_map<T...>& c);
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::unordered_set<T...> &c);
+std::ostream& WriteType(std::ostream& strm, const std::unordered_set<T...>& c);
 
 // Pair case.
 template <typename S, typename T>
-inline std::ostream &WriteType(std::ostream &strm, const std::pair<S, T> &p) {
+inline std::ostream& WriteType(std::ostream& strm, const std::pair<S, T>& p) {
   WriteType(strm, p.first);
   WriteType(strm, p.second);
   return strm;
@@ -281,15 +279,15 @@ inline std::ostream &WriteType(std::ostream &strm, const std::pair<S, T> &p) {
 
 namespace internal {
 template <class C>
-std::ostream &WriteSequence(std::ostream &strm, const C &c) {
-  for (const auto &e : c) {
+std::ostream& WriteSequence(std::ostream& strm, const C& c) {
+  for (const auto& e : c) {
     WriteType(strm, e);
   }
   return strm;
 }
 
 template <class C>
-std::ostream &WriteContainer(std::ostream &strm, const C &c) {
+std::ostream& WriteContainer(std::ostream& strm, const C& c) {
   const int64_t n = c.size();
   WriteType(strm, n);
   WriteSequence(strm, c);
@@ -298,37 +296,37 @@ std::ostream &WriteContainer(std::ostream &strm, const C &c) {
 }  // namespace internal
 
 template <class T, size_t N>
-std::ostream &WriteType(std::ostream &strm, const std::array<T, N> &c) {
+std::ostream& WriteType(std::ostream& strm, const std::array<T, N>& c) {
   return internal::WriteSequence(strm, c);
 }
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::vector<T...> &c) {
+std::ostream& WriteType(std::ostream& strm, const std::vector<T...>& c) {
   return internal::WriteContainer(strm, c);
 }
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::list<T...> &c) {
+std::ostream& WriteType(std::ostream& strm, const std::list<T...>& c) {
   return internal::WriteContainer(strm, c);
 }
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::set<T...> &c) {
+std::ostream& WriteType(std::ostream& strm, const std::set<T...>& c) {
   return internal::WriteContainer(strm, c);
 }
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::map<T...> &c) {
+std::ostream& WriteType(std::ostream& strm, const std::map<T...>& c) {
   return internal::WriteContainer(strm, c);
 }
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::unordered_map<T...> &c) {
+std::ostream& WriteType(std::ostream& strm, const std::unordered_map<T...>& c) {
   return internal::WriteContainer(strm, c);
 }
 
 template <typename... T>
-std::ostream &WriteType(std::ostream &strm, const std::unordered_set<T...> &c) {
+std::ostream& WriteType(std::ostream& strm, const std::unordered_set<T...>& c) {
   return internal::WriteContainer(strm, c);
 }
 
@@ -341,7 +339,7 @@ std::ostream &WriteType(std::ostream &strm, const std::unordered_set<T...> &c) {
 std::optional<int64_t> ParseInt64(std::string_view s, int base = 10);
 
 int64_t StrToInt64(std::string_view s, std::string_view source, size_t nline,
-                   bool * error = nullptr);
+                   bool*  error = nullptr);
 
 template <typename Weight>
 Weight StrToWeight(std::string_view s) {
@@ -367,7 +365,7 @@ std::string WeightToStr(Weight w) {
 
 template <typename I>
 bool ReadIntPairs(std::string_view source,
-                  std::vector<std::pair<I, I>> *pairs) {
+                  std::vector<std::pair<I, I>>* pairs) {
   std::ifstream strm(std::string(source), std::ios_base::in);
   if (!strm) {
     LOG(ERROR) << "ReadIntPairs: Can't open file: " << source;
@@ -400,7 +398,7 @@ bool ReadIntPairs(std::string_view source,
 
 template <typename I>
 bool WriteIntPairs(std::string_view source,
-                   const std::vector<std::pair<I, I>> &pairs) {
+                   const std::vector<std::pair<I, I>>& pairs) {
   std::ofstream fstrm;
   if (!source.empty()) {
     fstrm.open(std::string(source));
@@ -409,8 +407,8 @@ bool WriteIntPairs(std::string_view source,
       return false;
     }
   }
-  std::ostream &ostrm = fstrm.is_open() ? fstrm : std::cout;
-  for (const auto &pair : pairs) {
+  std::ostream& ostrm = fstrm.is_open() ? fstrm : std::cout;
+  for (const auto& pair : pairs) {
     ostrm << pair.first << "\t" << pair.second << "\n";
   }
   return !!ostrm;
@@ -420,24 +418,24 @@ bool WriteIntPairs(std::string_view source,
 
 template <typename Label>
 bool ReadLabelPairs(std::string_view source,
-                    std::vector<std::pair<Label, Label>> *pairs) {
+                    std::vector<std::pair<Label, Label>>* pairs) {
   return ReadIntPairs(source, pairs);
 }
 
 template <typename Label>
 bool WriteLabelPairs(std::string_view source,
-                     const std::vector<std::pair<Label, Label>> &pairs) {
+                     const std::vector<std::pair<Label, Label>>& pairs) {
   return WriteIntPairs(source, pairs);
 }
 
 // Utilities for converting a type name to a legal C symbol.
 
-void ConvertToLegalCSymbol(std::string *s);
+void ConvertToLegalCSymbol(std::string* s);
 
 // Utilities for stream I/O.
 
-bool AlignInput(std::istream &strm, size_t align = MappedFile::kArchAlignment);
-bool AlignOutput(std::ostream &strm, size_t align = MappedFile::kArchAlignment);
+bool AlignInput(std::istream& strm, size_t align = MappedFile::kArchAlignment);
+bool AlignOutput(std::ostream& strm, size_t align = MappedFile::kArchAlignment);
 
 // An associative container for which testing membership is faster than an STL
 // set if members are restricted to an interval that excludes most non-members.
@@ -451,7 +449,7 @@ class CompactSet {
 
   CompactSet() : min_key_(NoKey), max_key_(NoKey) {}
 
-  CompactSet(const CompactSet &) = default;
+  CompactSet(const CompactSet&) = default;
 
   void Insert(Key key) {
     set_.insert(key);
@@ -508,7 +506,7 @@ class CompactSet {
   Key min_key_;
   Key max_key_;
 
-  void operator=(const CompactSet &) = delete;
+  void operator=(const CompactSet&) = delete;
 };
 
 }  // namespace fst

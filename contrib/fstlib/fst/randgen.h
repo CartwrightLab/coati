@@ -25,7 +25,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <functional>
 #include <limits>
 #include <map>
 #include <memory>
@@ -34,9 +33,8 @@
 #include <utility>
 #include <vector>
 
-#include <fst/log.h>
+#include <vector>
 #include <fst/accumulator.h>
-#include <fst/arc.h>
 #include <fst/cache.h>
 #include <fst/dfs-visit.h>
 #include <fst/float-weight.h>
@@ -47,7 +45,6 @@
 #include <fst/properties.h>
 #include <fst/util.h>
 #include <fst/weight.h>
-#include <vector>
 
 namespace fst {
 
@@ -74,7 +71,7 @@ class UniformArcSelector {
   explicit UniformArcSelector(uint64_t seed = std::random_device()())
       : rand_(seed) {}
 
-  size_t operator()(const Fst<Arc> &fst, StateId s) const {
+  size_t operator()(const Fst<Arc>& fst, StateId s) const {
     const auto n = fst.NumArcs(s) + (fst.Final(s) != Weight::Zero());
     return static_cast<size_t>(
         std::uniform_int_distribution<>(0, n - 1)(rand_));
@@ -101,22 +98,23 @@ class LogProbArcSelector {
   // Constructs a selector with a given seed.
   explicit LogProbArcSelector(uint64_t seed) : seed_(seed), rand_(seed) {}
 
-  size_t operator()(const Fst<Arc> &fst, StateId s) const {
+  size_t operator()(const Fst<Arc>& fst, StateId s) const {
     // Finds total weight leaving state.
     auto sum = Log64Weight::Zero();
     ArcIterator<Fst<Arc>> aiter(fst, s);
     for (; !aiter.Done(); aiter.Next()) {
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       sum = Plus(sum, to_log_weight_(arc.weight));
     }
     sum = Plus(sum, to_log_weight_(fst.Final(s)));
     const double threshold =
-        std::uniform_real_distribution<>(0, exp(-sum.Value()))(rand_);
+        std::uniform_real_distribution<double>(0, 1.0)(rand_);
+    const double log_threshold = -log(threshold) + sum.Value();
     auto p = Log64Weight::Zero();
     size_t n = 0;
     for (aiter.Reset(); !aiter.Done(); aiter.Next(), ++n) {
       p = Plus(p, to_log_weight_(aiter.Value().weight));
-      if (exp(-p.Value()) > threshold) return n;
+      if (p.Value() < log_threshold) return n;
     }
     return n;
   }
@@ -124,11 +122,11 @@ class LogProbArcSelector {
   uint64_t Seed() const { return seed_; }
 
  protected:
-  Log64Weight ToLogWeight(const Weight &weight) const {
+  Log64Weight ToLogWeight(const Weight& weight) const {
     return to_log_weight_(weight);
   }
 
-  std::mt19937_64 &MutableRand() const { return rand_; }
+  std::mt19937_64& MutableRand() const { return rand_; }
 
  private:
   const uint64_t seed_;
@@ -154,8 +152,8 @@ class FastLogProbArcSelector : public LogProbArcSelector<Arc> {
   explicit FastLogProbArcSelector(uint64_t seed)
       : LogProbArcSelector<Arc>(seed) {}
 
-  size_t operator()(const Fst<Arc> &fst, StateId s,
-                    CacheLogAccumulator<Arc> *accumulator) const {
+  size_t operator()(const Fst<Arc>& fst, StateId s,
+                    CacheLogAccumulator<Arc>* accumulator) const {
     accumulator->SetState(s);
     ArcIterator<Fst<Arc>> aiter(fst, s);
     // Finds total weight leaving state.
@@ -164,7 +162,7 @@ class FastLogProbArcSelector : public LogProbArcSelector<Arc> {
             .Value();
     const double r =
         -log(std::uniform_real_distribution<>(0, 1)(MutableRand()));
-    Weight w = from_log_weight_(r + sum);
+    Weight w = from_log_weight_(Log64Weight(r + sum));
     aiter.Reset();
     return accumulator->LowerBound(w, &aiter);
   }
@@ -182,10 +180,10 @@ struct RandState {
   size_t nsamples;   // Number of samples to be sampled at this state.
   size_t length;     // Length of path to this random state.
   size_t select;     // Previous sample arc selection.
-  const RandState<Arc> *parent;  // Previous random state on this path.
+  const RandState<Arc>* parent;  // Previous random state on this path.
 
   explicit RandState(StateId state_id, size_t nsamples = 0, size_t length = 0,
-                     size_t select = 0, const RandState<Arc> *parent = nullptr)
+                     size_t select = 0, const RandState<Arc>* parent = nullptr)
       : state_id(state_id),
         nsamples(nsamples),
         length(length),
@@ -207,13 +205,13 @@ class ArcSampler {
 
   // The max_length argument may be interpreted (or ignored) by a selector as
   // it chooses. This generic version interprets this literally.
-  ArcSampler(const Fst<Arc> &fst, const Selector &selector,
+  ArcSampler(const Fst<Arc>& fst, const Selector& selector,
              int32_t max_length = std::numeric_limits<int32_t>::max())
       : fst_(fst), selector_(selector), max_length_(max_length) {}
 
   // Allow updating FST argument; pass only if changed.
-  ArcSampler(const ArcSampler<Arc, Selector> &sampler,
-             const Fst<Arc> *fst = nullptr)
+  ArcSampler(const ArcSampler<Arc, Selector>& sampler,
+             const Fst<Arc>* fst = nullptr)
       : fst_(fst ? *fst : sampler.fst_),
         selector_(sampler.selector_),
         max_length_(sampler.max_length_) {
@@ -226,7 +224,7 @@ class ArcSampler {
   // transitions leaving the state and the state is non-final, or if the path
   // length has been exceeded. Iterator members are provided to read the samples
   // in the order in which they were collected.
-  bool Sample(const RandState<Arc> &rstate) {
+  bool Sample(const RandState<Arc>& rstate) {
     sample_map_.clear();
     if ((fst_.NumArcs(rstate.state_id) == 0 &&
          fst_.Final(rstate.state_id) == Weight::Zero()) ||
@@ -254,15 +252,15 @@ class ArcSampler {
   bool Error() const { return false; }
 
  private:
-  const Fst<Arc> &fst_;
-  const Selector &selector_;
+  const Fst<Arc>& fst_;
+  const Selector& selector_;
   const int32_t max_length_;
 
   // Stores (N, K) as described for Value().
   std::map<size_t, size_t> sample_map_;
   std::map<size_t, size_t>::const_iterator sample_iter_;
 
-  ArcSampler<Arc, Selector> &operator=(const ArcSampler &) = delete;
+  ArcSampler<Arc, Selector>& operator=(const ArcSampler&) = delete;
 };
 
 // Samples one sample of num_to_sample dimensions from a multinomial
@@ -271,8 +269,8 @@ class ArcSampler {
 // sized the same as the vector of probabilities.
 // probs.size()).
 template <class Result, class RNG>
-void OneMultinomialSample(const std::vector<double> &probs,
-                          size_t num_to_sample, Result *result, RNG *rng) {
+void OneMultinomialSample(const std::vector<double> &probs, size_t num_to_sample,
+                          Result* result, RNG* rng) {
   using distribution = std::binomial_distribution<size_t>;
   // Left-over probability mass. Keep an array of the partial sums because
   // keeping a scalar and modifying norm -= probs[i] in the loop will result
@@ -301,7 +299,7 @@ class ArcSampler<Arc, FastLogProbArcSelector<Arc>> {
   using Accumulator = CacheLogAccumulator<Arc>;
   using Selector = FastLogProbArcSelector<Arc>;
 
-  ArcSampler(const Fst<Arc> &fst, const Selector &selector,
+  ArcSampler(const Fst<Arc>& fst, const Selector& selector,
              int32_t max_length = std::numeric_limits<int32_t>::max())
       : fst_(fst),
         selector_(selector),
@@ -311,8 +309,8 @@ class ArcSampler<Arc, FastLogProbArcSelector<Arc>> {
     rng_.seed(selector_.Seed());
   }
 
-  ArcSampler(const ArcSampler<Arc, Selector> &sampler,
-             const Fst<Arc> *fst = nullptr)
+  ArcSampler(const ArcSampler<Arc, Selector>& sampler,
+             const Fst<Arc>* fst = nullptr)
       : fst_(fst ? *fst : sampler.fst_),
         selector_(sampler.selector_),
         max_length_(sampler.max_length_) {
@@ -324,7 +322,7 @@ class ArcSampler<Arc, FastLogProbArcSelector<Arc>> {
     }
   }
 
-  bool Sample(const RandState<Arc> &rstate) {
+  bool Sample(const RandState<Arc>& rstate) {
     sample_map_.clear();
     if ((fst_.NumArcs(rstate.state_id) == 0 &&
          fst_.Final(rstate.state_id) == Weight::Zero()) ||
@@ -359,7 +357,7 @@ class ArcSampler<Arc, FastLogProbArcSelector<Arc>> {
 
   // Sample according to the multinomial distribution of rstate.nsamples draws
   // from p_.
-  void MultinomialSample(const RandState<Arc> &rstate) {
+  void MultinomialSample(const RandState<Arc>& rstate) {
     p_.clear();
     for (ArcIterator<Fst<Arc>> aiter(fst_, rstate.state_id); !aiter.Done();
          aiter.Next()) {
@@ -377,8 +375,8 @@ class ArcSampler<Arc, FastLogProbArcSelector<Arc>> {
     }
   }
 
-  const Fst<Arc> &fst_;
-  const Selector &selector_;
+  const Fst<Arc>& fst_;
+  const Selector& selector_;
   const int32_t max_length_;
 
   // Stores (N, K) for Value().
@@ -396,13 +394,13 @@ class ArcSampler<Arc, FastLogProbArcSelector<Arc>> {
 // by RandGenFst.
 template <class Sampler>
 struct RandGenFstOptions : public CacheOptions {
-  Sampler *sampler;          // How to sample transitions at a state.
+  Sampler* sampler;          // How to sample transitions at a state.
   int32_t npath;             // Number of paths to generate.
   bool weighted;             // Is the output tree weighted by path count, or
                              // is it just an unweighted DAG?
   bool remove_total_weight;  // Remove total weight when output is weighted.
 
-  RandGenFstOptions(const CacheOptions &opts, Sampler *sampler,
+  RandGenFstOptions(const CacheOptions& opts, Sampler* sampler,
                     int32_t npath = 1, bool weighted = true,
                     bool remove_total_weight = false)
       : CacheOptions(opts),
@@ -437,8 +435,8 @@ class RandGenFstImpl : public CacheImpl<ToArc> {
 
   using ToWeight = typename ToArc::Weight;
 
-  RandGenFstImpl(const Fst<FromArc> &fst,
-                 const RandGenFstOptions<Sampler> &opts)
+  RandGenFstImpl(const Fst<FromArc>& fst,
+                 const RandGenFstOptions<Sampler>& opts)
       : CacheImpl<ToArc>(opts),
         fst_(fst.Copy()),
         sampler_(opts.sampler),
@@ -454,7 +452,7 @@ class RandGenFstImpl : public CacheImpl<ToArc> {
     SetOutputSymbols(fst.OutputSymbols());
   }
 
-  RandGenFstImpl(const RandGenFstImpl &impl)
+  RandGenFstImpl(const RandGenFstImpl& impl)
       : CacheImpl<ToArc>(impl),
         fst_(impl.fst_->Copy(true)),
         sampler_(new Sampler(*impl.sampler_, fst_.get())),
@@ -509,7 +507,7 @@ class RandGenFstImpl : public CacheImpl<ToArc> {
     return FstImpl<ToArc>::Properties(mask);
   }
 
-  void InitArcIterator(StateId s, ArcIteratorData<ToArc> *data) {
+  void InitArcIterator(StateId s, ArcIteratorData<ToArc>* data) {
     if (!HasArcs(s)) Expand(s);
     CacheImpl<ToArc>::InitArcIterator(s, data);
   }
@@ -523,18 +521,18 @@ class RandGenFstImpl : public CacheImpl<ToArc> {
       return;
     }
     SetFinal(s, ToWeight::Zero());
-    const auto &rstate = *state_table_[s];
+    const auto& rstate = *state_table_[s];
     sampler_->Sample(rstate);
     ArcIterator<Fst<FromArc>> aiter(*fst_, rstate.state_id);
     const auto narcs = fst_->NumArcs(rstate.state_id);
     for (; !sampler_->Done(); sampler_->Next()) {
-      const auto &sample_pair = sampler_->Value();
+      const auto& sample_pair = sampler_->Value();
       const auto pos = sample_pair.first;
       const auto count = sample_pair.second;
       double prob = static_cast<double>(count) / rstate.nsamples;
       if (pos < narcs) {  // Regular transition.
         aiter.Seek(sample_pair.first);
-        const auto &aarc = aiter.Value();
+        const auto& aarc = aiter.Value();
         auto weight =
             weighted_ ? to_weight_(Log64Weight(-log(prob))) : ToWeight::One();
         EmplaceArc(s, aarc.ilabel, aarc.olabel, std::move(weight),
@@ -580,6 +578,8 @@ class RandGenFstImpl : public CacheImpl<ToArc> {
 template <class FromArc, class ToArc, class Sampler>
 class RandGenFst
     : public ImplToFst<internal::RandGenFstImpl<FromArc, ToArc, Sampler>> {
+  using Base = ImplToFst<internal::RandGenFstImpl<FromArc, ToArc, Sampler>>;
+
  public:
   using Label = typename FromArc::Label;
   using StateId = typename FromArc::StateId;
@@ -588,34 +588,33 @@ class RandGenFst
   using Store = DefaultCacheStore<FromArc>;
   using State = typename Store::State;
 
-  using Impl = internal::RandGenFstImpl<FromArc, ToArc, Sampler>;
+  using typename Base::Impl;
 
   friend class ArcIterator<RandGenFst<FromArc, ToArc, Sampler>>;
   friend class StateIterator<RandGenFst<FromArc, ToArc, Sampler>>;
 
-  RandGenFst(const Fst<FromArc> &fst, const RandGenFstOptions<Sampler> &opts)
-      : ImplToFst<Impl>(std::make_shared<Impl>(fst, opts)) {}
+  RandGenFst(const Fst<FromArc>& fst, const RandGenFstOptions<Sampler>& opts)
+      : Base(std::make_shared<Impl>(fst, opts)) {}
 
   // See Fst<>::Copy() for doc.
-  RandGenFst(const RandGenFst &fst, bool safe = false)
-      : ImplToFst<Impl>(fst, safe) {}
+  RandGenFst(const RandGenFst& fst, bool safe = false) : Base(fst, safe) {}
 
   // Get a copy of this RandGenFst. See Fst<>::Copy() for further doc.
-  RandGenFst *Copy(bool safe = false) const override {
+  RandGenFst* Copy(bool safe = false) const override {
     return new RandGenFst(*this, safe);
   }
 
-  inline void InitStateIterator(StateIteratorData<ToArc> *data) const override;
+  inline void InitStateIterator(StateIteratorData<ToArc>* data) const override;
 
-  void InitArcIterator(StateId s, ArcIteratorData<ToArc> *data) const override {
+  void InitArcIterator(StateId s, ArcIteratorData<ToArc>* data) const override {
     GetMutableImpl()->InitArcIterator(s, data);
   }
 
  private:
-  using ImplToFst<Impl>::GetImpl;
-  using ImplToFst<Impl>::GetMutableImpl;
+  using Base::GetImpl;
+  using Base::GetMutableImpl;
 
-  RandGenFst &operator=(const RandGenFst &) = delete;
+  RandGenFst& operator=(const RandGenFst&) = delete;
 };
 
 // Specialization for RandGenFst.
@@ -623,7 +622,7 @@ template <class FromArc, class ToArc, class Sampler>
 class StateIterator<RandGenFst<FromArc, ToArc, Sampler>>
     : public CacheStateIterator<RandGenFst<FromArc, ToArc, Sampler>> {
  public:
-  explicit StateIterator(const RandGenFst<FromArc, ToArc, Sampler> &fst)
+  explicit StateIterator(const RandGenFst<FromArc, ToArc, Sampler>& fst)
       : CacheStateIterator<RandGenFst<FromArc, ToArc, Sampler>>(
             fst, fst.GetMutableImpl()) {}
 };
@@ -635,7 +634,7 @@ class ArcIterator<RandGenFst<FromArc, ToArc, Sampler>>
  public:
   using StateId = typename FromArc::StateId;
 
-  ArcIterator(const RandGenFst<FromArc, ToArc, Sampler> &fst, StateId s)
+  ArcIterator(const RandGenFst<FromArc, ToArc, Sampler>& fst, StateId s)
       : CacheArcIterator<RandGenFst<FromArc, ToArc, Sampler>>(
             fst.GetMutableImpl(), s) {
     if (!fst.GetImpl()->HasArcs(s)) fst.GetMutableImpl()->Expand(s);
@@ -644,7 +643,7 @@ class ArcIterator<RandGenFst<FromArc, ToArc, Sampler>>
 
 template <class FromArc, class ToArc, class Sampler>
 inline void RandGenFst<FromArc, ToArc, Sampler>::InitStateIterator(
-    StateIteratorData<ToArc> *data) const {
+    StateIteratorData<ToArc>* data) const {
   data->base =
       std::make_unique<StateIterator<RandGenFst<FromArc, ToArc, Sampler>>>(
           *this);
@@ -653,7 +652,7 @@ inline void RandGenFst<FromArc, ToArc, Sampler>::InitStateIterator(
 // Options for random path generation.
 template <class Selector>
 struct RandGenOptions {
-  const Selector &selector;  // How an arc is selected at a state.
+  const Selector& selector;  // How an arc is selected at a state.
   int32_t max_length;        // Maximum path length.
   int32_t npath;             // Number of paths to generate.
   bool weighted;             // Is the output tree weighted by path count, or
@@ -661,7 +660,7 @@ struct RandGenOptions {
   bool remove_total_weight;  // Remove total weight when output is weighted?
 
   explicit RandGenOptions(
-      const Selector &selector,
+      const Selector& selector,
       int32_t max_length = std::numeric_limits<int32_t>::max(),
       int32_t npath = 1, bool weighted = false,
       bool remove_total_weight = false)
@@ -680,9 +679,9 @@ class RandGenVisitor {
   using StateId = typename FromArc::StateId;
   using Weight = typename FromArc::Weight;
 
-  explicit RandGenVisitor(MutableFst<ToArc> *ofst) : ofst_(ofst) {}
+  explicit RandGenVisitor(MutableFst<ToArc>* ofst) : ofst_(ofst) {}
 
-  void InitVisit(const Fst<FromArc> &ifst) {
+  void InitVisit(const Fst<FromArc>& ifst) {
     ifst_ = &ifst;
     ofst_->DeleteStates();
     ofst_->SetInputSymbols(ifst.InputSymbols());
@@ -693,7 +692,7 @@ class RandGenVisitor {
 
   constexpr bool InitState(StateId, StateId) const { return true; }
 
-  bool TreeArc(StateId, const ToArc &arc) {
+  bool TreeArc(StateId, const ToArc& arc) {
     if (ifst_->Final(arc.nextstate) == Weight::Zero()) {
       path_.push_back(arc);
     } else {
@@ -702,18 +701,18 @@ class RandGenVisitor {
     return true;
   }
 
-  bool BackArc(StateId, const FromArc &) {
+  bool BackArc(StateId, const FromArc&) {
     FSTERROR() << "RandGenVisitor: cyclic input";
     ofst_->SetProperties(kError, kError);
     return false;
   }
 
-  bool ForwardOrCrossArc(StateId, const FromArc &) {
+  bool ForwardOrCrossArc(StateId, const FromArc&) {
     OutputPath();
     return true;
   }
 
-  void FinishState(StateId s, StateId p, const FromArc *) {
+  void FinishState(StateId s, StateId p, const FromArc*) {
     if (p != kNoStateId && ifst_->Final(s) == Weight::Zero()) path_.pop_back();
   }
 
@@ -735,12 +734,12 @@ class RandGenVisitor {
     ofst_->SetFinal(src);
   }
 
-  const Fst<FromArc> *ifst_;
-  MutableFst<ToArc> *ofst_;
+  const Fst<FromArc>* ifst_;
+  MutableFst<ToArc>* ofst_;
   std::vector<ToArc> path_;
 
-  RandGenVisitor(const RandGenVisitor &) = delete;
-  RandGenVisitor &operator=(const RandGenVisitor &) = delete;
+  RandGenVisitor(const RandGenVisitor&) = delete;
+  RandGenVisitor& operator=(const RandGenVisitor&) = delete;
 };
 
 }  // namespace internal
@@ -748,8 +747,8 @@ class RandGenVisitor {
 // Randomly generate paths through an FST; details controlled by
 // RandGenOptions.
 template <class FromArc, class ToArc, class Selector>
-void RandGen(const Fst<FromArc> &ifst, MutableFst<ToArc> *ofst,
-             const RandGenOptions<Selector> &opts) {
+void RandGen(const Fst<FromArc>& ifst, MutableFst<ToArc>* ofst,
+             const RandGenOptions<Selector>& opts) {
   using Sampler = ArcSampler<FromArc, Selector>;
   auto sampler =
       std::make_unique<Sampler>(ifst, opts.selector, opts.max_length);
@@ -768,7 +767,7 @@ void RandGen(const Fst<FromArc> &ifst, MutableFst<ToArc> *ofst,
 // Randomly generate a path through an FST with the uniform distribution
 // over the transitions.
 template <class FromArc, class ToArc>
-void RandGen(const Fst<FromArc> &ifst, MutableFst<ToArc> *ofst,
+void RandGen(const Fst<FromArc>& ifst, MutableFst<ToArc>* ofst,
              uint64_t seed = std::random_device()()) {
   const UniformArcSelector<FromArc> uniform_selector(seed);
   RandGenOptions<UniformArcSelector<ToArc>> opts(uniform_selector);

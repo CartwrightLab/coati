@@ -31,7 +31,6 @@
 #include <vector>
 
 #include <fst/log.h>
-#include <fst/arcfilter.h>
 #include <fst/cc-visitors.h>
 #include <fst/dfs-visit.h>
 #include <fst/fst.h>
@@ -253,7 +252,7 @@ class ShortestFirstQueue : public QueueBase<S> {
 
   ssize_t Size() const { return heap_.Size(); }
 
-  const Compare &GetCompare() const { return heap_.GetCompare(); }
+  const Compare& GetCompare() const { return heap_.GetCompare(); }
 
  private:
   Heap<StateId, Compare> heap_;
@@ -269,7 +268,7 @@ class StateWeightCompare {
  public:
   using Weight = typename Less::Weight;
 
-  StateWeightCompare(const std::vector<Weight> &weights, const Less &less)
+  StateWeightCompare(const std::vector<Weight>& weights, const Less& less)
       : weights_(weights), less_(less) {}
 
   bool operator()(const StateId s1, const StateId s2) const {
@@ -278,8 +277,8 @@ class StateWeightCompare {
 
  private:
   // Borrowed references.
-  const std::vector<Weight> &weights_;
-  const Less &less_;
+  const std::vector<Weight>& weights_;
+  const Less& less_;
 };
 
 // Comparison that can never be instantiated. Useful only to pass a pointer to
@@ -291,28 +290,32 @@ struct ErrorLess {
   ErrorLess() {
     FSTERROR() << "ErrorLess: instantiated for Weight " << Weight::Type();
   }
-  bool operator()(const Weight &, const Weight &) const { return false; }
+  bool operator()(const Weight&, const Weight&) const { return false; }
 };
 
 }  // namespace internal
 
 // Shortest-first queue discipline, templated on the StateId and Weight, is
-// specialized to use the weight's natural order for the comparison function.
-// Requires Weight is idempotent (due to use of NaturalLess).
-template <typename S, typename Weight>
-class NaturalShortestFirstQueue
-    : public ShortestFirstQueue<
-          S, internal::StateWeightCompare<S, NaturalLess<Weight>>> {
+// specialized to use the weight's provided order for the comparison function.
+// See NaturalShortestFirstQueue for the specialization using natural order.
+template <typename S, typename Weight, typename Less>
+class CustomShortestFirstQueue
+    : public ShortestFirstQueue<S, internal::StateWeightCompare<S, Less>> {
  public:
   using StateId = S;
-  using Less = NaturalLess<Weight>;
   using Compare = internal::StateWeightCompare<StateId, Less>;
 
-  explicit NaturalShortestFirstQueue(const std::vector<Weight> &distance)
+  explicit CustomShortestFirstQueue(const std::vector<Weight>& distance)
       : ShortestFirstQueue<StateId, Compare>(Compare(distance, Less())) {}
 
-  ~NaturalShortestFirstQueue() override = default;
+  ~CustomShortestFirstQueue() override = default;
 };
+
+// Shortest-first queue discipline using the weight's natural order.
+// Requires Weight is idempotent (due to use of NaturalLess).
+template <typename S, typename Weight>
+using NaturalShortestFirstQueue =
+    CustomShortestFirstQueue<S, Weight, NaturalLess<Weight>>;
 
 // In a shortest path computation on a lattice-like FST, we may keep many old
 // nonviable paths as a part of the search. Since the search process always
@@ -343,7 +346,7 @@ class PruneNaturalShortestFirstQueue
   using StateId = S;
   using Base = NaturalShortestFirstQueue<StateId, Weight>;
 
-  PruneNaturalShortestFirstQueue(const std::vector<Weight> &distance,
+  PruneNaturalShortestFirstQueue(const std::vector<Weight>& distance,
                                  ssize_t arc_threshold, ssize_t state_limit = 0)
       : Base(distance),
         arc_threshold_(arc_threshold),
@@ -423,7 +426,7 @@ class TopOrderQueue : public QueueBase<S> {
   // to limit the transitions considered in that computation (e.g., only the
   // epsilon graph).
   template <class Arc, class ArcFilter>
-  TopOrderQueue(const Fst<Arc> &fst, ArcFilter filter)
+  TopOrderQueue(const Fst<Arc>& fst, ArcFilter filter)
       : QueueBase<StateId>(TOP_ORDER_QUEUE),
         front_(0),
         back_(kNoStateId),
@@ -440,7 +443,7 @@ class TopOrderQueue : public QueueBase<S> {
   }
 
   // This constructor is passed the pre-computed topological order.
-  explicit TopOrderQueue(const std::vector<StateId> &order)
+  explicit TopOrderQueue(const std::vector<StateId>& order)
       : QueueBase<StateId>(TOP_ORDER_QUEUE),
         front_(0),
         back_(kNoStateId),
@@ -541,8 +544,8 @@ class SccQueue : public QueueBase<S> {
 
   // Constructor takes a vector specifying the SCC number per state and a
   // vector giving the queue to use per SCC number.
-  SccQueue(const std::vector<StateId> &scc,
-           std::vector<std::unique_ptr<Queue>> *queue)
+  SccQueue(const std::vector<StateId>& scc,
+           std::vector<std::unique_ptr<Queue>>* queue)
       : QueueBase<StateId>(SCC_QUEUE),
         queue_(queue),
         scc_(scc),
@@ -623,8 +626,8 @@ class SccQueue : public QueueBase<S> {
   }
 
  private:
-  std::vector<std::unique_ptr<Queue>> *queue_;
-  const std::vector<StateId> &scc_;
+  std::vector<std::unique_ptr<Queue>>* queue_;
+  const std::vector<StateId>& scc_;
   mutable StateId front_;
   StateId back_;
   std::vector<StateId> trivial_queue_;
@@ -641,8 +644,8 @@ class AutoQueue : public QueueBase<S> {
   // the Weight type has the path property, will entertain the shortest-first
   // queue using the natural order w.r.t to the distance.
   template <class Arc, class ArcFilter>
-  AutoQueue(const Fst<Arc> &fst,
-            const std::vector<typename Arc::Weight> *distance, ArcFilter filter)
+  AutoQueue(const Fst<Arc>& fst,
+            const std::vector<typename Arc::Weight>* distance, ArcFilter filter)
       : QueueBase<StateId>(AUTO_QUEUE) {
     using Weight = typename Arc::Weight;
     // We need to have variables of type Less and Compare, so we use
@@ -752,10 +755,10 @@ class AutoQueue : public QueueBase<S> {
 
  private:
   template <class Arc, class ArcFilter, class Less>
-  static void SccQueueType(const Fst<Arc> &fst, const std::vector<StateId> &scc,
-                           std::vector<QueueType> *queue_types,
-                           ArcFilter filter, Less *less, bool *all_trivial,
-                           bool *unweighted);
+  static void SccQueueType(const Fst<Arc>& fst, const std::vector<StateId>& scc,
+                           std::vector<QueueType>* queue_types,
+                           ArcFilter filter, Less* less, bool* all_trivial,
+                           bool* unweighted);
 
   std::unique_ptr<QueueBase<StateId>> queue_;
   std::vector<std::unique_ptr<QueueBase<StateId>>> queues_;
@@ -771,11 +774,11 @@ class AutoQueue : public QueueBase<S> {
 // the arc weights are equal to Zero() or One().
 template <class StateId>
 template <class Arc, class ArcFilter, class Less>
-void AutoQueue<StateId>::SccQueueType(const Fst<Arc> &fst,
-                                      const std::vector<StateId> &scc,
-                                      std::vector<QueueType> *queue_type,
-                                      ArcFilter filter, Less *less,
-                                      bool *all_trivial, bool *unweighted) {
+void AutoQueue<StateId>::SccQueueType(const Fst<Arc>& fst,
+                                      const std::vector<StateId>& scc,
+                                      std::vector<QueueType>* queue_type,
+                                      ArcFilter filter, Less* less,
+                                      bool* all_trivial, bool* unweighted) {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
   *all_trivial = true;
@@ -786,10 +789,10 @@ void AutoQueue<StateId>::SccQueueType(const Fst<Arc> &fst,
   for (StateIterator<Fst<Arc>> sit(fst); !sit.Done(); sit.Next()) {
     const auto state = sit.Value();
     for (ArcIterator<Fst<Arc>> ait(fst, state); !ait.Done(); ait.Next()) {
-      const auto &arc = ait.Value();
+      const auto& arc = ait.Value();
       if (!filter(arc)) continue;
       if (scc[state] == scc[arc.nextstate]) {
-        auto &type = (*queue_type)[scc[state]];
+        auto& type = (*queue_type)[scc[state]];
         if constexpr (!IsPath<Weight>::value) {
           type = FIFO_QUEUE;
         } else if (!less || (*less)(arc.weight, Weight::One())) {
@@ -826,16 +829,16 @@ struct TrivialAStarEstimate {
 template <typename StateId, typename Weight>
 class NaturalAStarEstimate {
  public:
-  NaturalAStarEstimate(const std::vector<Weight> &beta) : beta_(beta) {}
+  NaturalAStarEstimate(const std::vector<Weight>& beta) : beta_(beta) {}
 
-  const Weight &operator()(StateId s) const {
+  const Weight& operator()(StateId s) const {
     return (s < beta_.size()) ? beta_[s] : kZero;
   }
 
  private:
   static constexpr Weight kZero = Weight::Zero();
 
-  const std::vector<Weight> &beta_;
+  const std::vector<Weight>& beta_;
 };
 
 // Given a vector that maps from states to weights representing the shortest
@@ -848,8 +851,8 @@ class AStarWeightCompare {
   using StateId = S;
   using Weight = typename Less::Weight;
 
-  AStarWeightCompare(const std::vector<Weight> &weights, const Less &less,
-                     const Estimate &estimate)
+  AStarWeightCompare(const std::vector<Weight>& weights, const Less& less,
+                     const Estimate& estimate)
       : weights_(weights), less_(less), estimate_(estimate) {}
 
   bool operator()(StateId s1, StateId s2) const {
@@ -858,12 +861,12 @@ class AStarWeightCompare {
     return less_(w1, w2);
   }
 
-  const Estimate &GetEstimate() const { return estimate_; }
+  const Estimate& GetEstimate() const { return estimate_; }
 
  private:
-  const std::vector<Weight> &weights_;
-  const Less &less_;
-  const Estimate &estimate_;
+  const std::vector<Weight>& weights_;
+  const Less& less_;
+  const Estimate& estimate_;
 };
 
 // A* queue discipline templated on StateId, Weight, and Estimate.
@@ -875,8 +878,8 @@ class NaturalAStarQueue
   using StateId = S;
   using Compare = AStarWeightCompare<StateId, NaturalLess<Weight>, Estimate>;
 
-  NaturalAStarQueue(const std::vector<Weight> &distance,
-                    const Estimate &estimate)
+  NaturalAStarQueue(const std::vector<Weight>& distance,
+                    const Estimate& estimate)
       : ShortestFirstQueue<StateId, Compare>(
             Compare(distance, less_, estimate)) {}
 
@@ -909,8 +912,8 @@ class PruneQueue : public QueueBase<typename Queue::StateId> {
   using StateId = typename Queue::StateId;
   using Weight = typename Less::Weight;
 
-  PruneQueue(const std::vector<Weight> &distance, std::unique_ptr<Queue> queue,
-             const Less &less, const ClassFnc &class_fnc, Weight threshold)
+  PruneQueue(const std::vector<Weight>& distance, std::unique_ptr<Queue> queue,
+             const Less& less, const ClassFnc& class_fnc, Weight threshold)
       : QueueBase<StateId>(OTHER_QUEUE),
         distance_(distance),
         queue_(std::move(queue)),
@@ -950,10 +953,10 @@ class PruneQueue : public QueueBase<typename Queue::StateId> {
   void Clear() override { queue_->Clear(); }
 
  private:
-  const std::vector<Weight> &distance_;  // Shortest distance to state.
+  const std::vector<Weight>& distance_;  // Shortest distance to state.
   std::unique_ptr<Queue> queue_;
-  const Less &less_;                    // Borrowed reference.
-  const ClassFnc &class_fnc_;           // Equivalence class functor.
+  const Less& less_;                    // Borrowed reference.
+  const ClassFnc& class_fnc_;           // Equivalence class functor.
   Weight threshold_;                    // Pruning weight threshold.
   std::vector<Weight> class_distance_;  // Shortest distance to class.
 };
@@ -967,8 +970,8 @@ class NaturalPruneQueue final
  public:
   using StateId = typename Queue::StateId;
 
-  NaturalPruneQueue(const std::vector<Weight> &distance,
-                    std::unique_ptr<Queue> queue, const ClassFnc &class_fnc,
+  NaturalPruneQueue(const std::vector<Weight>& distance,
+                    std::unique_ptr<Queue> queue, const ClassFnc& class_fnc,
                     Weight threshold)
       : PruneQueue<Queue, NaturalLess<Weight>, ClassFnc>(
             distance, std::move(queue), NaturalLess<Weight>(), class_fnc,
@@ -985,7 +988,7 @@ class FilterQueue : public QueueBase<typename Queue::StateId> {
  public:
   using StateId = typename Queue::StateId;
 
-  FilterQueue(std::unique_ptr<Queue> queue, const Filter &filter)
+  FilterQueue(std::unique_ptr<Queue> queue, const Filter& filter)
       : QueueBase<StateId>(OTHER_QUEUE),
         queue_(std::move(queue)),
         filter_(filter) {}
@@ -1009,7 +1012,7 @@ class FilterQueue : public QueueBase<typename Queue::StateId> {
 
  private:
   std::unique_ptr<Queue> queue_;
-  const Filter &filter_;
+  const Filter& filter_;
 };
 
 }  // namespace fst

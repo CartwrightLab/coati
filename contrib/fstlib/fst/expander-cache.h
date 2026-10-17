@@ -49,10 +49,8 @@
 #include <utility>
 #include <vector>
 
-#include <fst/cache.h>
+#include <unordered_map>
 #include <fst/fst.h>
-#include <unordered_map>
-#include <unordered_map>
 
 namespace fst {
 
@@ -80,27 +78,27 @@ class SimpleVectorCacheState {
 
   size_t NumArcs() const { return arcs_.size(); }
 
-  const Arc &GetArc(size_t n) const { return arcs_[n]; }
+  const Arc& GetArc(size_t n) const { return arcs_[n]; }
 
-  const Arc *Arcs() const { return arcs_.empty() ? nullptr : &arcs_[0]; }
+  const Arc* Arcs() const { return arcs_.empty() ? nullptr : &arcs_[0]; }
 
   void SetFinal(Weight weight) { final_weight_ = weight; }
 
   void ReserveArcs(size_t n) { arcs_.reserve(n); }
 
-  void AddArc(const Arc &arc) {
+  void AddArc(const Arc& arc) {
     if (arc.ilabel == 0) ++niepsilons_;
     if (arc.olabel == 0) ++noepsilons_;
     arcs_.push_back(arc);
   }
 
-  void AddArc(Arc &&arc) {
+  void AddArc(Arc&& arc) {
     if (arc.ilabel == 0) ++niepsilons_;
     if (arc.olabel == 0) ++noepsilons_;
     arcs_.push_back(std::move(arc));
   }
 
-  int *MutableRefCount() const { return nullptr; }
+  int* MutableRefCount() const { return nullptr; }
 
  private:
   Weight final_weight_ = Weight::Zero();
@@ -118,7 +116,7 @@ class NoGcKeepOneExpanderCache {
   // Reference-counted state.
   class State : public SimpleVectorCacheState<Arc> {
    public:
-    int *MutableRefCount() { return &ref_count_; }
+    int* MutableRefCount() { return &ref_count_; }
 
     void Reset() {
       SimpleVectorCacheState<Arc>::Reset();
@@ -133,11 +131,11 @@ class NoGcKeepOneExpanderCache {
 
   NoGcKeepOneExpanderCache() : state_(new State) {}
 
-  NoGcKeepOneExpanderCache(const NoGcKeepOneExpanderCache &copy)
+  NoGcKeepOneExpanderCache(const NoGcKeepOneExpanderCache& copy)
       : state_(new State(*copy.state_)) {}
 
   template <class Expander>
-  State *FindOrExpand(Expander &expander, StateId state_id) {
+  State* FindOrExpand(Expander& expander, StateId state_id) {
     if (state_id == state_id_) return state_.get();
     if (state_->ref_count_ > 0) cache_[state_id_] = std::move(state_);
     state_id_ = state_id;
@@ -169,10 +167,12 @@ class HashExpanderCache {
 
   using State = SimpleVectorCacheState<Arc>;
 
-  HashExpanderCache(const HashExpanderCache &copy) { *this = copy; }
+  HashExpanderCache() = default;
 
-  HashExpanderCache &operator=(const HashExpanderCache &copy) {
-    for (const auto &[id, state] : copy.cache_) {
+  HashExpanderCache(const HashExpanderCache& copy) { *this = copy; }
+
+  HashExpanderCache& operator=(const HashExpanderCache& copy) {
+    for (const auto& [id, state] : copy.cache_) {
       cache_[id] = std::make_unique<State>(*state);
     }
     return *this;
@@ -181,7 +181,7 @@ class HashExpanderCache {
   ~HashExpanderCache() = default;
 
   template <class Expander>
-  State *FindOrExpand(Expander &expander, StateId state_id) {
+  State* FindOrExpand(Expander& expander, StateId state_id) {
     auto [it, inserted] = cache_.emplace(state_id, nullptr);
     if (inserted) {
       it->second = std::make_unique<State>();
@@ -204,12 +204,12 @@ class VectorExpanderCache {
 
   VectorExpanderCache() : vec_(0, nullptr) {}
 
-  VectorExpanderCache(const VectorExpanderCache &copy) { *this = copy; }
+  VectorExpanderCache(const VectorExpanderCache& copy) { *this = copy; }
 
-  VectorExpanderCache &operator=(const VectorExpanderCache &copy) {
+  VectorExpanderCache& operator=(const VectorExpanderCache& copy) {
     vec_.resize(copy.vec_.size());
     for (StateId i = 0; i < copy.vec_.size(); ++i) {
-      const auto *state = copy.vec_[i];
+      const auto* state = copy.vec_[i];
       if (state != nullptr) {
         states_.emplace_back(*state);
         vec_[i] = &states_.back();
@@ -219,9 +219,9 @@ class VectorExpanderCache {
   }
 
   template <class Expander>
-  State *FindOrExpand(Expander &expander, StateId state_id) {
+  State* FindOrExpand(Expander& expander, StateId state_id) {
     if (state_id >= vec_.size()) vec_.resize(state_id + 1);
-    auto **slot = &vec_[state_id];
+    auto** slot = &vec_[state_id];
     if (*slot == nullptr) {
       states_.emplace_back();
       *slot = &states_.back();
@@ -232,7 +232,7 @@ class VectorExpanderCache {
 
  private:
   std::deque<State> states_;
-  std::vector<State *> vec_;
+  std::vector<State*> vec_;
 };
 
 template <class Expander>

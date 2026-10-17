@@ -27,6 +27,8 @@
 #include <utility>
 #include <vector>
 
+#include <unordered_map>
+#include <unordered_set>
 #include <fst/log.h>
 #include <fst/cc-visitors.h>
 #include <fst/connect.h>
@@ -37,8 +39,6 @@
 #include <fst/topsort.h>
 #include <fst/util.h>
 #include <fst/vector-fst.h>
-#include <unordered_map>
-#include <unordered_set>
 
 namespace fst {
 
@@ -96,8 +96,8 @@ inline constexpr uint8_t kReplaceSCCNonTrivial = 0x04;
 // Defined in replace.h.
 template <class Arc>
 void Replace(
-    const std::vector<std::pair<typename Arc::Label, const Fst<Arc> *>> &,
-    MutableFst<Arc> *, const ReplaceUtilOptions &);
+    const std::vector<std::pair<typename Arc::Label, const Fst<Arc>*>>&,
+    MutableFst<Arc>*, const ReplaceUtilOptions&);
 
 // Utility class for the recursive replacement of FSTs (RTNs). The user provides
 // a set of label/FST pairs at construction. These are used by methods for
@@ -112,22 +112,22 @@ class ReplaceUtil {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  using FstPair = std::pair<Label, const Fst<Arc> *>;
-  using MutableFstPair = std::pair<Label, MutableFst<Arc> *>;
+  using FstPair = std::pair<Label, const Fst<Arc>*>;
+  using MutableFstPair = std::pair<Label, MutableFst<Arc>*>;
   using NonTerminalHash = std::unordered_map<Label, Label>;
 
   // Constructs from mutable FSTs; FST ownership is given to ReplaceUtil.
-  ReplaceUtil(const std::vector<MutableFstPair> &fst_pairs,
-              const ReplaceUtilOptions &opts);
+  ReplaceUtil(const std::vector<MutableFstPair>& fst_pairs,
+              const ReplaceUtilOptions& opts);
 
   // Constructs from FSTs; FST ownership is retained by caller.
-  ReplaceUtil(const std::vector<FstPair> &fst_pairs,
-              const ReplaceUtilOptions &opts);
+  ReplaceUtil(const std::vector<FstPair>& fst_pairs,
+              const ReplaceUtilOptions& opts);
 
   // Constructs from ReplaceFst internals; FST ownership is retained by caller.
-  ReplaceUtil(const std::vector<std::unique_ptr<const Fst<Arc>>> &fst_array,
-              const NonTerminalHash &nonterminal_hash,
-              const ReplaceUtilOptions &opts);
+  ReplaceUtil(const std::vector<std::unique_ptr<const Fst<Arc>>>& fst_array,
+              const NonTerminalHash& nonterminal_hash,
+              const ReplaceUtilOptions& opts);
 
   ~ReplaceUtil() {
     for (Label i = 0; i < fst_array_.size(); ++i) delete fst_array_[i];
@@ -179,7 +179,7 @@ class ReplaceUtil {
   void Connect();
 
   // Replaces FSTs specified by labels, unless there are cyclic dependencies.
-  void ReplaceLabels(const std::vector<Label> &labels);
+  void ReplaceLabels(const std::vector<Label>& labels);
 
   // Replaces FSTs that have at most nstates states, narcs arcs and nnonterm
   // non-terminals (updating in reverse dependency order), unless there are
@@ -198,10 +198,10 @@ class ReplaceUtil {
   void ReplaceUnique() { ReplaceByInstances(1); }
 
   // Returns label/FST pairs, retaining FST ownership.
-  void GetFstPairs(std::vector<FstPair> *fst_pairs);
+  void GetFstPairs(std::vector<FstPair>* fst_pairs);
 
   // Returns label/mutable FST pairs, giving FST ownership over to the caller.
-  void GetMutableFstPairs(std::vector<MutableFstPair> *mutable_fst_pairs);
+  void GetMutableFstPairs(std::vector<MutableFstPair>* mutable_fst_pairs);
 
  private:
   // FST statistics.
@@ -235,7 +235,7 @@ class ReplaceUtil {
   }
 
   // Gets topological order of dependencies, returning false with cyclic input.
-  bool GetTopOrder(const Fst<Arc> &fst, std::vector<Label> *toporder) const;
+  bool GetTopOrder(const Fst<Arc>& fst, std::vector<Label>* toporder) const;
 
   // Updates statistics to reflect the replacement of the jth FST.
   void UpdateStats(Label j);
@@ -244,29 +244,29 @@ class ReplaceUtil {
   // dependency graph of the replace FSTs.
   void GetSCCProperties() const;
 
-  Label root_label_;                                  // Root non-terminal.
-  Label root_fst_;                                    // Root FST ID.
-  ReplaceLabelType call_label_type_;                  // See Replace().
-  ReplaceLabelType return_label_type_;                // See Replace().
-  int64_t return_label_;                              // See Replace().
-  std::vector<const Fst<Arc> *> fst_array_;           // FST per ID.
-  std::vector<MutableFst<Arc> *> mutable_fst_array_;  // Mutable FST per ID.
-  std::vector<Label> nonterminal_array_;              // FST ID to non-terminal.
-  NonTerminalHash nonterminal_hash_;                  // Non-terminal to FST ID.
-  mutable VectorFst<Arc> depfst_;                     // FST ID dependencies.
-  mutable std::vector<StateId> depscc_;               // FST SCC ID.
-  mutable std::vector<bool> depaccess_;               // FST ID accessibility.
-  mutable uint64_t depprops_;                         // Dependency FST props.
+  Label root_label_;                                 // Root non-terminal.
+  Label root_fst_;                                   // Root FST ID.
+  ReplaceLabelType call_label_type_;                 // See Replace().
+  ReplaceLabelType return_label_type_;               // See Replace().
+  int64_t return_label_;                             // See Replace().
+  std::vector<const Fst<Arc>*> fst_array_;           // FST per ID.
+  std::vector<MutableFst<Arc>*> mutable_fst_array_;  // Mutable FST per ID.
+  std::vector<Label> nonterminal_array_;             // FST ID to non-terminal.
+  NonTerminalHash nonterminal_hash_;                 // Non-terminal to FST ID.
+  mutable VectorFst<Arc> depfst_;                    // FST ID dependencies.
+  mutable std::vector<StateId> depscc_;              // FST SCC ID.
+  mutable std::vector<bool> depaccess_;              // FST ID accessibility.
+  mutable uint64_t depprops_;                        // Dependency FST props.
   mutable bool have_stats_;                   // Have dependency statistics?
   mutable std::vector<ReplaceStats> stats_;   // Per-FST statistics.
   mutable std::vector<uint8_t> depsccprops_;  // SCC properties.
-  ReplaceUtil(const ReplaceUtil &) = delete;
-  ReplaceUtil &operator=(const ReplaceUtil &) = delete;
+  ReplaceUtil(const ReplaceUtil&) = delete;
+  ReplaceUtil& operator=(const ReplaceUtil&) = delete;
 };
 
 template <class Arc>
-ReplaceUtil<Arc>::ReplaceUtil(const std::vector<MutableFstPair> &fst_pairs,
-                              const ReplaceUtilOptions &opts)
+ReplaceUtil<Arc>::ReplaceUtil(const std::vector<MutableFstPair>& fst_pairs,
+                              const ReplaceUtilOptions& opts)
     : root_label_(opts.root),
       call_label_type_(opts.call_label_type),
       return_label_type_(opts.return_label_type),
@@ -276,9 +276,9 @@ ReplaceUtil<Arc>::ReplaceUtil(const std::vector<MutableFstPair> &fst_pairs,
   fst_array_.push_back(nullptr);
   mutable_fst_array_.push_back(nullptr);
   nonterminal_array_.push_back(kNoLabel);
-  for (const auto &fst_pair : fst_pairs) {
+  for (const auto& fst_pair : fst_pairs) {
     const auto label = fst_pair.first;
-    auto *fst = fst_pair.second;
+    auto* fst = fst_pair.second;
     nonterminal_hash_[label] = fst_array_.size();
     nonterminal_array_.push_back(label);
     fst_array_.push_back(fst);
@@ -291,8 +291,8 @@ ReplaceUtil<Arc>::ReplaceUtil(const std::vector<MutableFstPair> &fst_pairs,
 }
 
 template <class Arc>
-ReplaceUtil<Arc>::ReplaceUtil(const std::vector<FstPair> &fst_pairs,
-                              const ReplaceUtilOptions &opts)
+ReplaceUtil<Arc>::ReplaceUtil(const std::vector<FstPair>& fst_pairs,
+                              const ReplaceUtilOptions& opts)
     : root_label_(opts.root),
       call_label_type_(opts.call_label_type),
       return_label_type_(opts.return_label_type),
@@ -301,9 +301,9 @@ ReplaceUtil<Arc>::ReplaceUtil(const std::vector<FstPair> &fst_pairs,
       have_stats_(false) {
   fst_array_.push_back(nullptr);
   nonterminal_array_.push_back(kNoLabel);
-  for (const auto &fst_pair : fst_pairs) {
+  for (const auto& fst_pair : fst_pairs) {
     const auto label = fst_pair.first;
-    const auto *fst = fst_pair.second;
+    const auto* fst = fst_pair.second;
     nonterminal_hash_[label] = fst_array_.size();
     nonterminal_array_.push_back(label);
     fst_array_.push_back(fst->Copy());
@@ -316,8 +316,8 @@ ReplaceUtil<Arc>::ReplaceUtil(const std::vector<FstPair> &fst_pairs,
 
 template <class Arc>
 ReplaceUtil<Arc>::ReplaceUtil(
-    const std::vector<std::unique_ptr<const Fst<Arc>>> &fst_array,
-    const NonTerminalHash &nonterminal_hash, const ReplaceUtilOptions &opts)
+    const std::vector<std::unique_ptr<const Fst<Arc>>>& fst_array,
+    const NonTerminalHash& nonterminal_hash, const ReplaceUtilOptions& opts)
     : root_fst_(opts.root),
       call_label_type_(opts.call_label_type),
       return_label_type_(opts.return_label_type),
@@ -356,7 +356,7 @@ void ReplaceUtil<Arc>::GetDependencies(bool stats) const {
   // An arc from each state (representing the FST) to the state representing the
   // FST being replaced
   for (Label ilabel = 0; ilabel < fst_array_.size(); ++ilabel) {
-    const auto *ifst = fst_array_[ilabel];
+    const auto* ifst = fst_array_[ilabel];
     if (!ifst) continue;
     for (StateIterator<Fst<Arc>> siter(*ifst); !siter.Done(); siter.Next()) {
       const auto s = siter.Value();
@@ -366,7 +366,7 @@ void ReplaceUtil<Arc>::GetDependencies(bool stats) const {
       }
       for (ArcIterator<Fst<Arc>> aiter(*ifst, s); !aiter.Done(); aiter.Next()) {
         if (have_stats_) ++stats_[ilabel].narcs;
-        const auto &arc = aiter.Value();
+        const auto& arc = aiter.Value();
         if (auto it = nonterminal_hash_.find(arc.olabel);
             it != nonterminal_hash_.end()) {
           const auto nextstate = it->second;
@@ -441,7 +441,7 @@ template <class Arc>
 void ReplaceUtil<Arc>::Connect() {
   CheckMutableFsts();
   static constexpr auto props = kAccessible | kCoAccessible;
-  for (auto *mutable_fst : mutable_fst_array_) {
+  for (auto* mutable_fst : mutable_fst_array_) {
     if (!mutable_fst) continue;
     if (mutable_fst->Properties(props, false) != props) {
       fst::Connect(mutable_fst);
@@ -449,7 +449,7 @@ void ReplaceUtil<Arc>::Connect() {
   }
   GetDependencies(false);
   for (Label i = 0; i < mutable_fst_array_.size(); ++i) {
-    auto *fst = mutable_fst_array_[i];
+    auto* fst = mutable_fst_array_[i];
     if (fst && !depaccess_[i]) {
       delete fst;
       fst_array_[i] = nullptr;
@@ -460,8 +460,8 @@ void ReplaceUtil<Arc>::Connect() {
 }
 
 template <class Arc>
-bool ReplaceUtil<Arc>::GetTopOrder(const Fst<Arc> &fst,
-                                   std::vector<Label> *toporder) const {
+bool ReplaceUtil<Arc>::GetTopOrder(const Fst<Arc>& fst,
+                                   std::vector<Label>* toporder) const {
   // Finds topological order of dependencies.
   std::vector<StateId> order;
   bool acyclic = false;
@@ -477,7 +477,7 @@ bool ReplaceUtil<Arc>::GetTopOrder(const Fst<Arc> &fst,
 }
 
 template <class Arc>
-void ReplaceUtil<Arc>::ReplaceLabels(const std::vector<Label> &labels) {
+void ReplaceUtil<Arc>::ReplaceLabels(const std::vector<Label>& labels) {
   CheckMutableFsts();
   std::unordered_set<Label> label_set;
   for (const auto label : labels) {
@@ -491,12 +491,12 @@ void ReplaceUtil<Arc>::ReplaceLabels(const std::vector<Label> &labels) {
     std::vector<Arc> arcs;
     for (ArcIterator<VectorFst<Arc>> aiter(pfst, i); !aiter.Done();
          aiter.Next()) {
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       const auto label = nonterminal_array_[arc.nextstate];
       if (label_set.count(label) > 0) arcs.push_back(arc);
     }
     pfst.DeleteArcs(i);
-    for (auto &arc : arcs) pfst.AddArc(i, std::move(arc));
+    for (auto& arc : arcs) pfst.AddArc(i, std::move(arc));
   }
   std::vector<Label> toporder;
   if (!GetTopOrder(pfst, &toporder)) {
@@ -510,14 +510,14 @@ void ReplaceUtil<Arc>::ReplaceLabels(const std::vector<Label> &labels) {
     auto s = toporder[o];
     for (ArcIterator<VectorFst<Arc>> aiter(pfst, s); !aiter.Done();
          aiter.Next()) {
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       const auto label = nonterminal_array_[arc.nextstate];
-      const auto *fst = fst_array_[arc.nextstate];
+      const auto* fst = fst_array_[arc.nextstate];
       fst_pairs.emplace_back(label, fst);
     }
     if (fst_pairs.empty()) continue;
     const auto label = nonterminal_array_[s];
-    const auto *fst = fst_array_[s];
+    const auto* fst = fst_array_[s];
     fst_pairs.emplace_back(label, fst);
     const ReplaceUtilOptions opts(label, call_label_type_, return_label_type_,
                                   return_label_);
@@ -567,12 +567,12 @@ void ReplaceUtil<Arc>::ReplaceByInstances(size_t ninstances) {
 }
 
 template <class Arc>
-void ReplaceUtil<Arc>::GetFstPairs(std::vector<FstPair> *fst_pairs) {
+void ReplaceUtil<Arc>::GetFstPairs(std::vector<FstPair>* fst_pairs) {
   CheckMutableFsts();
   fst_pairs->clear();
   for (Label i = 0; i < fst_array_.size(); ++i) {
     const auto label = nonterminal_array_[i];
-    const auto *fst = fst_array_[i];
+    const auto* fst = fst_array_[i];
     if (!fst) continue;
     fst_pairs->emplace_back(label, fst);
   }
@@ -580,12 +580,12 @@ void ReplaceUtil<Arc>::GetFstPairs(std::vector<FstPair> *fst_pairs) {
 
 template <class Arc>
 void ReplaceUtil<Arc>::GetMutableFstPairs(
-    std::vector<MutableFstPair> *mutable_fst_pairs) {
+    std::vector<MutableFstPair>* mutable_fst_pairs) {
   CheckMutableFsts();
   mutable_fst_pairs->clear();
   for (Label i = 0; i < mutable_fst_array_.size(); ++i) {
     const auto label = nonterminal_array_[i];
-    const auto *fst = mutable_fst_array_[i];
+    const auto* fst = mutable_fst_array_[i];
     if (!fst) continue;
     mutable_fst_pairs->emplace_back(label, fst->Copy());
   }
@@ -604,7 +604,7 @@ void ReplaceUtil<Arc>::GetSCCProperties() const {
   for (StateId scc = 0; scc < depscc_.size(); ++scc) {
     for (ArcIterator<Fst<Arc>> aiter(depfst_, scc); !aiter.Done();
          aiter.Next()) {
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       if (arc.nextstate == scc) {  // SCC has a self loop.
         depsccprops_[scc] |= kReplaceSCCNonTrivial;
       }
@@ -612,7 +612,7 @@ void ReplaceUtil<Arc>::GetSCCProperties() const {
   }
   std::vector<bool> depscc_visited(depscc_.size(), false);
   for (Label i = 0; i < fst_array_.size(); ++i) {
-    const auto *fst = fst_array_[i];
+    const auto* fst = fst_array_[i];
     if (!fst) continue;
     const auto depscc = depscc_[i];
     if (depscc_visited[depscc]) {  // SCC has more than one state.
@@ -626,7 +626,7 @@ void ReplaceUtil<Arc>::GetSCCProperties() const {
     for (StateIterator<Fst<Arc>> siter(*fst); !siter.Done(); siter.Next()) {
       const auto s = siter.Value();
       for (ArcIterator<Fst<Arc>> aiter(*fst, s); !aiter.Done(); aiter.Next()) {
-        const auto &arc = aiter.Value();
+        const auto& arc = aiter.Value();
         auto it = nonterminal_hash_.find(arc.olabel);
         if (it == nonterminal_hash_.end() || depscc_[it->second] != depscc) {
           continue;  // Skips if a terminal or a non-terminal not in SCC.

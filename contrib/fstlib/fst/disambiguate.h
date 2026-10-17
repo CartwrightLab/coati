@@ -30,7 +30,6 @@
 #include <utility>
 #include <vector>
 
-#include <fst/log.h>
 #include <fst/arcsort.h>
 #include <fst/cc-visitors.h>
 #include <fst/compose-filter.h>
@@ -46,12 +45,10 @@
 #include <fst/project.h>
 #include <fst/properties.h>
 #include <fst/prune.h>
-#include <fst/state-map.h>
 #include <fst/state-table.h>
 #include <fst/union-find.h>
 #include <fst/util.h>
 #include <fst/vector-fst.h>
-#include <fst/verify.h>
 #include <fst/weight.h>
 
 namespace fst {
@@ -94,27 +91,27 @@ class RelationDeterminizeFilter {
     using Other = RelationDeterminizeFilter<A, Relation>;
   };
 
-  explicit RelationDeterminizeFilter(const Fst<Arc> &fst)
+  explicit RelationDeterminizeFilter(const Fst<Arc>& fst)
       : fst_(fst.Copy()),
         head_(nullptr),
         r_(std::make_unique<Relation>()),
         s_(kNoStateId) {}
 
-  RelationDeterminizeFilter(const Fst<Arc> &fst, std::unique_ptr<Relation> r,
-                            std::vector<StateId> *head = nullptr)
+  RelationDeterminizeFilter(const Fst<Arc>& fst, std::unique_ptr<Relation> r,
+                            std::vector<StateId>* head = nullptr)
       : fst_(fst.Copy()), head_(head), r_(std::move(r)), s_(kNoStateId) {}
 
   // This is needed, e.g., to go into the gallic domain for transducers.
   template <class Filter>
-  RelationDeterminizeFilter(const Fst<Arc> &fst, std::unique_ptr<Filter> filter)
+  RelationDeterminizeFilter(const Fst<Arc>& fst, std::unique_ptr<Filter> filter)
       : fst_(fst.Copy()),
         head_(filter->GetHeadStates()),
         r_(std::move(*filter).GetRelation()),
         s_(kNoStateId) {}
 
   // Copy constructor; the FST can be passed if it has been deep-copied.
-  RelationDeterminizeFilter(const RelationDeterminizeFilter &filter,
-                            const Fst<Arc> *fst = nullptr)
+  RelationDeterminizeFilter(const RelationDeterminizeFilter& filter,
+                            const Fst<Arc>* fst = nullptr)
       : fst_(fst ? fst->Copy() : filter.fst_->Copy()),
         head_(nullptr),
         r_(std::make_unique<Relation>(*filter.r_)),
@@ -122,7 +119,7 @@ class RelationDeterminizeFilter {
 
   FilterState Start() const { return FilterState(fst_->Start()); }
 
-  void SetState(StateId s, const StateTuple &tuple) {
+  void SetState(StateId s, const StateTuple& tuple) {
     if (s_ != s) {
       s_ = s;
       tuple_ = &tuple;
@@ -137,11 +134,11 @@ class RelationDeterminizeFilter {
 
   // Filters transition, possibly modifying label map. Returns true if arc is
   // added to label map.
-  bool FilterArc(const Arc &arc, const Element &src_element,
-                 const Element &dest_element, LabelMap *label_map) const;
+  bool FilterArc(const Arc& arc, const Element& src_element,
+                 const Element& dest_element, LabelMap* label_map) const;
 
   // Filters super-final transition, returning new final weight.
-  Weight FilterFinal(const Weight final_weight, const Element &element) const {
+  Weight FilterFinal(const Weight final_weight, const Element& element) const {
     return is_final_ ? final_weight : Weight::Zero();
   }
 
@@ -151,31 +148,31 @@ class RelationDeterminizeFilter {
 
   std::unique_ptr<Relation> GetRelation() && { return std::move(r_); }
 
-  std::vector<StateId> *GetHeadStates() { return head_; }
+  std::vector<StateId>* GetHeadStates() { return head_; }
 
  private:
   // Pairs arc labels with state tuples with possible heads and empty subsets.
-  void InitLabelMap(LabelMap *label_map) const;
+  void InitLabelMap(LabelMap* label_map) const;
 
   std::unique_ptr<Fst<Arc>> fst_;  // Input FST.
-  std::vector<StateId> *head_;     // Head state for a given state,
+  std::vector<StateId>* head_;     // Head state for a given state,
                                    // owned by the Disambiguator.
   std::unique_ptr<Relation> r_;    // Relation compatible with inv. trans. fnc.
   StateId s_;                      // Current state.
-  const StateTuple *tuple_;        // Current tuple.
+  const StateTuple* tuple_;        // Current tuple.
   bool is_final_;                  // Is the current head state final?
 };
 
 template <class Arc, class Relation>
 bool RelationDeterminizeFilter<Arc, Relation>::FilterArc(
-    const Arc &arc, const Element &src_element, const Element &dest_element,
-    LabelMap *label_map) const {
+    const Arc& arc, const Element& src_element, const Element& dest_element,
+    LabelMap* label_map) const {
   bool added = false;
   if (label_map->empty()) InitLabelMap(label_map);
   // Adds element to state tuple if element state is related to tuple head.
   for (auto liter = label_map->lower_bound(arc.ilabel);
        liter != label_map->end() && liter->first == arc.ilabel; ++liter) {
-    const auto &dest_tuple = liter->second.dest_tuple;
+    const auto& dest_tuple = liter->second.dest_tuple;
     const auto dest_head = dest_tuple->filter_state.GetState();
     if ((*r_)(dest_element.state_id, dest_head)) {
       dest_tuple->subset.push_front(dest_element);
@@ -187,13 +184,13 @@ bool RelationDeterminizeFilter<Arc, Relation>::FilterArc(
 
 template <class Arc, class Relation>
 void RelationDeterminizeFilter<Arc, Relation>::InitLabelMap(
-    LabelMap *label_map) const {
+    LabelMap* label_map) const {
   const auto src_head = tuple_->filter_state.GetState();
   Label label = kNoLabel;
   StateId nextstate = kNoStateId;
   for (ArcIterator<Fst<Arc>> aiter(*fst_, src_head); !aiter.Done();
        aiter.Next()) {
-    const auto &arc = aiter.Value();
+    const auto& arc = aiter.Value();
     // Continues if multiarc.
     if (arc.ilabel == label && arc.nextstate == nextstate) continue;
     DeterminizeArc<StateTuple> det_arc(arc);
@@ -219,8 +216,8 @@ class Disambiguator {
   Disambiguator() : error_(false) {}
 
   void Disambiguate(
-      const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
-      const DisambiguateOptions<Arc> &opts = DisambiguateOptions<Arc>()) {
+      const Fst<Arc>& ifst, MutableFst<Arc>* ofst,
+      const DisambiguateOptions<Arc>& opts = DisambiguateOptions<Arc>()) {
     VectorFst<Arc> sfst(ifst);
     Connect(&sfst);
     ArcSort(&sfst, ArcCompare());
@@ -238,7 +235,7 @@ class Disambiguator {
   // sort order facilitates the predisambiguation.
   class ArcCompare {
    public:
-    bool operator()(const Arc &arc1, const Arc &arc2) const {
+    bool operator()(const Arc& arc1, const Arc& arc2) const {
       return arc1.ilabel < arc2.ilabel ||
              (arc1.ilabel == arc2.ilabel && arc1.nextstate < arc2.nextstate);
     }
@@ -253,9 +250,9 @@ class Disambiguator {
   // This sort order facilitates ambiguity detection.
   class ArcIdCompare {
    public:
-    explicit ArcIdCompare(const std::vector<StateId> &head) : head_(head) {}
+    explicit ArcIdCompare(const std::vector<StateId>& head) : head_(head) {}
 
-    bool operator()(const ArcId &a1, const ArcId &a2) const {
+    bool operator()(const ArcId& a1, const ArcId& a2) const {
       // Sort first by source head state...
       const auto src1 = a1.first;
       const auto src2 = a2.first;
@@ -271,7 +268,7 @@ class Disambiguator {
     }
 
    private:
-    const std::vector<StateId> &head_;
+    const std::vector<StateId>& head_;
   };
 
   // A relation that determines if two states share a common future.
@@ -285,12 +282,12 @@ class Disambiguator {
       FSTERROR() << "Disambiguate::CommonFuture: FST not provided";
     }
 
-    explicit CommonFuture(const Fst<Arc> &ifst) {
+    explicit CommonFuture(const Fst<Arc>& ifst) {
       using M = Matcher<Fst<Arc>>;
       ComposeFstOptions<Arc, M, NullComposeFilter<M>> opts;
       // Ensures composition is between acceptors.
       const bool trans = ifst.Properties(kNotAcceptor, true);
-      const auto *fsa =
+      const auto* fsa =
           trans ? new ProjectFst<Arc>(ifst, ProjectType::INPUT) : &ifst;
       opts.state_table = new StateTable(*fsa, *fsa);
       const ComposeFst<Arc> cfst(*fsa, *fsa, opts);
@@ -320,14 +317,14 @@ class Disambiguator {
   using ArcIdMap = std::multimap<ArcId, ArcId, ArcIdCompare>;
 
   // Inserts candidate into the arc ID map.
-  inline void InsertCandidate(StateId s1, StateId s2, const ArcId &a1,
-                              const ArcId &a2) {
+  inline void InsertCandidate(StateId s1, StateId s2, const ArcId& a1,
+                              const ArcId& a2) {
     candidates_->insert(head_[s1] > head_[s2] ? std::make_pair(a1, a2)
                                               : std::make_pair(a2, a1));
   }
 
   // Returns the arc corresponding to ArcId a.
-  static Arc GetArc(const Fst<Arc> &fst, ArcId aid) {
+  static Arc GetArc(const Fst<Arc>& fst, ArcId aid) {
     if (aid.second == -1) {  // Returns super-final transition.
       return Arc(kNoLabel, kNoLabel, fst.Final(aid.first), kNoStateId);
     } else {
@@ -339,25 +336,25 @@ class Disambiguator {
 
   // Outputs an equivalent FST whose states are subsets of states that have a
   // future path in common.
-  void PreDisambiguate(const ExpandedFst<Arc> &ifst, MutableFst<Arc> *ofst,
-                       const DisambiguateOptions<Arc> &opts);
+  void PreDisambiguate(const ExpandedFst<Arc>& ifst, MutableFst<Arc>* ofst,
+                       const DisambiguateOptions<Arc>& opts);
 
   // Finds transitions that are ambiguous candidates in the result of
   // PreDisambiguate.
-  void FindAmbiguities(const ExpandedFst<Arc> &fst);
+  void FindAmbiguities(const ExpandedFst<Arc>& fst);
 
   // Finds transition pairs that are ambiguous candidates from two specified
   // source states.
-  void FindAmbiguousPairs(const ExpandedFst<Arc> &fst, StateId s1, StateId s2);
+  void FindAmbiguousPairs(const ExpandedFst<Arc>& fst, StateId s1, StateId s2);
 
   // Marks ambiguous transitions to be removed.
   void MarkAmbiguities();
 
   // Deletes spurious ambiguous transitions (due to quantization).
-  void RemoveSplits(MutableFst<Arc> *ofst);
+  void RemoveSplits(MutableFst<Arc>* ofst);
 
   // Deletes actual ambiguous transitions.
-  void RemoveAmbiguities(MutableFst<Arc> *ofst);
+  void RemoveAmbiguities(MutableFst<Arc>* ofst);
 
   // States s1 and s2 are in this relation iff there is a path from the initial
   // state to s1 that has the same label as some path from the initial state to
@@ -384,14 +381,14 @@ class Disambiguator {
   // Marks error condition.
   bool error_;
 
-  Disambiguator(const Disambiguator &) = delete;
-  Disambiguator &operator=(const Disambiguator &) = delete;
+  Disambiguator(const Disambiguator&) = delete;
+  Disambiguator& operator=(const Disambiguator&) = delete;
 };
 
 template <class Arc>
-void Disambiguator<Arc>::PreDisambiguate(const ExpandedFst<Arc> &ifst,
-                                         MutableFst<Arc> *ofst,
-                                         const DisambiguateOptions<Arc> &opts) {
+void Disambiguator<Arc>::PreDisambiguate(const ExpandedFst<Arc>& ifst,
+                                         MutableFst<Arc>* ofst,
+                                         const DisambiguateOptions<Arc>& opts) {
   using CommonDivisor = DefaultCommonDivisor<Weight>;
   using Filter = RelationDeterminizeFilter<Arc, CommonFuture>;
   // Subset elements with states s1 and s2 (resp.) are in this relation iff they
@@ -407,7 +404,7 @@ void Disambiguator<Arc>::PreDisambiguate(const ExpandedFst<Arc> &ifst,
   if (opts.weight_threshold != Weight::Zero() ||
       opts.state_threshold != kNoStateId) {
     if constexpr (IsPath<Weight>::value) {
-      /* TODO(riley): fails regression test; understand why
+      /* TODO: fails regression test; understand why
       if (ifst.Properties(kAcceptor, true)) {
         std::vector<Weight> idistance, odistance;
         ShortestDistance(ifst, &idistance, true);
@@ -434,14 +431,14 @@ void Disambiguator<Arc>::PreDisambiguate(const ExpandedFst<Arc> &ifst,
 }
 
 template <class Arc>
-void Disambiguator<Arc>::FindAmbiguities(const ExpandedFst<Arc> &fst) {
+void Disambiguator<Arc>::FindAmbiguities(const ExpandedFst<Arc>& fst) {
   if (fst.Start() == kNoStateId) return;
   candidates_ = std::make_unique<ArcIdMap>(ArcIdCompare(head_));
   const auto start_pr = std::make_pair(fst.Start(), fst.Start());
   coreachable_.insert(start_pr);
   queue_.push_back(start_pr);
   while (!queue_.empty()) {
-    const auto &pr = queue_.front();
+    const auto& pr = queue_.front();
     const auto s1 = pr.first;
     const auto s2 = pr.second;
     queue_.pop_front();
@@ -450,17 +447,17 @@ void Disambiguator<Arc>::FindAmbiguities(const ExpandedFst<Arc> &fst) {
 }
 
 template <class Arc>
-void Disambiguator<Arc>::FindAmbiguousPairs(const ExpandedFst<Arc> &fst,
+void Disambiguator<Arc>::FindAmbiguousPairs(const ExpandedFst<Arc>& fst,
                                             StateId s1, StateId s2) {
   if (fst.NumArcs(s2) > fst.NumArcs(s1)) FindAmbiguousPairs(fst, s2, s1);
   SortedMatcher<Fst<Arc>> matcher(fst, MATCH_INPUT);
   matcher.SetState(s2);
   for (ArcIterator<Fst<Arc>> aiter(fst, s1); !aiter.Done(); aiter.Next()) {
-    const auto &arc1 = aiter.Value();
+    const auto& arc1 = aiter.Value();
     const ArcId a1(s1, aiter.Position());
     if (matcher.Find(arc1.ilabel)) {
       for (; !matcher.Done(); matcher.Next()) {
-        const auto &arc2 = matcher.Value();
+        const auto& arc2 = matcher.Value();
         // Continues on implicit epsilon match.
         if (arc2.ilabel == kNoLabel) continue;
         const ArcId a2(s2, matcher.Position());
@@ -512,7 +509,7 @@ void Disambiguator<Arc>::MarkAmbiguities() {
 }
 
 template <class Arc>
-void Disambiguator<Arc>::RemoveSplits(MutableFst<Arc> *ofst) {
+void Disambiguator<Arc>::RemoveSplits(MutableFst<Arc>* ofst) {
   if (!merge_) return;
   // Merges split states to remove spurious ambiguities.
   for (StateIterator<MutableFst<Arc>> siter(*ofst); !siter.Done();
@@ -540,7 +537,7 @@ void Disambiguator<Arc>::RemoveSplits(MutableFst<Arc> *ofst) {
 }
 
 template <class Arc>
-void Disambiguator<Arc>::RemoveAmbiguities(MutableFst<Arc> *ofst) {
+void Disambiguator<Arc>::RemoveAmbiguities(MutableFst<Arc>* ofst) {
   if (ambiguous_.empty()) return;
   // Adds dead state to redirect ambiguous transitions to be removed.
   const auto dead = ofst->AddState();
@@ -584,8 +581,8 @@ void Disambiguator<Arc>::RemoveAmbiguities(MutableFst<Arc> *ofst) {
 // In CIAA, pages 263-278.
 template <class Arc>
 void Disambiguate(
-    const Fst<Arc> &ifst, MutableFst<Arc> *ofst,
-    const DisambiguateOptions<Arc> &opts = DisambiguateOptions<Arc>()) {
+    const Fst<Arc>& ifst, MutableFst<Arc>* ofst,
+    const DisambiguateOptions<Arc>& opts = DisambiguateOptions<Arc>()) {
   internal::Disambiguator<Arc> disambiguator;
   disambiguator.Disambiguate(ifst, ofst, opts);
 }

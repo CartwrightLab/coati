@@ -20,16 +20,11 @@
 #ifndef FST_COMPLEMENT_H_
 #define FST_COMPLEMENT_H_
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <string>
-#include <vector>
 
-#include <fst/log.h>
 #include <fst/arc.h>
-#include <fst/float-weight.h>
 #include <fst/fst.h>
 #include <fst/impl-to-fst.h>
 #include <fst/properties.h>
@@ -67,7 +62,7 @@ class ComplementFstImpl : public FstImpl<A> {
   friend class StateIterator<ComplementFst<Arc>>;
   friend class ArcIterator<ComplementFst<Arc>>;
 
-  explicit ComplementFstImpl(const Fst<Arc> &fst) : fst_(fst.Copy()) {
+  explicit ComplementFstImpl(const Fst<Arc>& fst) : fst_(fst.Copy()) {
     SetType("complement");
     const auto props = fst.Properties(kILabelSorted, false);
     SetProperties(ComplementProperties(props), kCopyProperties);
@@ -75,7 +70,7 @@ class ComplementFstImpl : public FstImpl<A> {
     SetOutputSymbols(fst.OutputSymbols());
   }
 
-  ComplementFstImpl(const ComplementFstImpl<Arc> &impl)
+  ComplementFstImpl(const ComplementFstImpl<Arc>& impl)
       : fst_(impl.fst_->Copy()) {
     SetType("complement");
     SetProperties(impl.Properties(), kCopyProperties);
@@ -134,17 +129,19 @@ class ComplementFstImpl : public FstImpl<A> {
 // reference counting, delegating most methods to ImplToFst.
 template <class A>
 class ComplementFst : public ImplToFst<internal::ComplementFstImpl<A>> {
+  using Base = ImplToFst<internal::ComplementFstImpl<A>>;
+
  public:
   using Arc = A;
   using Label = typename Arc::Label;
   using StateId = typename Arc::StateId;
-  using Impl = internal::ComplementFstImpl<Arc>;
+  using typename Base::Impl;
 
   friend class StateIterator<ComplementFst<Arc>>;
   friend class ArcIterator<ComplementFst<Arc>>;
 
-  explicit ComplementFst(const Fst<Arc> &fst)
-      : ImplToFst<Impl>(std::make_shared<Impl>(fst)) {
+  explicit ComplementFst(const Fst<Arc>& fst)
+      : Base(std::make_shared<Impl>(fst)) {
     static constexpr auto props =
         kUnweighted | kNoEpsilons | kIDeterministic | kAcceptor;
     if (fst.Properties(props, true) != props) {
@@ -155,27 +152,27 @@ class ComplementFst : public ImplToFst<internal::ComplementFstImpl<A>> {
   }
 
   // See Fst<>::Copy() for doc.
-  ComplementFst(const ComplementFst &fst, bool safe = false)
-      : ImplToFst<Impl>(fst, safe) {}
+  ComplementFst(const ComplementFst& fst, bool safe = false)
+      : Base(fst, safe) {}
 
   // Gets a copy of this FST. See Fst<>::Copy() for further doc.
-  ComplementFst *Copy(bool safe = false) const override {
+  ComplementFst* Copy(bool safe = false) const override {
     return new ComplementFst(*this, safe);
   }
 
-  inline void InitStateIterator(StateIteratorData<Arc> *data) const override;
+  inline void InitStateIterator(StateIteratorData<Arc>* data) const override;
 
   inline void InitArcIterator(StateId s,
-                              ArcIteratorData<Arc> *data) const override;
+                              ArcIteratorData<Arc>* data) const override;
 
   // Label that represents the ρ-transition; we use a negative value private to
   // the library and which will preserve FST label sort order.
   static constexpr Label kRhoLabel = -2;
 
  private:
-  using ImplToFst<Impl>::GetImpl;
+  using Base::GetImpl;
 
-  ComplementFst &operator=(const ComplementFst &) = delete;
+  ComplementFst& operator=(const ComplementFst&) = delete;
 };
 
 // Specialization for ComplementFst.
@@ -184,7 +181,7 @@ class StateIterator<ComplementFst<Arc>> : public StateIteratorBase<Arc> {
  public:
   using StateId = typename Arc::StateId;
 
-  explicit StateIterator(const ComplementFst<Arc> &fst)
+  explicit StateIterator(const ComplementFst<Arc>& fst)
       : siter_(*fst.GetImpl()->fst_), s_(0) {}
 
   bool Done() const final { return s_ > 0 && siter_.Done(); }
@@ -213,7 +210,7 @@ class ArcIterator<ComplementFst<Arc>> : public ArcIteratorBase<Arc> {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  ArcIterator(const ComplementFst<Arc> &fst, StateId s) : s_(s), pos_(0) {
+  ArcIterator(const ComplementFst<Arc>& fst, StateId s) : s_(s), pos_(0) {
     if (s_ != 0) {
       aiter_ =
           std::make_unique<ArcIterator<Fst<Arc>>>(*fst.GetImpl()->fst_, s - 1);
@@ -229,7 +226,7 @@ class ArcIterator<ComplementFst<Arc>> : public ArcIteratorBase<Arc> {
   }
 
   // Adds the ρ-label to the ρ destination state.
-  const Arc &Value() const final {
+  const Arc& Value() const final {
     if (pos_ == 0) {
       arc_.ilabel = arc_.olabel = ComplementFst<Arc>::kRhoLabel;
       arc_.weight = Weight::One();
@@ -277,13 +274,13 @@ class ArcIterator<ComplementFst<Arc>> : public ArcIteratorBase<Arc> {
 
 template <class Arc>
 inline void ComplementFst<Arc>::InitStateIterator(
-    StateIteratorData<Arc> *data) const {
+    StateIteratorData<Arc>* data) const {
   data->base = std::make_unique<StateIterator<ComplementFst<Arc>>>(*this);
 }
 
 template <class Arc>
 inline void ComplementFst<Arc>::InitArcIterator(
-    StateId s, ArcIteratorData<Arc> *data) const {
+    StateId s, ArcIteratorData<Arc>* data) const {
   data->base = std::make_unique<ArcIterator<ComplementFst<Arc>>>(*this, s);
 }
 

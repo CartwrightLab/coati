@@ -44,7 +44,6 @@
 #include <random>
 #include <string>
 
-#include <fst/log.h>
 #include <fst/pair-weight.h>
 #include <fst/weight.h>
 
@@ -73,28 +72,28 @@ class ExpectationWeight : public PairWeight<W1, W2> {
 
   ExpectationWeight() : PairWeight<W1, W2>(Zero()) {}
 
-  explicit ExpectationWeight(const PairWeight<W1, W2> &weight)
+  explicit ExpectationWeight(const PairWeight<W1, W2>& weight)
       : PairWeight<W1, W2>(weight) {}
 
-  ExpectationWeight(const W1 &w1, const W2 &w2) : PairWeight<W1, W2>(w1, w2) {}
+  ExpectationWeight(const W1& w1, const W2& w2) : PairWeight<W1, W2>(w1, w2) {}
 
-  static const ExpectationWeight &Zero() {
+  static const ExpectationWeight& Zero() {
     static const ExpectationWeight zero(W1::Zero(), W2::Zero());
     return zero;
   }
 
-  static const ExpectationWeight &One() {
+  static const ExpectationWeight& One() {
     static const ExpectationWeight one(W1::One(), W2::Zero());
     return one;
   }
 
-  static const ExpectationWeight &NoWeight() {
+  static const ExpectationWeight& NoWeight() {
     static const ExpectationWeight no_weight(W1::NoWeight(), W2::NoWeight());
     return no_weight;
   }
 
-  static const std::string &Type() {
-    static const std::string *const type =
+  static const std::string& Type() {
+    static const std::string* const type =
         new std::string("expectation_" + W1::Type() + "_" + W2::Type());
     return *type;
   }
@@ -116,15 +115,15 @@ class ExpectationWeight : public PairWeight<W1, W2> {
 };
 
 template <class W1, class W2>
-inline ExpectationWeight<W1, W2> Plus(const ExpectationWeight<W1, W2> &w1,
-                                      const ExpectationWeight<W1, W2> &w2) {
+inline ExpectationWeight<W1, W2> Plus(const ExpectationWeight<W1, W2>& w1,
+                                      const ExpectationWeight<W1, W2>& w2) {
   return ExpectationWeight<W1, W2>(Plus(w1.Value1(), w2.Value1()),
                                    Plus(w1.Value2(), w2.Value2()));
 }
 
 template <class W1, class W2>
-inline ExpectationWeight<W1, W2> Times(const ExpectationWeight<W1, W2> &w1,
-                                       const ExpectationWeight<W1, W2> &w2) {
+inline ExpectationWeight<W1, W2> Times(const ExpectationWeight<W1, W2>& w1,
+                                       const ExpectationWeight<W1, W2>& w2) {
   return ExpectationWeight<W1, W2>(
       Times(w1.Value1(), w2.Value1()),
       Plus(Times(w1.Value1(), w2.Value2()), Times(w1.Value2(), w2.Value1())));
@@ -139,8 +138,8 @@ inline ExpectationWeight<W1, W2> Times(const ExpectationWeight<W1, W2> &w1,
 //   (not part of the Weight interface, so Divide will not compile if
 //    Minus is not defined).
 template <class W1, class W2>
-inline ExpectationWeight<W1, W2> Divide(const ExpectationWeight<W1, W2> &w1,
-                                        const ExpectationWeight<W1, W2> &w2,
+inline ExpectationWeight<W1, W2> Divide(const ExpectationWeight<W1, W2>& w1,
+                                        const ExpectationWeight<W1, W2>& w2,
                                         DivideType typ) {
   // No special cases are required for !w1.Member(), !w2.Member(), or
   // w2 == Zero(), since Minus and Divide will already return NoWeight()
@@ -187,7 +186,7 @@ class Adder<ExpectationWeight<W1, W2>> {
 
   explicit Adder(Weight w) : adder1_(w.Value1()), adder2_(w.Value2()) {}
 
-  Weight Add(const Weight &w) {
+  Weight Add(const Weight& w) {
     adder1_.Add(w.Value1());
     adder2_.Add(w.Value2());
     return Sum();

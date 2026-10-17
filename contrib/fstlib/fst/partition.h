@@ -20,12 +20,9 @@
 #ifndef FST_PARTITION_H_
 #define FST_PARTITION_H_
 
-#include <algorithm>
 #include <cstddef>
 #include <type_traits>
 #include <vector>
-
-#include <fst/queue.h>
 
 namespace fst {
 namespace internal {
@@ -102,8 +99,8 @@ class Partition {
   // currently be a member of any class; once elements have been added to a
   // class, use the Move() method to move them from one class to another.
   void Add(T element_id, T class_id) {
-    auto &this_element = elements_[element_id];
-    auto &this_class = classes_[class_id];
+    auto& this_element = elements_[element_id];
+    auto& this_class = classes_[class_id];
     ++this_class.size;
     // Adds the element to the 'no' subset of the class.
     auto no_head = this_class.no_head;
@@ -121,8 +118,8 @@ class Partition {
   // [for any element] and haven't subsequently called FinalizeSplit().
   void Move(T element_id, T class_id) {
     auto elements = &(elements_[0]);
-    auto &element = elements[element_id];
-    auto &old_class = classes_[element.class_id];
+    auto& element = elements[element_id];
+    auto& old_class = classes_[element.class_id];
     --old_class.size;
     // Excises the element from the 'no' list of its old class, where it is
     // assumed to be.
@@ -142,12 +139,12 @@ class Partition {
   // subset, and marks the class as having been visited.
   void SplitOn(T element_id) {
     auto elements = &(elements_[0]);
-    auto &element = elements[element_id];
+    auto& element = elements[element_id];
     if (element.yes == yes_counter_) {
       return;  // Already in the 'yes' set; nothing to do.
     }
     auto class_id = element.class_id;
-    auto &this_class = classes_[class_id];
+    auto& this_class = classes_[class_id];
     // Excises the element from the 'no' list of its class.
     if (element.prev_element >= 0) {
       elements[element.prev_element].next_element = element.next_element;
@@ -179,8 +176,8 @@ class Partition {
   // will be added to the queue provided as the pointer L. This method then
   // moves all elements to the 'no' subset of their class.
   template <class Queue>
-  void FinalizeSplit(Queue *queue) {
-    for (const auto &visited_class : visited_classes_) {
+  void FinalizeSplit(Queue* queue) {
+    for (const auto& visited_class : visited_classes_) {
       const auto new_class = SplitRefine(visited_class);
       if (new_class != -1 && queue) queue->Enqueue(new_class);
     }
@@ -189,11 +186,11 @@ class Partition {
     ++yes_counter_;
   }
 
-  const T ClassId(T element_id) const { return elements_[element_id].class_id; }
+  T ClassId(T element_id) const { return elements_[element_id].class_id; }
 
-  const size_t ClassSize(T class_id) const { return classes_[class_id].size; }
+  size_t ClassSize(T class_id) const { return classes_[class_id].size; }
 
-  const T NumClasses() const { return classes_.size(); }
+  T NumClasses() const { return classes_.size(); }
 
  private:
   friend class PartitionIterator<T>;
@@ -247,8 +244,8 @@ class Partition {
     } else {
       auto new_class_id = classes_.size();
       classes_.resize(classes_.size() + 1);
-      auto &old_class = classes_[class_id];
-      auto &new_class = classes_[new_class_id];
+      auto& old_class = classes_[class_id];
+      auto& new_class = classes_[new_class_id];
       // The new_class will have the values from the constructor.
       if (no_size < yes_size) {
         // Moves the 'no' subset to new class ('no' subset).
@@ -297,21 +294,21 @@ class PartitionIterator {
  public:
   using Element = typename Partition<T>::Element;
 
-  PartitionIterator(const Partition<T> &partition, T class_id)
+  PartitionIterator(const Partition<T>& partition, T class_id)
       : partition_(partition),
         element_id_(partition_.classes_[class_id].no_head),
         class_id_(class_id) {}
 
-  bool Done() { return element_id_ < 0; }
+  bool Done() const { return element_id_ < 0; }
 
-  const T Value() { return element_id_; }
+  T Value() const { return element_id_; }
 
   void Next() { element_id_ = partition_.elements_[element_id_].next_element; }
 
   void Reset() { element_id_ = partition_.classes_[class_id_].no_head; }
 
  private:
-  const Partition<T> &partition_;
+  const Partition<T>& partition_;
   T element_id_;
   T class_id_;
 };

@@ -28,15 +28,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <string>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include <fst/log.h>
 #include <fst/arc-map.h>
 #include <fst/arc.h>
 #include <fst/cache.h>
-#include <fst/expanded-fst.h>
 #include <fst/float-weight.h>
 #include <fst/fst.h>
 #include <fst/impl-to-fst.h>
@@ -100,7 +98,7 @@ namespace fst {
 // Maps an arc type A using a mapper function object C, passed by pointer. This
 // version modifies the input FST.
 template <class A, class C>
-void StateMap(MutableFst<A> *fst, C *mapper) {
+void StateMap(MutableFst<A>* fst, C* mapper) {
   if (mapper->InputSymbolsAction() == MAP_CLEAR_SYMBOLS) {
     fst->SetInputSymbols(nullptr);
   }
@@ -125,14 +123,14 @@ void StateMap(MutableFst<A> *fst, C *mapper) {
 // Maps an arc type A using a mapper function object C, passed by value.
 // This version modifies the input FST.
 template <class A, class C>
-void StateMap(MutableFst<A> *fst, C mapper) {
+void StateMap(MutableFst<A>* fst, C mapper) {
   StateMap(fst, &mapper);
 }
 
 // Maps an arc type A to an arc type B using mapper functor C, passed by
 // pointer. This version writes to an output FST.
 template <class A, class B, class C>
-void StateMap(const Fst<A> &ifst, MutableFst<B> *ofst, C *mapper) {
+void StateMap(const Fst<A>& ifst, MutableFst<B>* ofst, C* mapper) {
   ofst->DeleteStates();
   if (mapper->InputSymbolsAction() == MAP_COPY_SYMBOLS) {
     ofst->SetInputSymbols(ifst.InputSymbols());
@@ -172,7 +170,7 @@ void StateMap(const Fst<A> &ifst, MutableFst<B> *ofst, C *mapper) {
 // Maps an arc type A to an arc type B using mapper functor object C, passed by
 // value. This version writes to an output FST.
 template <class A, class B, class C>
-void StateMap(const Fst<A> &ifst, MutableFst<B> *ofst, C mapper) {
+void StateMap(const Fst<A>& ifst, MutableFst<B>* ofst, C mapper) {
   StateMap(ifst, ofst, &mapper);
 }
 
@@ -230,8 +228,8 @@ class StateMapFstImpl : public CacheImpl<B> {
 
   friend class StateIterator<StateMapFst<A, B, C>>;
 
-  StateMapFstImpl(const Fst<A> &fst, const C &mapper,
-                  const StateMapFstOptions &opts)
+  StateMapFstImpl(const Fst<A>& fst, const C& mapper,
+                  const StateMapFstOptions& opts)
       : CacheImpl<B>(opts),
         fst_(fst.Copy()),
         mapper_(new C(mapper, fst_.get())),
@@ -239,7 +237,7 @@ class StateMapFstImpl : public CacheImpl<B> {
     Init();
   }
 
-  StateMapFstImpl(const Fst<A> &fst, C *mapper, const StateMapFstOptions &opts)
+  StateMapFstImpl(const Fst<A>& fst, C* mapper, const StateMapFstOptions& opts)
       : CacheImpl<B>(opts),
         fst_(fst.Copy()),
         mapper_(mapper),
@@ -247,7 +245,7 @@ class StateMapFstImpl : public CacheImpl<B> {
     Init();
   }
 
-  StateMapFstImpl(const StateMapFstImpl<A, B, C> &impl)
+  StateMapFstImpl(const StateMapFstImpl<A, B, C>& impl)
       : CacheImpl<B>(impl),
         fst_(impl.fst_->Copy(true)),
         mapper_(new C(*impl.mapper_, fst_.get())),
@@ -284,7 +282,7 @@ class StateMapFstImpl : public CacheImpl<B> {
     return CacheImpl<B>::NumOutputEpsilons(state);
   }
 
-  void InitStateIterator(StateIteratorData<B> *datb) const {
+  void InitStateIterator(StateIteratorData<B>* datb) const {
     StateIteratorData<A> data;
     fst_->InitStateIterator(&data);
     datb->base = data.base ? std::make_unique<StateMapStateIteratorBase<A, B>>(
@@ -293,7 +291,7 @@ class StateMapFstImpl : public CacheImpl<B> {
     datb->nstates = data.nstates;
   }
 
-  void InitArcIterator(StateId state, ArcIteratorData<B> *data) {
+  void InitArcIterator(StateId state, ArcIteratorData<B>* data) {
     if (!HasArcs(state)) Expand(state);
     CacheImpl<B>::InitArcIterator(state, data);
   }
@@ -316,7 +314,7 @@ class StateMapFstImpl : public CacheImpl<B> {
     SetArcs(state);
   }
 
-  const Fst<A> *GetFst() const { return fst_.get(); }
+  const Fst<A>* GetFst() const { return fst_.get(); }
 
  private:
   void Init() {
@@ -336,7 +334,7 @@ class StateMapFstImpl : public CacheImpl<B> {
   }
 
   std::unique_ptr<const Fst<A>> fst_;
-  C *mapper_;
+  C* mapper_;
   bool own_mapper_;
 };
 
@@ -346,6 +344,8 @@ class StateMapFstImpl : public CacheImpl<B> {
 // C. This version is a delayed FST.
 template <class A, class B, class C>
 class StateMapFst : public ImplToFst<internal::StateMapFstImpl<A, B, C>> {
+  using Base = ImplToFst<internal::StateMapFstImpl<A, B, C>>;
+
  public:
   friend class ArcIterator<StateMapFst<A, B, C>>;
 
@@ -354,46 +354,43 @@ class StateMapFst : public ImplToFst<internal::StateMapFstImpl<A, B, C>> {
   using Weight = typename Arc::Weight;
   using Store = DefaultCacheStore<Arc>;
   using State = typename Store::State;
-  using Impl = internal::StateMapFstImpl<A, B, C>;
+  using typename Base::Impl;
 
-  StateMapFst(const Fst<A> &fst, const C &mapper,
-              const StateMapFstOptions &opts)
-      : ImplToFst<Impl>(std::make_shared<Impl>(fst, mapper, opts)) {}
+  StateMapFst(const Fst<A>& fst, const C& mapper,
+              const StateMapFstOptions& opts)
+      : Base(std::make_shared<Impl>(fst, mapper, opts)) {}
 
-  StateMapFst(const Fst<A> &fst, C *mapper, const StateMapFstOptions &opts)
-      : ImplToFst<Impl>(std::make_shared<Impl>(fst, mapper, opts)) {}
+  StateMapFst(const Fst<A>& fst, C* mapper, const StateMapFstOptions& opts)
+      : Base(std::make_shared<Impl>(fst, mapper, opts)) {}
 
-  StateMapFst(const Fst<A> &fst, const C &mapper)
-      : ImplToFst<Impl>(
-            std::make_shared<Impl>(fst, mapper, StateMapFstOptions())) {}
+  StateMapFst(const Fst<A>& fst, const C& mapper)
+      : Base(std::make_shared<Impl>(fst, mapper, StateMapFstOptions())) {}
 
-  StateMapFst(const Fst<A> &fst, C *mapper)
-      : ImplToFst<Impl>(
-            std::make_shared<Impl>(fst, mapper, StateMapFstOptions())) {}
+  StateMapFst(const Fst<A>& fst, C* mapper)
+      : Base(std::make_shared<Impl>(fst, mapper, StateMapFstOptions())) {}
 
   // See Fst<>::Copy() for doc.
-  StateMapFst(const StateMapFst &fst, bool safe = false)
-      : ImplToFst<Impl>(fst, safe) {}
+  StateMapFst(const StateMapFst& fst, bool safe = false) : Base(fst, safe) {}
 
   // Get a copy of this StateMapFst. See Fst<>::Copy() for further doc.
-  StateMapFst *Copy(bool safe = false) const override {
+  StateMapFst* Copy(bool safe = false) const override {
     return new StateMapFst(*this, safe);
   }
 
-  void InitStateIterator(StateIteratorData<B> *data) const override {
+  void InitStateIterator(StateIteratorData<B>* data) const override {
     GetImpl()->InitStateIterator(data);
   }
 
-  void InitArcIterator(StateId state, ArcIteratorData<B> *data) const override {
+  void InitArcIterator(StateId state, ArcIteratorData<B>* data) const override {
     GetMutableImpl()->InitArcIterator(state, data);
   }
 
  protected:
-  using ImplToFst<Impl>::GetImpl;
-  using ImplToFst<Impl>::GetMutableImpl;
+  using Base::GetImpl;
+  using Base::GetMutableImpl;
 
  private:
-  StateMapFst &operator=(const StateMapFst &) = delete;
+  StateMapFst& operator=(const StateMapFst&) = delete;
 };
 
 // Specialization for StateMapFst.
@@ -403,7 +400,7 @@ class ArcIterator<StateMapFst<A, B, C>>
  public:
   using StateId = typename A::StateId;
 
-  ArcIterator(const StateMapFst<A, B, C> &fst, StateId state)
+  ArcIterator(const StateMapFst<A, B, C>& fst, StateId state)
       : CacheArcIterator<StateMapFst<A, B, C>>(fst.GetMutableImpl(), state) {
     if (!fst.GetImpl()->HasArcs(state)) fst.GetMutableImpl()->Expand(state);
   }
@@ -421,11 +418,11 @@ class IdentityStateMapper {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  explicit IdentityStateMapper(const Fst<Arc> &fst) : fst_(fst) {}
+  explicit IdentityStateMapper(const Fst<Arc>& fst) : fst_(fst) {}
 
   // Allows updating FST argument; pass only if changed.
-  IdentityStateMapper(const IdentityStateMapper<Arc> &mapper,
-                      const Fst<Arc> *fst = nullptr)
+  IdentityStateMapper(const IdentityStateMapper<Arc>& mapper,
+                      const Fst<Arc>* fst = nullptr)
       : fst_(fst ? *fst : mapper.fst_) {}
 
   StateId Start() const { return fst_.Start(); }
@@ -438,7 +435,7 @@ class IdentityStateMapper {
 
   bool Done() const { return aiter_->Done(); }
 
-  const Arc &Value() const { return aiter_->Value(); }
+  const Arc& Value() const { return aiter_->Value(); }
 
   void Next() { aiter_->Next(); }
 
@@ -453,7 +450,7 @@ class IdentityStateMapper {
   uint64_t Properties(uint64_t props) const { return props; }
 
  private:
-  const Fst<Arc> &fst_;
+  const Fst<Arc>& fst_;
   std::unique_ptr<ArcIterator<Fst<Arc>>> aiter_;
 };
 
@@ -466,10 +463,10 @@ class ArcSumMapper {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  explicit ArcSumMapper(const Fst<Arc> &fst) : fst_(fst), i_(0) {}
+  explicit ArcSumMapper(const Fst<Arc>& fst) : fst_(fst), i_(0) {}
 
   // Allows updating FST argument; pass only if changed.
-  ArcSumMapper(const ArcSumMapper<Arc> &mapper, const Fst<Arc> *fst = nullptr)
+  ArcSumMapper(const ArcSumMapper<Arc>& mapper, const Fst<Arc>* fst = nullptr)
       : fst_(fst ? *fst : mapper.fst_), i_(0) {}
 
   StateId Start() const { return fst_.Start(); }
@@ -489,7 +486,7 @@ class ArcSumMapper {
     // label, and destination state.
     std::sort(arcs_.begin(), arcs_.end(), comp_);
     size_t narcs = 0;
-    for (const auto &arc : arcs_) {
+    for (const auto& arc : arcs_) {
       if (narcs > 0 && equal_(arc, arcs_[narcs - 1])) {
         arcs_[narcs - 1].weight = Plus(arcs_[narcs - 1].weight, arc.weight);
       } else {
@@ -502,7 +499,7 @@ class ArcSumMapper {
 
   bool Done() const { return i_ >= arcs_.size(); }
 
-  const Arc &Value() const { return arcs_[i_]; }
+  const Arc& Value() const { return arcs_[i_]; }
 
   void Next() { ++i_; }
 
@@ -521,7 +518,7 @@ class ArcSumMapper {
 
  private:
   struct Compare {
-    bool operator()(const Arc &x, const Arc &y) const {
+    bool operator()(const Arc& x, const Arc& y) const {
       if (x.ilabel < y.ilabel) return true;
       if (x.ilabel > y.ilabel) return false;
       if (x.olabel < y.olabel) return true;
@@ -533,19 +530,19 @@ class ArcSumMapper {
   };
 
   struct Equal {
-    bool operator()(const Arc &x, const Arc &y) const {
+    bool operator()(const Arc& x, const Arc& y) const {
       return (x.ilabel == y.ilabel && x.olabel == y.olabel &&
               x.nextstate == y.nextstate);
     }
   };
 
-  const Fst<Arc> &fst_;
+  const Fst<Arc>& fst_;
   Compare comp_;
   Equal equal_;
   std::vector<Arc> arcs_;
   ssize_t i_;  // Current arc position.
 
-  ArcSumMapper &operator=(const ArcSumMapper &) = delete;
+  ArcSumMapper& operator=(const ArcSumMapper&) = delete;
 };
 
 template <class Arc>
@@ -557,11 +554,11 @@ class ArcUniqueMapper {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  explicit ArcUniqueMapper(const Fst<Arc> &fst) : fst_(fst), i_(0) {}
+  explicit ArcUniqueMapper(const Fst<Arc>& fst) : fst_(fst), i_(0) {}
 
   // Allows updating FST argument; pass only if changed.
-  ArcUniqueMapper(const ArcUniqueMapper<Arc> &mapper,
-                  const Fst<Arc> *fst = nullptr)
+  ArcUniqueMapper(const ArcUniqueMapper<Arc>& mapper,
+                  const Fst<Arc>* fst = nullptr)
       : fst_(fst ? *fst : mapper.fst_), i_(0) {}
 
   StateId Start() const { return fst_.Start(); }
@@ -584,7 +581,7 @@ class ArcUniqueMapper {
 
   bool Done() const { return i_ >= arcs_.size(); }
 
-  const Arc &Value() const { return arcs_[i_]; }
+  const Arc& Value() const { return arcs_[i_]; }
 
   void Next() { ++i_; }
 
@@ -602,7 +599,7 @@ class ArcUniqueMapper {
 
  private:
   struct Compare {
-    bool operator()(const Arc &x, const Arc &y) const {
+    bool operator()(const Arc& x, const Arc& y) const {
       if (x.ilabel < y.ilabel) return true;
       if (x.ilabel > y.ilabel) return false;
       if (x.olabel < y.olabel) return true;
@@ -614,19 +611,19 @@ class ArcUniqueMapper {
   };
 
   struct Equal {
-    bool operator()(const Arc &x, const Arc &y) const {
+    bool operator()(const Arc& x, const Arc& y) const {
       return (x.ilabel == y.ilabel && x.olabel == y.olabel &&
               x.nextstate == y.nextstate && x.weight == y.weight);
     }
   };
 
-  const Fst<Arc> &fst_;
+  const Fst<Arc>& fst_;
   Compare comp_;
   Equal equal_;
   std::vector<Arc> arcs_;
   size_t i_;  // Current arc position.
 
-  ArcUniqueMapper &operator=(const ArcUniqueMapper &) = delete;
+  ArcUniqueMapper& operator=(const ArcUniqueMapper&) = delete;
 };
 
 // Useful aliases when using StdArc.

@@ -21,18 +21,15 @@
 #ifndef FST_RATIONAL_H_
 #define FST_RATIONAL_H_
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
 #include <fst/cache.h>
 #include <fst/fst.h>
 #include <fst/impl-to-fst.h>
-#include <fst/mutable-fst.h>
 #include <fst/properties.h>
 #include <fst/replace.h>
 #include <fst/vector-fst.h>
@@ -51,16 +48,16 @@ template <class Arc>
 class RationalFst;
 
 template <class Arc>
-void Union(RationalFst<Arc> *fst1, const Fst<Arc> &fst2);
+void Union(RationalFst<Arc>* fst1, const Fst<Arc>& fst2);
 
 template <class Arc>
-void Concat(RationalFst<Arc> *fst1, const Fst<Arc> &fst2);
+void Concat(RationalFst<Arc>* fst1, const Fst<Arc>& fst2);
 
 template <class Arc>
-void Concat(const Fst<Arc> &fst1, RationalFst<Arc> *fst2);
+void Concat(const Fst<Arc>& fst1, RationalFst<Arc>* fst2);
 
 template <class Arc>
-void Closure(RationalFst<Arc> *fst, ClosureType closure_type);
+void Closure(RationalFst<Arc>* fst, ClosureType closure_type);
 
 namespace internal {
 
@@ -79,27 +76,27 @@ class RationalFstImpl : public FstImpl<A> {
   using FstImpl<Arc>::SetInputSymbols;
   using FstImpl<Arc>::SetOutputSymbols;
 
-  explicit RationalFstImpl(const RationalFstOptions &opts)
+  explicit RationalFstImpl(const RationalFstOptions& opts)
       : nonterminals_(0), replace_options_(opts, 0) {
     SetType("rational");
     fst_tuples_.emplace_back(0, nullptr);
   }
 
-  RationalFstImpl(const RationalFstImpl<Arc> &impl)
+  RationalFstImpl(const RationalFstImpl<Arc>& impl)
       : rfst_(impl.rfst_),
         nonterminals_(impl.nonterminals_),
         replace_(impl.replace_ ? impl.replace_->Copy(true) : nullptr),
         replace_options_(impl.replace_options_) {
     SetType("rational");
     fst_tuples_.reserve(impl.fst_tuples_.size());
-    for (const auto &pair : impl.fst_tuples_) {
+    for (const auto& pair : impl.fst_tuples_) {
       fst_tuples_.emplace_back(pair.first,
                                pair.second ? pair.second->Copy(true) : nullptr);
     }
   }
 
   ~RationalFstImpl() override {
-    for (auto &tuple : fst_tuples_) delete tuple.second;
+    for (auto& tuple : fst_tuples_) delete tuple.second;
   }
 
   StateId Start() { return Replace()->Start(); }
@@ -125,7 +122,7 @@ class RationalFstImpl : public FstImpl<A> {
   }
 
   // Implementation of UnionFst(fst1, fst2).
-  void InitUnion(const Fst<Arc> &fst1, const Fst<Arc> &fst2) {
+  void InitUnion(const Fst<Arc>& fst1, const Fst<Arc>& fst2) {
     replace_.reset();
     const auto props1 = fst1.Properties(kFstProperties, false);
     const auto props2 = fst2.Properties(kFstProperties, false);
@@ -146,7 +143,7 @@ class RationalFstImpl : public FstImpl<A> {
   }
 
   // Implementation of ConcatFst(fst1, fst2).
-  void InitConcat(const Fst<Arc> &fst1, const Fst<Arc> &fst2) {
+  void InitConcat(const Fst<Arc>& fst1, const Fst<Arc>& fst2) {
     replace_.reset();
     const auto props1 = fst1.Properties(kFstProperties, false);
     const auto props2 = fst2.Properties(kFstProperties, false);
@@ -168,7 +165,7 @@ class RationalFstImpl : public FstImpl<A> {
   }
 
   // Implementation of ClosureFst(fst, closure_type).
-  void InitClosure(const Fst<Arc> &fst, ClosureType closure_type) {
+  void InitClosure(const Fst<Arc>& fst, ClosureType closure_type) {
     replace_.reset();
     const auto props = fst.Properties(kFstProperties, false);
     SetInputSymbols(fst.InputSymbols());
@@ -195,7 +192,7 @@ class RationalFstImpl : public FstImpl<A> {
   }
 
   // Implementation of Union(Fst &, RationalFst *).
-  void AddUnion(const Fst<Arc> &fst) {
+  void AddUnion(const Fst<Arc>& fst) {
     replace_.reset();
     const auto props1 = FstImpl<A>::Properties();
     const auto props2 = fst.Properties(kFstProperties, false);
@@ -212,7 +209,7 @@ class RationalFstImpl : public FstImpl<A> {
   }
 
   // Implementation of Concat(Fst &, RationalFst *).
-  void AddConcat(const Fst<Arc> &fst, bool append) {
+  void AddConcat(const Fst<Arc>& fst, bool append) {
     replace_.reset();
     const auto props1 = FstImpl<A>::Properties();
     const auto props2 = fst.Properties(kFstProperties, false);
@@ -243,7 +240,7 @@ class RationalFstImpl : public FstImpl<A> {
 
   // Returns the underlying ReplaceFst, preserving ownership of the underlying
   // object.
-  ReplaceFst<Arc> *Replace() const {
+  ReplaceFst<Arc>* Replace() const {
     if (!replace_) {
       fst_tuples_[0].second = rfst_.Copy();
       replace_ =
@@ -258,7 +255,7 @@ class RationalFstImpl : public FstImpl<A> {
   // Number of nonterminals used.
   Label nonterminals_;
   // Contains the nonterminals and their corresponding FSTs.
-  mutable std::vector<std::pair<Label, const Fst<Arc> *>> fst_tuples_;
+  mutable std::vector<std::pair<Label, const Fst<Arc>*>> fst_tuples_;
   // Underlying ReplaceFst.
   mutable std::unique_ptr<ReplaceFst<Arc>> replace_;
   const ReplaceFstOptions<Arc> replace_options_;
@@ -271,46 +268,47 @@ class RationalFstImpl : public FstImpl<A> {
 // reference counting, delegating most methods to ImplToFst.
 template <class A>
 class RationalFst : public ImplToFst<internal::RationalFstImpl<A>> {
+  using Base = ImplToFst<internal::RationalFstImpl<A>>;
+
  public:
   using Arc = A;
   using StateId = typename Arc::StateId;
 
-  using Impl = internal::RationalFstImpl<Arc>;
+  using typename Base::Impl;
 
   friend class StateIterator<RationalFst<Arc>>;
   friend class ArcIterator<RationalFst<Arc>>;
-  friend void Union<>(RationalFst<Arc> *fst1, const Fst<Arc> &fst2);
-  friend void Concat<>(RationalFst<Arc> *fst1, const Fst<Arc> &fst2);
-  friend void Concat<>(const Fst<Arc> &fst1, RationalFst<Arc> *fst2);
-  friend void Closure<>(RationalFst<Arc> *fst, ClosureType closure_type);
+  friend void Union<>(RationalFst<Arc>* fst1, const Fst<Arc>& fst2);
+  friend void Concat<>(RationalFst<Arc>* fst1, const Fst<Arc>& fst2);
+  friend void Concat<>(const Fst<Arc>& fst1, RationalFst<Arc>* fst2);
+  friend void Closure<>(RationalFst<Arc>* fst, ClosureType closure_type);
 
-  void InitStateIterator(StateIteratorData<Arc> *data) const override {
+  void InitStateIterator(StateIteratorData<Arc>* data) const override {
     GetImpl()->Replace()->InitStateIterator(data);
   }
 
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) const override {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) const override {
     GetImpl()->Replace()->InitArcIterator(s, data);
   }
 
  protected:
-  using ImplToFst<Impl>::GetImpl;
+  using Base::GetImpl;
 
-  explicit RationalFst(const RationalFstOptions &opts = RationalFstOptions())
-      : ImplToFst<Impl>(std::make_shared<Impl>(opts)) {}
+  explicit RationalFst(const RationalFstOptions& opts = RationalFstOptions())
+      : Base(std::make_shared<Impl>(opts)) {}
 
   // See Fst<>::Copy() for doc.
-  RationalFst(const RationalFst &fst, bool safe = false)
-      : ImplToFst<Impl>(fst, safe) {}
+  RationalFst(const RationalFst& fst, bool safe = false) : Base(fst, safe) {}
 
  private:
-  RationalFst &operator=(const RationalFst &) = delete;
+  RationalFst& operator=(const RationalFst&) = delete;
 };
 
 // Specialization for RationalFst.
 template <class Arc>
 class StateIterator<RationalFst<Arc>> : public StateIterator<ReplaceFst<Arc>> {
  public:
-  explicit StateIterator(const RationalFst<Arc> &fst)
+  explicit StateIterator(const RationalFst<Arc>& fst)
       : StateIterator<ReplaceFst<Arc>>(*(fst.GetImpl()->Replace())) {}
 };
 
@@ -320,7 +318,7 @@ class ArcIterator<RationalFst<Arc>> : public CacheArcIterator<ReplaceFst<Arc>> {
  public:
   using StateId = typename Arc::StateId;
 
-  ArcIterator(const RationalFst<Arc> &fst, StateId s)
+  ArcIterator(const RationalFst<Arc>& fst, StateId s)
       : ArcIterator<ReplaceFst<Arc>>(*(fst.GetImpl()->Replace()), s) {}
 };
 

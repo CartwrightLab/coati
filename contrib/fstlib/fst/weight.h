@@ -21,7 +21,6 @@
 #define FST_WEIGHT_H_
 
 #include <cctype>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <ios>
@@ -34,7 +33,6 @@
 #include <utility>
 
 #include <fst/compat.h>
-#include <fst/log.h>
 #include <fst/util.h>
 
 DECLARE_string(fst_weight_parentheses);
@@ -153,7 +151,7 @@ inline constexpr uint64_t kPath = 0x0000000000000010ULL;
 // This is also used for a few other weight generation defaults.
 inline constexpr size_t kNumRandomWeights = 5;
 
-// Weight property boolean constants needed for SFINAE.
+// Weight property boolean constants.
 
 template <class W>
 using IsIdempotent = std::bool_constant<(W::Properties() & kIdempotent) != 0>;
@@ -194,7 +192,7 @@ struct NaturalLess {
   using Weight = W;
   static_assert(IsIdempotent<W>::value, "W must be idempotent.");
 
-  bool operator()(const Weight &w1, const Weight &w2) const {
+  bool operator()(const Weight& w1, const Weight& w2) const {
     return w1 != w2 && Plus(w1, w2) == w1;
   }
 };
@@ -202,7 +200,7 @@ struct NaturalLess {
 // Power is the iterated product for arbitrary semirings such that Power(w, 0)
 // is One() for the semiring, and Power(w, n) = Times(Power(w, n - 1), w).
 template <class Weight>
-Weight Power(const Weight &weight, size_t n) {
+Weight Power(const Weight& weight, size_t n) {
   auto result = Weight::One();
   for (size_t i = 0; i < n; ++i) result = Times(result, weight);
   return result;
@@ -216,7 +214,7 @@ class Adder {
 
   explicit Adder(Weight w) : sum_(std::move(w)) {}
 
-  Weight Add(const Weight &w) {
+  Weight Add(const Weight& w) {
     sum_ = Plus(sum_, w);
     return sum_;
   }
@@ -299,22 +297,22 @@ class CompositeWeightWriter : public internal::CompositeWeightIO {
  public:
   // Uses configuration from flags (FST_FLAGS_fst_weight_separator,
   // FST_FLAGS_fst_weight_parentheses).
-  explicit CompositeWeightWriter(std::ostream &ostrm);
+  explicit CompositeWeightWriter(std::ostream& ostrm);
 
   // parentheses defines the opening and closing parenthesis characters.
   // Set parentheses = {0, 0} to disable writing parenthesis.
-  CompositeWeightWriter(std::ostream &ostrm, char separator,
+  CompositeWeightWriter(std::ostream& ostrm, char separator,
                         std::pair<char, char> parentheses);
 
-  CompositeWeightWriter(const CompositeWeightWriter &) = delete;
-  CompositeWeightWriter &operator=(const CompositeWeightWriter &) = delete;
+  CompositeWeightWriter(const CompositeWeightWriter&) = delete;
+  CompositeWeightWriter& operator=(const CompositeWeightWriter&) = delete;
 
   // Writes open parenthesis to a stream if option selected.
   void WriteBegin();
 
   // Writes element to a stream.
   template <class T>
-  void WriteElement(const T &comp) {
+  void WriteElement(const T& comp) {
     if (i_++ > 0) ostrm_ << separator_;
     ostrm_ << comp;
   }
@@ -323,7 +321,7 @@ class CompositeWeightWriter : public internal::CompositeWeightIO {
   void WriteEnd();
 
  private:
-  std::ostream &ostrm_;
+  std::ostream& ostrm_;
   int i_ = 0;  // Element position.
 };
 
@@ -335,15 +333,15 @@ class CompositeWeightReader : public internal::CompositeWeightIO {
  public:
   // Uses configuration from flags (FST_FLAGS_fst_weight_separator,
   // FST_FLAGS_fst_weight_parentheses).
-  explicit CompositeWeightReader(std::istream &istrm);
+  explicit CompositeWeightReader(std::istream& istrm);
 
   // parentheses defines the opening and closing parenthesis characters.
   // Set parentheses = {0, 0} to disable reading parenthesis.
-  CompositeWeightReader(std::istream &istrm, char separator,
+  CompositeWeightReader(std::istream& istrm, char separator,
                         std::pair<char, char> parentheses);
 
-  CompositeWeightReader(const CompositeWeightReader &) = delete;
-  CompositeWeightReader &operator=(const CompositeWeightReader &) = delete;
+  CompositeWeightReader(const CompositeWeightReader&) = delete;
+  CompositeWeightReader& operator=(const CompositeWeightReader&) = delete;
 
   // Reads open parenthesis from a stream if option selected.
   void ReadBegin();
@@ -352,19 +350,19 @@ class CompositeWeightReader : public internal::CompositeWeightIO {
   // this will be the last element (allowing more forgiving formatting of the
   // last element). Returns false when last element is read.
   template <class T>
-  bool ReadElement(T *comp, bool last = false);
+  bool ReadElement(T* comp, bool last = false);
 
   // Finalizes reading.
   void ReadEnd();
 
  private:
-  std::istream &istrm_;  // Input stream.
+  std::istream& istrm_;  // Input stream.
   int c_ = 0;            // Last character read, or EOF.
   int depth_ = 0;        // Weight parentheses depth.
 };
 
 template <class T>
-inline bool CompositeWeightReader::ReadElement(T *comp, bool last) {
+inline bool CompositeWeightReader::ReadElement(T* comp, bool last) {
   std::string s;
   const bool has_parens = open_paren_ != 0;
   while ((c_ != std::istream::traits_type::eof()) && !std::isspace(c_) &&

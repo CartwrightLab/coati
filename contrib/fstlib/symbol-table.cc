@@ -20,33 +20,37 @@
 #include <fst/symbol-table.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <ios>
 #include <iostream>
 #include <istream>
 #include <memory>
-#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <fst/flags.h>
-#include <fst/log.h>
-
-#include <fstream>
-#include <fst/util.h>
 #include <map>
+#include <fst/flags.h>
 #include <functional>
+#include <fst/log.h>
+#include <fst/status/status.h>
+#include <fst/compat.h>
 #include <string_view>
 #include <fst/lock.h>
 
+#include <fst/file-stream-status.h>
+#include <fstream>
+#include <fst/util.h>
+
 DEFINE_bool(fst_compat_symbols, true,
-            "Require symbol tables to match when appropriate");
+          "Require symbol tables to match when appropriate");
 DEFINE_string(fst_field_separator, "\t ",
-              "Set of characters used as a separator between printed fields");
+          "Set of characters used as a separator between printed fields");
 
 namespace fst {
 namespace internal {
@@ -106,14 +110,14 @@ void DenseSymbolMap::RemoveSymbol(size_t idx) {
 
 void DenseSymbolMap::ShrinkToFit() { symbols_.shrink_to_fit(); }
 
-void MutableSymbolTableImpl::AddTable(const SymbolTable &table) {
-  for (const auto &item : table) {
+void MutableSymbolTableImpl::AddTable(const SymbolTable& table) {
+  for (const auto& item : table) {
     AddSymbol(item.Symbol());
   }
 }
 
-std::unique_ptr<SymbolTableImplBase>
-ConstSymbolTableImpl::Copy() const {
+ std::unique_ptr<SymbolTableImplBase> ConstSymbolTableImpl::Copy()
+    const {
   LOG(FATAL) << "ConstSymbolTableImpl can't be copied";
   return nullptr;
 }
@@ -135,16 +139,18 @@ void ConstSymbolTableImpl::SetName(std::string_view new_name) {
   LOG(FATAL) << "ConstSymbolTableImpl does not support SetName";
 }
 
-void ConstSymbolTableImpl::AddTable(const SymbolTable &table) {
+void ConstSymbolTableImpl::AddTable(const SymbolTable& table) {
   LOG(FATAL) << "ConstSymbolTableImpl does not support AddTable";
 }
 
-SymbolTableImpl * SymbolTableImpl::ReadText(
-    std::istream &strm, std::string_view name, const std::string &sep) {
+SymbolTableImpl*  SymbolTableImpl::ReadText(
+    std::istream& strm, std::string_view name, std::string_view sep) {
+  std::string input_separator = std::string(sep);
+  if (sep.empty()) input_separator = FST_FLAGS_fst_field_separator;
   auto impl = std::make_unique<SymbolTableImpl>(name);
   int64_t nline = 0;
   char line[kLineLen];
-  const auto separator = sep + "\n";
+  const std::string separator = fst::StrCat(input_separator, "\n");
   while (!strm.getline(line, kLineLen).fail()) {
     ++nline;
     const std::vector<std::string_view> col =
@@ -172,11 +178,11 @@ SymbolTableImpl * SymbolTableImpl::ReadText(
 
 void SymbolTableImpl::MaybeRecomputeCheckSum() const {
   {
-    ReaderMutexLock check_sum_lock(&check_sum_mutex_);
+    ReaderMutexLock check_sum_lock(check_sum_mutex_);
     if (check_sum_finalized_) return;
   }
   // We'll acquire an exclusive lock to recompute the checksums.
-  MutexLock check_sum_lock(&check_sum_mutex_);
+  MutexLock check_sum_lock(check_sum_mutex_);
   if (check_sum_finalized_) {  // Another thread (coming in around the same time
     return;                    // might have done it already). So we recheck.
   }
@@ -220,7 +226,7 @@ std::string SymbolTableImpl::Find(int64_t key) const {
 
 int64_t SymbolTableImpl::AddSymbol(std::string_view symbol, int64_t key) {
   if (key == kNoSymbol) return key;
-  if (const auto &[insert_key, inserted] = symbols_.InsertOrFind(symbol);
+  if (const auto& [insert_key, inserted] = symbols_.InsertOrFind(symbol);
       !inserted) {
     const auto key_already = GetNthKey(insert_key);
     if (key_already == key) return key;
@@ -254,7 +260,7 @@ void SymbolTableImpl::RemoveSymbol(const int64_t key) {
   if (idx < 0 || idx >= static_cast<int64_t>(symbols_.Size())) return;
   symbols_.RemoveSymbol(idx);
   // Removed one symbol, all indexes > idx are shifted by -1.
-  for (auto &k : key_map_) {
+  for (auto& k : key_map_) {
     if (k.second > idx) --k.second;
   }
   if (key >= 0 && key < dense_key_limit_) {
@@ -283,8 +289,8 @@ void SymbolTableImpl::RemoveSymbol(const int64_t key) {
   if (key == available_key_ - 1) available_key_ = key;
 }
 
-SymbolTableImpl * SymbolTableImpl::Read(
-    std::istream &strm, std::string_view source) {
+SymbolTableImpl*  SymbolTableImpl::Read(std::istream& strm,
+                                                     std::string_view source) {
   int32_t magic_number = 0;
   ReadType(strm, &magic_number);
   if (strm.fail()) {
@@ -317,7 +323,7 @@ SymbolTableImpl * SymbolTableImpl::Read(
   return impl.release();
 }
 
-bool SymbolTableImpl::Write(std::ostream &strm) const {
+bool SymbolTableImpl::Write(std::ostream& strm) const {
   WriteType(strm, kSymbolTableMagicNumber);
   WriteType(strm, name_);
   WriteType(strm, available_key_);
@@ -327,7 +333,7 @@ bool SymbolTableImpl::Write(std::ostream &strm) const {
     WriteType(strm, symbols_.GetSymbol(i));
     WriteType(strm, i);
   }
-  for (const auto &p : key_map_) {
+  for (const auto& p : key_map_) {
     WriteType(strm, symbols_.GetSymbol(p.second));
     WriteType(strm, p.first);
   }
@@ -343,8 +349,8 @@ void SymbolTableImpl::ShrinkToFit() { symbols_.ShrinkToFit(); }
 
 }  // namespace internal
 
-SymbolTable * SymbolTable::ReadText(const std::string &source,
-                                                    const std::string &sep) {
+SymbolTable*  SymbolTable::ReadText(const std::string& source,
+                                                 std::string_view sep) {
   std::ifstream strm(source, std::ios_base::in);
   if (!strm.good()) {
     LOG(ERROR) << "SymbolTable::ReadText: Can't open file: " << source;
@@ -353,7 +359,7 @@ SymbolTable * SymbolTable::ReadText(const std::string &source,
   return ReadText(strm, source, sep);
 }
 
-bool SymbolTable::Write(const std::string &source) const {
+bool SymbolTable::Write(const std::string& source) const {
   if (!source.empty()) {
     std::ofstream strm(source,
                              std::ios_base::out | std::ios_base::binary);
@@ -371,34 +377,40 @@ bool SymbolTable::Write(const std::string &source) const {
   }
 }
 
-bool SymbolTable::WriteText(std::ostream &strm, const std::string &sep) const {
-  for (const auto &item : *this) {
-    std::ostringstream line;
-    line << item.Symbol() << sep[0] << item.Label() << '\n';
-    strm.write(line.str().data(), line.str().length());
+::fst::Status SymbolTable::WriteTextWithStatus(std::ostream& strm,
+                                              std::string_view sep) const {
+  std::string separator = std::string(sep);
+  if (sep.empty()) separator = FST_FLAGS_fst_field_separator;
+  for (const auto& item : *this) {
+    strm << item.Symbol() << separator[0] << item.Label() << '\n';
+    if ((strm.fail())) {
+      return ::fst::InternalError(fst::StrCat(
+          "SymbolTable::WriteText: Write failed: ", std::strerror(errno)));
+    }
   }
-  return true;
+  return ::fst::OkStatus();
 }
 
-bool SymbolTable::WriteText(const std::string &sink,
-                            const std::string &sep) const {
-  if (!sink.empty()) {
-    std::ofstream strm(sink);
-    if (!strm) {
-      LOG(ERROR) << "SymbolTable::WriteText: Can't open file: " << sink;
-      return false;
-    }
-    if (!WriteText(strm, sep)) {
-      LOG(ERROR) << "SymbolTable::WriteText: Write failed: " << sink;
-      return false;
-    }
-    return true;
-  } else {
-    return WriteText(std::cout, sep);
+::fst::Status SymbolTable::WriteTextWithStatus(const std::string& path,
+                                              std::string_view sep) const {
+  if (path.empty()) {
+    return WriteTextWithStatus(std::cout, sep);
   }
+  std::ofstream strm(path);
+  // We don't have OpenFST shims for StatusBuilder and status macros yet,
+  // so we cannot use RETURN_IF_ERROR here.
+  // TODO(glebm): Use RETURN_IF_ERROR once we have shims.
+  if (const ::fst::Status status = GetFileStreamStatus(strm); !status.ok()) {
+    return status;
+  }
+  if (const ::fst::Status status = WriteTextWithStatus(strm, sep);
+      !status.ok()) {
+    return status;
+  }
+  return CloseFileStream(strm);
 }
 
-bool CompatSymbols(const SymbolTable *syms1, const SymbolTable *syms2,
+bool CompatSymbols(const SymbolTable* syms1, const SymbolTable* syms2,
                    bool warning) {
   // Flag can explicitly override this check.
   if (!FST_FLAGS_fst_compat_symbols) return true;
@@ -415,13 +427,13 @@ bool CompatSymbols(const SymbolTable *syms1, const SymbolTable *syms2,
   }
 }
 
-void SymbolTableToString(const SymbolTable *table, std::string *result) {
+void SymbolTableToString(const SymbolTable* table, std::string* result) {
   std::ostringstream ostrm;
   table->Write(ostrm);
   *result = ostrm.str();
 }
 
-SymbolTable *StringToSymbolTable(const std::string &str) {
+SymbolTable* StringToSymbolTable(const std::string& str) {
   std::istringstream istrm(str);
   // TODO(jrosenstock): Change to source="string".
   return SymbolTable::Read(istrm, /*source=*/"");

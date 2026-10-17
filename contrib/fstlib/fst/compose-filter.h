@@ -28,7 +28,6 @@
 #include <fst/filter-state.h>
 #include <fst/fst-decl.h>  // For optional argument declarations
 #include <fst/fst.h>
-#include <fst/matcher.h>
 #include <fst/properties.h>
 
 namespace fst {
@@ -107,14 +106,14 @@ class NullComposeFilter {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  NullComposeFilter(const FST1 &fst1, const FST2 &fst2,
-                    Matcher1 *matcher1 = nullptr, Matcher2 *matcher2 = nullptr)
+  NullComposeFilter(const FST1& fst1, const FST2& fst2,
+                    Matcher1* matcher1 = nullptr, Matcher2* matcher2 = nullptr)
       : matcher1_(matcher1 ? matcher1 : new Matcher1(fst1, MATCH_OUTPUT)),
         matcher2_(matcher2 ? matcher2 : new Matcher2(fst2, MATCH_INPUT)),
         fst1_(matcher1_->GetFst()),
         fst2_(matcher2_->GetFst()) {}
 
-  NullComposeFilter(const NullComposeFilter &filter, bool safe = false)
+  NullComposeFilter(const NullComposeFilter& filter, bool safe = false)
       : matcher1_(filter.matcher1_->Copy(safe)),
         matcher2_(filter.matcher2_->Copy(safe)),
         fst1_(matcher1_->GetFst()),
@@ -122,27 +121,27 @@ class NullComposeFilter {
 
   FilterState Start() const { return FilterState(true); }
 
-  void SetState(StateId, StateId, const FilterState &) {}
+  void SetState(StateId, StateId, const FilterState&) {}
 
-  FilterState FilterArc(Arc *arc1, Arc *arc2) const {
+  FilterState FilterArc(Arc* arc1, Arc* arc2) const {
     return (arc1->olabel == kNoLabel || arc2->ilabel == kNoLabel)
                ? FilterState::NoState()
                : FilterState(true);
   }
 
-  void FilterFinal(Weight *, Weight *) const {}
+  void FilterFinal(Weight*, Weight*) const {}
 
-  Matcher1 *GetMatcher1() { return matcher1_.get(); }
+  Matcher1* GetMatcher1() { return matcher1_.get(); }
 
-  Matcher2 *GetMatcher2() { return matcher2_.get(); }
+  Matcher2* GetMatcher2() { return matcher2_.get(); }
 
   uint64_t Properties(uint64_t props) const { return props; }
 
  private:
   std::unique_ptr<Matcher1> matcher1_;
   std::unique_ptr<Matcher2> matcher2_;
-  const FST1 &fst1_;
-  const FST2 &fst2_;
+  const FST1& fst1_;
+  const FST2& fst2_;
 };
 
 // This filter allows all epsilon matches, potentially resulting in redundant
@@ -169,15 +168,15 @@ class TrivialComposeFilter {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  TrivialComposeFilter(const FST1 &fst1, const FST2 &fst2,
-                       Matcher1 *matcher1 = nullptr,
-                       Matcher2 *matcher2 = nullptr)
+  TrivialComposeFilter(const FST1& fst1, const FST2& fst2,
+                       Matcher1* matcher1 = nullptr,
+                       Matcher2* matcher2 = nullptr)
       : matcher1_(matcher1 ? matcher1 : new Matcher1(fst1, MATCH_OUTPUT)),
         matcher2_(matcher2 ? matcher2 : new Matcher2(fst2, MATCH_INPUT)),
         fst1_(matcher1_->GetFst()),
         fst2_(matcher2_->GetFst()) {}
 
-  TrivialComposeFilter(const TrivialComposeFilter<Matcher1, Matcher2> &filter,
+  TrivialComposeFilter(const TrivialComposeFilter<Matcher1, Matcher2>& filter,
                        bool safe = false)
       : matcher1_(filter.matcher1_->Copy(safe)),
         matcher2_(filter.matcher2_->Copy(safe)),
@@ -186,23 +185,23 @@ class TrivialComposeFilter {
 
   FilterState Start() const { return FilterState(true); }
 
-  void SetState(StateId, StateId, const FilterState &) {}
+  void SetState(StateId, StateId, const FilterState&) {}
 
-  FilterState FilterArc(Arc *, Arc *) const { return FilterState(true); }
+  FilterState FilterArc(Arc*, Arc*) const { return FilterState(true); }
 
-  void FilterFinal(Weight *, Weight *) const {}
+  void FilterFinal(Weight*, Weight*) const {}
 
-  Matcher1 *GetMatcher1() { return matcher1_.get(); }
+  Matcher1* GetMatcher1() { return matcher1_.get(); }
 
-  Matcher2 *GetMatcher2() { return matcher2_.get(); }
+  Matcher2* GetMatcher2() { return matcher2_.get(); }
 
   uint64_t Properties(uint64_t props) const { return props; }
 
  private:
   std::unique_ptr<Matcher1> matcher1_;
   std::unique_ptr<Matcher2> matcher2_;
-  const FST1 &fst1_;
-  const FST2 &fst2_;
+  const FST1& fst1_;
+  const FST2& fst2_;
 };
 
 // This filter requires epsilons on FST1 to be read before epsilons on FST2.
@@ -220,9 +219,9 @@ class SequenceComposeFilter {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  SequenceComposeFilter(const FST1 &fst1, const FST2 &fst2,
-                        Matcher1 *matcher1 = nullptr,
-                        Matcher2 *matcher2 = nullptr)
+  SequenceComposeFilter(const FST1& fst1, const FST2& fst2,
+                        Matcher1* matcher1 = nullptr,
+                        Matcher2* matcher2 = nullptr)
       : matcher1_(matcher1 ? matcher1 : new Matcher1(fst1, MATCH_OUTPUT)),
         matcher2_(matcher2 ? matcher2 : new Matcher2(fst2, MATCH_INPUT)),
         fst1_(matcher1_->GetFst()),
@@ -230,7 +229,7 @@ class SequenceComposeFilter {
         s2_(kNoStateId),
         fs_(kNoStateId) {}
 
-  SequenceComposeFilter(const SequenceComposeFilter<Matcher1, Matcher2> &filter,
+  SequenceComposeFilter(const SequenceComposeFilter<Matcher1, Matcher2>& filter,
                         bool safe = false)
       : matcher1_(filter.matcher1_->Copy(safe)),
         matcher2_(filter.matcher2_->Copy(safe)),
@@ -241,7 +240,7 @@ class SequenceComposeFilter {
 
   FilterState Start() const { return FilterState(0); }
 
-  void SetState(StateId s1, StateId s2, const FilterState &fs) {
+  void SetState(StateId s1, StateId s2, const FilterState& fs) {
     if (s1_ == s1 && s2_ == s2 && fs == fs_) return;
     s1_ = s1;
     s2_ = s2;
@@ -253,7 +252,7 @@ class SequenceComposeFilter {
     noeps1_ = ne1 == 0;
   }
 
-  FilterState FilterArc(Arc *arc1, Arc *arc2) const {
+  FilterState FilterArc(Arc* arc1, Arc* arc2) const {
     if (arc1->olabel == kNoLabel) {
       return alleps1_  ? FilterState::NoState()
              : noeps1_ ? FilterState(0)
@@ -265,18 +264,18 @@ class SequenceComposeFilter {
     }
   }
 
-  void FilterFinal(Weight *, Weight *) const {}
+  void FilterFinal(Weight*, Weight*) const {}
 
-  Matcher1 *GetMatcher1() { return matcher1_.get(); }
+  Matcher1* GetMatcher1() { return matcher1_.get(); }
 
-  Matcher2 *GetMatcher2() { return matcher2_.get(); }
+  Matcher2* GetMatcher2() { return matcher2_.get(); }
 
   uint64_t Properties(uint64_t props) const { return props; }
 
  private:
   std::unique_ptr<Matcher1> matcher1_;
   std::unique_ptr<Matcher2> matcher2_;
-  const FST1 &fst1_;
+  const FST1& fst1_;
   StateId s1_;      // Current fst1_ state.
   StateId s2_;      // Current fst2_ state.
   FilterState fs_;  // Current filter state.
@@ -299,9 +298,9 @@ class AltSequenceComposeFilter {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  AltSequenceComposeFilter(const FST1 &fst1, const FST2 &fst2,
-                           Matcher1 *matcher1 = nullptr,
-                           Matcher2 *matcher2 = nullptr)
+  AltSequenceComposeFilter(const FST1& fst1, const FST2& fst2,
+                           Matcher1* matcher1 = nullptr,
+                           Matcher2* matcher2 = nullptr)
       : matcher1_(matcher1 ? matcher1 : new Matcher1(fst1, MATCH_OUTPUT)),
         matcher2_(matcher2 ? matcher2 : new Matcher2(fst2, MATCH_INPUT)),
         fst2_(matcher2_->GetFst()),
@@ -310,7 +309,7 @@ class AltSequenceComposeFilter {
         fs_(kNoStateId) {}
 
   AltSequenceComposeFilter(
-      const AltSequenceComposeFilter<Matcher1, Matcher2> &filter,
+      const AltSequenceComposeFilter<Matcher1, Matcher2>& filter,
       bool safe = false)
       : matcher1_(filter.matcher1_->Copy(safe)),
         matcher2_(filter.matcher2_->Copy(safe)),
@@ -321,7 +320,7 @@ class AltSequenceComposeFilter {
 
   FilterState Start() const { return FilterState(0); }
 
-  void SetState(StateId s1, StateId s2, const FilterState &fs) {
+  void SetState(StateId s1, StateId s2, const FilterState& fs) {
     if (s1_ == s1 && s2_ == s2 && fs == fs_) return;
     s1_ = s1;
     s2_ = s2;
@@ -333,7 +332,7 @@ class AltSequenceComposeFilter {
     noeps2_ = ne2 == 0;
   }
 
-  FilterState FilterArc(Arc *arc1, Arc *arc2) const {
+  FilterState FilterArc(Arc* arc1, Arc* arc2) const {
     if (arc2->ilabel == kNoLabel) {
       return alleps2_  ? FilterState::NoState()
              : noeps2_ ? FilterState(0)
@@ -345,18 +344,18 @@ class AltSequenceComposeFilter {
     }
   }
 
-  void FilterFinal(Weight *, Weight *) const {}
+  void FilterFinal(Weight*, Weight*) const {}
 
-  Matcher1 *GetMatcher1() { return matcher1_.get(); }
+  Matcher1* GetMatcher1() { return matcher1_.get(); }
 
-  Matcher2 *GetMatcher2() { return matcher2_.get(); }
+  Matcher2* GetMatcher2() { return matcher2_.get(); }
 
   uint64_t Properties(uint64_t props) const { return props; }
 
  private:
   std::unique_ptr<Matcher1> matcher1_;
   std::unique_ptr<Matcher2> matcher2_;
-  const FST2 &fst2_;
+  const FST2& fst2_;
   StateId s1_;      // Current fst1_ state.
   StateId s2_;      // Current fst2_ state.
   FilterState fs_;  // Current filter state.
@@ -380,8 +379,8 @@ class MatchComposeFilter {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  MatchComposeFilter(const FST1 &fst1, const FST2 &fst2,
-                     Matcher1 *matcher1 = nullptr, Matcher2 *matcher2 = nullptr)
+  MatchComposeFilter(const FST1& fst1, const FST2& fst2,
+                     Matcher1* matcher1 = nullptr, Matcher2* matcher2 = nullptr)
       : matcher1_(matcher1 ? matcher1 : new Matcher1(fst1, MATCH_OUTPUT)),
         matcher2_(matcher2 ? matcher2 : new Matcher2(fst2, MATCH_INPUT)),
         fst1_(matcher1_->GetFst()),
@@ -390,7 +389,7 @@ class MatchComposeFilter {
         s2_(kNoStateId),
         fs_(kNoStateId) {}
 
-  MatchComposeFilter(const MatchComposeFilter<Matcher1, Matcher2> &filter,
+  MatchComposeFilter(const MatchComposeFilter<Matcher1, Matcher2>& filter,
                      bool safe = false)
       : matcher1_(filter.matcher1_->Copy(safe)),
         matcher2_(filter.matcher2_->Copy(safe)),
@@ -402,7 +401,7 @@ class MatchComposeFilter {
 
   FilterState Start() const { return FilterState(0); }
 
-  void SetState(StateId s1, StateId s2, const FilterState &fs) {
+  void SetState(StateId s1, StateId s2, const FilterState& fs) {
     if (s1_ == s1 && s2_ == s2 && fs == fs_) return;
     s1_ = s1;
     s2_ = s2;
@@ -419,7 +418,7 @@ class MatchComposeFilter {
     noeps2_ = ne2 == 0;
   }
 
-  FilterState FilterArc(Arc *arc1, Arc *arc2) const {
+  FilterState FilterArc(Arc* arc1, Arc* arc2) const {
     if (arc2->ilabel == kNoLabel) {  // Epsilon in FST1.
       return fs_ == FilterState(0)
                  ? (noeps2_
@@ -441,19 +440,19 @@ class MatchComposeFilter {
     }
   }
 
-  void FilterFinal(Weight *, Weight *) const {}
+  void FilterFinal(Weight*, Weight*) const {}
 
-  Matcher1 *GetMatcher1() { return matcher1_.get(); }
+  Matcher1* GetMatcher1() { return matcher1_.get(); }
 
-  Matcher2 *GetMatcher2() { return matcher2_.get(); }
+  Matcher2* GetMatcher2() { return matcher2_.get(); }
 
   uint64_t Properties(uint64_t props) const { return props; }
 
  private:
   std::unique_ptr<Matcher1> matcher1_;
   std::unique_ptr<Matcher2> matcher2_;
-  const FST1 &fst1_;
-  const FST2 &fst2_;
+  const FST1& fst1_;
+  const FST2& fst2_;
   StateId s1_;      // Current fst1_ state.
   StateId s2_;      // Current fst2_ state.
   FilterState fs_;  // Current filter state ID.
@@ -488,15 +487,15 @@ class NoMatchComposeFilter {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  NoMatchComposeFilter(const FST1 &fst1, const FST2 &fst2,
-                       Matcher1 *matcher1 = nullptr,
-                       Matcher2 *matcher2 = nullptr)
+  NoMatchComposeFilter(const FST1& fst1, const FST2& fst2,
+                       Matcher1* matcher1 = nullptr,
+                       Matcher2* matcher2 = nullptr)
       : matcher1_(matcher1 ? matcher1 : new Matcher1(fst1, MATCH_OUTPUT)),
         matcher2_(matcher2 ? matcher2 : new Matcher2(fst2, MATCH_INPUT)),
         fst1_(matcher1_->GetFst()),
         fst2_(matcher2_->GetFst()) {}
 
-  NoMatchComposeFilter(const NoMatchComposeFilter<Matcher1, Matcher2> &filter,
+  NoMatchComposeFilter(const NoMatchComposeFilter<Matcher1, Matcher2>& filter,
                        bool safe = false)
       : matcher1_(filter.matcher1_->Copy(safe)),
         matcher2_(filter.matcher2_->Copy(safe)),
@@ -505,25 +504,25 @@ class NoMatchComposeFilter {
 
   FilterState Start() const { return FilterState(true); }
 
-  void SetState(StateId, StateId, const FilterState &) {}
+  void SetState(StateId, StateId, const FilterState&) {}
 
-  FilterState FilterArc(Arc *arc1, Arc *arc2) const {
+  FilterState FilterArc(Arc* arc1, Arc* arc2) const {
     return FilterState(arc1->olabel != 0 || arc2->ilabel != 0);
   }
 
-  void FilterFinal(Weight *, Weight *) const {}
+  void FilterFinal(Weight*, Weight*) const {}
 
-  Matcher1 *GetMatcher1() { return matcher1_.get(); }
+  Matcher1* GetMatcher1() { return matcher1_.get(); }
 
-  Matcher2 *GetMatcher2() { return matcher2_.get(); }
+  Matcher2* GetMatcher2() { return matcher2_.get(); }
 
   uint64_t Properties(uint64_t props) const { return props; }
 
  private:
   std::unique_ptr<Matcher1> matcher1_;
   std::unique_ptr<Matcher2> matcher2_;
-  const FST1 &fst1_;
-  const FST2 &fst2_;
+  const FST1& fst1_;
+  const FST2& fst2_;
 };
 
 // This filter works with the MultiEpsMatcher to determine if multi-epsilons are
@@ -543,23 +542,23 @@ class MultiEpsFilter {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  MultiEpsFilter(const FST1 &fst1, const FST2 &fst2,
-                 Matcher1 *matcher1 = nullptr, Matcher2 *matcher2 = nullptr,
+  MultiEpsFilter(const FST1& fst1, const FST2& fst2,
+                 Matcher1* matcher1 = nullptr, Matcher2* matcher2 = nullptr,
                  bool keep_multi_eps = false)
       : filter_(fst1, fst2, matcher1, matcher2),
         keep_multi_eps_(keep_multi_eps) {}
 
-  MultiEpsFilter(const MultiEpsFilter &filter, bool safe = false)
+  MultiEpsFilter(const MultiEpsFilter& filter, bool safe = false)
       : filter_(filter.filter_, safe),
         keep_multi_eps_(filter.keep_multi_eps_) {}
 
   FilterState Start() const { return filter_.Start(); }
 
-  void SetState(StateId s1, StateId s2, const FilterState &fs) {
+  void SetState(StateId s1, StateId s2, const FilterState& fs) {
     return filter_.SetState(s1, s2, fs);
   }
 
-  FilterState FilterArc(Arc *arc1, Arc *arc2) const {
+  FilterState FilterArc(Arc* arc1, Arc* arc2) const {
     const auto fs = filter_.FilterArc(arc1, arc2);
     if (keep_multi_eps_) {
       if (arc1->olabel == kNoLabel) arc1->ilabel = arc2->ilabel;
@@ -568,13 +567,13 @@ class MultiEpsFilter {
     return fs;
   }
 
-  void FilterFinal(Weight *w1, Weight *w2) const {
+  void FilterFinal(Weight* w1, Weight* w2) const {
     return filter_.FilterFinal(w1, w2);
   }
 
-  Matcher1 *GetMatcher1() { return filter_.GetMatcher1(); }
+  Matcher1* GetMatcher1() { return filter_.GetMatcher1(); }
 
-  Matcher2 *GetMatcher2() { return filter_.GetMatcher2(); }
+  Matcher2* GetMatcher2() { return filter_.GetMatcher2(); }
 
   uint64_t Properties(uint64_t iprops) const {
     const auto oprops = filter_.Properties(iprops);

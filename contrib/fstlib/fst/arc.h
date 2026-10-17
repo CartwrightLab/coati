@@ -23,6 +23,7 @@
 #include <climits>
 #include <cstddef>
 #include <cstdint>
+#include <ostream>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -32,6 +33,7 @@
 #include <fst/float-weight.h>
 #include <fst/fst-decl.h>  // For optional argument declarations
 #include <fst/lexicographic-weight.h>
+#include <fst/port.h>
 #include <fst/power-weight.h>
 #include <fst/product-weight.h>
 #include <fst/signed-log-weight.h>
@@ -40,8 +42,10 @@
 
 namespace fst {
 
+// Annotate with FST_LTO_VISIBILITY_PUBLIC to suppress Clang's whole program
+// devirtualization optimization. See b/392633566 for context.
 template <class W, class L /* = int */, class S /* = int */>
-struct ArcTpl {
+struct FST_LTO_VISIBILITY_PUBLIC ArcTpl {
  public:
   using Weight = W;
   using Label = L;
@@ -55,7 +59,7 @@ struct ArcTpl {
   ArcTpl() noexcept(std::is_nothrow_default_constructible_v<Weight>) = default;
 
   template <class T>
-  ArcTpl(Label ilabel, Label olabel, T &&weight, StateId nextstate)
+  ArcTpl(Label ilabel, Label olabel, T&& weight, StateId nextstate)
       : ilabel(ilabel),
         olabel(olabel),
         weight(std::forward<T>(weight)),
@@ -65,10 +69,17 @@ struct ArcTpl {
   ArcTpl(Label ilabel, Label olabel, StateId nextstate)
       : ArcTpl(ilabel, olabel, Weight::One(), nextstate) {}
 
-  static const std::string &Type() {
-    static const auto *const type = new std::string(
+  static const std::string& Type() {
+    static const auto* const type = new std::string(
         Weight::Type() == "tropical" ? "standard" : Weight::Type());
     return *type;
+  }
+
+  friend std::ostream& operator<<(std::ostream& strm, const ArcTpl& arc) {
+    // All weights support operator<<(ostream&).
+    strm << arc.Type() << " ilab: " << arc.ilabel << " olab: " << arc.olabel
+         << " w: " << arc.weight << " next: " << arc.nextstate;
+    return strm;
   }
 };
 
@@ -90,8 +101,8 @@ struct StringArc : public ArcTpl<StringWeight<int, S>> {
 
   using Base::Base;
 
-  static const std::string &Type() {
-    static const auto *const type = new std::string(
+  static const std::string& Type() {
+    static const auto* const type = new std::string(
         S == STRING_LEFT ? "left_standard_string"
                          : (S == STRING_RIGHT ? "right_standard_string"
                                               : "restricted_standard_string"));
@@ -110,12 +121,12 @@ struct GallicArc : public ArcTpl<GallicWeight<int, typename A::Weight, G>,
 
   using Base::Base;
 
-  explicit GallicArc(const Arc &arc)
+  explicit GallicArc(const Arc& arc)
       : Base(arc.ilabel, arc.ilabel, Weight(arc.olabel, arc.weight),
              arc.nextstate) {}
 
-  static const std::string &Type() {
-    static const auto *const type = new std::string(
+  static const std::string& Type() {
+    static const auto* const type = new std::string(
         (G == GALLIC_LEFT
              ? "left_gallic_"
              : (G == GALLIC_RIGHT
@@ -138,8 +149,8 @@ struct ReverseArc : public ArcTpl<typename A::Weight::ReverseWeight,
 
   using Base::Base;
 
-  static const std::string &Type() {
-    static const auto *const type = new std::string("reverse_" + Arc::Type());
+  static const std::string& Type() {
+    static const auto* const type = new std::string("reverse_" + Arc::Type());
     return *type;
   }
 };
@@ -164,8 +175,8 @@ struct PowerArc : public ArcTpl<PowerWeight<typename A::Weight, n>,
 
   using Base::Base;
 
-  static const std::string &Type() {
-    static const auto *const type =
+  static const std::string& Type() {
+    static const auto* const type =
         new std::string(Arc::Type() + "_^" + std::to_string(n));
     return *type;
   }
@@ -182,8 +193,8 @@ struct SparsePowerArc : public ArcTpl<SparsePowerWeight<typename A::Weight, K>,
 
   using Base::Base;
 
-  static const std::string &Type() {
-    static const std::string *const type = [] {
+  static const std::string& Type() {
+    static const std::string* const type = [] {
       std::string type = Arc::Type() + "_^n";
       if (sizeof(K) != sizeof(uint32_t)) {
         type += "_" + std::to_string(CHAR_BIT * sizeof(K));
@@ -207,8 +218,8 @@ struct ExpectationArc : public ArcTpl<ExpectationWeight<typename A::Weight, X2>,
 
   using Base::Base;
 
-  static const std::string &Type() {
-    static const auto *const type =
+  static const std::string& Type() {
+    static const auto* const type =
         new std::string("expectation_" + Arc::Type() + "_" + X2::Type());
     return *type;
   }

@@ -53,36 +53,36 @@ class SparsePowerWeight : public SparseTupleWeight<W, K> {
 
   SparsePowerWeight() = default;
 
-  explicit SparsePowerWeight(const Base &weight) : Base(weight) {}
+  explicit SparsePowerWeight(const Base& weight) : Base(weight) {}
 
   template <class Iterator>
   SparsePowerWeight(Iterator begin, Iterator end) : Base(begin, end) {}
 
   // Initialize component `key` to `weight`, with `default_weight` for all
   // other components.
-  SparsePowerWeight(const K &key, const W &weight,
-                    const W &default_weight = W::Zero())
+  SparsePowerWeight(const K& key, const W& weight,
+                    const W& default_weight = W::Zero())
       : Base(key, weight, default_weight) {}
 
-  static const SparsePowerWeight &Zero() {
+  static const SparsePowerWeight& Zero() {
     static const SparsePowerWeight zero(Base::Zero());
     return zero;
   }
 
-  static const SparsePowerWeight &One() {
+  static const SparsePowerWeight& One() {
     static const SparsePowerWeight one(Base::One());
     return one;
   }
 
-  static const SparsePowerWeight &NoWeight() {
+  static const SparsePowerWeight& NoWeight() {
     static const SparsePowerWeight no_weight(Base::NoWeight());
     return no_weight;
   }
 
   // Overide this: Overwrite the Type method to reflect the key type if using
   // a non-default key type.
-  static const std::string &Type() {
-    static const std::string *const type = [] {
+  static const std::string& Type() {
+    static const std::string* const type = [] {
       std::string type = W::Type() + "_^n";
       if (sizeof(K) != sizeof(uint32_t)) {
         type += "_" + std::to_string(CHAR_BIT * sizeof(K));
@@ -106,8 +106,8 @@ class SparsePowerWeight : public SparseTupleWeight<W, K> {
 
 template <class W, class K, class M>
 inline SparsePowerWeight<W, K> SparsePowerWeightMap(
-    const SparsePowerWeight<W, K> &w1, const SparsePowerWeight<W, K> &w2,
-    const M &operator_mapper) {
+    const SparsePowerWeight<W, K>& w1, const SparsePowerWeight<W, K>& w2,
+    const M& operator_mapper) {
   SparsePowerWeight<W, K> result;
   SparseTupleWeightMap(&result, w1, w2, operator_mapper);
   return result;
@@ -115,46 +115,46 @@ inline SparsePowerWeight<W, K> SparsePowerWeightMap(
 
 // Semimodule plus operation.
 template <class W, class K>
-inline SparsePowerWeight<W, K> Plus(const SparsePowerWeight<W, K> &w1,
-                                    const SparsePowerWeight<W, K> &w2) {
-  return SparsePowerWeightMap(w1, w2, [](const K &k, const W &v1, const W &v2) {
+inline SparsePowerWeight<W, K> Plus(const SparsePowerWeight<W, K>& w1,
+                                    const SparsePowerWeight<W, K>& w2) {
+  return SparsePowerWeightMap(w1, w2, [](const K& k, const W& v1, const W& v2) {
     return Plus(v1, v2);
   });
 }
 
 // Semimodule minus operation.
 template <class W, class K>
-inline SparsePowerWeight<W, K> Minus(const SparsePowerWeight<W, K> &w1,
-                                     const SparsePowerWeight<W, K> &w2) {
-  return SparsePowerWeightMap(w1, w2, [](const K &k, const W &v1, const W &v2) {
+inline SparsePowerWeight<W, K> Minus(const SparsePowerWeight<W, K>& w1,
+                                     const SparsePowerWeight<W, K>& w2) {
+  return SparsePowerWeightMap(w1, w2, [](const K& k, const W& v1, const W& v2) {
     return Minus(v1, v2);
   });
 }
 
 // Semimodule times operation.
 template <class W, class K>
-inline SparsePowerWeight<W, K> Times(const SparsePowerWeight<W, K> &w1,
-                                     const SparsePowerWeight<W, K> &w2) {
-  return SparsePowerWeightMap(w1, w2, [](const K &k, const W &v1, const W &v2) {
+inline SparsePowerWeight<W, K> Times(const SparsePowerWeight<W, K>& w1,
+                                     const SparsePowerWeight<W, K>& w2) {
+  return SparsePowerWeightMap(w1, w2, [](const K& k, const W& v1, const W& v2) {
     return Times(v1, v2);
   });
 }
 
 // Semimodule divide operation.
 template <class W, class K>
-inline SparsePowerWeight<W, K> Divide(const SparsePowerWeight<W, K> &w1,
-                                      const SparsePowerWeight<W, K> &w2,
+inline SparsePowerWeight<W, K> Divide(const SparsePowerWeight<W, K>& w1,
+                                      const SparsePowerWeight<W, K>& w2,
                                       DivideType type = DIVIDE_ANY) {
   return SparsePowerWeightMap(w1, w2,
-                              [type](const K &k, const W &v1, const W &v2) {
+                              [type](const K& k, const W& v1, const W& v2) {
                                 return Divide(v1, v2, type);
                               });
 }
 
 // Semimodule dot product operation.
 template <class W, class K>
-inline const W &DotProduct(const SparsePowerWeight<W, K> &w1,
-                           const SparsePowerWeight<W, K> &w2) {
+inline const W& DotProduct(const SparsePowerWeight<W, K>& w1,
+                           const SparsePowerWeight<W, K>& w2) {
   const SparsePowerWeight<W, K> product = Times(w1, w2);
   W result(W::Zero());
   for (SparseTupleWeightIterator<W, K> it(product); !it.Done(); it.Next()) {
@@ -164,35 +164,35 @@ inline const W &DotProduct(const SparsePowerWeight<W, K> &w1,
 }
 
 template <class W, class K>
-inline bool ApproxEqual(const SparsePowerWeight<W, K> &w1,
-                        const SparsePowerWeight<W, K> &w2,
+inline bool ApproxEqual(const SparsePowerWeight<W, K>& w1,
+                        const SparsePowerWeight<W, K>& w2,
                         float delta = kDelta) {
   auto result = SparsePowerWeightMap(
-      w1, w2, [delta](const K &k, const W &v1, const W &v2) {
+      w1, w2, [delta](const K& k, const W& v1, const W& v2) {
         return ApproxEqual(v1, v2, delta) ? W::One() : W::Zero();
       });
   return result == SparsePowerWeight<W, K>::One();
 }
 
 template <class W, class K>
-inline SparsePowerWeight<W, K> Times(const W &k,
-                                     const SparsePowerWeight<W, K> &w2) {
+inline SparsePowerWeight<W, K> Times(const W& k,
+                                     const SparsePowerWeight<W, K>& w2) {
   const SparseTupleWeight<W, K> t2(k);
   const SparsePowerWeight<W, K> w1(t2);
   return Times(w1, w2);
 }
 
 template <class W, class K>
-inline SparsePowerWeight<W, K> Times(const SparsePowerWeight<W, K> &w1,
-                                     const W &k) {
+inline SparsePowerWeight<W, K> Times(const SparsePowerWeight<W, K>& w1,
+                                     const W& k) {
   const SparseTupleWeight<W, K> t2(k);
   const SparsePowerWeight<W, K> w2(t2);
   return Times(w1, w2);
 }
 
 template <class W, class K>
-inline SparsePowerWeight<W, K> Divide(const SparsePowerWeight<W, K> &w1,
-                                      const W &k,
+inline SparsePowerWeight<W, K> Divide(const SparsePowerWeight<W, K>& w1,
+                                      const W& k,
                                       DivideType divide_type = DIVIDE_ANY) {
   const SparseTupleWeight<W, K> t2(k);
   const SparsePowerWeight<W, K> w2(t2);

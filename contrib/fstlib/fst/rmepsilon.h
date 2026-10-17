@@ -24,22 +24,19 @@
 #include <cstdint>
 #include <memory>
 #include <stack>
-#include <string>
 #include <utility>
 #include <vector>
 
-#include <fst/log.h>
+#include <unordered_map>
 #include <fst/arc.h>
 #include <fst/arcfilter.h>
 #include <fst/cache.h>
 #include <fst/cc-visitors.h>
 #include <fst/connect.h>
 #include <fst/dfs-visit.h>
-#include <fst/factor-weight.h>
 #include <fst/float-weight.h>
 #include <fst/fst.h>
 #include <fst/impl-to-fst.h>
-#include <fst/invert.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
 #include <fst/prune.h>
@@ -48,7 +45,6 @@
 #include <fst/topsort.h>
 #include <fst/util.h>
 #include <fst/weight.h>
-#include <unordered_map>
 
 namespace fst {
 
@@ -62,7 +58,7 @@ struct RmEpsilonOptions
   Weight weight_threshold;  // Pruning weight threshold.
   StateId state_threshold;  // Pruning state threshold.
 
-  explicit RmEpsilonOptions(Queue *queue, float delta = kShortestDelta,
+  explicit RmEpsilonOptions(Queue* queue, float delta = kShortestDelta,
                             bool connect = true,
                             Weight weight_threshold = Weight::Zero(),
                             StateId state_threshold = kNoStateId)
@@ -83,8 +79,8 @@ class RmEpsilonState {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  RmEpsilonState(const Fst<Arc> &fst, std::vector<Weight> *distance,
-                 const RmEpsilonOptions<Arc, Queue> &opts)
+  RmEpsilonState(const Fst<Arc>& fst, std::vector<Weight>* distance,
+                 const RmEpsilonOptions<Arc, Queue>& opts)
       : fst_(fst),
         distance_(distance),
         sd_state_(fst_, distance, opts, true),
@@ -92,9 +88,9 @@ class RmEpsilonState {
 
   void Expand(StateId s);
 
-  std::vector<Arc> &Arcs() { return arcs_; }
+  std::vector<Arc>& Arcs() { return arcs_; }
 
-  const Weight &Final() const { return final_weight_; }
+  const Weight& Final() const { return final_weight_; }
 
   bool Error() const { return sd_state_.Error(); }
 
@@ -112,18 +108,14 @@ class RmEpsilonState {
 
   struct ElementHash {
    public:
-    size_t operator()(const Element &element) const {
-      static constexpr size_t prime0 = 7853;
-      static constexpr size_t prime1 = 7867;
-      return static_cast<size_t>(element.nextstate) +
-             static_cast<size_t>(element.ilabel) * prime0 +
-             static_cast<size_t>(element.olabel) * prime1;
+    size_t operator()(const Element& element) const {
+      return HashOf(element.nextstate, element.ilabel, element.olabel);
     }
   };
 
   class ElementEqual {
    public:
-    bool operator()(const Element &e1, const Element &e2) const {
+    bool operator()(const Element& e1, const Element& e2) const {
       return (e1.ilabel == e2.ilabel) && (e1.olabel == e2.olabel) &&
              (e1.nextstate == e2.nextstate);
     }
@@ -132,13 +124,13 @@ class RmEpsilonState {
   using ElementMap = std::unordered_map<Element, std::pair<StateId, size_t>,
                                          ElementHash, ElementEqual>;
 
-  const Fst<Arc> &fst_;
+  const Fst<Arc>& fst_;
   // Distance from state being expanded in epsilon-closure.
-  std::vector<Weight> *distance_;
+  std::vector<Weight>* distance_;
   // Shortest distance algorithm computation state.
   internal::ShortestDistanceState<Arc, Queue, EpsilonArcFilter<Arc>> sd_state_;
   // Maps an element to a pair corresponding to a position in the arcs vector
-  // of the state being expanded. The element corresopnds to the position in
+  // of the state being expanded. The element corresponds to the position in
   // the arcs_ vector if p.first is equal to the state being expanded.
   ElementMap element_map_;
   EpsilonArcFilter<Arc> eps_filter_;
@@ -150,8 +142,8 @@ class RmEpsilonState {
   Weight final_weight_;  // Final weight of state being expanded.
   StateId expand_id_;    // Unique ID for each call to Expand
 
-  RmEpsilonState(const RmEpsilonState &) = delete;
-  RmEpsilonState &operator=(const RmEpsilonState &) = delete;
+  RmEpsilonState(const RmEpsilonState&) = delete;
+  RmEpsilonState& operator=(const RmEpsilonState&) = delete;
 };
 
 template <class Arc, class Queue>
@@ -185,8 +177,8 @@ void RmEpsilonState<Arc, Queue>::Expand(typename Arc::StateId source) {
                      std::make_pair(expand_id_, arcs_.size()));
                  success) {
         arcs_.push_back(std::move(arc));
-      } else if (auto &[xid, arc_idx] = insert_it->second; xid == expand_id_) {
-        auto &weight = arcs_[arc_idx].weight;
+      } else if (auto& [xid, arc_idx] = insert_it->second; xid == expand_id_) {
+        auto& weight = arcs_[arc_idx].weight;
         weight = Plus(weight, arc.weight);
       } else {
         xid = expand_id_;
@@ -214,9 +206,9 @@ void RmEpsilonState<Arc, Queue>::Expand(typename Arc::StateId source) {
 // epsilon-closure computation. The state queue discipline and convergence delta
 // are taken in the options argument.
 template <class Arc, class Queue>
-void RmEpsilon(MutableFst<Arc> *fst,
-               std::vector<typename Arc::Weight> *distance,
-               const RmEpsilonOptions<Arc, Queue> &opts) {
+void RmEpsilon(MutableFst<Arc>* fst,
+               std::vector<typename Arc::Weight>* distance,
+               const RmEpsilonOptions<Arc, Queue>& opts) {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
   if (fst->Start() == kNoStateId) return;
@@ -226,7 +218,7 @@ void RmEpsilon(MutableFst<Arc> *fst,
   noneps_in[fst->Start()] = true;
   for (size_t i = 0; i < fst->NumStates(); ++i) {
     for (ArcIterator<Fst<Arc>> aiter(*fst, i); !aiter.Done(); aiter.Next()) {
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       if (arc.ilabel != 0 || arc.olabel != 0) {
         noneps_in[arc.nextstate] = true;
       }
@@ -280,7 +272,7 @@ void RmEpsilon(MutableFst<Arc> *fst,
     rmeps_state.Expand(state);
     fst->SetFinal(state, rmeps_state.Final());
     fst->DeleteArcs(state);
-    auto &arcs = rmeps_state.Arcs();
+    auto& arcs = rmeps_state.Arcs();
     fst->ReserveArcs(state, arcs.size());
     while (!arcs.empty()) {
       fst->AddArc(state, arcs.back());
@@ -339,7 +331,7 @@ void RmEpsilon(MutableFst<Arc> *fst,
 // algorithms for weighted transducers. International Journal of Computer
 // Science 13(1): 129-143.
 template <class Arc>
-void RmEpsilon(MutableFst<Arc> *fst, bool connect = true,
+void RmEpsilon(MutableFst<Arc>* fst, bool connect = true,
                typename Arc::Weight weight_threshold = Arc::Weight::Zero(),
                typename Arc::StateId state_threshold = kNoStateId,
                float delta = kShortestDelta) {
@@ -355,7 +347,7 @@ void RmEpsilon(MutableFst<Arc> *fst, bool connect = true,
 struct RmEpsilonFstOptions : CacheOptions {
   float delta;
 
-  explicit RmEpsilonFstOptions(const CacheOptions &opts,
+  explicit RmEpsilonFstOptions(const CacheOptions& opts,
                                float delta = kShortestDelta)
       : CacheOptions(opts), delta(delta) {}
 
@@ -388,7 +380,7 @@ class RmEpsilonFstImpl : public CacheImpl<Arc> {
   using CacheBaseImpl<CacheState<Arc>>::SetFinal;
   using CacheBaseImpl<CacheState<Arc>>::SetStart;
 
-  RmEpsilonFstImpl(const Fst<Arc> &fst, const RmEpsilonFstOptions &opts)
+  RmEpsilonFstImpl(const Fst<Arc>& fst, const RmEpsilonFstOptions& opts)
       : CacheImpl<Arc>(opts),
         fst_(fst.Copy()),
         delta_(opts.delta),
@@ -403,7 +395,7 @@ class RmEpsilonFstImpl : public CacheImpl<Arc> {
     SetOutputSymbols(fst.OutputSymbols());
   }
 
-  RmEpsilonFstImpl(const RmEpsilonFstImpl &impl)
+  RmEpsilonFstImpl(const RmEpsilonFstImpl& impl)
       : CacheImpl<Arc>(impl),
         fst_(impl.fst_->Copy(true)),
         delta_(impl.delta_),
@@ -452,7 +444,7 @@ class RmEpsilonFstImpl : public CacheImpl<Arc> {
     return FstImpl<Arc>::Properties(mask);
   }
 
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) {
     if (!HasArcs(s)) Expand(s);
     CacheImpl<Arc>::InitArcIterator(s, data);
   }
@@ -460,7 +452,7 @@ class RmEpsilonFstImpl : public CacheImpl<Arc> {
   void Expand(StateId s) {
     rmeps_state_.Expand(s);
     SetFinal(s, rmeps_state_.Final());
-    auto &arcs = rmeps_state_.Arcs();
+    auto& arcs = rmeps_state_.Arcs();
     while (!arcs.empty()) {
       PushArc(s, std::move(arcs.back()));
       arcs.pop_back();
@@ -505,43 +497,44 @@ class RmEpsilonFstImpl : public CacheImpl<Arc> {
 // reference counting, delegating most methods to ImplToFst.
 template <class A>
 class RmEpsilonFst : public ImplToFst<internal::RmEpsilonFstImpl<A>> {
+  using Base = ImplToFst<internal::RmEpsilonFstImpl<A>>;
+
  public:
   using Arc = A;
   using StateId = typename Arc::StateId;
 
   using Store = DefaultCacheStore<Arc>;
   using State = typename Store::State;
-  using Impl = internal::RmEpsilonFstImpl<Arc>;
+  using typename Base::Impl;
 
   friend class ArcIterator<RmEpsilonFst<Arc>>;
   friend class StateIterator<RmEpsilonFst<Arc>>;
 
-  explicit RmEpsilonFst(const Fst<Arc> &fst)
-      : ImplToFst<Impl>(std::make_shared<Impl>(fst, RmEpsilonFstOptions())) {}
+  explicit RmEpsilonFst(const Fst<Arc>& fst)
+      : Base(std::make_shared<Impl>(fst, RmEpsilonFstOptions())) {}
 
-  RmEpsilonFst(const Fst<A> &fst, const RmEpsilonFstOptions &opts)
-      : ImplToFst<Impl>(std::make_shared<Impl>(fst, opts)) {}
+  RmEpsilonFst(const Fst<A>& fst, const RmEpsilonFstOptions& opts)
+      : Base(std::make_shared<Impl>(fst, opts)) {}
 
   // See Fst<>::Copy() for doc.
-  RmEpsilonFst(const RmEpsilonFst &fst, bool safe = false)
-      : ImplToFst<Impl>(fst, safe) {}
+  RmEpsilonFst(const RmEpsilonFst& fst, bool safe = false) : Base(fst, safe) {}
 
   // Get a copy of this RmEpsilonFst. See Fst<>::Copy() for further doc.
-  RmEpsilonFst *Copy(bool safe = false) const override {
+  RmEpsilonFst* Copy(bool safe = false) const override {
     return new RmEpsilonFst(*this, safe);
   }
 
-  inline void InitStateIterator(StateIteratorData<Arc> *data) const override;
+  inline void InitStateIterator(StateIteratorData<Arc>* data) const override;
 
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) const override {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) const override {
     GetMutableImpl()->InitArcIterator(s, data);
   }
 
  private:
-  using ImplToFst<Impl>::GetImpl;
-  using ImplToFst<Impl>::GetMutableImpl;
+  using Base::GetImpl;
+  using Base::GetMutableImpl;
 
-  RmEpsilonFst &operator=(const RmEpsilonFst &) = delete;
+  RmEpsilonFst& operator=(const RmEpsilonFst&) = delete;
 };
 
 // Specialization for RmEpsilonFst.
@@ -549,7 +542,7 @@ template <class Arc>
 class StateIterator<RmEpsilonFst<Arc>>
     : public CacheStateIterator<RmEpsilonFst<Arc>> {
  public:
-  explicit StateIterator(const RmEpsilonFst<Arc> &fst)
+  explicit StateIterator(const RmEpsilonFst<Arc>& fst)
       : CacheStateIterator<RmEpsilonFst<Arc>>(fst, fst.GetMutableImpl()) {}
 };
 
@@ -560,7 +553,7 @@ class ArcIterator<RmEpsilonFst<Arc>>
  public:
   using StateId = typename Arc::StateId;
 
-  ArcIterator(const RmEpsilonFst<Arc> &fst, StateId s)
+  ArcIterator(const RmEpsilonFst<Arc>& fst, StateId s)
       : CacheArcIterator<RmEpsilonFst<Arc>>(fst.GetMutableImpl(), s) {
     if (!fst.GetImpl()->HasArcs(s)) fst.GetMutableImpl()->Expand(s);
   }
@@ -568,7 +561,7 @@ class ArcIterator<RmEpsilonFst<Arc>>
 
 template <class Arc>
 inline void RmEpsilonFst<Arc>::InitStateIterator(
-    StateIteratorData<Arc> *data) const {
+    StateIteratorData<Arc>* data) const {
   data->base = std::make_unique<StateIterator<RmEpsilonFst<Arc>>>(*this);
 }
 

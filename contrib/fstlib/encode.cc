@@ -19,18 +19,17 @@
 
 #include <fst/encode.h>
 
-#include <cstddef>
 #include <cstdint>
 #include <istream>
 #include <ostream>
-#include <string>
 
 #include <fst/log.h>
+#include <string_view>
 #include <fst/util.h>
 
 namespace fst {
 
-bool EncodeTableHeader::Read(std::istream &strm, std::string_view source) {
+bool EncodeTableHeader::Read(std::istream& strm, std::string_view source) {
   int32_t magic_number;
   ReadType(strm, &magic_number);
   switch (magic_number) {
@@ -42,8 +41,8 @@ bool EncodeTableHeader::Read(std::istream &strm, std::string_view source) {
     }
     case internal::kEncodeDeprecatedMagicNumber: {
       LOG(ERROR) << "This old-style Encoder is written in a deprecated "
-                      "format and will soon cease to be readable. Please read "
-                      "and re-write it in order to be future-proof.";
+                    "format and will soon cease to be readable. Please read "
+                    "and re-write it in order to be future-proof.";
       // TODO(b/141172858): deprecated, remove by 2020-01-01.
       uint32_t flags;
       ReadType(strm, &flags);
@@ -66,7 +65,7 @@ bool EncodeTableHeader::Read(std::istream &strm, std::string_view source) {
   return true;
 }
 
-bool EncodeTableHeader::Write(std::ostream &strm,
+bool EncodeTableHeader::Write(std::ostream& strm,
                               std::string_view source) const {
   WriteType(strm, internal::kEncodeMagicNumber);
   WriteType(strm, arctype_);

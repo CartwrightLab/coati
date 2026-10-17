@@ -49,32 +49,32 @@ class Mutex {
  private:
   std::shared_mutex mu_;
 
-  Mutex(const Mutex &) = delete;
-  Mutex &operator=(const Mutex &) = delete;
+  Mutex(const Mutex&) = delete;
+  Mutex& operator=(const Mutex&) = delete;
 };
 
 class MutexLock {
  public:
-  explicit MutexLock(Mutex *mu) : mu_(mu) { mu_->Lock(); }
+  explicit MutexLock(Mutex& mu) : mu_(&mu) { mu_->Lock(); }
   ~MutexLock() { mu_->Unlock(); }
 
  private:
-  Mutex *const mu_;
+  Mutex* const mu_;
 
-  MutexLock(const MutexLock &) = delete;
-  MutexLock &operator=(const MutexLock &) = delete;
+  MutexLock(const MutexLock&) = delete;
+  MutexLock& operator=(const MutexLock&) = delete;
 };
 
 class ReaderMutexLock {
  public:
-  explicit ReaderMutexLock(Mutex *mu) : mu_(mu) { mu_->ReaderLock(); }
+  explicit ReaderMutexLock(Mutex& mu) : mu_(&mu) { mu_->ReaderLock(); }
   ~ReaderMutexLock() { mu_->ReaderUnlock(); }
 
  private:
-  Mutex *const mu_;
+  Mutex* const mu_;
 
-  ReaderMutexLock(const ReaderMutexLock &) = delete;
-  ReaderMutexLock &operator=(const ReaderMutexLock &) = delete;
+  ReaderMutexLock(const ReaderMutexLock&) = delete;
+  ReaderMutexLock& operator=(const ReaderMutexLock&) = delete;
 };
 
 }  // namespace fst

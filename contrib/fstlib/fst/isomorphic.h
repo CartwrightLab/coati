@@ -41,16 +41,16 @@ namespace internal {
 
 // Orders weights for equality checking; delta is ignored.
 template <class Weight,
-          typename std::enable_if_t<IsIdempotent<Weight>::value> * = nullptr>
-bool WeightCompare(const Weight &w1, const Weight &w2, float, bool *) {
+          typename std::enable_if_t<IsIdempotent<Weight>::value>* = nullptr>
+bool WeightCompare(const Weight& w1, const Weight& w2, float, bool*) {
   static const NaturalLess<Weight> less;
   return less(w1, w2);
 }
 
 template <class Weight,
-          typename std::enable_if_t<!IsIdempotent<Weight>::value> * = nullptr>
-bool WeightCompare(const Weight &w1, const Weight &w2, float delta,
-                   bool *error) {
+          typename std::enable_if_t<!IsIdempotent<Weight>::value>* = nullptr>
+bool WeightCompare(const Weight& w1, const Weight& w2, float delta,
+                   bool* error) {
   // No natural order; use hash.
   const auto q1 = w1.Quantize(delta);
   const auto q2 = w2.Quantize(delta);
@@ -69,7 +69,7 @@ class Isomorphism {
   using StateId = typename Arc::StateId;
 
  public:
-  Isomorphism(const Fst<Arc> &fst1, const Fst<Arc> &fst2, float delta)
+  Isomorphism(const Fst<Arc>& fst1, const Fst<Arc>& fst2, float delta)
       : fst1_(fst1.Copy()),
         fst2_(fst2.Copy()),
         delta_(delta),
@@ -88,7 +88,7 @@ class Isomorphism {
     }
     PairState(fst1_->Start(), fst2_->Start());
     while (!queue_.empty()) {
-      const auto &[state1, state2] = queue_.front();
+      const auto& [state1, state2] = queue_.front();
       if (!IsIsomorphicState(state1, state2)) {
         if (nondet_) {
           VLOG(1) << "Isomorphic: Non-determinism as an unweighted automaton. "
@@ -108,9 +108,9 @@ class Isomorphism {
   // Orders arcs for equality checking.
   class ArcCompare {
    public:
-    ArcCompare(float delta, bool *error) : delta_(delta), error_(error) {}
+    ArcCompare(float delta, bool* error) : delta_(delta), error_(error) {}
 
-    bool operator()(const Arc &arc1, const Arc &arc2) const {
+    bool operator()(const Arc& arc1, const Arc& arc2) const {
       if (arc1.ilabel < arc2.ilabel) return true;
       if (arc1.ilabel > arc2.ilabel) return false;
       if (arc1.olabel < arc2.olabel) return true;
@@ -124,7 +124,7 @@ class Isomorphism {
 
    private:
     const float delta_;
-    bool *error_;
+    bool* error_;
   };
 
   // Maintains state correspondences and queue.
@@ -186,8 +186,8 @@ bool Isomorphism<Arc>::IsIsomorphicState(StateId s1, StateId s2) {
   std::sort(arcs1_.begin(), arcs1_.end(), comp_);
   std::sort(arcs2_.begin(), arcs2_.end(), comp_);
   for (size_t i = 0; i < arcs1_.size(); ++i) {
-    const auto &arc1 = arcs1_[i];
-    const auto &arc2 = arcs2_[i];
+    const auto& arc1 = arcs1_[i];
+    const auto& arc2 = arcs2_[i];
     if (arc1.ilabel != arc2.ilabel) {
       VLOG(1) << "Isomorphic: ilabels not equal. "
               << "state1: " << s1 << " arc1: *" << arc1.ilabel << "* "
@@ -223,7 +223,7 @@ bool Isomorphism<Arc>::IsIsomorphicState(StateId s1, StateId s2) {
       return false;
     }
     if (i > 0) {  // Checks for non-determinism.
-      const auto &arc0 = arcs1_[i - 1];
+      const auto& arc0 = arcs1_[i - 1];
       if (arc1.ilabel == arc0.ilabel && arc1.olabel == arc0.olabel &&
           ApproxEqual(arc1.weight, arc0.weight, delta_)) {
         // Any subsequent matching failure maybe a false negative
@@ -251,7 +251,7 @@ bool Isomorphism<Arc>::IsIsomorphicState(StateId s1, StateId s2) {
 // (the permutation that preserves state ID ordering) and hence might return
 // false negatives (but it never returns false positives).
 template <class Arc>
-bool Isomorphic(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
+bool Isomorphic(const Fst<Arc>& fst1, const Fst<Arc>& fst2,
                 float delta = kDelta) {
   internal::Isomorphism<Arc> iso(fst1, fst2, delta);
   const bool result = iso.IsIsomorphic();

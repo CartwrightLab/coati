@@ -20,10 +20,12 @@
 #ifndef FST_CC_VISITORS_H_
 #define FST_CC_VISITORS_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
 #include <fst/fst.h>
+#include <fst/properties.h>
 #include <fst/union-find.h>
 
 namespace fst {
@@ -36,18 +38,18 @@ class CcVisitor {
   using StateId = typename Arc::StateId;
 
   // cc[i]: connected component number for state i.
-  explicit CcVisitor(std::vector<StateId> *cc)
+  explicit CcVisitor(std::vector<StateId>* cc)
       : comps_(new UnionFind<StateId>(0, kNoStateId)), cc_(cc), nstates_(0) {}
 
   // comps: connected components equiv classes.
-  explicit CcVisitor(UnionFind<StateId> *comps)
+  explicit CcVisitor(UnionFind<StateId>* comps)
       : comps_(comps), cc_(nullptr), nstates_(0) {}
 
   ~CcVisitor() {
     if (cc_) delete comps_;
   }
 
-  void InitVisit(const Fst<Arc> &fst) {}
+  void InitVisit(const Fst<Arc>& fst) {}
 
   bool InitState(StateId s, StateId root) {
     ++nstates_;
@@ -55,18 +57,18 @@ class CcVisitor {
     return true;
   }
 
-  bool WhiteArc(StateId s, const Arc &arc) {
+  bool WhiteArc(StateId s, const Arc& arc) {
     comps_->MakeSet(arc.nextstate);
     comps_->Union(s, arc.nextstate);
     return true;
   }
 
-  bool GreyArc(StateId s, const Arc &arc) {
+  bool GreyArc(StateId s, const Arc& arc) {
     comps_->Union(s, arc.nextstate);
     return true;
   }
 
-  bool BlackArc(StateId s, const Arc &arc) {
+  bool BlackArc(StateId s, const Arc& arc) {
     comps_->Union(s, arc.nextstate);
     return true;
   }
@@ -79,13 +81,13 @@ class CcVisitor {
 
   // Returns number of components.
   // cc[i]: connected component number for state i.
-  int GetCcVector(std::vector<StateId> *cc) {
+  int GetCcVector(std::vector<StateId>* cc) {
     cc->clear();
     cc->resize(nstates_, kNoStateId);
     StateId ncomp = 0;
     for (StateId s = 0; s < nstates_; ++s) {
       const auto rep = comps_->FindSet(s);
-      auto &comp = (*cc)[rep];
+      auto& comp = (*cc)[rep];
       if (comp == kNoStateId) {
         comp = ncomp;
         ++ncomp;
@@ -96,8 +98,8 @@ class CcVisitor {
   }
 
  private:
-  UnionFind<StateId> *comps_;  // Components.
-  std::vector<StateId> *cc_;   // State's cc number.
+  UnionFind<StateId>* comps_;  // Components.
+  std::vector<StateId>* cc_;   // State's cc number.
   StateId nstates_;            // State count.
 };
 
@@ -118,19 +120,19 @@ class SccVisitor {
   // Any of above can be NULL.
   // props: related property bits (cyclicity, initial cyclicity,
   //   accessibility, coaccessibility) set/cleared (o.w. unchanged).
-  SccVisitor(std::vector<StateId> *scc, std::vector<bool> *access,
-             std::vector<bool> *coaccess, uint64_t *props)
+  SccVisitor(std::vector<StateId>* scc, std::vector<bool>* access,
+             std::vector<bool>* coaccess, uint64_t* props)
       : scc_(scc), access_(access), coaccess_(coaccess), props_(props) {}
-  explicit SccVisitor(uint64_t *props)
+  explicit SccVisitor(uint64_t* props)
       : scc_(nullptr), access_(nullptr), coaccess_(nullptr), props_(props) {}
 
-  void InitVisit(const Fst<Arc> &fst);
+  void InitVisit(const Fst<Arc>& fst);
 
   bool InitState(StateId s, StateId root);
 
-  bool TreeArc(StateId s, const Arc &arc) { return true; }
+  bool TreeArc(StateId s, const Arc& arc) { return true; }
 
-  bool BackArc(StateId s, const Arc &arc) {
+  bool BackArc(StateId s, const Arc& arc) {
     const auto t = arc.nextstate;
     if (dfnumber_[t] < lowlink_[s]) lowlink_[s] = dfnumber_[t];
     if ((*coaccess_)[t]) (*coaccess_)[s] = true;
@@ -143,7 +145,7 @@ class SccVisitor {
     return true;
   }
 
-  bool ForwardOrCrossArc(StateId s, const Arc &arc) {
+  bool ForwardOrCrossArc(StateId s, const Arc& arc) {
     const auto t = arc.nextstate;
     if (dfnumber_[t] < dfnumber_[s] /* cross edge */ && onstack_[t] &&
         dfnumber_[t] < lowlink_[s]) {
@@ -154,7 +156,7 @@ class SccVisitor {
   }
 
   // Last argument always ignored, but required by the interface.
-  void FinishState(StateId state, StateId p, const Arc *);
+  void FinishState(StateId state, StateId p, const Arc*);
 
   void FinishVisit() {
     // Numbers SCCs in topological order when acyclic.
@@ -167,11 +169,11 @@ class SccVisitor {
   }
 
  private:
-  std::vector<StateId> *scc_;    // State's scc number.
-  std::vector<bool> *access_;    // State's accessibility.
-  std::vector<bool> *coaccess_;  // State's coaccessibility.
-  uint64_t *props_;
-  const Fst<Arc> *fst_;
+  std::vector<StateId>* scc_;    // State's scc number.
+  std::vector<bool>* access_;    // State's accessibility.
+  std::vector<bool>* coaccess_;  // State's coaccessibility.
+  uint64_t* props_;
+  const Fst<Arc>* fst_;
   StateId start_;
   StateId nstates_;  // State count.
   StateId nscc_;     // SCC count.
@@ -184,7 +186,7 @@ class SccVisitor {
 };
 
 template <class Arc>
-inline void SccVisitor<Arc>::InitVisit(const Fst<Arc> &fst) {
+inline void SccVisitor<Arc>::InitVisit(const Fst<Arc>& fst) {
   if (scc_) scc_->clear();
   if (access_) access_->clear();
   if (coaccess_) {
@@ -232,7 +234,7 @@ inline bool SccVisitor<Arc>::InitState(StateId s, StateId root) {
 }
 
 template <class Arc>
-inline void SccVisitor<Arc>::FinishState(StateId s, StateId p, const Arc *) {
+inline void SccVisitor<Arc>::FinishState(StateId s, StateId p, const Arc*) {
   if (fst_->Final(s) != Weight::Zero()) (*coaccess_)[s] = true;
   if (dfnumber_[s] == lowlink_[s]) {  // Root of new SCC.
     bool scc_coaccess = false;

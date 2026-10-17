@@ -23,7 +23,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <new>
 #include <stack>
 #include <vector>
 
@@ -81,14 +80,14 @@ struct DfsState {
   using Arc = typename FST::Arc;
   using StateId = typename Arc::StateId;
 
-  DfsState(const FST &fst, StateId s) : state_id(s), arc_iter(fst, s) {}
+  DfsState(const FST& fst, StateId s) : state_id(s), arc_iter(fst, s) {}
 
-  void *operator new(size_t size, MemoryPool<DfsState<FST>> *pool) {
+  void* operator new(size_t size, MemoryPool<DfsState<FST>>* pool) {
     return pool->Allocate();
   }
 
-  static void Destroy(DfsState<FST> *dfs_state,
-                      MemoryPool<DfsState<FST>> *pool) {
+  static void Destroy(DfsState<FST>* dfs_state,
+                      MemoryPool<DfsState<FST>>* pool) {
     if (dfs_state) {
       dfs_state->~DfsState<FST>();
       pool->Free(dfs_state);
@@ -109,7 +108,7 @@ struct DfsState {
 // Note this is similar to Visit() in visit.h called with a LIFO queue, except
 // this version has a Visitor class specialized and augmented for a DFS.
 template <class FST, class Visitor, class ArcFilter>
-void DfsVisit(const FST &fst, Visitor *visitor, ArcFilter filter,
+void DfsVisit(const FST& fst, Visitor* visitor, ArcFilter filter,
               bool access_only = false) {
   using Arc = typename FST::Arc;
   using StateId = typename Arc::StateId;
@@ -126,8 +125,8 @@ void DfsVisit(const FST &fst, Visitor *visitor, ArcFilter filter,
     kBlack = 2,  // Finished.
   };
   std::vector<StateColor> state_color;
-  std::stack<internal::DfsState<FST> *> state_stack;  // DFS execution stack.
-  MemoryPool<internal::DfsState<FST>> state_pool;     // Pool for DFSStates.
+  std::stack<internal::DfsState<FST>*> state_stack;  // DFS execution stack.
+  MemoryPool<internal::DfsState<FST>> state_pool;    // Pool for DFSStates.
   // Exact number of states if known, otherwise lower bound.
   StateId nstates = fst.NumStatesIfKnown().value_or(start + 1);
   const bool expanded = fst.Properties(kExpanded, false);
@@ -141,20 +140,20 @@ void DfsVisit(const FST &fst, Visitor *visitor, ArcFilter filter,
     state_stack.push(new (&state_pool) internal::DfsState<FST>(fst, root));
     dfs = visitor->InitState(root, root);
     while (!state_stack.empty()) {
-      auto *dfs_state = state_stack.top();
+      auto* dfs_state = state_stack.top();
       const auto s = dfs_state->state_id;
       if (s >= static_cast<decltype(s)>(state_color.size())) {
         nstates = s + 1;
         state_color.resize(nstates, StateColor::kWhite);
       }
-      ArcIterator<FST> &aiter = dfs_state->arc_iter;
+      ArcIterator<FST>& aiter = dfs_state->arc_iter;
       if (!dfs || aiter.Done()) {
         state_color[s] = StateColor::kBlack;
         internal::DfsState<FST>::Destroy(dfs_state, &state_pool);
         state_stack.pop();
         if (!state_stack.empty()) {
-          auto *parent_state = state_stack.top();
-          auto &piter = parent_state->arc_iter;
+          auto* parent_state = state_stack.top();
+          auto& piter = parent_state->arc_iter;
           visitor->FinishState(s, parent_state->state_id, &piter.Value());
           piter.Next();
         } else {
@@ -162,7 +161,7 @@ void DfsVisit(const FST &fst, Visitor *visitor, ArcFilter filter,
         }
         continue;
       }
-      const auto &arc = aiter.Value();
+      const auto& arc = aiter.Value();
       if (arc.nextstate >=
           static_cast<decltype(arc.nextstate)>(state_color.size())) {
         nstates = arc.nextstate + 1;
@@ -212,7 +211,7 @@ void DfsVisit(const FST &fst, Visitor *visitor, ArcFilter filter,
 }
 
 template <class Arc, class Visitor>
-void DfsVisit(const Fst<Arc> &fst, Visitor *visitor) {
+void DfsVisit(const Fst<Arc>& fst, Visitor* visitor) {
   DfsVisit(fst, visitor, AnyArcFilter<Arc>());
 }
 

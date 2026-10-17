@@ -23,7 +23,6 @@
 #include <cstdint>
 #include <vector>
 
-#include <fst/log.h>
 #include <fst/fst.h>
 #include <fst/mutable-fst.h>
 #include <fst/properties.h>
@@ -43,8 +42,8 @@ enum ReweightType { REWEIGHT_TO_INITIAL, REWEIGHT_TO_FINAL };
 // torwards the initial state, and by (p \otimes w) \otimes q^-1 when
 // reweighting towards the final states.
 template <class Arc>
-void Reweight(MutableFst<Arc> *fst,
-              const std::vector<typename Arc::Weight> &potential,
+void Reweight(MutableFst<Arc>* fst,
+              const std::vector<typename Arc::Weight>& potential,
               ReweightType type) {
   using Weight = typename Arc::Weight;
   if (fst->NumStates() == 0) return;
@@ -71,13 +70,13 @@ void Reweight(MutableFst<Arc> *fst,
   for (; !siter.Done(); siter.Next()) {
     const auto s = siter.Value();
     if (s == potential.size()) break;
-    const auto &weight = potential[s];
+    const auto& weight = potential[s];
     if (weight != Weight::Zero()) {
       for (MutableArcIterator<MutableFst<Arc>> aiter(fst, s); !aiter.Done();
            aiter.Next()) {
         auto arc = aiter.Value();
         if (arc.nextstate >= potential.size()) continue;
-        const auto &nextweight = potential[arc.nextstate];
+        const auto& nextweight = potential[arc.nextstate];
         if (nextweight == Weight::Zero()) continue;
         if (type == REWEIGHT_TO_INITIAL) {
           arc.weight =

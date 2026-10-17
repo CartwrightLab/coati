@@ -31,12 +31,11 @@
 #include <string>
 #include <vector>
 
-#include <fst/log.h>
+#include <string_view>
 #include <fst/product-weight.h>
 #include <fst/union-weight.h>
 #include <fst/util.h>
 #include <fst/weight.h>
-#include <string_view>
 
 namespace fst {
 
@@ -82,23 +81,23 @@ class StringWeight {
 
   explicit StringWeight(Label label) { PushBack(label); }
 
-  static const StringWeight &Zero() {
-    static const auto *const zero = new StringWeight(Label(kStringInfinity));
+  static const StringWeight& Zero() {
+    static const auto* const zero = new StringWeight(Label(kStringInfinity));
     return *zero;
   }
 
-  static const StringWeight &One() {
-    static const auto *const one = new StringWeight();
+  static const StringWeight& One() {
+    static const auto* const one = new StringWeight();
     return *one;
   }
 
-  static const StringWeight &NoWeight() {
-    static const auto *const no_weight = new StringWeight(Label(kStringBad));
+  static const StringWeight& NoWeight() {
+    static const auto* const no_weight = new StringWeight(Label(kStringBad));
     return *no_weight;
   }
 
-  static const std::string &Type() {
-    static const std::string *const type = new std::string(
+  static const std::string& Type() {
+    static const std::string* const type = new std::string(
         S == STRING_LEFT
             ? "left_string"
             : (S == STRING_RIGHT ? "right_string" : "restricted_string"));
@@ -107,9 +106,9 @@ class StringWeight {
 
   bool Member() const;
 
-  std::istream &Read(std::istream &strm);
+  std::istream& Read(std::istream& strm);
 
-  std::ostream &Write(std::ostream &strm) const;
+  std::ostream& Write(std::ostream& strm) const;
 
   size_t Hash() const;
 
@@ -163,7 +162,7 @@ class StringWeightIterator {
   using Weight = StringWeight_;
   using Label = typename Weight::Label;
 
-  explicit StringWeightIterator(const Weight &w)
+  explicit StringWeightIterator(const Weight& w)
       : first_(w.first_), rest_(w.rest_), init_(true), iter_(rest_.begin()) {}
 
   bool Done() const {
@@ -174,7 +173,7 @@ class StringWeightIterator {
     }
   }
 
-  const Label &Value() const { return init_ ? first_ : *iter_; }
+  const Label& Value() const { return init_ ? first_ : *iter_; }
 
   void Next() {
     if (init_) {
@@ -190,8 +189,8 @@ class StringWeightIterator {
   }
 
  private:
-  const Label &first_;
-  const decltype(Weight::rest_) &rest_;
+  const Label& first_;
+  const decltype(Weight::rest_)& rest_;
   bool init_;  // In the initialized state?
   typename decltype(Weight::rest_)::const_iterator iter_;
 };
@@ -203,7 +202,7 @@ class StringWeightReverseIterator {
   using Weight = StringWeight_;
   using Label = typename Weight::Label;
 
-  explicit StringWeightReverseIterator(const Weight &w)
+  explicit StringWeightReverseIterator(const Weight& w)
       : first_(w.first_),
         rest_(w.rest_),
         fin_(first_ == Label()),
@@ -211,7 +210,7 @@ class StringWeightReverseIterator {
 
   bool Done() const { return fin_; }
 
-  const Label &Value() const { return iter_ == rest_.rend() ? first_ : *iter_; }
+  const Label& Value() const { return iter_ == rest_.rend() ? first_ : *iter_; }
 
   void Next() {
     if (iter_ == rest_.rend()) {
@@ -227,8 +226,8 @@ class StringWeightReverseIterator {
   }
 
  private:
-  const Label &first_;
-  const decltype(Weight::rest_) &rest_;
+  const Label& first_;
+  const decltype(Weight::rest_)& rest_;
   bool fin_;  // In the final state?
   typename decltype(Weight::rest_)::const_reverse_iterator iter_;
 };
@@ -237,7 +236,7 @@ class StringWeightReverseIterator {
 // StringWeightIterator or StringWeightReverseIterator.
 
 template <typename Label, StringType S>
-inline std::istream &StringWeight<Label, S>::Read(std::istream &strm) {
+inline std::istream& StringWeight<Label, S>::Read(std::istream& strm) {
   Clear();
   int32_t size;
   ReadType(strm, &size);
@@ -250,7 +249,7 @@ inline std::istream &StringWeight<Label, S>::Read(std::istream &strm) {
 }
 
 template <typename Label, StringType S>
-inline std::ostream &StringWeight<Label, S>::Write(std::ostream &strm) const {
+inline std::ostream& StringWeight<Label, S>::Write(std::ostream& strm) const {
   const int32_t size = Size();
   WriteType(strm, size);
   for (Iterator iter(*this); !iter.Done(); iter.Next()) {
@@ -285,8 +284,8 @@ inline size_t StringWeight<Label, S>::Hash() const {
 }
 
 template <typename Label, StringType S>
-inline bool operator==(const StringWeight<Label, S> &w1,
-                       const StringWeight<Label, S> &w2) {
+inline bool operator==(const StringWeight<Label, S>& w1,
+                       const StringWeight<Label, S>& w2) {
   if (w1.Size() != w2.Size()) return false;
   using Iterator = typename StringWeight<Label, S>::Iterator;
   Iterator iter1(w1);
@@ -298,21 +297,21 @@ inline bool operator==(const StringWeight<Label, S> &w1,
 }
 
 template <typename Label, StringType S>
-inline bool operator!=(const StringWeight<Label, S> &w1,
-                       const StringWeight<Label, S> &w2) {
+inline bool operator!=(const StringWeight<Label, S>& w1,
+                       const StringWeight<Label, S>& w2) {
   return !(w1 == w2);
 }
 
 template <typename Label, StringType S>
-inline bool ApproxEqual(const StringWeight<Label, S> &w1,
-                        const StringWeight<Label, S> &w2,
+inline bool ApproxEqual(const StringWeight<Label, S>& w1,
+                        const StringWeight<Label, S>& w2,
                         float delta = kDelta) {
   return w1 == w2;
 }
 
 template <typename Label, StringType S>
-inline std::ostream &operator<<(std::ostream &strm,
-                                const StringWeight<Label, S> &weight) {
+inline std::ostream& operator<<(std::ostream& strm,
+                                const StringWeight<Label, S>& weight) {
   typename StringWeight<Label, S>::Iterator iter(weight);
   if (iter.Done()) {
     return strm << "Epsilon";
@@ -330,8 +329,8 @@ inline std::ostream &operator<<(std::ostream &strm,
 }
 
 template <typename Label, StringType S>
-inline std::istream &operator>>(std::istream &strm,
-                                StringWeight<Label, S> &weight) {
+inline std::istream& operator>>(std::istream& strm,
+                                StringWeight<Label, S>& weight) {
   std::string str;
   strm >> str;
   using Weight = StringWeight<Label, S>;
@@ -357,8 +356,8 @@ inline std::istream &operator>>(std::istream &strm,
 // (for non-Zero() input). The restriction is used (e.g., in determinization)
 // to ensure the input is functional.
 template <typename Label, StringType S>
-inline StringWeight<Label, S> Plus(const StringWeight<Label, S> &w1,
-                                   const StringWeight<Label, S> &w2) {
+inline StringWeight<Label, S> Plus(const StringWeight<Label, S>& w1,
+                                   const StringWeight<Label, S>& w2) {
   using Weight = StringWeight<Label, S>;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
   if (w1 == Weight::Zero()) return w2;
@@ -375,8 +374,8 @@ inline StringWeight<Label, S> Plus(const StringWeight<Label, S> &w1,
 // Longest common prefix for left string semiring.
 template <typename Label>
 inline StringWeight<Label, STRING_LEFT> Plus(
-    const StringWeight<Label, STRING_LEFT> &w1,
-    const StringWeight<Label, STRING_LEFT> &w2) {
+    const StringWeight<Label, STRING_LEFT>& w1,
+    const StringWeight<Label, STRING_LEFT>& w2) {
   using Weight = StringWeight<Label, STRING_LEFT>;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
   if (w1 == Weight::Zero()) return w2;
@@ -394,8 +393,8 @@ inline StringWeight<Label, STRING_LEFT> Plus(
 // Longest common suffix for right string semiring.
 template <typename Label>
 inline StringWeight<Label, STRING_RIGHT> Plus(
-    const StringWeight<Label, STRING_RIGHT> &w1,
-    const StringWeight<Label, STRING_RIGHT> &w2) {
+    const StringWeight<Label, STRING_RIGHT>& w1,
+    const StringWeight<Label, STRING_RIGHT>& w2) {
   using Weight = StringWeight<Label, STRING_RIGHT>;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
   if (w1 == Weight::Zero()) return w2;
@@ -411,8 +410,8 @@ inline StringWeight<Label, STRING_RIGHT> Plus(
 }
 
 template <typename Label, StringType S>
-inline StringWeight<Label, S> Times(const StringWeight<Label, S> &w1,
-                                    const StringWeight<Label, S> &w2) {
+inline StringWeight<Label, S> Times(const StringWeight<Label, S>& w1,
+                                    const StringWeight<Label, S>& w2) {
   using Weight = StringWeight<Label, S>;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
   if (w1 == Weight::Zero() || w2 == Weight::Zero()) return Weight::Zero();
@@ -425,8 +424,8 @@ inline StringWeight<Label, S> Times(const StringWeight<Label, S> &w1,
 
 // Left division in a left string semiring.
 template <typename Label, StringType S>
-inline StringWeight<Label, S> DivideLeft(const StringWeight<Label, S> &w1,
-                                         const StringWeight<Label, S> &w2) {
+inline StringWeight<Label, S> DivideLeft(const StringWeight<Label, S>& w1,
+                                         const StringWeight<Label, S>& w2) {
   using Weight = StringWeight<Label, S>;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
   if (w2 == Weight::Zero()) {
@@ -445,8 +444,8 @@ inline StringWeight<Label, S> DivideLeft(const StringWeight<Label, S> &w1,
 
 // Right division in a right string semiring.
 template <typename Label, StringType S>
-inline StringWeight<Label, S> DivideRight(const StringWeight<Label, S> &w1,
-                                          const StringWeight<Label, S> &w2) {
+inline StringWeight<Label, S> DivideRight(const StringWeight<Label, S>& w1,
+                                          const StringWeight<Label, S>& w2) {
   using Weight = StringWeight<Label, S>;
   if (!w1.Member() || !w2.Member()) return Weight::NoWeight();
   if (w2 == Weight::Zero()) {
@@ -465,8 +464,8 @@ inline StringWeight<Label, S> DivideRight(const StringWeight<Label, S> &w1,
 
 // Default is the restricted string semiring.
 template <typename Label, StringType S>
-inline StringWeight<Label, S> Divide(const StringWeight<Label, S> &w1,
-                                     const StringWeight<Label, S> &w2,
+inline StringWeight<Label, S> Divide(const StringWeight<Label, S>& w1,
+                                     const StringWeight<Label, S>& w2,
                                      DivideType divide_type) {
   using Weight = StringWeight<Label, S>;
   if (divide_type == DIVIDE_LEFT) {
@@ -484,8 +483,8 @@ inline StringWeight<Label, S> Divide(const StringWeight<Label, S> &w1,
 // Left division in the left string semiring.
 template <typename Label>
 inline StringWeight<Label, STRING_LEFT> Divide(
-    const StringWeight<Label, STRING_LEFT> &w1,
-    const StringWeight<Label, STRING_LEFT> &w2, DivideType divide_type) {
+    const StringWeight<Label, STRING_LEFT>& w1,
+    const StringWeight<Label, STRING_LEFT>& w2, DivideType divide_type) {
   if (divide_type != DIVIDE_LEFT) {
     FSTERROR() << "StringWeight::Divide: Only left division is defined "
                << "for the left string semiring";
@@ -497,8 +496,8 @@ inline StringWeight<Label, STRING_LEFT> Divide(
 // Right division in the right string semiring.
 template <typename Label>
 inline StringWeight<Label, STRING_RIGHT> Divide(
-    const StringWeight<Label, STRING_RIGHT> &w1,
-    const StringWeight<Label, STRING_RIGHT> &w2, DivideType divide_type) {
+    const StringWeight<Label, STRING_RIGHT>& w1,
+    const StringWeight<Label, STRING_RIGHT>& w2, DivideType divide_type) {
   if (divide_type != DIVIDE_RIGHT) {
     FSTERROR() << "StringWeight::Divide: Only right division is defined "
                << "for the right string semiring";
@@ -573,7 +572,7 @@ constexpr GallicType ReverseGallicType(GallicType g) {
                            : (g == GALLIC_MIN ? GALLIC_MIN : GALLIC)));
 }
 
-// Product of string weight and an arbitraryy weight.
+// Product of string weight and an arbitrary weight.
 template <class Label, class W, GallicType G = GALLIC_LEFT>
 struct GallicWeight
     : public ProductWeight<StringWeight<Label, GallicStringType(G)>, W> {
@@ -587,29 +586,29 @@ struct GallicWeight
 
   GallicWeight(SW w1, W w2) : ProductWeight<SW, W>(w1, w2) {}
 
-  explicit GallicWeight(std::string_view s, int *nread = nullptr)
+  explicit GallicWeight(std::string_view s, int* nread = nullptr)
       : ProductWeight<SW, W>(s, nread) {}
 
-  explicit GallicWeight(const ProductWeight<SW, W> &w)
+  explicit GallicWeight(const ProductWeight<SW, W>& w)
       : ProductWeight<SW, W>(w) {}
 
-  static const GallicWeight &Zero() {
+  static const GallicWeight& Zero() {
     static const GallicWeight zero(ProductWeight<SW, W>::Zero());
     return zero;
   }
 
-  static const GallicWeight &One() {
+  static const GallicWeight& One() {
     static const GallicWeight one(ProductWeight<SW, W>::One());
     return one;
   }
 
-  static const GallicWeight &NoWeight() {
+  static const GallicWeight& NoWeight() {
     static const GallicWeight no_weight(ProductWeight<SW, W>::NoWeight());
     return no_weight;
   }
 
-  static const std::string &Type() {
-    static const std::string *const type = new std::string(
+  static const std::string& Type() {
+    static const std::string* const type = new std::string(
         G == GALLIC_LEFT
             ? "left_gallic"
             : (G == GALLIC_RIGHT
@@ -631,8 +630,8 @@ struct GallicWeight
 
 // Default plus.
 template <class Label, class W, GallicType G>
-inline GallicWeight<Label, W, G> Plus(const GallicWeight<Label, W, G> &w,
-                                      const GallicWeight<Label, W, G> &v) {
+inline GallicWeight<Label, W, G> Plus(const GallicWeight<Label, W, G>& w,
+                                      const GallicWeight<Label, W, G>& v) {
   return GallicWeight<Label, W, G>(Plus(w.Value1(), v.Value1()),
                                    Plus(w.Value2(), v.Value2()));
 }
@@ -640,22 +639,22 @@ inline GallicWeight<Label, W, G> Plus(const GallicWeight<Label, W, G> &w,
 // Min gallic plus.
 template <class Label, class W>
 inline GallicWeight<Label, W, GALLIC_MIN> Plus(
-    const GallicWeight<Label, W, GALLIC_MIN> &w1,
-    const GallicWeight<Label, W, GALLIC_MIN> &w2) {
+    const GallicWeight<Label, W, GALLIC_MIN>& w1,
+    const GallicWeight<Label, W, GALLIC_MIN>& w2) {
   static const NaturalLess<W> less;
   return less(w1.Value2(), w2.Value2()) ? w1 : w2;
 }
 
 template <class Label, class W, GallicType G>
-inline GallicWeight<Label, W, G> Times(const GallicWeight<Label, W, G> &w,
-                                       const GallicWeight<Label, W, G> &v) {
+inline GallicWeight<Label, W, G> Times(const GallicWeight<Label, W, G>& w,
+                                       const GallicWeight<Label, W, G>& v) {
   return GallicWeight<Label, W, G>(Times(w.Value1(), v.Value1()),
                                    Times(w.Value2(), v.Value2()));
 }
 
 template <class Label, class W, GallicType G>
-inline GallicWeight<Label, W, G> Divide(const GallicWeight<Label, W, G> &w,
-                                        const GallicWeight<Label, W, G> &v,
+inline GallicWeight<Label, W, G> Divide(const GallicWeight<Label, W, G>& w,
+                                        const GallicWeight<Label, W, G>& v,
                                         DivideType divide_type = DIVIDE_ANY) {
   return GallicWeight<Label, W, G>(Divide(w.Value1(), v.Value1(), divide_type),
                                    Divide(w.Value2(), v.Value2(), divide_type));
@@ -692,9 +691,9 @@ struct GallicUnionWeightOptions {
 
   // Military order.
   struct Compare {
-    bool operator()(const GW &w1, const GW &w2) const {
-      const SW &s1 = w1.Value1();
-      const SW &s2 = w2.Value1();
+    bool operator()(const GW& w1, const GW& w2) const {
+      const SW& s1 = w1.Value1();
+      const SW& s2 = w2.Value1();
       if (s1.Size() < s2.Size()) return true;
       if (s1.Size() > s2.Size()) return false;
       SI iter1(s1);
@@ -713,7 +712,7 @@ struct GallicUnionWeightOptions {
 
   // Adds W weights when string part equal.
   struct Merge {
-    GW operator()(const GW &w1, const GW &w2) const {
+    GW operator()(const GW& w1, const GW& w2) const {
       return GW(w1.Value1(), Plus(w1.Value2(), w2.Value2()));
     }
   };
@@ -735,76 +734,77 @@ struct GallicWeight<Label, W, GALLIC>
 
   GallicWeight() = default;
 
-  // Copy constructor.
-  // NOLINTNEXTLINE(google-explicit-constructor)
-  GallicWeight(const UW &weight) : UW(weight) {}
+  explicit GallicWeight(const UW& weight) : UW(weight) {}
 
   // Singleton constructors: create a GALLIC weight containing a single
   // GALLIC_RESTRICT weight. Takes as argument (1) a GALLIC_RESTRICT weight or
   // (2) the two components of a GALLIC_RESTRICT weight.
-  explicit GallicWeight(const GW &weight) : UW(weight) {}
+  explicit GallicWeight(const GW& weight) : UW(weight) {}
 
   GallicWeight(SW w1, W w2) : UW(GW(w1, w2)) {}
 
-  explicit GallicWeight(std::string_view str, int *nread = nullptr)
+  explicit GallicWeight(std::string_view str, int* nread = nullptr)
       : UW(str, nread) {}
 
-  static const GallicWeight<Label, W, GALLIC> &Zero() {
-    static const GallicWeight<Label, W, GALLIC> zero(UW::Zero());
+  static const GallicWeight& Zero() {
+    static const GallicWeight zero(UW::Zero());
     return zero;
   }
 
-  static const GallicWeight<Label, W, GALLIC> &One() {
-    static const GallicWeight<Label, W, GALLIC> one(UW::One());
+  static const GallicWeight& One() {
+    static const GallicWeight one(UW::One());
     return one;
   }
 
-  static const GallicWeight<Label, W, GALLIC> &NoWeight() {
-    static const GallicWeight<Label, W, GALLIC> no_weight(UW::NoWeight());
+  static const GallicWeight& NoWeight() {
+    static const GallicWeight no_weight(UW::NoWeight());
     return no_weight;
   }
 
-  static const std::string &Type() {
-    static const std::string *const type = new std::string("gallic");
+  static const std::string& Type() {
+    static const std::string* const type = new std::string("gallic");
     return *type;
   }
 
-  GallicWeight<Label, W, GALLIC> Quantize(float delta = kDelta) const {
-    return UW::Quantize(delta);
+  GallicWeight Quantize(float delta = kDelta) const {
+    return GallicWeight(UW::Quantize(delta));
   }
 
-  ReverseWeight Reverse() const { return UW::Reverse(); }
+  ReverseWeight Reverse() const { return GallicWeight(UW::Reverse()); }
 };
 
 // (General) gallic plus.
 template <class Label, class W>
 inline GallicWeight<Label, W, GALLIC> Plus(
-    const GallicWeight<Label, W, GALLIC> &w1,
-    const GallicWeight<Label, W, GALLIC> &w2) {
+    const GallicWeight<Label, W, GALLIC>& w1,
+    const GallicWeight<Label, W, GALLIC>& w2) {
   using GW = GallicWeight<Label, W, GALLIC_RESTRICT>;
   using UW = UnionWeight<GW, GallicUnionWeightOptions<Label, W>>;
-  return Plus(static_cast<UW>(w1), static_cast<UW>(w2));
+  return GallicWeight<Label, W, GALLIC>(
+      Plus(static_cast<UW>(w1), static_cast<UW>(w2)));
 }
 
 // (General) gallic times.
 template <class Label, class W>
 inline GallicWeight<Label, W, GALLIC> Times(
-    const GallicWeight<Label, W, GALLIC> &w1,
-    const GallicWeight<Label, W, GALLIC> &w2) {
+    const GallicWeight<Label, W, GALLIC>& w1,
+    const GallicWeight<Label, W, GALLIC>& w2) {
   using GW = GallicWeight<Label, W, GALLIC_RESTRICT>;
   using UW = UnionWeight<GW, GallicUnionWeightOptions<Label, W>>;
-  return Times(static_cast<UW>(w1), static_cast<UW>(w2));
+  return GallicWeight<Label, W, GALLIC>(
+      Times(static_cast<UW>(w1), static_cast<UW>(w2)));
 }
 
 // (General) gallic divide.
 template <class Label, class W>
 inline GallicWeight<Label, W, GALLIC> Divide(
-    const GallicWeight<Label, W, GALLIC> &w1,
-    const GallicWeight<Label, W, GALLIC> &w2,
+    const GallicWeight<Label, W, GALLIC>& w1,
+    const GallicWeight<Label, W, GALLIC>& w2,
     DivideType divide_type = DIVIDE_ANY) {
   using GW = GallicWeight<Label, W, GALLIC_RESTRICT>;
   using UW = UnionWeight<GW, GallicUnionWeightOptions<Label, W>>;
-  return Divide(static_cast<UW>(w1), static_cast<UW>(w2), divide_type);
+  return GallicWeight<Label, W, GALLIC>(
+      Divide(static_cast<UW>(w1), static_cast<UW>(w2), divide_type));
 }
 
 // This function object generates gallic weights by calling an underlying

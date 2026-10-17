@@ -20,13 +20,11 @@
 #ifndef FST_EQUIVALENT_H_
 #define FST_EQUIVALENT_H_
 
-#include <algorithm>
 #include <cstdint>
 #include <queue>
 #include <utility>
-#include <vector>
 
-#include <fst/log.h>
+#include <unordered_map>
 #include <fst/arc-map.h>
 #include <fst/encode.h>
 #include <fst/fst.h>
@@ -38,7 +36,6 @@
 #include <fst/util.h>
 #include <fst/vector-fst.h>
 #include <fst/weight.h>
-#include <unordered_map>
 
 namespace fst {
 namespace internal {
@@ -82,13 +79,13 @@ struct EquivalenceUtil {
 
   // Convenience function: checks if state with MappedId s is final in
   // acceptor fa.
-  static bool IsFinal(const Fst<Arc> &fa, MappedId s) {
+  static bool IsFinal(const Fst<Arc>& fa, MappedId s) {
     return (kDeadState == s) ? false
                              : (fa.Final(UnMapState(s)) != Weight::Zero());
   }
   // Convenience function: returns the representative of ID in sets,
   // creating a new set if needed.
-  static MappedId FindSet(UnionFind<MappedId> *sets, MappedId id) {
+  static MappedId FindSet(UnionFind<MappedId>* sets, MappedId id) {
     const auto repr = sets->FindSet(id);
     if (repr != kInvalidId) {
       return repr;
@@ -124,8 +121,8 @@ struct EquivalenceUtil {
 //   G(n) is a very slowly growing function that can be approximated
 //        by 4 by all practical purposes.
 template <class Arc>
-bool Equivalent(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
-                float delta = kDelta, bool *error = nullptr) {
+bool Equivalent(const Fst<Arc>& fst1, const Fst<Arc>& fst2,
+                float delta = kDelta, bool* error = nullptr) {
   using Weight = typename Arc::Weight;
   if (error) *error = false;
   // Check that the symbol table are compatible.
@@ -200,7 +197,7 @@ bool Equivalent(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
       if (Util::kDeadState != s1) {
         ArcIterator<Fst<Arc>> arc_iter(fst1, Util::UnMapState(s1));
         for (; !arc_iter.Done(); arc_iter.Next()) {
-          const auto &arc = arc_iter.Value();
+          const auto& arc = arc_iter.Value();
           // Zero-weight arcs are treated as if they did not exist.
           if (arc.weight != Weight::Zero()) {
             arc_pairs[arc.ilabel].first = Util::MapState(arc.nextstate, FST1);
@@ -211,7 +208,7 @@ bool Equivalent(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
       if (Util::kDeadState != s2) {
         ArcIterator<Fst<Arc>> arc_iter(fst2, Util::UnMapState(s2));
         for (; !arc_iter.Done(); arc_iter.Next()) {
-          const auto &arc = arc_iter.Value();
+          const auto& arc = arc_iter.Value();
           // Zero-weight arcs are treated as if they did not exist.
           if (arc.weight != Weight::Zero()) {
             arc_pairs[arc.ilabel].second = Util::MapState(arc.nextstate, FST2);
@@ -219,8 +216,8 @@ bool Equivalent(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
         }
       }
       // Iterates through the hashtable and process pairs of target states.
-      for (const auto &arc_iter : arc_pairs) {
-        const auto &pair = arc_iter.second;
+      for (const auto& arc_iter : arc_pairs) {
+        const auto& pair = arc_iter.second;
         if (Util::IsFinal(fst1, pair.first) !=
             Util::IsFinal(fst2, pair.second)) {
           // Detected inconsistency: return false.

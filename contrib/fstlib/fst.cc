@@ -27,33 +27,36 @@
 
 #include <fst/flags.h>
 #include <fst/log.h>
+#include <string_view>
 #include <fst/symbol-table.h>
 #include <fst/util.h>
-#include <string_view>
 
 // FST flag definitions.
 
 DEFINE_bool(fst_verify_properties, false,
-            "Verify FST properties queried by TestProperties");
+          "Verify FST properties queried by TestProperties");
 
-DEFINE_bool(fst_default_cache_gc, true, "Enable garbage collection of cache");
+DEFINE_bool(fst_default_cache_gc, true,
+          "Enable garbage collection of cache");
 
 DEFINE_int64(fst_default_cache_gc_limit, 1 << 20LL,
-             "Cache byte size that triggers garbage collection");
+          "Cache byte size that triggers garbage collection");
 
 DEFINE_bool(fst_align, false, "Write FST data aligned where appropriate");
 
-DEFINE_string(save_relabel_ipairs, "", "Save input relabel pairs to file");
-DEFINE_string(save_relabel_opairs, "", "Save output relabel pairs to file");
+DEFINE_string(save_relabel_ipairs, "",
+          "Save input relabel pairs to file");
+DEFINE_string(save_relabel_opairs, "",
+          "Save output relabel pairs to file");
 
 DEFINE_string(fst_read_mode, "read",
-              "Default file reading mode for mappable files");
+          "Default file reading mode for mappable files");
 
 namespace fst {
 
 // Checks FST magic number and reads in the header; if rewind = true,
 // the stream is repositioned before call if possible.
-bool FstHeader::Read(std::istream &strm, const std::string &source,
+bool FstHeader::Read(std::istream& strm, const std::string& source,
                      bool rewind) {
   int64_t pos = 0;
   if (rewind) pos = strm.tellg();
@@ -82,7 +85,7 @@ bool FstHeader::Read(std::istream &strm, const std::string &source,
 }
 
 // Writes FST magic number and FST header.
-bool FstHeader::Write(std::ostream &strm, std::string_view) const {
+bool FstHeader::Write(std::ostream& strm, std::string_view) const {
   WriteType(strm, kFstMagicNumber);
   WriteType(strm, fsttype_);
   WriteType(strm, arctype_);
@@ -106,9 +109,9 @@ std::string FstHeader::DebugString() const {
 }
 
 FstReadOptions::FstReadOptions(const std::string_view source,
-                               const FstHeader * header,
-                               const SymbolTable * isymbols,
-                               const SymbolTable * osymbols)
+                               const FstHeader*  header,
+                               const SymbolTable*  isymbols,
+                               const SymbolTable*  osymbols)
     : source(source),
       header(header),
       isymbols(isymbols),
@@ -119,8 +122,8 @@ FstReadOptions::FstReadOptions(const std::string_view source,
 }
 
 FstReadOptions::FstReadOptions(const std::string_view source,
-                               const SymbolTable *isymbols,
-                               const SymbolTable *osymbols)
+                               const SymbolTable* isymbols,
+                               const SymbolTable* osymbols)
     : FstReadOptions(source, /*header=*/nullptr, isymbols, osymbols) {}
 
 FstReadOptions::FileReadMode FstReadOptions::ReadMode(std::string_view mode) {

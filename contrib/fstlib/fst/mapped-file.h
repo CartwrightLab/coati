@@ -27,8 +27,6 @@
 #include <istream>
 #include <string>
 
-#include <fst/flags.h>
-
 namespace fst {
 
 // A memory region is a simple abstraction for allocated memory or data from
@@ -39,8 +37,8 @@ namespace fst {
 // other allocator. The offset is used when allocating memory to providing
 // padding for alignment.
 struct MemoryRegion {
-  void *data;
-  void *mmap;
+  void* data;
+  void* mmap;
   size_t size;
   size_t offset;
 #ifdef _WIN32
@@ -52,38 +50,37 @@ class MappedFile {
  public:
   ~MappedFile();
 
-  void *mutable_data() const { return region_.data; }
+  void* mutable_data() const { return region_.data; }
 
-  const void *data() const { return region_.data; }
+  const void* data() const { return region_.data; }
 
   // Returns a MappedFile object that contains the contents of the input stream
   // strm starting from the current file position with size bytes. The memorymap
   // bool is advisory, and Map will default to allocating and reading. The
   // source argument needs to contain the filename that was used to open the
   // input stream.
-  static MappedFile * Map(std::istream &istrm, bool memorymap,
-                                          const std::string &source,
-                                          size_t size);
+  static MappedFile*  Map(std::istream& istrm, bool memorymap,
+                                       const std::string& source, size_t size);
 
   // Returns a MappedFile object that contains the contents of the file referred
   // to by the file descriptor starting from pos with size bytes. If the
   // memory mapping fails, nullptr is returned. In contrast to Map(), this
   // factory function does not backoff to allocating and reading.
-  static MappedFile * MapFromFileDescriptor(int fd, size_t pos,
-                                                            size_t size);
+  static MappedFile*  MapFromFileDescriptor(int fd, size_t pos,
+                                                         size_t size);
 
   // Creates a MappedFile object with a new'ed block of memory of size. The
   // align argument can be used to specify a desired block alignment.
   // This is RECOMMENDED FOR INTERNAL USE ONLY as it may change in future
   // releases.
-  static MappedFile *Allocate(size_t size, size_t align = kArchAlignment);
+  static MappedFile* Allocate(size_t size, size_t align = kArchAlignment);
 
   // Creates a MappedFile object with a new'ed block of memory with enough
   // space for count elements of type T, correctly aligned for the type.
   // This is RECOMMENDED FOR INTERNAL USE ONLY as it may change in future
   // releases.
   template <typename T>
-  static MappedFile *AllocateType(size_t count) {
+  static MappedFile* AllocateType(size_t count) {
     return Allocate(sizeof(T) * count, alignof(T));
   }
 
@@ -91,7 +88,7 @@ class MappedFile {
   // block of memory is not owned by the MappedFile object and will not be
   // freed. This is RECOMMENDED FOR INTERNAL USE ONLY, may change in future
   // releases.
-  static MappedFile *Borrow(void *data);
+  static MappedFile* Borrow(void* data);
 
   // Alignment required for mapping structures in bytes. Regions of memory that
   // are not aligned upon a 128-bit boundary are read from the file instead.
@@ -102,11 +99,11 @@ class MappedFile {
   static constexpr size_t kMaxReadChunk = 256 * 1024 * 1024;  // 256 MB.
 
  private:
-  explicit MappedFile(const MemoryRegion &region);
+  explicit MappedFile(const MemoryRegion& region);
 
   MemoryRegion region_;
-  MappedFile(const MappedFile &) = delete;
-  MappedFile &operator=(const MappedFile &) = delete;
+  MappedFile(const MappedFile&) = delete;
+  MappedFile& operator=(const MappedFile&) = delete;
 };
 }  // namespace fst
 

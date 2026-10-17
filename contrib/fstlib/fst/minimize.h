@@ -21,7 +21,6 @@
 #define FST_MINIMIZE_H_
 
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <map>
 #include <memory>
@@ -29,6 +28,7 @@
 #include <utility>
 #include <vector>
 
+#include <unordered_map>
 #include <fst/log.h>
 #include <fst/arc-map.h>
 #include <fst/arc.h>
@@ -53,7 +53,6 @@
 #include <fst/util.h>
 #include <fst/vector-fst.h>
 #include <fst/weight.h>
-#include <unordered_map>
 
 namespace fst {
 namespace internal {
@@ -65,7 +64,7 @@ class StateComparator {
   using StateId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  StateComparator(const Fst<Arc> &fst, const Partition<StateId> &partition)
+  StateComparator(const Fst<Arc>& fst, const Partition<StateId>& partition)
       : fst_(fst), partition_(partition) {}
 
   // Compares state x with state y based on sort criteria.
@@ -84,8 +83,8 @@ class StateComparator {
     // If the number of arcs are equal, checks for arc match.
     for (ArcIterator<Fst<Arc>> aiter1(fst_, x), aiter2(fst_, y);
          !aiter1.Done() && !aiter2.Done(); aiter1.Next(), aiter2.Next()) {
-      const auto &arc1 = aiter1.Value();
-      const auto &arc2 = aiter2.Value();
+      const auto& arc1 = aiter1.Value();
+      const auto& arc2 = aiter2.Value();
       if (arc1.ilabel < arc2.ilabel) return true;
       if (arc1.ilabel > arc2.ilabel) return false;
       if (partition_.ClassId(arc1.nextstate) <
@@ -99,8 +98,8 @@ class StateComparator {
   }
 
  private:
-  const Fst<Arc> &fst_;
-  const Partition<StateId> &partition_;
+  const Fst<Arc>& fst_;
+  const Partition<StateId>& partition_;
 };
 
 // Computes equivalence classes for cyclic unweighted acceptors. For cyclic
@@ -132,12 +131,12 @@ class CyclicMinimizer {
   // unique_ptr when ArcIterator<Fst<>> is made movable.
   using RevArcIterPtr = std::unique_ptr<RevArcIter>;
 
-  explicit CyclicMinimizer(const ExpandedFst<Arc> &fst) {
+  explicit CyclicMinimizer(const ExpandedFst<Arc>& fst) {
     Initialize(fst);
     Compute(fst);
   }
 
-  const Partition<StateId> &GetPartition() const { return P_; }
+  const Partition<StateId>& GetPartition() const { return P_; }
 
  private:
   // StateILabelHasher is a hashing object that computes a hash-function
@@ -147,7 +146,7 @@ class CyclicMinimizer {
   // instances of the same ilabel count the same as a single instance.
   class StateILabelHasher {
    public:
-    explicit StateILabelHasher(const Fst<Arc> &fst) : fst_(fst) {}
+    explicit StateILabelHasher(const Fst<Arc>& fst) : fst_(fst) {}
 
     using Label = typename Arc::Label;
     using StateId = typename Arc::StateId;
@@ -168,15 +167,15 @@ class CyclicMinimizer {
     }
 
    private:
-    const Fst<Arc> &fst_;
+    const Fst<Arc>& fst_;
   };
 
   class ArcIterCompare {
    public:
     // Compares two iterators based on their input labels.
-    bool operator()(const RevArcIterPtr &x, const RevArcIterPtr &y) const {
-      const auto &xarc = x->Value();
-      const auto &yarc = y->Value();
+    bool operator()(const RevArcIterPtr& x, const RevArcIterPtr& y) const {
+      const auto& xarc = x->Value();
+      const auto& yarc = y->Value();
       return xarc.ilabel > yarc.ilabel;
     }
   };
@@ -192,7 +191,7 @@ class CyclicMinimizer {
   // different sets of ilabels on arcs leaving them, go to different partitions.
   // Note: for the O(n) guarantees we don't rely on the goodness of this
   // hashing function---it just provides a bonus speedup.
-  void PrePartition(const ExpandedFst<Arc> &fst) {
+  void PrePartition(const ExpandedFst<Arc>& fst) {
     VLOG(5) << "PrePartition";
     StateId next_class = 0;
     auto num_states = fst.NumStates();
@@ -210,7 +209,7 @@ class CyclicMinimizer {
       StateILabelHasher hasher(fst);
       for (StateId s = 0; s < num_states; ++s) {
         size_t hash = hasher(s);
-        HashToClassMap &this_map =
+        HashToClassMap& this_map =
             (fst.Final(s) != Weight::Zero() ? hash_to_class_final
                                             : hash_to_class_nonfinal);
         // Avoids two map lookups by using 'insert' instead of 'find'.
@@ -231,7 +230,7 @@ class CyclicMinimizer {
   // Creates inverse transition Tr_ = rev(fst), loops over states in FST and
   // splits on final, creating two blocks in the partition corresponding to
   // final, non-final.
-  void Initialize(const ExpandedFst<Arc> &fst) {
+  void Initialize(const ExpandedFst<Arc>& fst) {
     // Constructs Tr.
     Reverse(fst, &Tr_);
     static const ILabelCompare<RevArc> icomp;
@@ -263,10 +262,10 @@ class CyclicMinimizer {
       // unique_ptr out of the priority queue. This is fine and doesn't cause an
       // issue with the invariants of the pqueue since we immediately pop after.
       RevArcIterPtr aiter =
-          std::move(const_cast<RevArcIterPtr &>(aiter_queue_->top()));
+          std::move(const_cast<RevArcIterPtr&>(aiter_queue_->top()));
       aiter_queue_->pop();
       if (aiter->Done()) continue;
-      const auto &arc = aiter->Value();
+      const auto& arc = aiter->Value();
       auto from_state = aiter->Value().nextstate - 1;
       auto from_label = arc.ilabel;
       if (prev_label != from_label) P_.FinalizeSplit(&L_);
@@ -280,7 +279,7 @@ class CyclicMinimizer {
   }
 
   // Main loop for Hopcroft minimization.
-  void Compute(const Fst<Arc> &fst) {
+  void Compute(const Fst<Arc>& fst) {
     // Processes active classes (FIFO, or FILO).
     while (!L_.Empty()) {
       const auto C = L_.Head();
@@ -321,12 +320,12 @@ class AcyclicMinimizer {
   using ClassId = typename Arc::StateId;
   using Weight = typename Arc::Weight;
 
-  explicit AcyclicMinimizer(const ExpandedFst<Arc> &fst) {
+  explicit AcyclicMinimizer(const ExpandedFst<Arc>& fst) {
     Initialize(fst);
     Refine(fst);
   }
 
-  const Partition<StateId> &GetPartition() { return partition_; }
+  const Partition<StateId>& GetPartition() { return partition_; }
 
  private:
   // DFS visitor to compute the height (distance) to final state.
@@ -335,7 +334,7 @@ class AcyclicMinimizer {
     HeightVisitor() : max_height_(0), num_states_(0) {}
 
     // Invoked before DFS visit.
-    void InitVisit(const Fst<Arc> &fst) {}
+    void InitVisit(const Fst<Arc>& fst) {}
 
     // Invoked when state is discovered (2nd arg is DFS tree root).
     bool InitState(StateId s, StateId root) {
@@ -346,13 +345,13 @@ class AcyclicMinimizer {
     }
 
     // Invoked when tree arc examined (to undiscovered state).
-    bool TreeArc(StateId s, const Arc &arc) { return true; }
+    bool TreeArc(StateId s, const Arc& arc) { return true; }
 
     // Invoked when back arc examined (to unfinished state).
-    bool BackArc(StateId s, const Arc &arc) { return true; }
+    bool BackArc(StateId s, const Arc& arc) { return true; }
 
     // Invoked when forward or cross arc examined (to finished state).
-    bool ForwardOrCrossArc(StateId s, const Arc &arc) {
+    bool ForwardOrCrossArc(StateId s, const Arc& arc) {
       if (height_[arc.nextstate] + 1 > height_[s]) {
         height_[s] = height_[arc.nextstate] + 1;
       }
@@ -360,7 +359,7 @@ class AcyclicMinimizer {
     }
 
     // Invoked when state finished (parent is kNoStateId for tree root).
-    void FinishState(StateId s, StateId parent, const Arc *parent_arc) {
+    void FinishState(StateId s, StateId parent, const Arc* parent_arc) {
       if (height_[s] == -1) height_[s] = 0;
       const auto h = height_[s] + 1;
       if (parent >= 0) {
@@ -374,7 +373,7 @@ class AcyclicMinimizer {
 
     size_t max_height() const { return max_height_; }
 
-    const std::vector<StateId> &height() const { return height_; }
+    const std::vector<StateId>& height() const { return height_; }
 
     size_t num_states() const { return num_states_; }
 
@@ -386,19 +385,19 @@ class AcyclicMinimizer {
 
  private:
   // Cluster states according to height (distance to final state)
-  void Initialize(const Fst<Arc> &fst) {
+  void Initialize(const Fst<Arc>& fst) {
     // Computes height (distance to final state).
     HeightVisitor hvisitor;
     DfsVisit(fst, &hvisitor);
     // Creates initial partition based on height.
     partition_.Initialize(hvisitor.num_states());
     partition_.AllocateClasses(hvisitor.max_height() + 1);
-    const auto &hstates = hvisitor.height();
+    const auto& hstates = hvisitor.height();
     for (StateId s = 0; s < hstates.size(); ++s) partition_.Add(s, hstates[s]);
   }
 
   // Refines states based on arc sort (out degree, arc equivalence).
-  void Refine(const Fst<Arc> &fst) {
+  void Refine(const Fst<Arc>& fst) {
     using EquivalenceMap = std::map<StateId, StateId, StateComparator<Arc>>;
     StateComparator<Arc> comp(fst, partition_);
     // Starts with tail (height = 0).
@@ -438,8 +437,8 @@ class AcyclicMinimizer {
 // reconnected to this state. All states in the class are merged by adding
 // their arcs to the representative state.
 template <class Arc>
-void MergeStates(const Partition<typename Arc::StateId> &partition,
-                 MutableFst<Arc> *fst) {
+void MergeStates(const Partition<typename Arc::StateId>& partition,
+                 MutableFst<Arc>* fst) {
   using StateId = typename Arc::StateId;
   std::vector<StateId> state_map(partition.NumClasses());
   for (StateId i = 0; i < partition.NumClasses(); ++i) {
@@ -468,7 +467,7 @@ void MergeStates(const Partition<typename Arc::StateId> &partition,
 }
 
 template <class Arc>
-void AcceptorMinimize(MutableFst<Arc> *fst) {
+void AcceptorMinimize(MutableFst<Arc>* fst) {
   // Connects FST before minimization, handles disconnected states.
   Connect(fst);
   if (fst->Start() == kNoStateId) return;
@@ -509,7 +508,7 @@ void AcceptorMinimize(MutableFst<Arc> *fst) {
 // minimization (which was presented for the deterministic case but which
 // also works for non-deterministic FSTs); this has complexity O(e log v).
 template <class Arc>
-void Minimize(MutableFst<Arc> *fst, MutableFst<Arc> *sfst = nullptr,
+void Minimize(MutableFst<Arc>* fst, MutableFst<Arc>* sfst = nullptr,
               float delta = kShortestDelta, bool allow_nondet = false) {
   using Weight = typename Arc::Weight;
   static constexpr auto minimize_props =

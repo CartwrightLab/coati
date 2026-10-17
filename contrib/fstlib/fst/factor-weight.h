@@ -24,11 +24,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
-#include <fst/log.h>
+#include <unordered_map>
 #include <fst/cache.h>
 #include <fst/fst.h>
 #include <fst/impl-to-fst.h>
@@ -36,7 +35,6 @@
 #include <fst/string-weight.h>
 #include <fst/union-weight.h>
 #include <fst/weight.h>
-#include <unordered_map>
 
 namespace fst {
 
@@ -54,7 +52,7 @@ struct FactorWeightOptions : CacheOptions {
   bool increment_final_ilabel;  // When factoring final w' results in > 1 arcs
   bool increment_final_olabel;  // at state, increment labels to make distinct?
 
-  explicit FactorWeightOptions(const CacheOptions &opts, float delta = kDelta,
+  explicit FactorWeightOptions(const CacheOptions& opts, float delta = kDelta,
                                uint8_t mode = kFactorArcWeights |
                                               kFactorFinalWeights,
                                Label final_ilabel = 0, Label final_olabel = 0,
@@ -104,7 +102,7 @@ struct FactorWeightOptions : CacheOptions {
 template <class W>
 class IdentityFactor {
  public:
-  explicit IdentityFactor(const W &weight) {}
+  explicit IdentityFactor(const W& weight) {}
 
   bool Done() const { return true; }
 
@@ -121,7 +119,7 @@ class IdentityFactor {
 template <class W>
 class OneFactor {
  public:
-  explicit OneFactor(const W &w) : weight_(w), done_(w == W::One()) {}
+  explicit OneFactor(const W& w) : weight_(w), done_(w == W::One()) {}
 
   bool Done() const { return done_; }
 
@@ -140,7 +138,7 @@ class OneFactor {
 template <typename Label, StringType S = STRING_LEFT>
 class StringFactor {
  public:
-  explicit StringFactor(const StringWeight<Label, S> &weight)
+  explicit StringFactor(const StringWeight<Label, S>& weight)
       : weight_(weight), done_(weight.Size() <= 1) {}
 
   bool Done() const { return done_; }
@@ -169,7 +167,7 @@ class GallicFactor {
  public:
   using GW = GallicWeight<Label, W, G>;
 
-  explicit GallicFactor(const GW &weight)
+  explicit GallicFactor(const GW& weight)
       : weight_(weight), done_(weight.Value1().Size() <= 1) {}
 
   bool Done() const { return done_; }
@@ -197,7 +195,7 @@ class GallicFactor<Label, W, GALLIC> {
   using GW = GallicWeight<Label, W, GALLIC>;
   using GRW = GallicWeight<Label, W, GALLIC_RESTRICT>;
 
-  explicit GallicFactor(const GW &weight)
+  explicit GallicFactor(const GW& weight)
       : iter_(weight),
         done_(weight.Size() == 0 ||
               (weight.Size() == 1 && weight.Back().Value1().Size() <= 1)) {}
@@ -254,7 +252,7 @@ class FactorWeightFstImpl : public CacheImpl<Arc> {
     Weight weight;  // Residual weight.
   };
 
-  FactorWeightFstImpl(const Fst<Arc> &fst, const FactorWeightOptions<Arc> &opts)
+  FactorWeightFstImpl(const Fst<Arc>& fst, const FactorWeightOptions<Arc>& opts)
       : CacheImpl<Arc>(opts),
         fst_(fst.Copy()),
         delta_(opts.delta),
@@ -274,7 +272,7 @@ class FactorWeightFstImpl : public CacheImpl<Arc> {
     }
   }
 
-  FactorWeightFstImpl(const FactorWeightFstImpl<Arc, FactorIterator> &impl)
+  FactorWeightFstImpl(const FactorWeightFstImpl<Arc, FactorIterator>& impl)
       : CacheImpl<Arc>(impl),
         fst_(impl.fst_->Copy(true)),
         delta_(impl.delta_),
@@ -300,7 +298,7 @@ class FactorWeightFstImpl : public CacheImpl<Arc> {
 
   Weight Final(StateId s) {
     if (!HasFinal(s)) {
-      const auto &element = elements_[s];
+      const auto& element = elements_[s];
       const auto weight =
           element.state == kNoStateId
               ? element.weight
@@ -340,14 +338,14 @@ class FactorWeightFstImpl : public CacheImpl<Arc> {
     return FstImpl<Arc>::Properties(mask);
   }
 
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) {
     if (!HasArcs(s)) Expand(s);
     CacheImpl<Arc>::InitArcIterator(s, data);
   }
 
   // Finds state corresponding to an element, creating new state if element not
   // found.
-  StateId FindState(const Element &element) {
+  StateId FindState(const Element& element) {
     if (!(mode_ & kFactorArcWeights) && element.weight == Weight::One() &&
         element.state != kNoStateId) {
       while (unfactored_.size() <= element.state)
@@ -374,7 +372,7 @@ class FactorWeightFstImpl : public CacheImpl<Arc> {
     if (element.state != kNoStateId) {
       for (ArcIterator<Fst<Arc>> ait(*fst_, element.state); !ait.Done();
            ait.Next()) {
-        const auto &arc = ait.Value();
+        const auto& arc = ait.Value();
         auto weight = Times(element.weight, arc.weight);
         FactorIterator fiter(weight);
         if (!(mode_ & kFactorArcWeights) || fiter.Done()) {
@@ -415,7 +413,7 @@ class FactorWeightFstImpl : public CacheImpl<Arc> {
   // Equality function for Elements, assume weights have been quantized.
   class ElementEqual {
    public:
-    bool operator()(const Element &x, const Element &y) const {
+    bool operator()(const Element& x, const Element& y) const {
       return x.state == y.state && x.weight == y.weight;
     }
   };
@@ -423,9 +421,8 @@ class FactorWeightFstImpl : public CacheImpl<Arc> {
   // Hash function for Elements to Fst states.
   class ElementKey {
    public:
-    size_t operator()(const Element &x) const {
-      static constexpr auto prime = 7853;
-      return static_cast<size_t>(x.state * prime + x.weight.Hash());
+    size_t operator()(const Element& x) const {
+      return HashOf(x.state, x.weight.Hash());
     }
   };
 
@@ -460,6 +457,8 @@ class FactorWeightFstImpl : public CacheImpl<Arc> {
 template <class A, class FactorIterator>
 class FactorWeightFst
     : public ImplToFst<internal::FactorWeightFstImpl<A, FactorIterator>> {
+  using Base = ImplToFst<internal::FactorWeightFstImpl<A, FactorIterator>>;
+
  public:
   using Arc = A;
   using StateId = typename Arc::StateId;
@@ -467,38 +466,36 @@ class FactorWeightFst
 
   using Store = DefaultCacheStore<Arc>;
   using State = typename Store::State;
-  using Impl = internal::FactorWeightFstImpl<Arc, FactorIterator>;
+  using typename Base::Impl;
 
   friend class ArcIterator<FactorWeightFst<Arc, FactorIterator>>;
   friend class StateIterator<FactorWeightFst<Arc, FactorIterator>>;
 
-  explicit FactorWeightFst(const Fst<Arc> &fst)
-      : ImplToFst<Impl>(
-            std::make_shared<Impl>(fst, FactorWeightOptions<Arc>())) {}
+  explicit FactorWeightFst(const Fst<Arc>& fst)
+      : Base(std::make_shared<Impl>(fst, FactorWeightOptions<Arc>())) {}
 
-  FactorWeightFst(const Fst<Arc> &fst, const FactorWeightOptions<Arc> &opts)
-      : ImplToFst<Impl>(std::make_shared<Impl>(fst, opts)) {}
+  FactorWeightFst(const Fst<Arc>& fst, const FactorWeightOptions<Arc>& opts)
+      : Base(std::make_shared<Impl>(fst, opts)) {}
 
   // See Fst<>::Copy() for doc.
-  FactorWeightFst(const FactorWeightFst &fst, bool copy)
-      : ImplToFst<Impl>(fst, copy) {}
+  FactorWeightFst(const FactorWeightFst& fst, bool copy) : Base(fst, copy) {}
 
   // Get a copy of this FactorWeightFst. See Fst<>::Copy() for further doc.
-  FactorWeightFst *Copy(bool copy = false) const override {
+  FactorWeightFst* Copy(bool copy = false) const override {
     return new FactorWeightFst(*this, copy);
   }
 
-  inline void InitStateIterator(StateIteratorData<Arc> *data) const override;
+  inline void InitStateIterator(StateIteratorData<Arc>* data) const override;
 
-  void InitArcIterator(StateId s, ArcIteratorData<Arc> *data) const override {
+  void InitArcIterator(StateId s, ArcIteratorData<Arc>* data) const override {
     GetMutableImpl()->InitArcIterator(s, data);
   }
 
  private:
-  using ImplToFst<Impl>::GetImpl;
-  using ImplToFst<Impl>::GetMutableImpl;
+  using Base::GetImpl;
+  using Base::GetMutableImpl;
 
-  FactorWeightFst &operator=(const FactorWeightFst &) = delete;
+  FactorWeightFst& operator=(const FactorWeightFst&) = delete;
 };
 
 // Specialization for FactorWeightFst.
@@ -506,7 +503,7 @@ template <class Arc, class FactorIterator>
 class StateIterator<FactorWeightFst<Arc, FactorIterator>>
     : public CacheStateIterator<FactorWeightFst<Arc, FactorIterator>> {
  public:
-  explicit StateIterator(const FactorWeightFst<Arc, FactorIterator> &fst)
+  explicit StateIterator(const FactorWeightFst<Arc, FactorIterator>& fst)
       : CacheStateIterator<FactorWeightFst<Arc, FactorIterator>>(
             fst, fst.GetMutableImpl()) {}
 };
@@ -518,7 +515,7 @@ class ArcIterator<FactorWeightFst<Arc, FactorIterator>>
  public:
   using StateId = typename Arc::StateId;
 
-  ArcIterator(const FactorWeightFst<Arc, FactorIterator> &fst, StateId s)
+  ArcIterator(const FactorWeightFst<Arc, FactorIterator>& fst, StateId s)
       : CacheArcIterator<FactorWeightFst<Arc, FactorIterator>>(
             fst.GetMutableImpl(), s) {
     if (!fst.GetImpl()->HasArcs(s)) fst.GetMutableImpl()->Expand(s);
@@ -527,7 +524,7 @@ class ArcIterator<FactorWeightFst<Arc, FactorIterator>>
 
 template <class Arc, class FactorIterator>
 inline void FactorWeightFst<Arc, FactorIterator>::InitStateIterator(
-    StateIteratorData<Arc> *data) const {
+    StateIteratorData<Arc>* data) const {
   data->base =
       std::make_unique<StateIterator<FactorWeightFst<Arc, FactorIterator>>>(
           *this);

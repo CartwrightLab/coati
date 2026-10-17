@@ -39,23 +39,23 @@ class TopOrderVisitor {
   // If acyclic, order[i] gives the topological position of StateId i;
   // otherwise it is unchanged. acyclic_ will be true iff the FST has no
   // cycles. The caller retains ownership of the state order vector.
-  TopOrderVisitor(std::vector<StateId> *order, bool *acyclic)
+  TopOrderVisitor(std::vector<StateId>* order, bool* acyclic)
       : order_(order), acyclic_(acyclic) {}
 
-  void InitVisit(const Fst<Arc> &fst) {
+  void InitVisit(const Fst<Arc>& fst) {
     finish_.clear();
     *acyclic_ = true;
   }
 
   constexpr bool InitState(StateId, StateId) const { return true; }
 
-  constexpr bool TreeArc(StateId, const Arc &) const { return true; }
+  constexpr bool TreeArc(StateId, const Arc&) const { return true; }
 
-  bool BackArc(StateId, const Arc &) { return (*acyclic_ = false); }
+  bool BackArc(StateId, const Arc&) { return (*acyclic_ = false); }
 
-  constexpr bool ForwardOrCrossArc(StateId, const Arc &) const { return true; }
+  constexpr bool ForwardOrCrossArc(StateId, const Arc&) const { return true; }
 
-  void FinishState(StateId s, StateId, const Arc *) { finish_.push_back(s); }
+  void FinishState(StateId s, StateId, const Arc*) { finish_.push_back(s); }
 
   void FinishVisit() {
     if (*acyclic_) {
@@ -70,8 +70,8 @@ class TopOrderVisitor {
   }
 
  private:
-  std::vector<StateId> *order_;
-  bool *acyclic_;
+  std::vector<StateId>* order_;
+  bool* acyclic_;
   // States in finish-time order.
   std::vector<StateId> finish_;
 };
@@ -87,7 +87,7 @@ class TopOrderVisitor {
 //
 // where V is the number of states and E is the number of arcs.
 template <class Arc>
-bool TopSort(MutableFst<Arc> *fst) {
+bool TopSort(MutableFst<Arc>* fst) {
   std::vector<typename Arc::StateId> order;
   bool acyclic;
   TopOrderVisitor<Arc> top_order_visitor(&order, &acyclic);

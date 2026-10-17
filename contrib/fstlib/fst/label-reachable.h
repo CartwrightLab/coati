@@ -30,6 +30,7 @@
 #include <utility>
 #include <vector>
 
+#include <unordered_map>
 #include <fst/log.h>
 #include <fst/accumulator.h>
 #include <fst/arcsort.h>
@@ -40,7 +41,6 @@
 #include <fst/state-reachable.h>
 #include <fst/util.h>
 #include <fst/vector-fst.h>
-#include <unordered_map>
 
 namespace fst {
 
@@ -61,24 +61,24 @@ class LabelReachableData {
 
   bool ReachInput() const { return reach_input_; }
 
-  std::vector<LabelIntervalSet> *MutableIntervalSets() {
+  std::vector<LabelIntervalSet>* MutableIntervalSets() {
     return &interval_sets_;
   }
 
-  const LabelIntervalSet &GetIntervalSet(int s) const {
+  const LabelIntervalSet& GetIntervalSet(int s) const {
     return interval_sets_[s];
   }
 
   int NumIntervalSets() const { return interval_sets_.size(); }
 
-  std::unordered_map<Label, Label> *MutableLabel2Index() {
+  std::unordered_map<Label, Label>* MutableLabel2Index() {
     if (!have_relabel_data_) {
       FSTERROR() << "LabelReachableData: No relabeling data";
     }
     return &label2index_;
   }
 
-  const std::unordered_map<Label, Label> *Label2Index() const {
+  const std::unordered_map<Label, Label>* Label2Index() const {
     if (!have_relabel_data_) {
       FSTERROR() << "LabelReachableData: No relabeling data";
     }
@@ -89,8 +89,8 @@ class LabelReachableData {
 
   Label FinalLabel() const { return final_label_; }
 
-  static LabelReachableData *Read(std::istream &istrm,
-                                  const FstReadOptions &opts) {
+  static LabelReachableData* Read(std::istream& istrm,
+                                  const FstReadOptions& opts) {
     // NB: Using `new` to access private constructor.
     auto data = fst::WrapUnique(new LabelReachableData());
     ReadType(istrm, &data->reach_input_);
@@ -102,7 +102,7 @@ class LabelReachableData {
     return data.release();
   }
 
-  bool Write(std::ostream &ostrm, const FstWriteOptions &opts) const {
+  bool Write(std::ostream& ostrm, const FstWriteOptions& opts) const {
     WriteType(ostrm, reach_input_);
     WriteType(ostrm, keep_relabel_data_);
     if (keep_relabel_data_) WriteType(ostrm, label2index_);
@@ -127,8 +127,8 @@ class LabelReachableData {
 // sorting; it must therefore be a permutation of the input FST's StateId
 // sequence.
 template <typename Label, typename StateId>
-bool StateSort(std::vector<IntervalSet<Label>> *interval_sets,
-               const std::vector<StateId> &order) {
+bool StateSort(std::vector<IntervalSet<Label>>* interval_sets,
+               const std::vector<StateId>& order) {
   if (order.size() != interval_sets->size()) {
     FSTERROR() << "StateSort: Bad order vector size: " << order.size()
                << ", expected: " << interval_sets->size();
@@ -147,8 +147,8 @@ bool StateSort(std::vector<IntervalSet<Label>> *interval_sets,
 
 // Apply a new state order to LabelReachableData.
 template <typename Label, typename StateId>
-bool StateSort(LabelReachableData<Label> *data,
-               const std::vector<StateId> &order) {
+bool StateSort(LabelReachableData<Label>* data,
+               const std::vector<StateId>& order) {
   return StateSort(data->MutableIntervalSets(), order);
 }
 
@@ -167,7 +167,7 @@ class LabelLowerBound {
   // of the one previously passed to `Init`, so any expensive initialization
   // can be skipped.
   template <class FST>
-  void Init(const FST &fst, bool reach_input, bool is_copy) {
+  void Init(const FST& fst, bool reach_input, bool is_copy) {
     reach_input_ = reach_input;
   }
 
@@ -179,7 +179,7 @@ class LabelLowerBound {
   // of `aiter`.  `aiter` must be an iterator of the FST that was passed to
   // `Init`.
   template <class ArcIterator>
-  ssize_t operator()(ArcIterator *aiter, ssize_t aiter_begin, ssize_t aiter_end,
+  ssize_t operator()(ArcIterator* aiter, ssize_t aiter_begin, ssize_t aiter_end,
                      Label match_label) const {
     // Only needs to compute the ilabel or olabel of arcs when performing the
     // binary search.
@@ -249,7 +249,7 @@ class LabelReachable {
 
   using Interval = typename LabelIntervalSet::Interval;
 
-  LabelReachable(const Fst<Arc> &fst, bool reach_input,
+  LabelReachable(const Fst<Arc>& fst, bool reach_input,
                  std::unique_ptr<Accumulator> accumulator = nullptr,
                  bool keep_relabel_data = true)
       : fst_(std::make_unique<VectorFst<Arc>>(fst)),
@@ -270,7 +270,7 @@ class LabelReachable {
         accumulator_(accumulator ? std::move(accumulator)
                                  : std::make_unique<Accumulator>()) {}
 
-  LabelReachable(const LabelReachable &reachable, bool safe = false)
+  LabelReachable(const LabelReachable& reachable, bool safe = false)
       : s_(kNoStateId),
         data_(reachable.data_),
         accumulator_(
@@ -289,11 +289,11 @@ class LabelReachable {
   // Relabels w.r.t labels that give compact label sets.
   Label Relabel(Label label) {
     if (label == 0 || error_) return label;
-    const auto &label2index = *data_->Label2Index();
+    const auto& label2index = *data_->Label2Index();
     if (auto iter = label2index.find(label); iter != label2index.end()) {
       return iter->second;
     }
-    auto &relabel = oov_label2index_[label];
+    auto& relabel = oov_label2index_[label];
     if (!relabel) {
       // Adds new label.
       relabel = label2index.size() + oov_label2index_.size() + 1;
@@ -302,7 +302,7 @@ class LabelReachable {
   }
 
   // Relabels FST w.r.t to labels that give compact label sets.
-  void Relabel(MutableFst<Arc> *fst, bool relabel_input) {
+  void Relabel(MutableFst<Arc>* fst, bool relabel_input) {
     for (StateIterator<MutableFst<Arc>> siter(*fst); !siter.Done();
          siter.Next()) {
       for (MutableArcIterator<MutableFst<Arc>> aiter(fst, siter.Value());
@@ -328,12 +328,12 @@ class LabelReachable {
   // Returns relabeling pairs (cf. relabel.h::Relabel()). If avoid_collisions is
   // true, extra pairs are added to ensure no collisions when relabeling
   // automata that have labels unseen here.
-  void RelabelPairs(std::vector<std::pair<Label, Label>> *pairs,
+  void RelabelPairs(std::vector<std::pair<Label, Label>>* pairs,
                     bool avoid_collisions = false) {
     pairs->clear();
-    const auto &label2index = *data_->Label2Index();
+    const auto& label2index = *data_->Label2Index();
     // Maps labels to their new values in [1, label2index().size()].
-    for (const auto &kv : label2index) {
+    for (const auto& kv : label2index) {
       if (kv.second != data_->FinalLabel()) {
         pairs->emplace_back(kv);
       }
@@ -347,7 +347,10 @@ class LabelReachable {
       for (size_t i = 1; i <= label2index.size(); ++i) {
         const auto it = label2index.find(i);
         bool unmapped = it == label2index.end();
-        if (unmapped) unmapped = oov_label2index_.count(i) == 0;
+        if (unmapped) {
+          // TODO: Use contains() when C++20 is allowed in OpenFst.
+          unmapped = oov_label2index_.find(i) == oov_label2index_.end();
+        }
         if (unmapped || it->second == data_->FinalLabel()) {
           pairs->emplace_back(i, label2index.size() + 1);
         }
@@ -385,7 +388,7 @@ class LabelReachable {
   // the FST is a copy of the FST used in the previous call to this method
   // (useful to avoid unnecessary updates).
   template <class FST>
-  void ReachInit(const FST &fst, bool reach_input, bool copy = false) {
+  void ReachInit(const FST& fst, bool reach_input, bool copy = false) {
     reach_fst_input_ = reach_input;
     if (!fst.Properties(reach_fst_input_ ? kILabelSorted : kOLabelSorted,
                         true)) {
@@ -402,10 +405,10 @@ class LabelReachable {
   // Arc iterator labels must be transformed by the Relabel methods
   // above. If compute_weight is true, user may call ReachWeight().
   template <class Iterator>
-  bool Reach(Iterator *aiter, ssize_t aiter_begin, ssize_t aiter_end,
+  bool Reach(Iterator* aiter, ssize_t aiter_begin, ssize_t aiter_end,
              bool compute_weight) {
     if (error_) return false;
-    const auto &interval_set = data_->GetIntervalSet(s_);
+    const auto& interval_set = data_->GetIntervalSet(s_);
     ++ncalls_;
     nintervals_ += interval_set.Size();
     reach_begin_ = -1;
@@ -423,7 +426,7 @@ class LabelReachable {
       Label reach_label = kNoLabel;
       for (auto aiter_pos = aiter_begin; aiter_pos < aiter_end;
            aiter->Next(), ++aiter_pos) {
-        const auto &arc = aiter->Value();
+        const auto& arc = aiter->Value();
         const auto label = reach_fst_input_ ? arc.ilabel : arc.olabel;
         if (label == reach_label || Reach(label)) {
           reach_label = label;
@@ -435,7 +438,7 @@ class LabelReachable {
               // above, we need to call aiter->Value() again after having set
               // the arc iterator flags to compute the arc weight value.
               aiter->SetFlags(kArcWeightValue, kArcValueFlags);
-              const auto &arcb = aiter->Value();
+              const auto& arcb = aiter->Value();
               // Call the accumulator.
               reach_weight_ = accumulator_->Sum(reach_weight_, arcb.weight);
               // Only ilabel or olabel required to process the following arcs.
@@ -453,7 +456,7 @@ class LabelReachable {
       // Checks each interval against arcs.
       auto begin_low = aiter_begin;
       auto end_low = aiter_begin;
-      for (const auto &interval : interval_set) {
+      for (const auto& interval : interval_set) {
         begin_low = lower_bound_(aiter, end_low, aiter_end, interval.begin);
         end_low = lower_bound_(aiter, begin_low, aiter_end, interval.end);
         if (end_low - begin_low > 0) {
@@ -484,11 +487,11 @@ class LabelReachable {
   // Access to the relabeling map. Excludes epsilon (0) label but
   // includes kNoLabel that is used internally for super-final
   // transitions.
-  const std::unordered_map<Label, Label> &Label2Index() const {
+  const std::unordered_map<Label, Label>& Label2Index() const {
     return *data_->Label2Index();
   }
 
-  const Data *GetData() const { return data_.get(); }
+  const Data* GetData() const { return data_.get(); }
 
   std::shared_ptr<Data> GetSharedData() const { return data_; }
 
@@ -555,12 +558,12 @@ class LabelReachable {
       error_ = true;
       return;
     }
-    auto &state2index = state_reachable.State2Index();
-    auto &interval_sets = *data_->MutableIntervalSets();
+    auto& state2index = state_reachable.State2Index();
+    auto& interval_sets = *data_->MutableIntervalSets();
     interval_sets = state_reachable.IntervalSets();
     interval_sets.resize(ins);
-    auto &label2index = *data_->MutableLabel2Index();
-    for (const auto &kv : label2state_) {
+    auto& label2index = *data_->MutableLabel2Index();
+    for (const auto& kv : label2state_) {
       Label i = state2index[kv.second];
       label2index[kv.first] = i;
       if (kv.first == kNoLabel) data_->SetFinalLabel(i);

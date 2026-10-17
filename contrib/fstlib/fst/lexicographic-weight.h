@@ -32,7 +32,6 @@
 #include <random>
 #include <string>
 
-#include <fst/log.h>
 #include <fst/pair-weight.h>
 #include <fst/weight.h>
 
@@ -59,28 +58,28 @@ class LexicographicWeight : public PairWeight<W1, W2> {
 
   LexicographicWeight() = default;
 
-  explicit LexicographicWeight(const PairWeight<W1, W2> &w)
+  explicit LexicographicWeight(const PairWeight<W1, W2>& w)
       : PairWeight<W1, W2>(w) {}
 
   LexicographicWeight(W1 w1, W2 w2) : PairWeight<W1, W2>(w1, w2) {}
 
-  static const LexicographicWeight &Zero() {
+  static const LexicographicWeight& Zero() {
     static const LexicographicWeight zero(PairWeight<W1, W2>::Zero());
     return zero;
   }
 
-  static const LexicographicWeight &One() {
+  static const LexicographicWeight& One() {
     static const LexicographicWeight one(PairWeight<W1, W2>::One());
     return one;
   }
 
-  static const LexicographicWeight &NoWeight() {
+  static const LexicographicWeight& NoWeight() {
     static const LexicographicWeight no_weight(PairWeight<W1, W2>::NoWeight());
     return no_weight;
   }
 
-  static const std::string &Type() {
-    static const std::string *const type =
+  static const std::string& Type() {
+    static const std::string* const type =
         new std::string(W1::Type() + "_LT_" + W2::Type());
     return *type;
   }
@@ -109,8 +108,8 @@ class LexicographicWeight : public PairWeight<W1, W2> {
 };
 
 template <class W1, class W2>
-inline LexicographicWeight<W1, W2> Plus(const LexicographicWeight<W1, W2> &w,
-                                        const LexicographicWeight<W1, W2> &v) {
+inline LexicographicWeight<W1, W2> Plus(const LexicographicWeight<W1, W2>& w,
+                                        const LexicographicWeight<W1, W2>& v) {
   if (!w.Member() || !v.Member()) {
     return LexicographicWeight<W1, W2>::NoWeight();
   }
@@ -124,15 +123,15 @@ inline LexicographicWeight<W1, W2> Plus(const LexicographicWeight<W1, W2> &w,
 }
 
 template <class W1, class W2>
-inline LexicographicWeight<W1, W2> Times(const LexicographicWeight<W1, W2> &w,
-                                         const LexicographicWeight<W1, W2> &v) {
+inline LexicographicWeight<W1, W2> Times(const LexicographicWeight<W1, W2>& w,
+                                         const LexicographicWeight<W1, W2>& v) {
   return LexicographicWeight<W1, W2>(Times(w.Value1(), v.Value1()),
                                      Times(w.Value2(), v.Value2()));
 }
 
 template <class W1, class W2>
-inline LexicographicWeight<W1, W2> Divide(const LexicographicWeight<W1, W2> &w,
-                                          const LexicographicWeight<W1, W2> &v,
+inline LexicographicWeight<W1, W2> Divide(const LexicographicWeight<W1, W2>& w,
+                                          const LexicographicWeight<W1, W2>& v,
                                           DivideType typ = DIVIDE_ANY) {
   return LexicographicWeight<W1, W2>(Divide(w.Value1(), v.Value1(), typ),
                                      Divide(w.Value2(), v.Value2(), typ));

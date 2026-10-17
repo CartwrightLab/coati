@@ -27,11 +27,7 @@
 #include <functional>
 #include <istream>
 #include <ostream>
-#include <string>
-#include <vector>
 
-#include <fst/flags.h>
-#include <fst/log.h>
 #include <fst/weight.h>
 
 namespace fst {
@@ -50,38 +46,38 @@ class TupleWeight {
     std::copy(begin, end, values_.begin());
   }
 
-  explicit TupleWeight(const W &weight = W::Zero()) { values_.fill(weight); }
+  explicit TupleWeight(const W& weight = W::Zero()) { values_.fill(weight); }
 
   // Initialize component `index` to `weight`; initialize all other components
   // to `default_weight`
-  TupleWeight(Index index, const W &weight, const W &default_weight)
+  TupleWeight(Index index, const W& weight, const W& default_weight)
       : TupleWeight(default_weight) {
     values_[index] = weight;
   }
 
-  static const TupleWeight<W, n> &Zero() {
+  static const TupleWeight<W, n>& Zero() {
     static const TupleWeight<W, n> zero(W::Zero());
     return zero;
   }
 
-  static const TupleWeight<W, n> &One() {
+  static const TupleWeight<W, n>& One() {
     static const TupleWeight<W, n> one(W::One());
     return one;
   }
 
-  static const TupleWeight<W, n> &NoWeight() {
+  static const TupleWeight<W, n>& NoWeight() {
     static const TupleWeight<W, n> no_weight(W::NoWeight());
     return no_weight;
   }
 
   constexpr static size_t Length() { return n; }
 
-  std::istream &Read(std::istream &istrm) {
+  std::istream& Read(std::istream& istrm) {
     for (size_t i = 0; i < n; ++i) values_[i].Read(istrm);
     return istrm;
   }
 
-  std::ostream &Write(std::ostream &ostrm) const {
+  std::ostream& Write(std::ostream& ostrm) const {
     for (size_t i = 0; i < n; ++i) values_[i].Write(ostrm);
     return ostrm;
   }
@@ -110,17 +106,17 @@ class TupleWeight {
     return w;
   }
 
-  const W &Value(size_t i) const { return values_[i]; }
+  const W& Value(size_t i) const { return values_[i]; }
 
-  void SetValue(size_t i, const W &w) { values_[i] = w; }
+  void SetValue(size_t i, const W& w) { values_[i] = w; }
 
  private:
   std::array<W, n> values_;
 };
 
 template <class W, size_t n>
-inline bool operator==(const TupleWeight<W, n> &w1,
-                       const TupleWeight<W, n> &w2) {
+inline bool operator==(const TupleWeight<W, n>& w1,
+                       const TupleWeight<W, n>& w2) {
   for (size_t i = 0; i < n; ++i) {
     if (w1.Value(i) != w2.Value(i)) return false;
   }
@@ -128,8 +124,8 @@ inline bool operator==(const TupleWeight<W, n> &w1,
 }
 
 template <class W, size_t n>
-inline bool operator!=(const TupleWeight<W, n> &w1,
-                       const TupleWeight<W, n> &w2) {
+inline bool operator!=(const TupleWeight<W, n>& w1,
+                       const TupleWeight<W, n>& w2) {
   for (size_t i = 0; i < n; ++i) {
     if (w1.Value(i) != w2.Value(i)) return true;
   }
@@ -137,8 +133,8 @@ inline bool operator!=(const TupleWeight<W, n> &w1,
 }
 
 template <class W, size_t n>
-inline bool ApproxEqual(const TupleWeight<W, n> &w1,
-                        const TupleWeight<W, n> &w2, float delta = kDelta) {
+inline bool ApproxEqual(const TupleWeight<W, n>& w1,
+                        const TupleWeight<W, n>& w2, float delta = kDelta) {
   for (size_t i = 0; i < n; ++i) {
     if (!ApproxEqual(w1.Value(i), w2.Value(i), delta)) return false;
   }
@@ -146,8 +142,8 @@ inline bool ApproxEqual(const TupleWeight<W, n> &w1,
 }
 
 template <class W, size_t n>
-inline std::ostream &operator<<(std::ostream &strm,
-                                const TupleWeight<W, n> &w) {
+inline std::ostream& operator<<(std::ostream& strm,
+                                const TupleWeight<W, n>& w) {
   CompositeWeightWriter writer(strm);
   writer.WriteBegin();
   for (size_t i = 0; i < n; ++i) writer.WriteElement(w.Value(i));
@@ -156,7 +152,7 @@ inline std::ostream &operator<<(std::ostream &strm,
 }
 
 template <class W, size_t n>
-inline std::istream &operator>>(std::istream &strm, TupleWeight<W, n> &w) {
+inline std::istream& operator>>(std::istream& strm, TupleWeight<W, n>& w) {
   CompositeWeightReader reader(strm);
   reader.ReadBegin();
   W v;

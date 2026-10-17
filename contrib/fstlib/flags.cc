@@ -28,7 +28,7 @@
 
 #include <fst/log.h>
 
-static const char *private_tmpdir = getenv("TMPDIR");
+static const char* private_tmpdir = getenv("TMPDIR");
 
 DEFINE_int32(v, 0, "verbosity level");
 DEFINE_bool(help, false, "show usage information");
@@ -40,7 +40,7 @@ static std::string flag_usage;
 static std::string prog_src;
 
 // Sets prog_src to src.
-static void SetProgSrc(const char *src) {
+static void SetProgSrc(const char* src) {
   prog_src = src;
   // Remove "-main" in src filename. Flags are defined in fstx.cc but SetFlags()
   // is called in fstx-main.cc, which results in a filename mismatch in
@@ -54,8 +54,8 @@ static void SetProgSrc(const char *src) {
   }
 }
 
-void SetFlags(const char *usage, int *argc, char ***argv,
-              bool remove_flags, const char *src) {
+void SetFlags(const char* usage, int* argc, char*** argv, bool remove_flags,
+              const char* src) {
   flag_usage = usage;
   SetProgSrc(src);
 
@@ -73,8 +73,7 @@ void SetFlags(const char *usage, int *argc, char ***argv,
       val = argval.substr(pos + 1);
     }
     auto bool_register = FlagRegister<bool>::GetRegister();
-    if (bool_register->SetFlag(arg, val))
-      continue;
+    if (bool_register->SetFlag(arg, val)) continue;
     auto string_register = FlagRegister<std::string>::GetRegister();
     if (string_register->SetFlag(arg, val)) continue;
     auto int32_register = FlagRegister<int32_t>::GetRegister();
@@ -106,14 +105,14 @@ void SetFlags(const char *usage, int *argc, char ***argv,
 // If flag is defined in file 'src' and 'in_src' true or is not
 // defined in file 'src' and 'in_src' is false, then print usage.
 static void ShowUsageRestrict(
-    const std::set<std::pair<std::string, std::string>> &usage_set,
-    const std::string &src, bool in_src, bool show_file) {
+    const std::set<std::pair<std::string, std::string>>& usage_set,
+    const std::string& src, bool in_src, bool show_file) {
   std::string old_file;
   bool file_out = false;
   bool usage_out = false;
-  for (const auto &pair : usage_set) {
-    const auto &file = pair.first;
-    const auto &usage = pair.second;
+  for (const auto& pair : usage_set) {
+    const auto& file = pair.first;
+    const auto& usage = pair.second;
     bool match = file == src;
     if ((match && !in_src) || (!match && in_src)) continue;
     if (file != old_file) {
