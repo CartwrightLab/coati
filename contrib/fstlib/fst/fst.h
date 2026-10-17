@@ -670,7 +670,7 @@ class FstImplBase {
         isymbols_(impl.isymbols_ ? impl.isymbols_->Copy() : nullptr),
         osymbols_(impl.osymbols_ ? impl.osymbols_->Copy() : nullptr) {}
 
-  FstImplBase(FstImplBase&& impl) noexcept = default;
+  FstImplBase(FstImplBase&& impl) noexcept = delete;
 
   virtual ~FstImplBase() = default;
 
@@ -685,7 +685,7 @@ class FstImplBase {
     return *this;
   }
 
-  FstImplBase& operator=(FstImplBase&& impl) noexcept = default;
+  FstImplBase& operator=(FstImplBase&& impl) noexcept = delete;
 
  public:
   const std::string& Type() const { return type_; }
