@@ -71,7 +71,7 @@ jobs:
 
       - name: Check formatting
         run: |
-          meson compile -C build/debug clang-format-check --verbose
+          ninja -C build/debug clang-format-check
 
       - name: Preserve Meson logs on failure
         if: ${{ failure() }}
