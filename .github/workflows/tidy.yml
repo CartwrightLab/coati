@@ -73,7 +73,7 @@ jobs:
         run: meson compile -C build/debug src/version.h --verbose
 
       - name: Run Clang-Tidy
-        run: ninja -C builddir/clang clang-tidy
+        run: ninja -C build/debug clang-tidy
 
       - name: Preserve Meson logs on failure
         if: ${{ failure() }}
