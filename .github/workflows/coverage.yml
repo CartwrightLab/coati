@@ -1,4 +1,4 @@
-name: "Coverage Report"
+name: Coverage Report
 
 on:
   push:
@@ -9,39 +9,86 @@ on:
     branches:
       - main
       - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  upload-coverage:
+  coverage:
+    name: GCC coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      CC: gcc
+      CXX: g++
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-      - name: Install Dependencies
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            gcc-11 g++-11 \
+            gcc \
+            g++ \
             libboost-all-dev \
             libeigen3-dev \
-            nlohmann-json3-dev          
-          pip install gcovr
-      - name: Run Unit Tests
-        uses: BSFishy/meson-build@v1.0.3
-        with:
-          action: test
-          directory: build/debug
-          setup-options: -Db_test=true --buildtype=debug -Db_coverage=true -Db_benchmark=false
-          options: --verbose
-          meson-version: 1.1.1
-          ninja-version: 1.11.1
+            nlohmann-json3-dev
+
+      - name: Install Meson, Ninja, and gcovr
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install meson ninja gcovr
+
+      - name: Show tool versions
+        run: |
+          "$CC" --version
+          "$CXX" --version
+          meson --version
+          ninja --version
+          gcovr --version
+
+      - name: Configure
+        run: |
+          meson setup build/debug \
+            --buildtype=debug \
+            -Db_test=true \
+            -Db_coverage=true \
+            -Db_benchmark=false
+
+      - name: Build
+        run: meson compile -C build/debug --verbose
+
+      - name: Run tests
+        run: meson test -C build/debug --verbose --print-errorlogs
+
       - name: Generate coverage report
-        run: ninja coverage-xml -C build/debug
-      - name: Upload coverage results
-        uses: codecov/codecov-action@v2
+        run: meson compile -C build/debug coverage-xml --verbose
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
         with:
           files: build/debug/meson-logs/coverage.xml
-      - name: Preserve Build Log on Failure
-        uses: actions/upload-artifact@v3
+          disable_search: true
+          fail_ci_if_error: true
+
+      - name: Preserve Meson logs on failure
         if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
         with:
-          name: Linux_Meson_log
-          path: build/debug/meson-logs/meson-log.txt
+          name: meson-coverage-logs
+          path: build/debug/meson-logs/
+          if-no-files-found: warn
+          retention-days: 14

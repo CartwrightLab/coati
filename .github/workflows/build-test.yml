@@ -1,4 +1,4 @@
-name: "Build and Test"
+name: Build and Test
 
 on:
   push:
@@ -9,42 +9,88 @@ on:
     branches:
       - main
       - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-linux:
+    name: Linux / ${{ matrix.compiler }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc
+            cc: gcc
+            cxx: g++
+          - compiler: clang
+            cc: clang
+            cxx: clang++
+
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-      - name: Install Dependencies
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            gcc-11 g++-11 \
+            gcc \
+            g++ \
+            clang \
             libboost-all-dev \
             libeigen3-dev \
             nlohmann-json3-dev
-      - name: Full Build
-        uses: BSFishy/meson-build@v1.0.3
-        with:
-          action: build
-          directory: build/debug
-          setup-options: -Db_test=true --buildtype=debug -Db_coverage=false -Db_benchmark=false
-          options: --verbose
-          meson-version: 1.1.1
-          ninja-version: 1.11.1
-      - name: Run Unit Tests
-        uses: BSFishy/meson-build@v1.0.3
-        with:
-          action: test
-          directory: build/debug
-          setup-options: -Db_test=true --buildtype=debug -Db_coverage=false -Db_benchmark=false
-          options: --verbose
-          meson-version: 1.1.1
-          ninja-version: 1.11.1 
-      - name: Preserve Build Log on Failure
-        uses: actions/upload-artifact@v3
+
+      - name: Install Meson and Ninja
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install meson ninja
+
+      - name: Show tool versions
+        run: |
+          "$CC" --version
+          "$CXX" --version
+          python --version
+          meson --version
+          ninja --version
+
+      - name: Configure
+        run: |
+          meson setup build/debug \
+            --buildtype=debug \
+            -Db_test=true \
+            -Db_coverage=false \
+            -Db_benchmark=false
+
+      - name: Build
+        run: meson compile -C build/debug --verbose
+
+      - name: Test
+        run: meson test -C build/debug --verbose --print-errorlogs
+
+      - name: Preserve Meson logs on failure
         if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
         with:
-          name: Linux_Meson_log
-          path: build/debug/meson-logs/meson-log.txt
+          name: meson-logs-${{ matrix.compiler }}
+          path: build/debug/meson-logs/
+          if-no-files-found: warn
+          retention-days: 14
