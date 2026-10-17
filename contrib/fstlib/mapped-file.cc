@@ -69,8 +69,8 @@ MappedFile::~MappedFile() {
 #endif
     } else {
       if (region_.data) {
-        operator delete(region_.data, region_.size,
-                        std::align_val_t{region_.offset});
+        operator delete(region_.data,
+                std::align_val_t{region_.offset});
       }
     }
   }
