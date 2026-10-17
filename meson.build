@@ -26,7 +26,7 @@ project('COATI', 'cpp',
 	license : 'MIT',
 	meson_version : '>=0.58.0',
 	default_options: [ 'buildtype=debugoptimized',
-		'cpp_std=c++17', 'b_ndebug=if-release' ])
+		'cpp_std=c++20', 'b_ndebug=if-release' ])
 
 subdir('contrib')
 subdir('src')
