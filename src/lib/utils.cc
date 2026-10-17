@@ -145,13 +145,15 @@ void set_options_alignpair(CLI::App& app, coati::args_t& args) {
     // CheckedTransformer translates and checks whether the results are either
     // in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
-                   "Ambiguous nucleotides model", "SUM")
+                   "Ambiguous nucleotides model")
+        ->default_str("SUM")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
     std::map<std::string, coati::MarginalSubst> sub_mar_map{
         {"SUM", coati::MarginalSubst::SUM}, {"MAX", coati::MarginalSubst::MAX}};
     app.add_option("--marginal-sub", args.aln.sub,
-                   "Marginal substitution option", "SUM")
+                   "Marginal substitution option")
+        ->default_str("SUM")
         ->transform(CLI::CheckedTransformer(sub_mar_map, CLI::ignore_case))
         ->group("");
     app.add_option("-b,--base-error", args.aln.bc_error,
@@ -262,7 +264,8 @@ void set_options_msa(CLI::App& app, coati::args_t& args) {
     // CheckedTransformer translates and checks whether the results are either
     // in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
-                   "Ambiguous nucleotides model", "SUM")
+                   "Ambiguous nucleotides model")
+        ->default_str("SUM")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
 }
@@ -369,7 +372,8 @@ void set_options_sample(CLI::App& app, coati::args_t& args) {
     // CheckedTransformer translates and checks whether the results are
     // either in one of the strings or in one of the translations already
     app.add_option("-a,--ambiguous", args.aln.amb,
-                   "Ambiguous nucleotides model", "SUM")
+                   "Ambiguous nucleotides model")
+        ->default_str("SUM")
         ->transform(CLI::CheckedTransformer(amb_map, CLI::ignore_case))
         ->group("");
     // app.add_option("-T,--temperature", args.temperature, "Sampling
