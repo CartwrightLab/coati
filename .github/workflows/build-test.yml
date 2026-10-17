@@ -76,7 +76,6 @@ jobs:
         run: |
           meson setup build/debug \
             --buildtype=debug \
-            -Db_test=true \
             -Db_coverage=false \
             -Db_benchmark=false
 
