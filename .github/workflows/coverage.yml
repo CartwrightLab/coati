@@ -64,8 +64,9 @@ jobs:
         run: |
           meson setup build/debug \
             --buildtype=debug \
+            -Dtest=true \
             -Db_coverage=true \
-            -Db_benchmark=false
+            -Dbenchmark=false
 
       - name: Build
         run: meson compile -C build/debug --verbose

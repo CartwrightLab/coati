@@ -65,8 +65,9 @@ jobs:
         run: |
           meson setup build/debug \
             --buildtype=debug \
+            -Dtest=false \
             -Db_coverage=false \
-            -Db_benchmark=false
+            -Dbenchmark=false
 
       - name: Generate configured headers
         run: meson compile -C build/debug src/version.h --verbose
